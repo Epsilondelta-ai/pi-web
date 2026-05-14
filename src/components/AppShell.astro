@@ -1,0 +1,374 @@
+---
+const workspaces = [
+  {
+    id: "pi-web-ui",
+    name: "pi-web-ui",
+    path: "~/code/epsilondelta/pi-web-ui",
+    status: "active",
+  },
+  {
+    id: "moai-adk",
+    name: "moai-adk",
+    path: "~/code/moai-adk",
+    status: "2 sessions",
+  },
+  { id: "openclaw", name: "openclaw", path: "~/code/openclaw", status: "idle" },
+];
+
+const sessions = [
+  {
+    id: "frontend-first",
+    name: "frontend-first",
+    branch: "main",
+    state: "running",
+  },
+  {
+    id: "design-import",
+    name: "design-import",
+    branch: "main",
+    state: "waiting",
+  },
+  {
+    id: "api-contract",
+    name: "api-contract",
+    branch: "later/go",
+    state: "draft",
+  },
+];
+
+const recentPaths = [
+  "~/code/epsilondelta/pi-web-ui",
+  "~/code/moai-adk",
+  "~/code/openclaw",
+];
+---
+
+<section class="device-stage" data-app-shell aria-label="Pi Web app shell">
+  <div class="phone-frame" data-view="terminal">
+    <div class="ios-status" aria-hidden="true">
+      <span>9:41</span>
+      <span class="notch"></span>
+      <span class="status-icons">▰▰ ◉</span>
+    </div>
+
+    <header class="app-header">
+      <button
+        class="icon-button"
+        type="button"
+        data-action="show-home"
+        aria-label="Open workspace home"
+        aria-pressed="false">≡</button
+      >
+      <div class="title-stack">
+        <span data-header-eyebrow>live · sonnet:high · 12.3k ctx</span>
+        <h1 data-active-title>pi-web-ui / frontend-first</h1>
+      </div>
+      <button
+        class="icon-button"
+        type="button"
+        data-action="toggle-settings"
+        aria-expanded="false"
+        aria-controls="settings-dialog"
+        aria-label="Open settings">⌘</button
+      >
+    </header>
+
+    <main class="screen-stack" id="main" tabindex="-1">
+      <section
+        class="screen workspace-screen"
+        data-screen="home"
+        aria-labelledby="workspace-title"
+        hidden
+      >
+        <div class="screen-heading">
+          <p class="eyebrow">workspace home</p>
+          <h2 id="workspace-title">Where should pi work?</h2>
+          <p>
+            Pick workspace, open session, or attach new path. Static demo only.
+          </p>
+        </div>
+
+        <button
+          class="primary-action"
+          type="button"
+          data-action="new-workspace"
+        >
+          <span>+</span>
+          new workspace
+        </button>
+
+        <div class="list-block" aria-label="Workspace navigation">
+          <div class="list-label">recent workspaces</div>
+          {
+            workspaces.map((workspace, index) => (
+              <button
+                class:list={["list-row", { active: index === 0 }]}
+                type="button"
+                data-workspace={workspace.id}
+                data-name={workspace.name}
+                data-path={workspace.path}
+                aria-pressed={index === 0 ? "true" : "false"}
+              >
+                <span class="row-marker">▸</span>
+                <span>
+                  <strong>{workspace.name}</strong>
+                  <small>{workspace.path}</small>
+                </span>
+                <em>{workspace.status}</em>
+              </button>
+            ))
+          }
+        </div>
+      </section>
+
+      <section
+        class="screen sessions-screen"
+        data-screen="sessions"
+        aria-labelledby="sessions-title"
+        hidden
+      >
+        <div class="screen-heading">
+          <p class="eyebrow">sessions</p>
+          <h2 id="sessions-title">Continue agent run.</h2>
+          <p>Session rows mirror Pi mobile list density and state badges.</p>
+        </div>
+        <div class="list-block">
+          <div class="list-label">active sessions</div>
+          {
+            sessions.map((session, index) => (
+              <button
+                class:list={["session-row", { active: index === 0 }]}
+                type="button"
+                data-session={session.id}
+                data-branch={session.branch}
+                data-state={session.state}
+                aria-current={index === 0 ? "true" : undefined}
+              >
+                <span>
+                  <strong>{session.name}</strong>
+                  <small>{session.branch}</small>
+                </span>
+                <em class:list={["badge", session.state]}>{session.state}</em>
+              </button>
+            ))
+          }
+        </div>
+      </section>
+
+      <section
+        class="screen terminal-screen"
+        data-screen="terminal"
+        aria-label="Agent terminal"
+      >
+        <div class="run-hud">
+          <span class="live-dot"></span>
+          <strong data-agent-state>running</strong>
+          <span>edit/app-shell</span>
+          <span class="hud-meter">ctx ▉▉▉▉▉▉░░</span>
+        </div>
+
+        <div class="terminal" data-terminal>
+          <article class="message user">
+            <b>you &gt;</b>
+            <p>Use Claude Design zip and build frontend first.</p>
+          </article>
+          <article class="message agent">
+            <b>pi &gt;</b>
+            <p>
+              Restored mobile-first phone shell. Workspace home, sessions,
+              prompt, approvals, and overlays are local-only until Go backend.
+            </p>
+          </article>
+          <article class="message think">
+            <b>…</b>
+            <p>
+              Matching 375×812 frame, dense terminal rows, ANSI green accents,
+              and bottom prompt grammar from source design.
+            </p>
+          </article>
+          <article class="tool-card" data-tool-card>
+            <header><span></span><b>bash</b><em>npm run build</em></header>
+            <pre>astro check
+astro build
+✓ dist ready</pre>
+            <footer><span>✓ static</span><span>0.9s</span></footer>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <nav class="tab-bar" aria-label="Pi Web screens">
+      <button type="button" data-view-target="home" aria-pressed="false">
+        <span>⌂</span>home
+      </button>
+      <button type="button" data-view-target="sessions" aria-pressed="false">
+        <span>▤</span>sessions
+      </button>
+      <button
+        class="active"
+        type="button"
+        data-view-target="terminal"
+        aria-pressed="true"
+      >
+        <span>&gt;_</span>terminal
+      </button>
+    </nav>
+
+    <form class="prompt-bar" data-prompt-form>
+      <div class="keypad" aria-label="Terminal keypad">
+        <button type="button" data-key="left" aria-label="Left">←</button>
+        <button type="button" data-key="down" aria-label="Down">↓</button>
+        <button type="button" data-key="up" aria-label="Up">↑</button>
+        <button type="button" data-key="right" aria-label="Right">→</button>
+        <button class="wide" type="button" data-key="escape">esc</button>
+        <button class="wide enter" type="button" data-key="enter"
+          >enter ↵</button
+        >
+      </div>
+      <div class="prompt-input-wrap">
+        <label for="prompt-input">&gt;</label>
+        <textarea
+          id="prompt-input"
+          data-prompt-input
+          autocomplete="off"
+          rows="2"
+          placeholder="Describe what you want pi to do…"
+          >open settings panel</textarea
+        >
+        <button type="submit">send</button>
+      </div>
+    </form>
+
+    <div class="home-indicator" aria-hidden="true"></div>
+
+    <div class="overlay-scrim" data-scrim hidden></div>
+
+    <section
+      class="bottom-sheet"
+      id="workspace-dialog"
+      data-workspace-dialog
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="workspace-dialog-title"
+      hidden
+    >
+      <header>
+        <div>
+          <p class="eyebrow">new workspace</p>
+          <h2 id="workspace-dialog-title">Open local path</h2>
+        </div>
+        <button
+          type="button"
+          data-action="close-workspace"
+          aria-label="Close new workspace dialog">×</button
+        >
+      </header>
+      <label>
+        Path
+        <input data-workspace-path value="~/code/epsilondelta/pi-web-ui" />
+      </label>
+      <div class="recent-paths" aria-label="Recent paths">
+        {
+          recentPaths.map((path) => (
+            <button type="button" data-recent-path={path}>
+              {path}
+            </button>
+          ))
+        }
+      </div>
+      <div class="sheet-actions">
+        <button type="button" data-action="close-workspace">cancel</button>
+        <button type="button" data-action="open-workspace">open</button>
+      </div>
+    </section>
+
+    <section
+      class="approval-dialog"
+      id="approval-dialog"
+      data-approval-dialog
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="approval-title"
+      hidden
+    >
+      <header>
+        <p class="eyebrow">approval required</p>
+        <h2 id="approval-title">Apply generated frontend patch?</h2>
+        <p>Preview diff before allowing local file write. Demo state only.</p>
+      </header>
+      <pre
+        class="diff-preview"><span>@@ src/components/AppShell.astro</span>
+- desktop sidebar shell
++ mobile PiFrame terminal shell
++ bottom sheet workspace dialog
++ modal approval with diff</pre>
+      <label class="allow-row">
+        <input type="checkbox" data-always-allow />
+        always allow safe frontend writes this session
+      </label>
+      <div class="dialog-actions">
+        <button class="danger-action" type="button" data-action="reject-change"
+          >destructive reject</button
+        >
+        <button type="button" data-action="close-approval">cancel</button>
+        <button
+          class="approve-action"
+          type="button"
+          data-action="approve-change">approve ↵</button
+        >
+      </div>
+    </section>
+
+    <section
+      class="settings-dialog"
+      id="settings-dialog"
+      data-settings-panel
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+      hidden
+    >
+      <header>
+        <div>
+          <p class="eyebrow">state</p>
+          <h2 id="settings-title">Model settings</h2>
+        </div>
+        <button
+          type="button"
+          data-action="toggle-settings"
+          aria-label="Close settings">×</button
+        >
+      </header>
+      <div class="settings-scroll">
+        <label>
+          Model
+          <select data-model-select>
+            <option>sonnet</option>
+            <option>opus</option>
+            <option>haiku</option>
+          </select>
+        </label>
+        <label>
+          Approval mode
+          <select data-approval-select>
+            <option>ask before tools</option>
+            <option>auto approve safe tools</option>
+            <option>read-only</option>
+          </select>
+        </label>
+        <label>
+          Density
+          <select data-density-select>
+            <option>compact</option>
+            <option>comfortable</option>
+          </select>
+        </label>
+        <div class="state-box" data-state-box>
+          sonnet · ask before tools · compact density
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<script src="../scripts/app-shell.ts"></script>

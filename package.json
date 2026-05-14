@@ -1,0 +1,21 @@
+{
+  "name": "pi-web-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "format": "prettier --plugin=prettier-plugin-astro --write \"src/**/*.{astro,css,ts}\" \"scripts/**/*.mjs\" \"*.{json,mjs,md}\"",
+    "smoke": "node scripts/smoke-check.mjs"
+  },
+  "devDependencies": {
+    "@astrojs/check": "latest",
+    "astro": "latest",
+    "prettier": "latest",
+    "prettier-plugin-astro": "^0.14.1",
+    "typescript": "latest"
+  }
+}
