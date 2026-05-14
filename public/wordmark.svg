@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" width="320" height="96">
+  <rect width="320" height="96" fill="#0a0a0a"></rect>
+  <text x="20" y="58" font-family="JetBrains Mono, ui-monospace, monospace" font-size="44" font-weight="500" fill="#00ff88">pi.dev</text>
+  <text x="178" y="58" font-family="JetBrains Mono, ui-monospace, monospace" font-size="44" font-weight="400" fill="#d4d4d4">/ web</text>
+  <rect x="280" y="32" width="12" height="28" fill="#00ff88"></rect>
+</svg>

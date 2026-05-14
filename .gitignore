@@ -1,5 +1,8 @@
 # Pi local package install artifacts
 .pi/npm/
+node_modules/
+dist/
+.astro/
 
 # Transient MoAI/Pi runtime artifacts
 .moai/logs/
