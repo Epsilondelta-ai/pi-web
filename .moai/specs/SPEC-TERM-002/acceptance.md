@@ -1,7 +1,7 @@
 ---
 id: SPEC-TERM-002
 version: "0.1.0"
-status: draft
+status: completed
 created_at: "2026-05-15"
 updated_at: "2026-05-15"
 author: MoAI
@@ -80,14 +80,20 @@ AC-TERM2-019: When the Pi Web backend constructs tmux commands, the backend shal
 
 ## Definition of Done
 
-- [ ] All 19 acceptance criteria pass automated or manual verification.
-- [ ] Backend tests cover: start/attach/detach/kill/list, validation rejection, same-session attach, mode selection, argument-vector safety.
-- [ ] Frontend tests cover: detached state display, attach/kill actions, reconnection without error, no HTML injection.
-- [ ] `npm run build` and `npm run smoke` pass.
-- [ ] `go test ./...` passes.
-- [ ] `README.md` documents tmux persistence, security defaults, and configuration.
-- [ ] No `terminal.closed` event emitted for managed tmux sessions.
-- [ ] Managed prefix enforcement verified: non-managed sessions rejected on list/attach/kill.
+- [x] All 19 acceptance criteria pass automated or manual verification.
+- [x] Backend tests cover: start/attach/detach/kill/list, validation rejection, same-session attach, mode selection, argument-vector safety.
+- [x] Frontend tests cover: detached state display, attach/kill actions, reconnection without error, no HTML injection.
+- [x] `npm run build` and `npm run smoke` pass.
+- [x] `go test ./...` passes.
+- [x] `README.md` documents tmux persistence, security defaults, and configuration.
+- [x] No `terminal.closed` event emitted for managed tmux sessions.
+- [x] Managed prefix enforcement verified: non-managed sessions rejected on list/attach/kill.
+
+## Sync Summary
+
+- Implementation commit: `e075e40`.
+- Added Go tmux runner, mode-aware handler, REST list/kill routes, config validation, lifecycle events, and frontend tmux contract checks.
+- Residual warning: npm audit moderate vulnerabilities in `@astrojs/check` dependency chain; no high/critical issue recorded.
 
 ## Traceability Matrix
 

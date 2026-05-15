@@ -1,9 +1,9 @@
 ---
 id: SPEC-TERM-002
 version: "0.1.0"
-phase: "1.5"
+phase: "3"
 created_at: "2026-05-15"
-status: approved
+status: completed
 ---
 
 # SPEC-TERM-002 — Task Decomposition
@@ -286,6 +286,11 @@ T07 (events) ─────────────────────┴�
 | REQ-TERM2-024 | T02, T12 |
 | REQ-TERM2-025 | T12 |
 | REQ-TERM2-026 | T08, T12 |
+
+## Sync Summary
+
+- All T01-T14 tasks completed in commit `e075e40`.
+- Sync confirmed project docs now reflect Go backend, tmux persistence, REST routes, config, tests, and frontend contract coverage.
 
 ## Coverage Verification
 

@@ -1,7 +1,7 @@
 ---
 id: SPEC-TERM-002
 version: "0.1.0"
-status: draft
+status: completed
 created_at: "2026-05-15"
 updated_at: "2026-05-15"
 author: MoAI
@@ -44,6 +44,10 @@ Add tmux-backed persistent terminal sessions to Pi Web UI. Preserve SPEC-TERM-00
 ## Acceptance (19)
 
 EARS-format binary-testable criteria covering all 26 requirements. Five ACs added in iteration 3 for REQs 005, 006, 020, 021, 024. See `acceptance.md`.
+
+## Implementation Summary
+
+Completed in commit `e075e40`. Added Go tmux runner, mode-aware WebSocket handler, REST list/kill routes, tmux config validation, frontend detached-session UI, attach/kill actions, smoke checks, and frontend contract test.
 
 ## Exclusions
 

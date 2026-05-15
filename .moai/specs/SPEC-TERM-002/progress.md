@@ -45,3 +45,21 @@
   - internal/terminal/tmux_runner.go: @MX:WARN, @MX:NOTE, @MX:ANCHOR
   - internal/terminal/handler.go: @MX:ANCHOR, @MX:WARN
   - src/scripts/terminal-client.ts: @MX:NOTE
+
+## Phase 3 - Documentation Sync
+
+- completed_at: 2026-05-15T00:22:08Z
+- status: completed
+- implementation_commit: e075e4085ea18abce13499f1a2803231a637b9d8
+- docs_updated:
+  - .moai/specs/SPEC-TERM-002/spec.md
+  - .moai/specs/SPEC-TERM-002/acceptance.md
+  - .moai/specs/SPEC-TERM-002/plan.md
+  - .moai/specs/SPEC-TERM-002/tasks.md
+  - .moai/specs/SPEC-TERM-002/spec-compact.md
+  - .moai/project/product.md
+  - .moai/project/structure.md
+  - .moai/project/tech.md
+  - README.md
+- sync_report: .moai/reports/sync-report-SPEC-TERM-002.md
+- residual_warning: npm audit moderate vulnerabilities in @astrojs/check/yaml-language-server chain

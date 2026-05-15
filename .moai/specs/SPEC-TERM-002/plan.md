@@ -1,7 +1,7 @@
 ---
 id: SPEC-TERM-002
 version: "0.1.0"
-status: draft
+status: completed
 created_at: "2026-05-15"
 updated_at: "2026-05-15"
 author: MoAI
@@ -88,6 +88,13 @@ Extend the existing terminal subsystem in `internal/terminal/` with a tmux runne
 - SPEC-TERM-001 must be completed (direct PTY terminal is the base).
 - System tmux binary must be available for tmux mode (detected at runtime, not build time).
 - No new Go or npm dependencies required beyond what SPEC-TERM-001 introduced.
+
+## Implementation Notes
+
+- M1-M8 completed in commit `e075e40`.
+- Backend implementation landed in `internal/config/`, `internal/server/`, and `internal/terminal/` with focused tests.
+- Frontend implementation landed in `src/components/AppShell.astro`, `src/scripts/app-shell.ts`, `src/scripts/terminal-client.ts`, plus `scripts/frontend-contract-test.mjs`.
+- Documentation sync updated project context docs and README command coverage.
 
 ## Affected Files Summary
 

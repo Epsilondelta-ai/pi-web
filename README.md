@@ -10,6 +10,7 @@ npm run dev
 npm run check
 npm run build
 npm run smoke
+npm run test:frontend
 npm run preview
 ```
 

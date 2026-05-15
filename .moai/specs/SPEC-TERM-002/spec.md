@@ -1,7 +1,7 @@
 ---
 id: SPEC-TERM-002
 version: "0.1.0"
-status: draft
+status: completed
 created_at: "2026-05-15"
 updated_at: "2026-05-15"
 author: MoAI
@@ -18,6 +18,7 @@ depends_on: [SPEC-TERM-001]
 | Date | Version | Change | Author |
 |---|---:|---|---|
 | 2026-05-15 | 0.1.0 | Reconstructed from PASS audit report (iteration 2 review). REQ-TERM2-001..026, AC-TERM2-001..014, lifecycle vocabulary, same-session policy, exclusions. | MoAI |
+| 2026-05-15 | 0.1.0 | Implementation completed in commit `e075e40`; docs synced with tmux persistence, routes, config, and frontend contract test. | MoAI |
 
 ## Overview
 
@@ -164,6 +165,15 @@ These event names are implementation-planning constraints, not normative require
 - No arbitrary tmux console access — only managed start/attach/list/kill.
 - No automatic fallback from tmux mode to direct PTY mode when tmux is unavailable.
 - No production deployment workflow.
+
+## Implementation Notes
+
+- Completed in commit `e075e40` (`feat(term): tmux 기반 영속 터미널 세션 추가`).
+- Go backend now exposes PTY WebSocket terminal streaming plus managed tmux start/attach/list/kill lifecycle.
+- Tmux configuration added: enable flag, binary path, managed prefix; unavailable tmux rejects without PTY fallback.
+- REST helpers added: `GET /api/tmux/sessions`, `POST /api/tmux/sessions/{managedName}/kill`.
+- Frontend now uses xterm.js, detached-session UI markers, attach/kill actions, and `scripts/frontend-contract-test.mjs`.
+- Validation recorded: `go test ./...` PASS, `npm run build` PASS, `npm run smoke` PASS; residual warning remains npm audit moderate chain via `@astrojs/check`.
 
 ## MX Tag Plan
 
