@@ -1,4 +1,4 @@
-import { getGitStatus, getSession, getWorkspaceFiles, getWorkspaces, openWorkspace, postPrompt, sessionEvents } from "./api.js";
+import { createSession, getGitStatus, getSession, getWorkspaceFiles, getWorkspaces, openWorkspace, postPrompt, sessionEvents } from "./api.js";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderTree } from "./renderers.js";
 
 class PiApp extends HTMLElement {
@@ -476,14 +476,34 @@ class PiApp extends HTMLElement {
     this.scrollTerm();
   }
 
-  newSession(workspace) {
+  async newSession(workspace) {
+    const workspaceId = workspace || this.dataset.activeWorkspaceId;
+    if (this.apiConnected && workspaceId) {
+      try {
+        const { session } = await createSession(workspaceId);
+        this.dataset.activeSessionId = session.id;
+        this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
+        const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
+        group?.append(this.createSessionRow(workspaceId, session));
+        group?.querySelector(`[data-session='${session.id}']`)?.classList.add("active");
+        const title = this.querySelector("[data-active-session-title]");
+        if (title) {
+          title.textContent = session.title;
+          title.title = `${session.title} · ${session.id}`;
+        }
+        this.renderMessages([]);
+        this.connectEvents(session.id);
+      } catch {
+        this.setConnection("err");
+      }
+    }
     this.querySelector("[data-main='session']")?.setAttribute("hidden", "");
     this.querySelector("[data-main='empty']")?.removeAttribute("hidden");
-    const label = this.querySelector(`[data-workspace='${workspace}'] .label`)?.textContent || workspace || "workspace";
+    const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent || workspaceId || "workspace";
     const empty = this.querySelector("[data-empty-workspace]");
     const title = this.querySelector("[data-active-session-title]");
     if (empty) empty.textContent = label;
-    if (title) title.textContent = "new session";
+    if (title && !this.dataset.activeSessionId) title.textContent = "new session";
   }
 
   closeModals() {}

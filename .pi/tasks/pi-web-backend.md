@@ -92,9 +92,10 @@ data: {"sessionId":"...","payload":{}}
 
 - Added frontend API module at `src/api.js`.
 - Added `EventSource` session stream adapter.
-- Runtime now tries backend API first and falls back to static SSR fixtures when unavailable.
+- Runtime now loads backend API data into an empty shell; production SSR fixtures were removed.
 - Session prompt submit posts to backend and consumes streamed SSE events.
 - Workspace/session/file metadata refresh from backend when connected.
+- New session creation is wired from frontend to backend.
 - Reconnect and `Last-Event-ID` remain later work.
 
 ### 6. Real pi bridge
@@ -107,6 +108,8 @@ data: {"sessionId":"...","payload":{}}
 - Adds `POST /api/sessions/{sessionId}/cancel` for running prompt cancellation.
 - Normalizes pi CLI stdout/stderr into SSE events.
 - Keeps `--mock` / `bun run backend:mock` for safe UI/API/SSE checks without invoking `pi`.
+- Tails pi JSONL session files during execution and publishes appended messages over SSE.
+- Adds `POST /api/workspaces/{workspaceId}/sessions` for persisted session creation.
 
 ### 7. Local safety
 

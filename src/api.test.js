@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getSession, getWorkspaces, postPrompt, sessionEvents } from "./api.js";
+import { createSession, getSession, getWorkspaces, postPrompt, sessionEvents } from "./api.js";
 
 describe("api adapter", () => {
   beforeEach(() => {
@@ -25,6 +25,12 @@ describe("api adapter", () => {
   it("escapes session ids in paths", async () => {
     const result = await getSession("a/b");
     expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb");
+  });
+
+  it("creates sessions in a workspace", async () => {
+    const result = await createSession("w1");
+    expect(result.url).toBe("http://backend.test/api/workspaces/w1/sessions");
+    expect(result.options.method).toBe("POST");
   });
 
   it("posts prompts as json", async () => {

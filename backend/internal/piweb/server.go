@@ -53,6 +53,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/workspaces", s.workspaces)
 	s.mux.HandleFunc("POST /api/workspaces/open", s.openWorkspace)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/sessions", s.workspaceSessions)
+	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/sessions", s.createSession)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/files", s.workspaceFiles)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/status", s.gitStatus)
 	s.mux.HandleFunc("GET /api/sessions/{sessionID}", s.session)
@@ -81,6 +82,15 @@ func (s *Server) openWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, workspace)
+}
+
+func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
+	session, err := s.store.CreateSession(r.PathValue("workspaceID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"session": session})
 }
 
 func (s *Server) workspaceSessions(w http.ResponseWriter, r *http.Request) {

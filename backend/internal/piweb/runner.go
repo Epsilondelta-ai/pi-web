@@ -4,8 +4,11 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"io"
+	"os"
 	"os/exec"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -40,10 +43,14 @@ func (r *Runner) StartPiPrompt(parent context.Context, broker *Broker, store *St
 			r.mu.Unlock()
 			cancel()
 		}()
-		user := Message{Kind: "user", Text: text}
-		_ = store.AppendMessage(sessionID, user)
-		broker.Publish(sessionID, "session.message", user)
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
+
+		var emitted atomic.Int64
+		startOffset := fileSize(sessionFile)
+		tailCtx, stopTail := context.WithCancel(ctx)
+		defer stopTail()
+		tailDone := make(chan struct{})
+		go tailSessionFile(tailCtx, broker, store, sessionID, sessionFile, startOffset, &emitted, tailDone)
 
 		args := []string{"--session", sessionFile, "--print", text}
 		cmd := exec.CommandContext(ctx, "pi", args...)
@@ -60,36 +67,32 @@ func (r *Runner) StartPiPrompt(parent context.Context, broker *Broker, store *St
 		}
 
 		var output string
-		done := make(chan struct{})
-		go func() {
-			scanner := bufio.NewScanner(stdout)
-			scanner.Buffer(make([]byte, 1024), 1024*1024)
-			for scanner.Scan() {
-				line := scanner.Text()
-				if output != "" {
-					output += "\n"
-				}
-				output += line
-				broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+		stdoutDone := make(chan struct{})
+		go streamPipe(stdout, func(line string) {
+			if output != "" {
+				output += "\n"
 			}
-			close(done)
-		}()
-		go func() {
-			scanner := bufio.NewScanner(stderr)
-			for scanner.Scan() {
-				broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": scanner.Text()})
-			}
-		}()
-		<-done
+			output += line
+			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+		}, stdoutDone)
+		go streamPipe(stderr, func(line string) {
+			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+		}, nil)
+
+		<-stdoutDone
 		err = cmd.Wait()
+		stopTail()
+		waitForTail(tailDone)
 		if err != nil {
 			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
 			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
 			return
 		}
-		msg := Message{Kind: "pi", Text: output}
-		_ = store.AppendMessage(sessionID, msg)
-		broker.Publish(sessionID, "session.message", msg)
+		if emitted.Load() == 0 && output != "" {
+			msg := Message{Kind: "pi", Text: output}
+			_ = store.AppendMessage(sessionID, msg)
+			broker.Publish(sessionID, "session.message", msg)
+		}
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "idle", "finishedAt": time.Now().UTC().Format(time.RFC3339)})
 	}()
 	return nil
@@ -104,4 +107,93 @@ func (r *Runner) Cancel(sessionID string) bool {
 		delete(r.running, sessionID)
 	}
 	return ok
+}
+
+func streamPipe(pipe io.Reader, onLine func(string), done chan<- struct{}) {
+	if done != nil {
+		defer close(done)
+	}
+	scanner := bufio.NewScanner(pipe)
+	scanner.Buffer(make([]byte, 1024), 1024*1024)
+	for scanner.Scan() {
+		onLine(scanner.Text())
+	}
+}
+
+func tailSessionFile(ctx context.Context, broker *Broker, store *Store, sessionID, path string, offset int64, emitted *atomic.Int64, done chan<- struct{}) {
+	defer close(done)
+	ticker := time.NewTicker(120 * time.Millisecond)
+	defer ticker.Stop()
+	idleAfterCancel := time.NewTimer(500 * time.Millisecond)
+	if !idleAfterCancel.Stop() {
+		<-idleAfterCancel.C
+	}
+	for {
+		newOffset := readSessionLines(path, offset, func(line string) {
+			if msg, ok := ParsePiSessionLine(line); ok {
+				_ = store.AppendMessage(sessionID, msg)
+				broker.Publish(sessionID, "session.message", msg)
+				emitted.Add(1)
+			}
+		})
+		if newOffset > offset {
+			offset = newOffset
+		}
+		select {
+		case <-ctx.Done():
+			idleAfterCancel.Reset(500 * time.Millisecond)
+			select {
+			case <-idleAfterCancel.C:
+				readSessionLines(path, offset, func(line string) {
+					if msg, ok := ParsePiSessionLine(line); ok {
+						_ = store.AppendMessage(sessionID, msg)
+						broker.Publish(sessionID, "session.message", msg)
+						emitted.Add(1)
+					}
+				})
+				return
+			case <-ticker.C:
+				continue
+			}
+		case <-ticker.C:
+		}
+	}
+}
+
+func readSessionLines(path string, offset int64, onLine func(string)) int64 {
+	file, err := os.Open(path)
+	if err != nil {
+		return offset
+	}
+	defer file.Close()
+	if _, err := file.Seek(offset, io.SeekStart); err != nil {
+		return offset
+	}
+	reader := bufio.NewReader(file)
+	for {
+		line, err := reader.ReadString('\n')
+		if line != "" && err == nil {
+			offset += int64(len(line))
+			onLine(line)
+		}
+		if err != nil {
+			break
+		}
+	}
+	return offset
+}
+
+func waitForTail(done <-chan struct{}) {
+	select {
+	case <-done:
+	case <-time.After(700 * time.Millisecond):
+	}
+}
+
+func fileSize(path string) int64 {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return 0
+	}
+	return stat.Size()
 }

@@ -113,6 +113,35 @@ func (s *Store) OpenWorkspace(path string) (Workspace, error) {
 	return workspace, nil
 }
 
+func (s *Store) CreateSession(workspaceID string) (Session, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	root := s.workspacePath[workspaceID]
+	if root == "" {
+		return Session{}, ErrNotFound
+	}
+	session, file, err := CreatePiSessionFile(root)
+	if err != nil {
+		return Session{}, err
+	}
+	session.Workspace = workspaceID
+	for i := range s.workspaces {
+		if s.workspaces[i].ID == workspaceID {
+			for j := range s.workspaces[i].Sessions {
+				s.workspaces[i].Sessions[j].Active = false
+			}
+			s.workspaces[i].Sessions = append([]Session{session}, s.workspaces[i].Sessions...)
+			s.workspaces[i].SessionCount = len(s.workspaces[i].Sessions)
+			s.workspaces[i].LastUsed = "now"
+			s.conversations[session.ID] = []Message{}
+			s.sessionFiles[session.ID] = file
+			s.sessionCWD[session.ID] = root
+			return session, nil
+		}
+	}
+	return Session{}, ErrNotFound
+}
+
 func (s *Store) Sessions(workspaceID string) ([]Session, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

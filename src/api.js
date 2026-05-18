@@ -42,6 +42,10 @@ export function getWorkspaceSessions(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`);
 }
 
+export function createSession(workspaceId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`, { method: "POST" });
+}
+
 export function getWorkspaceFiles(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files`);
 }

@@ -6,6 +6,13 @@ import (
 	"testing"
 )
 
+func TestParsePiSessionLine(t *testing.T) {
+	msg, ok := ParsePiSessionLine(`{"type":"message","id":"b","parentId":"a","timestamp":"2026-01-01T00:00:02.000Z","message":{"role":"assistant","content":[{"type":"toolCall","name":"read","arguments":{"path":"README.md"}}]}}`)
+	if !ok || msg.Kind != "tool" || msg.Tool != "read" || msg.Status != "running" {
+		t.Fatalf("unexpected message: %#v %v", msg, ok)
+	}
+}
+
 func TestParsePiSessionFile(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "session.jsonl")

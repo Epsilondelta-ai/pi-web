@@ -23,6 +23,25 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 }
 
+func TestCreateSessionEndpoint(t *testing.T) {
+	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{}, store, NewBroker())
+	req := httptest.NewRequest(http.MethodPost, "/api/workspaces/"+workspace.ID+"/sessions", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"title":"new session"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
 func TestPromptPublishesSSE(t *testing.T) {
 	broker := NewBroker()
 	broker.heartbeat = time.Hour

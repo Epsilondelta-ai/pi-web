@@ -2,6 +2,8 @@ package piweb
 
 import (
 	"bufio"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -102,6 +104,41 @@ func LoadPiSessions(sessionDir string) ([]ParsedSession, error) {
 	return sessions, nil
 }
 
+func CreatePiSessionFile(cwd string) (Session, string, error) {
+	cwd = filepath.Clean(cwd)
+	id := createSessionID()
+	now := time.Now().UTC()
+	sessionDir := piSessionDirForCWD(cwd)
+	if err := os.MkdirAll(sessionDir, 0o700); err != nil {
+		return Session{}, "", err
+	}
+	fileTimestamp := strings.NewReplacer(":", "-", ".", "-").Replace(now.Format(time.RFC3339Nano))
+	path := filepath.Join(sessionDir, fmt.Sprintf("%s_%s.jsonl", fileTimestamp, id))
+	header := sessionHeader{Type: "session", Version: 3, ID: id, Timestamp: now.Format(time.RFC3339Nano), CWD: cwd}
+	line, err := json.Marshal(header)
+	if err != nil {
+		return Session{}, "", err
+	}
+	if err := os.WriteFile(path, append(line, '\n'), 0o600); err != nil {
+		return Session{}, "", err
+	}
+	session := Session{ID: id, Title: "new session", LastUsed: "now", Workspace: workspaceIDFromPath(cwd), Active: true}
+	return session, path, nil
+}
+
+func piSessionDirForCWD(cwd string) string {
+	safePath := "--" + strings.NewReplacer("/", "-", "\\", "-", ":", "-").Replace(strings.TrimLeft(cwd, "/\\")) + "--"
+	return filepath.Join(DefaultPiSessionDir(), safePath)
+}
+
+func createSessionID() string {
+	var bytes [16]byte
+	if _, err := rand.Read(bytes[:]); err != nil {
+		return strings.ReplaceAll(time.Now().UTC().Format("20060102150405.000000000"), ".", "")
+	}
+	return fmt.Sprintf("%s-%s-%s-%s-%s", hex.EncodeToString(bytes[0:4]), hex.EncodeToString(bytes[4:6]), hex.EncodeToString(bytes[6:8]), hex.EncodeToString(bytes[8:10]), hex.EncodeToString(bytes[10:16]))
+}
+
 func ParsePiSessionFile(path string) (ParsedSession, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -165,6 +202,29 @@ func ParsePiSessionFile(path string) (ParsedSession, error) {
 	}
 	session := Session{ID: header.ID, Title: title, LastUsed: relTime(stat.ModTime()), Workspace: workspaceIDFromPath(header.CWD)}
 	return ParsedSession{Header: header, Session: session, Messages: messages, File: path, ModTime: stat.ModTime()}, nil
+}
+
+func ParsePiSessionLine(line string) (Message, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return Message{}, false
+	}
+	var entry sessionEntry
+	if err := json.Unmarshal([]byte(line), &entry); err != nil {
+		return Message{}, false
+	}
+	switch entry.Type {
+	case "message":
+		return convertAgentMessage(entry.Message)
+	case "compaction":
+		return Message{Kind: "pi", Text: fmt.Sprintf("context summarized · %d tokens before compaction", entry.TokensBefore)}, true
+	case "model_change":
+		return Message{Kind: "banner", Text: fmt.Sprintf("model changed · %s/%s", entry.Provider, entry.ModelID)}, true
+	case "thinking_level_change":
+		return Message{Kind: "banner", Text: fmt.Sprintf("thinking level · %s", entry.ThinkingLevel)}, true
+	default:
+		return Message{}, false
+	}
 }
 
 func convertAgentMessage(raw json.RawMessage) (Message, bool) {
