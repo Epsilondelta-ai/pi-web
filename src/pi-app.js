@@ -3,6 +3,7 @@ import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderTree 
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const CHOICE_FENCE = /```json\s*([\s\S]*?)```/gi;
+const CHOICE_FENCE_MARKER = "```json";
 
 function parseFallbackChoices(text = "") {
   const choices = [];
@@ -40,6 +41,38 @@ function fallbackChoicePrompt(id, value) {
   return `선택지 응답:\nid: ${id}\nvalue: ${value}`;
 }
 
+function splitPossibleChoiceFenceStart(text) {
+  for (let length = Math.min(CHOICE_FENCE_MARKER.length - 1, text.length); length > 0; length -= 1) {
+    const suffix = text.slice(-length);
+    if (CHOICE_FENCE_MARKER.startsWith(suffix)) return [text.slice(0, -length), suffix];
+  }
+  return [text, ""];
+}
+
+function streamVisibleChoiceText(text = "") {
+  let visible = "";
+  let pending = text;
+  while (pending) {
+    const fenceStart = pending.indexOf(CHOICE_FENCE_MARKER);
+    if (fenceStart < 0) {
+      const [safe, maybeFence] = splitPossibleChoiceFenceStart(pending);
+      visible += safe;
+      pending = maybeFence;
+      break;
+    }
+    visible += pending.slice(0, fenceStart);
+    const fenceEnd = pending.indexOf("```", fenceStart + CHOICE_FENCE_MARKER.length);
+    if (fenceEnd < 0) {
+      pending = pending.slice(fenceStart);
+      break;
+    }
+    const block = pending.slice(fenceStart, fenceEnd + 3);
+    if (!parseFallbackChoices(block).length) visible += block;
+    pending = pending.slice(fenceEnd + 3);
+  }
+  return { visible, pending };
+}
+
 class PiApp extends HTMLElement {
   connectedCallback() {
     if (this.bound) return;
@@ -57,6 +90,7 @@ class PiApp extends HTMLElement {
     this.running = false;
     this.attachmentContents = [];
     this.spinnerIndex = 0;
+    this.piDeltaBuffer = "";
     this.bind();
     this.restoreSidebar();
     this.updatePrompt();
@@ -290,6 +324,7 @@ class PiApp extends HTMLElement {
 
   renderMessages(messages) {
     if (!this.termInner) return;
+    this.piDeltaBuffer = "";
     this.termInner.replaceChildren();
     for (const msg of messages) this.appendMessage(msg);
     this.scrollTerm();
@@ -299,6 +334,7 @@ class PiApp extends HTMLElement {
     if (!this.termInner || !msg) return;
     if (this.isDuplicateMessage(msg)) return;
     if (msg.kind !== "user") this.removeLoadingMessage();
+    if (msg.kind === "pi") this.piDeltaBuffer = "";
     if (msg.kind === "tool") this.finalizeStreamingMessages();
     this.termInner.querySelector(`.msg.streaming[data-kind='${msg.kind}']`)?.remove();
     this.termInner.append(this.messageNode(msg));
@@ -316,6 +352,13 @@ class PiApp extends HTMLElement {
     if (!this.termInner || !payload?.delta) return;
     this.removeLoadingMessage();
     const kind = payload.kind === "think" ? "think" : "pi";
+    let delta = payload.delta;
+    if (kind === "pi") {
+      const filtered = streamVisibleChoiceText(this.piDeltaBuffer + payload.delta);
+      this.piDeltaBuffer = filtered.pending;
+      delta = filtered.visible;
+      if (!delta) return;
+    }
     let row = this.termInner.lastElementChild?.matches?.(`.msg.streaming[data-kind='${kind}']`) ? this.termInner.lastElementChild : null;
     if (!row) {
       row = this.simpleMessage(`${kind} streaming`, kind === "think" ? "…" : "pi >", "");
@@ -324,7 +367,7 @@ class PiApp extends HTMLElement {
       this.termInner.append(row);
     }
     const body = row.querySelector(".body");
-    if (body) body.textContent += payload.delta;
+    if (body) body.textContent += delta;
     this.scrollTerm();
   }
 
@@ -343,6 +386,7 @@ class PiApp extends HTMLElement {
   }
 
   finalizeStreamingMessages() {
+    this.piDeltaBuffer = "";
     this.termInner?.querySelectorAll(".msg.streaming").forEach((row) => row.classList.remove("streaming"));
   }
 

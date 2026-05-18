@@ -126,8 +126,12 @@ describe("pi-app runtime", () => {
     app.connectedCallback();
     app.renderMessages([]);
     const text = "```json\n{\"type\":\"piweb_choice\",\"id\":\"runtime\",\"question\":\"Runtime?\",\"options\":[{\"label\":\"Go\",\"value\":\"go\"}],\"allowCustom\":false}\n```";
-    app.appendDelta({ kind: "pi", delta: text });
-    app.appendMessage({ kind: "pi", text });
+    app.appendDelta({ kind: "pi", delta: "질문입니다\n`" });
+    app.appendDelta({ kind: "pi", delta: `\`\`json${text.slice(7)}` });
+    expect(app.querySelector(".msg.streaming .body").textContent).toBe("질문입니다\n");
+    expect(app.querySelector(".msg.streaming .body").textContent).not.toContain("piweb_choice");
+    expect(app.querySelector(".fallback-choice-list")).toBeNull();
+    app.appendMessage({ kind: "pi", text: `질문입니다\n${text}` });
     expect(app.querySelector(".msg.streaming")).toBeNull();
     expect(app.querySelector(".fallback-choice-list strong").textContent).toBe("Runtime?");
     expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).not.toContain("piweb_choice");
