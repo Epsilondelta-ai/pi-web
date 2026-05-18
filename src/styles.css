@@ -1,5 +1,7 @@
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html, body, #root {
   height: 100%;
   margin: 0;
@@ -38,7 +40,6 @@ button.session-row,
 button.tree-node,
 button.recent-row,
 button.skill-row,
-button.palette-item,
 button.slash-item,
 button.tc-head {
   appearance: none;
@@ -49,14 +50,6 @@ button.tc-head {
   font: inherit;
   text-align: left;
   width: 100%;
-}
-
-button.share-chip {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
 }
 
 .app {
@@ -395,8 +388,6 @@ button.share-chip {
   align-items: center;
   gap: 4px;
 }
-.context-strip .share-chip { cursor: pointer; }
-.context-strip .share-chip:hover .val { color: var(--accent); }
 .context-strip .chip .lbl { color: var(--fg-4); }
 .context-strip .chip .val { color: var(--fg-2); }
 .context-strip .chip .val.accent { color: var(--accent); }

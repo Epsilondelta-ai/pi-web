@@ -12,7 +12,7 @@ const WORKSPACES = [
       { id: "9d12-aa01", title: "add Cloudflare provider", lastUsed: "yesterday" },
       { id: "2210-3b1e", title: "draft AGENTS.md", lastUsed: "5d ago" },
       { id: "4471-77aa", title: "fix shell completion", lastUsed: "1w ago" },
-      { id: "0c98-1122", title: "wire /share command", lastUsed: "2w ago" },
+      { id: "0c98-1122", title: "wire session export", lastUsed: "2w ago" },
     ],
   },
   {
@@ -173,7 +173,6 @@ const CONVERSATION = [
 ];
 
 const SLASH_COMMANDS = [
-  { cmd: "/share", desc: "share session as read-only URL" },
   { cmd: "/tree", desc: "show file tree" },
   { cmd: "/compact", desc: "summarize older context" },
   { cmd: "/model", desc: "switch model" },

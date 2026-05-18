@@ -39,37 +39,17 @@ export function renderAnsiBody(text) {
   return html;
 }
 
-export function qrCells(value, size = 21) {
-  let h = 2166136261;
-  for (let i = 0; i < value.length; i++) h = (h ^ value.charCodeAt(i)) * 16777619;
-  const cells = [];
-  let s = Math.abs(h);
-  for (let y = 0; y < size; y++) {
-    const row = [];
-    for (let x = 0; x < size; x++) {
-      s = (s * 9301 + 49297) % 233280;
-      row.push(s % 2 === 0 ? 1 : 0);
-    }
-    cells.push(row);
-  }
-  const stamp = (r, c) => {
-    for (let y = 0; y < 7; y++) {
-      for (let x = 0; x < 7; x++) {
-        const edge = y === 0 || y === 6 || x === 0 || x === 6;
-        const center = y >= 2 && y <= 4 && x >= 2 && x <= 4;
-        cells[r + y][c + x] = edge || center ? 1 : 0;
-      }
-    }
-  };
-  stamp(0, 0);
-  stamp(0, size - 7);
-  stamp(size - 7, 0);
-  return cells;
+export function renderTree(nodes) {
+  return nodes.map((node) => {
+    const open = !!node.open;
+    const disabled = node.type !== "dir" ? " disabled" : "";
+    const expanded = node.type === "dir" ? ` aria-expanded="${open}"` : "";
+    const cls = ["tree-node", node.type, node.status || ""].filter(Boolean).join(" ");
+    const padding = `padding-left:calc(var(--space-3) + ${node.depth * 14}px)`;
+    const caret = node.type === "dir" ? (open ? "▾" : "▸") : "";
+    const glyph = node.type === "dir" ? (open ? "▾" : "▸") : "·";
+    const children = node.children ? `<div data-tree-children${open ? "" : " hidden"}>${renderTree(node.children)}</div>` : "";
+    return `<div class="tree-branch"><button type="button" class="${cls}" data-action="toggle-tree-node" style="${padding}"${disabled}${expanded}><span class="caret">${caret}</span><span class="glyph">${glyph}</span><span class="name">${escapeHtml(node.name)}</span></button>${children}</div>`;
+  }).join("");
 }
 
-export function qrHtml(value) {
-  const cells = qrCells(value);
-  return `<div class="qr-grid" style="grid-template-columns:repeat(${cells.length}, 1fr)">${cells
-    .flatMap((row) => row.map((cell) => `<div class="${cell ? "qr-on" : "qr-off"}"></div>`))
-    .join("")}</div>`;
-}
