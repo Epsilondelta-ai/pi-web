@@ -49,13 +49,23 @@ class PiApp extends HTMLElement {
       const [{ workspaces }] = await Promise.all([getWorkspaces()]);
       this.apiConnected = true;
       this.setConnection("ok");
-      this.renderWorkspaces(workspaces || []);
       const activeWorkspace = workspaces?.[0];
       const activeSession = activeWorkspace?.sessions?.[0];
       if (activeWorkspace) {
         this.dataset.activeWorkspaceId = activeWorkspace.id;
-        await this.loadWorkspaceMeta(activeWorkspace.id);
+        const label = this.querySelector("[data-active-workspace]");
+        if (label) label.textContent = activeWorkspace.name;
       }
+      if (activeSession) {
+        this.dataset.activeSessionId = activeSession.id;
+        const title = this.querySelector("[data-active-session-title]");
+        if (title) {
+          title.textContent = activeSession.title;
+          title.title = `${activeSession.title} · ${activeSession.id}`;
+        }
+      }
+      this.renderWorkspaces(workspaces || []);
+      if (activeWorkspace) await this.loadWorkspaceMeta(activeWorkspace.id);
       if (activeSession) await this.loadSession(activeSession.id);
     } catch {
       this.apiConnected = false;
@@ -150,7 +160,12 @@ class PiApp extends HTMLElement {
     if (section) {
       section.querySelectorAll(".workspace-group").forEach((group) => group.remove());
       const head = section.querySelector(".sb-head");
-      for (const workspace of workspaces) head.insertAdjacentElement("afterend", this.createWorkspaceGroup(workspace));
+      let anchor = head;
+      for (const workspace of workspaces) {
+        const group = this.createWorkspaceGroup(workspace);
+        anchor.insertAdjacentElement("afterend", group);
+        anchor = group;
+      }
     }
   }
 
@@ -171,7 +186,8 @@ class PiApp extends HTMLElement {
     const group = document.createElement("div");
     group.className = "workspace-group";
     group.dataset.workspaceGroup = workspace.id;
-    group.innerHTML = `<button type="button" class="ws-row" data-action="toggle-workspace" data-workspace="${escapeHtml(workspace.id)}" aria-expanded="false"><span class="caret">▸</span><span class="ws-stack"><span class="ws-name"><span class="dot"></span><span class="label"></span></span><span class="ws-path"></span></span><span class="ws-meta">${workspace.sessionCount}</span></button><div class="sessions" hidden><button type="button" class="session-row new-session-row" data-action="new-session" data-workspace="${escapeHtml(workspace.id)}"><span class="gutter">+</span><span class="title">new session</span><span class="meta">N</span></button></div>`;
+    const open = workspace.id === this.dataset.activeWorkspaceId;
+    group.innerHTML = `<button type="button" class="ws-row ${open ? "open" : ""}" data-action="toggle-workspace" data-workspace="${escapeHtml(workspace.id)}" aria-expanded="${open}"><span class="caret">${open ? "▾" : "▸"}</span><span class="ws-stack"><span class="ws-name"><span class="dot"></span><span class="label"></span></span><span class="ws-path"></span></span><span class="ws-meta">${workspace.sessionCount}</span></button><div class="sessions"${open ? "" : " hidden"}><button type="button" class="session-row new-session-row" data-action="new-session" data-workspace="${escapeHtml(workspace.id)}"><span class="gutter">+</span><span class="title">new session</span><span class="meta">N</span></button></div>`;
     group.querySelector(".label").textContent = workspace.name;
     group.querySelector(".ws-path").textContent = workspace.path;
     group.querySelector(".dot").classList.toggle("live", !!workspace.live);

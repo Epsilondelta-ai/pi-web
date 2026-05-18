@@ -50,7 +50,7 @@ bun run build-storybook
 
 - `src/pages/index.astro` — Astro page shell
 - `src/App.astro` — pi workspace/session UI
-- `src/mock-data.js` — fixture data until a `pi --serve` bridge is wired
+- `.storybook/pi-fixtures.js` — Storybook-only fixture data
 - `src/renderers.js` — safe inline markup render helpers
 - `src/styles.css`, `src/extras.css`, `src/design-system/colors_and_type.css` — prototype styles
 - `src/App.stories.js` — full app story

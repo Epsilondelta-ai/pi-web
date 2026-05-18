@@ -1,5 +1,4 @@
 ---
-import { PI_DATA } from "./mock-data.js";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderTree } from "./renderers.js";
 
 const {
@@ -10,11 +9,18 @@ const {
   showCompaction = false,
   showDisconnect = false,
   scanlines = false,
+  workspaces = [],
+  fileTree = [],
+  conversation = [],
+  slashCommands = [],
 } = Astro.props;
 
-const activeWorkspace = PI_DATA.WORKSPACES[0];
-const activeSession = activeWorkspace.sessions[0];
-const conversation = PI_DATA.CONVERSATION;
+const activeWorkspace = workspaces[0];
+const activeSession = activeWorkspace?.sessions?.[0];
+const activeWorkspaceName = activeWorkspace?.name || "workspace";
+const activeSessionTitle = activeSession?.title || "no session";
+const activeSessionID = activeSession?.id || "";
+const activeWorkspaceID = activeWorkspace?.id || "";
 const workspaceVisible = initialRoute !== "picker";
 const pickerVisible = initialRoute === "picker";
 const emptyVisible = initialSession === "empty";
@@ -27,18 +33,17 @@ const sessionHidden = !sessionVisible;
 const emptyHidden = !emptyVisible;
 const compactionHidden = !showCompaction;
 const treeHidden = !treeOpen;
-const statusColor = showDisconnect ? "var(--danger)" : "var(--accent)";
-const statusTitle = showDisconnect ? "disconnected" : "connected";
+const statusColor = showDisconnect ? "var(--danger)" : "var(--fg-3)";
+const statusTitle = showDisconnect ? "disconnected" : "connecting";
 
 function toolStatus(msg) {
   if (msg.status === "running") return `<span class="spinner">⠋</span><span style="color:var(--accent)">running</span>`;
   if (msg.status === "err") return `<span class="err">✗</span>${escapeHtml(msg.resultMeta || "failed")}`;
   return `<span class="ok">✓</span>${msg.durationMs ? `${msg.durationMs} ms` : ""}${msg.resultMeta ? ` · ${escapeHtml(msg.resultMeta)}` : ""}`;
 }
-
 ---
 
-<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-sidebar={sidebarCollapsed ? "collapsed" : "open"} data-session={initialSession} data-active-session-id={activeSession.id} data-active-workspace-id={activeWorkspace.id}>
+<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-sidebar={sidebarCollapsed ? "collapsed" : "open"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
   <header class="topbar">
     <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style={sidebarCollapsed ? "display:inline-flex" : "display:none"}>›</button>
     <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar">≡</button>
@@ -46,8 +51,8 @@ function toolStatus(msg) {
       <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
     </span>
     <span class="crumb">
-      <span class="sep">/</span><span class="ws" data-active-workspace>{activeWorkspace.name}</span>
-      <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSession.title} · ${activeSession.id}`}>{activeSession.title}</span>
+      <span class="sep">/</span><span class="ws" data-active-workspace>{activeWorkspaceName}</span>
+      <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
     <div class="actions">
       <button class:list={["iconbtn", treeOpen && "on"]} type="button" data-action="toggle-tree" aria-label="toggle file tree" title="files" hidden={workspaceHidden}>
@@ -66,15 +71,15 @@ function toolStatus(msg) {
       <div class="picker-card">
         <div class="card-head"><span class="left">open a folder</span></div>
         <form class="input-row" data-path-form>
-          <input name="path" placeholder="~/code/my-project   or   /Users/jay/Code/pi-mono" autocomplete="off" />
+          <input name="path" placeholder="~/code/my-project   or   /Users/me/Code/project" autocomplete="off" />
           <button class="browse-btn" type="button" title="Local filesystem bridge not wired yet" disabled>browse…</button>
           <button class="open-btn" type="submit" aria-label="open typed path">open ↵</button>
         </form>
         <div style="padding:0 16px 12px;font-size:11px;color:var(--fg-3)">paste a path, or drop a folder onto the window.</div>
       </div>
       <div class="picker-card">
-        <div class="card-head"><span class="left">recent workspaces</span><span class="right" data-workspace-count>{PI_DATA.WORKSPACES.length} known</span></div>
-        {PI_DATA.WORKSPACES.slice(0, 4).map((workspace) => (
+        <div class="card-head"><span class="left">recent workspaces</span><span class="right" data-workspace-count>{workspaces.length} known</span></div>
+        {workspaces.slice(0, 4).map((workspace) => (
           <button class="recent-row" type="button" data-workspace={workspace.id} aria-label={`open ${workspace.name}`}>
             <span class="glyph">▸</span>
             <span class="ws-info"><span class="name">{workspace.name}</span><span class="path">{workspace.path}</span></span>
@@ -91,69 +96,72 @@ function toolStatus(msg) {
       <aside class="sidebar" aria-label="workspaces and sessions">
         <div class="sb-section" style="flex:1;overflow-y:auto;min-height:0">
           <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker">+ open</button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar">‹</button></span></div>
-          {PI_DATA.WORKSPACES.map((workspace) => (
-            <div class="workspace-group" data-workspace-group={workspace.id}>
-              <button type="button" class:list={["ws-row", workspace.id === activeWorkspace.id && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={workspace.id === activeWorkspace.id ? "true" : "false"}>
-                <span class="caret">{workspace.id === activeWorkspace.id ? "▾" : "▸"}</span>
-                <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
-                <span class="ws-meta">{workspace.sessionCount}</span>
-              </button>
-              <div class="sessions" hidden={workspace.id !== activeWorkspace.id}>
-                <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="gutter">+</span><span class="title">new session</span><span class="meta">N</span></button>
-                {workspace.sessions.map((session) => (
-                  <button type="button" class:list={["session-row", workspace.id === activeWorkspace.id && session.id === activeSession.id && "active"]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
-                    <span class="gutter"></span><span class="title">{session.title}<span class="sid">{session.id}</span></span><span class:list={["meta", session.live && "live"]}>{session.live && <span style="margin-right:4px">●</span>}{session.lastUsed}</span>
-                  </button>
-                ))}
-                {workspace.sessions.length === 0 && <div style="padding:12px 16px;color:var(--fg-3);font-size:12px;font-style:italic">no sessions yet · press N to start one</div>}
+          {workspaces.map((workspace) => {
+            const isActiveWorkspace = workspace.id === activeWorkspaceID;
+            return (
+              <div class="workspace-group" data-workspace-group={workspace.id}>
+                <button type="button" class:list={["ws-row", isActiveWorkspace && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={isActiveWorkspace ? "true" : "false"}>
+                  <span class="caret">{isActiveWorkspace ? "▾" : "▸"}</span>
+                  <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
+                  <span class="ws-meta">{workspace.sessionCount}</span>
+                </button>
+                <div class="sessions" hidden={!isActiveWorkspace}>
+                  <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="gutter">+</span><span class="title">new session</span><span class="meta">N</span></button>
+                  {(workspace.sessions || []).map((session) => (
+                    <button type="button" class:list={["session-row", isActiveWorkspace && session.id === activeSessionID && "active"]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
+                      <span class="gutter"></span><span class="title">{session.title}<span class="sid">{session.id}</span></span><span class:list={["meta", session.live && "live"]}>{session.live && <span style="margin-right:4px">●</span>}{session.lastUsed}</span>
+                    </button>
+                  ))}
+                  {(workspace.sessions || []).length === 0 && <div style="padding:12px 16px;color:var(--fg-3);font-size:12px;font-style:italic">no sessions yet · press N to start one</div>}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-        <div class="sb-footer"><span class="status-dot"></span><span>connected</span></div>
+        <div class="sb-footer"><span class="status-dot"></span><span>connecting</span></div>
       </aside>
       <div class="sb-resizer" role="separator" aria-orientation="vertical" aria-label="resize sidebar" title="drag to resize"></div>
     </div>
 
     <main class="main" data-main="session" hidden={sessionHidden}> 
       <div class="context-strip">
-        <span class="chip"><span class="lbl">model</span> <span class="val accent">sonnet:high</span></span>
-        <span class="chip"><span class="lbl">ctx</span><span class="ctx-bar"><i style="width:6%"></i></span><span class="val">12.3k / 200k</span></span>
-        <span class="chip"><span class="lbl">mode</span> <span class="val">auto-accept</span></span>
-        <span class="chip"><span class="lbl">tools</span> <span class="val tool">4</span> ran</span>
+        <span class="chip"><span class="lbl">model</span> <span class="val accent">local</span></span>
+        <span class="chip"><span class="lbl">ctx</span><span class="ctx-bar"><i style="width:0%"></i></span><span class="val">—</span></span>
+        <span class="chip"><span class="lbl">mode</span> <span class="val">connecting</span></span>
+        <span class="chip"><span class="lbl">tools</span> <span class="val tool">0</span> ran</span>
         <span class="chip" style="margin-left:auto"><span class="lbl">status</span> <span class="val">local</span></span>
       </div>
       {showDisconnect && <div class="disconn"><span class="pulse"></span><span>disconnected · retrying in 2s</span></div>}
       <div class:list={["term", scanlines && "scanlines"]}>
         <div class="term-inner">
-          <pre class="ascii-banner" set:html={renderBannerBody(conversation[0].text)}></pre>
-          <div class="msg"><div class="prefix user">you &gt;</div><div class="body">{conversation[1].text}</div></div>
-          <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{conversation[2].text}</div></div></div>
-          <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(conversation[3].text)}></div></div>
-          {[conversation[4], conversation[5], conversation[6], conversation[7], conversation[8]].map((msg) => (
-            <div class:list={["tool-card", msg.collapsedByDefault && "collapsed"]}>
+          {conversation.length === 0 ? (
+            <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body">connecting to local backend…</div></div>
+          ) : conversation.map((msg) => (
+            msg.kind === "banner" ? <pre class="ascii-banner" set:html={renderBannerBody(msg.text)}></pre> :
+            msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body">{msg.text}</div></div> :
+            msg.kind === "think" ? <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{msg.text}</div></div></div> :
+            msg.kind === "pi" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(msg.text)}></div></div> :
+            msg.kind === "tool" ? <div class:list={["tool-card", msg.collapsedByDefault && "collapsed"]} data-tool={msg.tool}>
               <button type="button" class="tc-head" aria-expanded={msg.collapsedByDefault ? "false" : "true"} data-action="toggle-tool">
                 <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={`${toolStatus(msg)}<span class="tc-caret">${msg.collapsedByDefault ? "▸" : "▾"}</span>`}></span>
               </button>
               {msg.body && <div class="tc-body" hidden={msg.collapsedByDefault} set:html={renderAnsiBody(msg.body)}></div>}
-            </div>
+            </div> : null
           ))}
-          <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(conversation[9].text)}></div></div>
-          <div class="compaction" hidden={compactionHidden}><span class="lbl">⚠ context summarized</span><span>38 messages → 1 summary · ~5.2k tokens reclaimed · /undo to revert</span></div>
+          <div class="compaction" hidden={compactionHidden}><span class="lbl">⚠ context summarized</span><span>older messages summarized · /undo to revert</span></div>
         </div>
       </div>
     </main>
 
     <main class="main" data-main="empty" hidden={emptyHidden}> 
-      <div class="context-strip"><span class="chip"><span class="lbl">model</span> <span class="val accent">sonnet:high</span></span><span class="chip"><span class="lbl">ctx</span><span class="ctx-bar"><i style="width:0%"></i></span><span class="val">0.0k / 200k</span></span><span class="chip"><span class="lbl">mode</span> <span class="val">ready</span></span><span class="chip"><span class="lbl">tools</span> <span class="val tool">0</span> ran</span><span class="chip" style="margin-left:auto"><span class="lbl">status</span> <span class="val">local</span></span></div>
-      <div class="empty-shell"><div class="empty-inner"><div class="empty-title">new session in <span class="accent" data-empty-workspace>{activeWorkspace.name}</span></div><div class="empty-sub">pi is idle. say the first thing.</div><div class="empty-tips"><div class="dim">session id will be assigned on first send. saved to <code>.pi/sessions/</code>.</div></div></div></div>
+      <div class="context-strip"><span class="chip"><span class="lbl">model</span> <span class="val accent">local</span></span><span class="chip"><span class="lbl">ctx</span><span class="ctx-bar"><i style="width:0%"></i></span><span class="val">—</span></span><span class="chip"><span class="lbl">mode</span> <span class="val">ready</span></span><span class="chip"><span class="lbl">tools</span> <span class="val tool">0</span> ran</span><span class="chip" style="margin-left:auto"><span class="lbl">status</span> <span class="val">local</span></span></div>
+      <div class="empty-shell"><div class="empty-inner"><div class="empty-title">new session in <span class="accent" data-empty-workspace>{activeWorkspaceName}</span></div><div class="empty-sub">pi is idle. say the first thing.</div><div class="empty-tips"><div class="dim">session id will be assigned on first send.</div></div></div></div>
     </main>
 
     <aside class="tree" aria-label="file tree" hidden={treeHidden}> 
-      <div class="tree-head"><span>files</span><span class="branch" data-git-status>main · 3 ✱</span></div>
+      <div class="tree-head"><span>files</span><span class="branch" data-git-status>—</span></div>
       <div class="tree-list">
-        <Fragment set:html={renderTree(PI_DATA.FILE_TREE)} />
-        <div style="padding:8px 16px;color:var(--fg-4);font-size:11px;font-style:italic">tip: pi watches the tree · changes appear here.</div>
+        {fileTree.length > 0 ? <Fragment set:html={renderTree(fileTree)} /> : <div style="padding:8px 16px;color:var(--fg-4);font-size:11px;font-style:italic">file tree loads from backend.</div>}
       </div>
     </aside>
     <div class="scrim" data-action="close-drawer"></div>
@@ -162,7 +170,7 @@ function toolStatus(msg) {
   <div class="prompt-region">
     <div class="slash-pop" hidden>
       <div class="slash-head">slash commands · type to filter</div>
-      <div class="slash-list">{PI_DATA.SLASH_COMMANDS.map((cmd, index) => <button type="button" class:list={["slash-item", index === 0 && "selected"]} data-slash={cmd.cmd}><span class="sl-cmd">{cmd.cmd}</span><span class="sl-desc">{cmd.desc}</span></button>)}</div>
+      <div class="slash-list">{slashCommands.map((cmd, index) => <button type="button" class:list={["slash-item", index === 0 && "selected"]} data-slash={cmd.cmd}><span class="sl-cmd">{cmd.cmd}</span><span class="sl-desc">{cmd.desc}</span></button>)}</div>
     </div>
     <div class="prompt-bar">
       <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5 6 10a2 2 0 1 0 2.8 2.8l5.7-5.7a3.5 3.5 0 0 0-5-5L3.7 7.9a5 5 0 1 0 7 7l4.8-4.8"></path></svg></button>
@@ -171,7 +179,7 @@ function toolStatus(msg) {
       <div class="prompt-actions"><button class="send-btn" type="button" disabled>send</button></div>
       <div class="drop-overlay" hidden><span>drop to attach</span></div>
     </div>
-    <div class="prompt-meta"><span class="model-tag">sonnet:high</span><span class="dim">·</span><span class="dim">auto-accept</span><span class="ctx-bar"><i style="width:6%"></i></span><span>6% ctx</span></div>
+    <div class="prompt-meta"><span class="model-tag">local</span><span class="dim">·</span><span class="dim">ready</span><span class="ctx-bar"><i style="width:0%"></i></span><span>0% ctx</span></div>
   </div>
 
   <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks">×</button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
@@ -180,5 +188,3 @@ function toolStatus(msg) {
 <script>
   import "./pi-app.js";
 </script>
-
-

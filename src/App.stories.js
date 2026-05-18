@@ -1,4 +1,5 @@
 import App from "./App.astro";
+import { PI_DATA } from "../.storybook/pi-fixtures.js";
 
 const meta = {
   title: "Pi Web/App",
@@ -14,6 +15,10 @@ const meta = {
     showCompaction: false,
     showDisconnect: false,
     scanlines: false,
+    workspaces: PI_DATA.WORKSPACES,
+    fileTree: PI_DATA.FILE_TREE,
+    conversation: PI_DATA.CONVERSATION,
+    slashCommands: PI_DATA.SLASH_COMMANDS,
   },
 };
 
