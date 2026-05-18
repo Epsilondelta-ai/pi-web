@@ -41,6 +41,9 @@ class PiApp extends HTMLElement {
     this.file?.addEventListener("change", () => this.addFiles(this.file.files));
     this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
     window.addEventListener("keydown", (event) => this.shortcut(event));
+    window.addEventListener("click", (event) => {
+      if (!this.contains(event.target)) this.closeSessionMenus();
+    });
     window.addEventListener("message", (event) => {
       if (event.data?.type === "__activate_edit_mode") this.querySelector("[data-tweaks]")?.removeAttribute("hidden");
       if (event.data?.type === "__deactivate_edit_mode") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
@@ -207,13 +210,13 @@ class PiApp extends HTMLElement {
   }
 
   createSessionRow(workspaceId, session) {
-    const row = document.createElement("button");
-    row.type = "button";
+    const row = document.createElement("div");
+    const menuId = `session-menu-${session.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
     row.className = "session-row";
     row.dataset.session = session.id;
     row.dataset.workspace = workspaceId;
     row.dataset.title = session.title;
-    row.innerHTML = `<span class="gutter"></span><span class="title"></span><span class="meta"></span><span class="session-actions"><span class="row-action" data-action="rename-session" title="rename">rename</span><span class="row-action danger" data-action="delete-session" title="delete">×</span></span>`;
+    row.innerHTML = `<button type="button" class="session-main" data-session="${escapeHtml(session.id)}" data-workspace="${escapeHtml(workspaceId)}" data-title="${escapeHtml(session.title)}"><span class="gutter"></span><span class="title"></span><span class="meta"></span></button><button type="button" class="session-menu-button" data-action="session-menu-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="${menuId}" aria-label="session actions">…</button><div class="session-menu" id="${menuId}" role="menu" hidden><button type="button" role="menuitem" data-action="rename-session">rename</button><button type="button" role="menuitem" class="danger" data-action="delete-session">delete</button></div>`;
     row.querySelector(".title").append(document.createTextNode(session.title));
     const sid = document.createElement("span");
     sid.className = "sid";
@@ -436,13 +439,15 @@ class PiApp extends HTMLElement {
     if (action === "open-drawer") this.querySelector(".app-body")?.classList.add("drawer-open");
     if (action === "close-drawer") this.querySelector(".app-body")?.classList.remove("drawer-open");
     if (action === "toggle-tool") this.toggleTool(button);
+    if (action !== "session-menu-toggle") this.closeSessionMenus(actionTarget?.closest(".session-row"));
     if (action === "toggle-workspace") this.toggleWorkspace(button.dataset.workspace);
     if (action === "delete-workspace") this.deleteWorkspace(actionTarget.dataset.workspace);
     if (action === "new-session") this.newSession(button.dataset.workspace);
+    if (action === "session-menu-toggle") this.toggleSessionMenu(actionTarget.closest(".session-row"));
     if (action === "rename-session") this.renameSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "delete-session") this.deleteSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "close-tweaks") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
-    if (!actionTarget?.classList.contains("row-action") && button?.dataset.session) this.pickSession(button);
+    if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) this.pickSession(button.closest(".session-row") || button);
     if (button?.dataset.workspace && button.classList.contains("recent-row")) this.openWorkspace(button.dataset.workspace);
     if (button?.dataset.seed) this.seed(button.dataset.seed);
     if (button?.dataset.skill) this.seed(`/skill ${button.dataset.skill}\n\n`);
@@ -573,23 +578,24 @@ class PiApp extends HTMLElement {
     }
   }
 
-  async pickSession(button) {
-    this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
-    button.classList.add("active");
+  async pickSession(row) {
+    this.querySelectorAll(".session-row.active").forEach((item) => item.classList.remove("active"));
+    row.classList.add("active");
     const title = this.querySelector("[data-active-session-title]");
     if (title) {
-      title.textContent = button.dataset.title;
-      title.title = `${button.dataset.title} · ${button.dataset.session}`;
+      title.textContent = row.dataset.title;
+      title.title = `${row.dataset.title} · ${row.dataset.session}`;
     }
     this.querySelector("[data-main='session']")?.removeAttribute("hidden");
     this.querySelector("[data-main='empty']")?.setAttribute("hidden", "");
     this.querySelector(".app-body")?.classList.remove("drawer-open");
-    if (this.apiConnected) await this.loadSession(button.dataset.session);
-    else this.dataset.activeSessionId = button.dataset.session;
+    if (this.apiConnected) await this.loadSession(row.dataset.session);
+    else this.dataset.activeSessionId = row.dataset.session;
     this.scrollTerm();
   }
 
   async renameSession(sessionId) {
+    this.closeSessionMenus();
     if (!sessionId || !this.apiConnected) return;
     const current = this.querySelector(`[data-session='${sessionId}']`)?.dataset.title || "";
     const title = prompt("Rename session", current)?.trim();
@@ -599,6 +605,8 @@ class PiApp extends HTMLElement {
       const row = this.querySelector(`[data-session='${sessionId}']`);
       if (row) {
         row.dataset.title = session.title;
+        const main = row.querySelector(".session-main");
+        if (main) main.dataset.title = session.title;
         row.querySelector(".title")?.replaceChildren(document.createTextNode(session.title), Object.assign(document.createElement("span"), { className: "sid", textContent: session.id }));
       }
       const activeTitle = this.querySelector("[data-active-session-title]");
@@ -609,6 +617,7 @@ class PiApp extends HTMLElement {
   }
 
   async deleteSession(sessionId) {
+    this.closeSessionMenus();
     if (!sessionId || !this.apiConnected) return;
     if (!confirm(`Delete session ${sessionId}? This removes the local JSONL file.`)) return;
     try {
@@ -654,7 +663,27 @@ class PiApp extends HTMLElement {
     if (title && !this.dataset.activeSessionId) title.textContent = "new session";
   }
 
-  closeModals() {}
+  toggleSessionMenu(row) {
+    if (!row) return;
+    const menu = row.querySelector(".session-menu");
+    const button = row.querySelector(".session-menu-button");
+    const open = menu?.hidden;
+    this.closeSessionMenus(row);
+    menu?.toggleAttribute("hidden", !open);
+    button?.setAttribute("aria-expanded", String(!!open));
+  }
+
+  closeSessionMenus(except) {
+    this.querySelectorAll(".session-row").forEach((row) => {
+      if (except && row === except) return;
+      row.querySelector(".session-menu")?.setAttribute("hidden", "");
+      row.querySelector(".session-menu-button")?.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  closeModals() {
+    this.closeSessionMenus();
+  }
 
   toggleTool(button) {
     const card = button.closest(".tool-card");

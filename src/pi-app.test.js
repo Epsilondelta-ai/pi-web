@@ -31,6 +31,18 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
   });
 
+  it("opens session actions from an ellipsis menu", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    const row = app.createSessionRow("w1", { id: "s1", title: "demo", lastUsed: "now" });
+    app.append(row);
+    const toggle = row.querySelector("[data-action='session-menu-toggle']");
+    toggle.click();
+    expect(row.querySelector(".session-menu").hidden).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("switches between picker and workspace routes", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
