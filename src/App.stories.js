@@ -9,7 +9,7 @@ const meta = {
   args: {
     initialRoute: "workspace",
     initialSession: "active",
-    treeOpen: true,
+    treeOpen: false,
     sidebarCollapsed: false,
     showCompaction: false,
     showDisconnect: false,
@@ -47,8 +47,8 @@ export const SidebarCollapsed = {
   },
 };
 
-export const NoFileTree = {
+export const WithFileTree = {
   args: {
-    treeOpen: false,
+    treeOpen: true,
   },
 };

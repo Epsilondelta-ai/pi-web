@@ -5,7 +5,7 @@ import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderTree 
 const {
   initialRoute = "workspace",
   initialSession = "active",
-  treeOpen = true,
+  treeOpen = false,
   sidebarCollapsed = false,
   showCompaction = false,
   showDisconnect = false,
@@ -62,7 +62,7 @@ function toolStatus(msg) {
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSession.title} · ${activeSession.id}`}>{activeSession.title}</span>
     </span>
     <div class="actions">
-      <button class="iconbtn on" type="button" data-action="toggle-tree" aria-label="toggle file tree" title="files">
+      <button class:list={["iconbtn", treeOpen && "on"]} type="button" data-action="toggle-tree" aria-label="toggle file tree" title="files">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 3.5h5l1.2 1.5h6.8v8.5h-13z" stroke-linejoin="round"></path></svg>
       </button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>

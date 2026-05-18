@@ -84,6 +84,7 @@ class PiApp extends HTMLElement {
     this.dataset.tree = on ? "on" : "off";
     body?.classList.toggle("with-tree", on);
     body?.classList.toggle("tree-open", on);
+    this.querySelector('[data-action="toggle-tree"]')?.classList.toggle("on", on);
     tree?.toggleAttribute("hidden", !on);
     this.applyGrid();
   }
