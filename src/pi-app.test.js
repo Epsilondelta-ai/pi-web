@@ -120,6 +120,19 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
   });
 
+  it("replaces streamed fallback choice JSON with clickable answer options", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    const text = "```json\n{\"type\":\"piweb_choice\",\"id\":\"runtime\",\"question\":\"Runtime?\",\"options\":[{\"label\":\"Go\",\"value\":\"go\"}],\"allowCustom\":false}\n```";
+    app.appendDelta({ kind: "pi", delta: text });
+    app.appendMessage({ kind: "pi", text });
+    expect(app.querySelector(".msg.streaming")).toBeNull();
+    expect(app.querySelector(".fallback-choice-list strong").textContent).toBe("Runtime?");
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).not.toContain("piweb_choice");
+  });
+
   it("renders fallback choice blocks as clickable answer options", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");

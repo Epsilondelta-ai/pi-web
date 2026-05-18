@@ -307,7 +307,7 @@ class PiApp extends HTMLElement {
 
   isDuplicateMessage(msg) {
     if (!["user", "pi", "think"].includes(msg.kind)) return false;
-    const messages = [...this.termInner.querySelectorAll(".msg:not(.loading)")];
+    const messages = [...this.termInner.querySelectorAll(".msg:not(.loading):not(.streaming)")];
     const last = messages.at(-1);
     return last?.dataset.kind === msg.kind && last.querySelector(".body")?.textContent === msg.text;
   }

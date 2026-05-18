@@ -1,6 +1,9 @@
 package piweb
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestHandlePiJSONEventIgnoresToolCallDeltaAsText(t *testing.T) {
 	broker := NewBroker()
@@ -23,6 +26,20 @@ func TestHandlePiJSONEventStreamsTextDelta(t *testing.T) {
 	replay := broker.Replay("8e7c-44ff", 0)
 	if len(replay) != 1 || replay[0].Type != "session.delta" {
 		t.Fatalf("expected text delta event: %#v", replay)
+	}
+}
+
+func TestHandlePiJSONEventPublishesFinalFallbackChoiceAfterStreaming(t *testing.T) {
+	broker := NewBroker()
+	store := NewMockStore()
+	state := &jsonStreamState{}
+	choice := "```json\n{\"type\":\"piweb_choice\",\"id\":\"test\",\"question\":\"Pick?\",\"options\":[{\"label\":\"A\",\"value\":\"a\"}],\"allowCustom\":false}\n```"
+	encoded, _ := json.Marshal(choice)
+	handlePiJSONEvent(`{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":`+string(encoded)+`}}`, broker, store, "8e7c-44ff", state)
+	handlePiJSONEvent(`{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":`+string(encoded)+`}]}}`, broker, store, "8e7c-44ff", state)
+	replay := broker.Replay("8e7c-44ff", 0)
+	if len(replay) != 2 || replay[0].Type != "session.delta" || replay[1].Type != "session.message" {
+		t.Fatalf("expected final fallback choice message after delta: %#v", replay)
 	}
 }
 

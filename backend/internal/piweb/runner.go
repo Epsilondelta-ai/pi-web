@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -168,7 +169,10 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 				continue
 			}
 			_ = store.AppendMessage(sessionID, msg)
-			if (msg.Kind == "pi" && state.streamedText) || (msg.Kind == "think" && state.streamedThinking) {
+			if msg.Kind == "pi" && state.streamedText && !containsFallbackChoice(msg.Text) {
+				continue
+			}
+			if msg.Kind == "think" && state.streamedThinking {
 				continue
 			}
 			broker.Publish(sessionID, eventTypeForMessage(msg), msg)
@@ -194,6 +198,10 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 	default:
 		return true
 	}
+}
+
+func containsFallbackChoice(text string) bool {
+	return strings.Contains(text, "piweb_choice")
 }
 
 func jsonChunk(raw json.RawMessage) string {
