@@ -16,3 +16,4 @@ I am an AI. Tasks that feel hard, difficult, or time-consuming are things humans
 - When creating a project, use the 'init-project' skill.
 - When receiving a request, use the 'task-breakdown' skill.
 - When coding, use the 'coding-style', 'git-style', 'unit-test', and 'e2e-test' skills.
+- After modifying code or project files, always create a git commit before the final response unless the user explicitly says not to.
