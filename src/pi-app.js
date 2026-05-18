@@ -1,4 +1,4 @@
-import { cancelSession, createSession, deleteSession as deleteSessionRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFile, getWorkspaceFiles, getWorkspaces, openWorkspace, postPrompt, renameSession as renameSessionRequest, sessionEvents } from "./api.js";
+import { cancelSession, createSession, deleteSession as deleteSessionRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFile, getWorkspaceFiles, getWorkspaces, openWorkspace, pickWorkspaceFolder, postPrompt, renameSession as renameSessionRequest, sessionEvents } from "./api.js";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderTree } from "./renderers.js";
 
 class PiApp extends HTMLElement {
@@ -305,6 +305,30 @@ class PiApp extends HTMLElement {
     card.replaceWith(next);
   }
 
+  async browseFolder() {
+    if (!this.apiConnected) {
+      this.setConnection("err");
+      return;
+    }
+    try {
+      const { path } = await pickWorkspaceFolder();
+      const input = this.querySelector('[data-path-form] input[name="path"]');
+      if (input) input.value = path;
+      if (path) await this.openWorkspacePath(path);
+    } catch {
+      this.setConnection("err");
+    }
+  }
+
+  async openWorkspacePath(path) {
+    if (!path) return;
+    await openWorkspace(path);
+    const { workspaces } = await getWorkspaces();
+    this.renderWorkspaces(workspaces || []);
+    const workspace = (workspaces || []).find((item) => item.path === path) || workspaces?.[0];
+    if (workspace) await this.openWorkspace(workspace.id);
+  }
+
   async submitWorkspacePath(event) {
     event.preventDefault();
     const input = event.currentTarget.querySelector("input[name='path']");
@@ -312,9 +336,8 @@ class PiApp extends HTMLElement {
     if (!path) return;
     if (this.apiConnected) {
       try {
-        await openWorkspace(path);
-        const { workspaces } = await getWorkspaces();
-        this.renderWorkspaces(workspaces || []);
+        await this.openWorkspacePath(path);
+        return;
       } catch {
         this.setConnection("err");
       }
@@ -369,6 +392,7 @@ class PiApp extends HTMLElement {
     const action = actionTarget?.dataset.action || button?.dataset.action;
     if (action === "route-picker") this.route("picker");
     if (action === "route-workspace") this.route("workspace");
+    if (action === "browse-folder") this.browseFolder();
     if (action === "toggle-tree") this.toggleTree();
     if (action === "toggle-tree-node") this.toggleTreeNode(button);
     if (action === "open-file") this.openFile(button);

@@ -72,7 +72,7 @@ function toolStatus(msg) {
         <div class="card-head"><span class="left">open a folder</span></div>
         <form class="input-row" data-path-form>
           <input name="path" placeholder="~/code/my-project   or   /Users/me/Code/project" autocomplete="off" />
-          <button class="browse-btn" type="button" title="Local filesystem bridge not wired yet" disabled>browse…</button>
+          <button class="browse-btn" type="button" data-action="browse-folder" title="Choose a local folder">browse…</button>
           <button class="open-btn" type="submit" aria-label="open typed path">open ↵</button>
         </form>
         <div style="padding:0 16px 12px;font-size:11px;color:var(--fg-3)">paste a path, or drop a folder onto the window.</div>

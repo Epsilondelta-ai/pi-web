@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cancelSession, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, postPrompt, renameSession, sessionEvents } from "./api.js";
+import { cancelSession, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, pickWorkspaceFolder, postPrompt, renameSession, sessionEvents } from "./api.js";
 
 describe("api adapter", () => {
   beforeEach(() => {
@@ -25,6 +25,12 @@ describe("api adapter", () => {
   it("escapes session ids in paths", async () => {
     const result = await getSession("a/b");
     expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb");
+  });
+
+  it("asks backend to open a native folder picker", async () => {
+    const result = await pickWorkspaceFolder();
+    expect(result.url).toBe("http://backend.test/api/system/folder-picker");
+    expect(result.options.method).toBe("POST");
   });
 
   it("creates sessions in a workspace", async () => {

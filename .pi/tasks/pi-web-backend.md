@@ -115,6 +115,7 @@ data: {"sessionId":"...","payload":{}}
 
 - [x] Remove real-mode backend fallback to mock workspaces.
 - [x] Add workspace remove/hide endpoint and frontend action.
+- [x] Add backend-native folder picker for opening new workspaces.
 - [x] Add session delete endpoint and frontend action.
 - [x] Add session rename endpoint and frontend action.
 - [x] Wire frontend cancel/stop button to backend cancel endpoint.

@@ -38,6 +38,10 @@ export function openWorkspace(path) {
   });
 }
 
+export function pickWorkspaceFolder() {
+  return request("/api/system/folder-picker", { method: "POST" });
+}
+
 export function getWorkspaceSessions(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`);
 }
