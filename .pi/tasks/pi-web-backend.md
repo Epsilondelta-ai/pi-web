@@ -99,11 +99,13 @@ data: {"sessionId":"...","payload":{}}
 
 ### 6. Real pi bridge
 
-- Discover local workspaces.
-- Read session metadata/logs.
-- Execute prompt through `pi` process or internal session runner.
-- Normalize stdout/tool activity into SSE events.
-- Add cancellation support.
+- Discovers local workspaces from `~/.pi/agent/sessions` or `PI_CODING_AGENT_SESSION_DIR`.
+- Parses pi JSONL session metadata/logs into frontend message objects.
+- Reads real workspace file trees when workspace paths exist.
+- Reads real git branch/dirty status when workspace paths are git repos.
+- Adds optional `--real-pi` backend mode to execute prompts through the local `pi` CLI.
+- Adds `POST /api/sessions/{sessionId}/cancel` for running prompt cancellation.
+- Normalizes pi CLI stdout/stderr into SSE events.
 
 ### 7. Local safety
 

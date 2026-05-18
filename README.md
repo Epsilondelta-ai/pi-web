@@ -24,6 +24,12 @@ bun run backend
 
 Default backend address: `127.0.0.1:8732`.
 
+Use the local `pi` CLI for prompt execution:
+
+```bash
+bun run backend:real
+```
+
 ## Test / Check
 
 ```bash

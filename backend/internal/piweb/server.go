@@ -11,14 +11,16 @@ import (
 )
 
 type Config struct {
-	Host           string
-	Port           string
-	AllowedOrigins []string
+	Host              string
+	Port              string
+	AllowedOrigins    []string
+	EnablePiExecution bool
 }
 
 type Server struct {
 	store  *Store
 	broker *Broker
+	runner *Runner
 	mux    *http.ServeMux
 	config Config
 }
@@ -33,7 +35,7 @@ func NewServer(config Config, store *Store, broker *Broker) *Server {
 	if len(config.AllowedOrigins) == 0 {
 		config.AllowedOrigins = []string{"http://localhost:4321", "http://127.0.0.1:4321", "http://localhost:6006", "http://127.0.0.1:6006"}
 	}
-	s := &Server{store: store, broker: broker, mux: http.NewServeMux(), config: config}
+	s := &Server{store: store, broker: broker, runner: NewRunner(), mux: http.NewServeMux(), config: config}
 	s.routes()
 	return s
 }
@@ -55,6 +57,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/status", s.gitStatus)
 	s.mux.HandleFunc("GET /api/sessions/{sessionID}", s.session)
 	s.mux.HandleFunc("POST /api/sessions/{sessionID}/prompt", s.prompt)
+	s.mux.HandleFunc("POST /api/sessions/{sessionID}/cancel", s.cancelSession)
 	s.mux.HandleFunc("GET /api/sessions/{sessionID}/events", s.sessionEvents)
 }
 
@@ -131,8 +134,23 @@ func (s *Server) prompt(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("text is required"))
 		return
 	}
-	go s.broker.PublishMockPrompt(s.context(), s.store, sessionID, req.Text)
-	writeJSON(w, http.StatusAccepted, map[string]any{"accepted": true})
+	if s.config.EnablePiExecution {
+		if err := s.runner.StartPiPrompt(s.context(), s.broker, s.store, sessionID, req.Text); err != nil {
+			writeError(w, http.StatusConflict, err)
+			return
+		}
+	} else {
+		go s.broker.PublishMockPrompt(s.context(), s.store, sessionID, req.Text)
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{"accepted": true, "realPi": s.config.EnablePiExecution})
+}
+
+func (s *Server) cancelSession(w http.ResponseWriter, r *http.Request) {
+	cancelled := s.runner.Cancel(r.PathValue("sessionID"))
+	if cancelled {
+		s.broker.Publish(r.PathValue("sessionID"), "session.status", map[string]string{"status": "cancelled"})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"cancelled": cancelled})
 }
 
 func (s *Server) sessionEvents(w http.ResponseWriter, r *http.Request) {
