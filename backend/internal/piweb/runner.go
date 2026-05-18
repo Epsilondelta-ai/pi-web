@@ -15,6 +15,19 @@ import (
 	"time"
 )
 
+const fallbackChoiceSystemPrompt = `Pi Web UI fallback choice protocol:
+- You are running inside Pi Web UI.
+- When you need the user to choose between options, or the user asks you to ask a choice question, output a fenced json block with top-level type "piweb_choice".
+- Stop after emitting the fallback block and wait for the user's follow-up.
+- When the user later sends:
+  선택지 응답:
+  id: <id>
+  value: <value>
+  continue using that id/value as the selected answer.
+- Required schema:
+  {"type":"piweb_choice","id":"stable-choice-id","question":"Question text","options":[{"label":"Option A","value":"A","description":"What A means"}],"allowCustom":false}
+- Keep id stable, short, and unique. Use at most 8 options. Use inert plain text only.`
+
 type Runner struct {
 	mu      sync.Mutex
 	running map[string]context.CancelFunc
@@ -49,7 +62,7 @@ func (r *Runner) StartPiPrompt(parent context.Context, broker *Broker, store *St
 		broker.Publish(sessionID, "session.message", Message{Kind: "user", Text: text})
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
 
-		args := []string{"--session", sessionFile, "--mode", "json", "--print", text}
+		args := []string{"--session", sessionFile, "--mode", "json", "--append-system-prompt", fallbackChoiceSystemPrompt, "--print", text}
 		cmd := exec.CommandContext(ctx, "pi", args...)
 		cmd.Dir = cwd
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -151,6 +164,9 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 		return true
 	case "message_end":
 		for _, msg := range convertAgentMessages(event.Message) {
+			if msg.Kind == "tool" && msg.Status == "running" {
+				continue
+			}
 			_ = store.AppendMessage(sessionID, msg)
 			if (msg.Kind == "pi" && state.streamedText) || (msg.Kind == "think" && state.streamedThinking) {
 				continue

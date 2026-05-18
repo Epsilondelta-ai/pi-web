@@ -319,7 +319,6 @@ func assistantMessages(raw json.RawMessage) []Message {
 			}
 		case "toolCall":
 			flushText()
-			messages = append(messages, Message{Kind: "tool", Tool: block.Name, Args: string(block.Arguments), Status: "running", CollapsedByDefault: true})
 		}
 	}
 	flushText()

@@ -120,6 +120,18 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
   });
 
+  it("renders fallback choice blocks as clickable answer options", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.appendMessage({ kind: "pi", text: "Pick one\n```json\n{\"type\":\"piweb_choice\",\"id\":\"runtime\",\"question\":\"Runtime?\",\"options\":[{\"label\":\"Go\",\"value\":\"go\",\"description\":\"Use Go\"}],\"allowCustom\":true}\n```" });
+    expect(app.querySelector(".fallback-choice-list strong").textContent).toBe("Runtime?");
+    expect(app.querySelector("[data-action='fallback-choice'] .choice-label").textContent).toBe("Go");
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).toContain("Pick one");
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).not.toContain("piweb_choice");
+  });
+
   it("animates spinner frames by swapping glyphs", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");

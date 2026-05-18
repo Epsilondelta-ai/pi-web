@@ -628,6 +628,57 @@ button.tc-head {
   display: block;
 }
 
+.fallback-choice-list {
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  background: var(--bg-1);
+  margin: 10px 0 14px 64px;
+  padding: var(--space-2);
+  max-width: 760px;
+}
+.fallback-choice-list.answered { opacity: 0.78; }
+.fallback-choice-list .choice-head {
+  display: grid;
+  gap: 4px;
+  margin-bottom: var(--space-2);
+}
+.fallback-choice-list .choice-head span {
+  color: var(--accent);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.fallback-choice-list .choice-head strong { color: var(--fg-0); font-weight: 500; }
+.fallback-choice-list .choice-options,
+.fallback-choice-list .choice-custom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.fallback-choice-list button {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--fg-1);
+  padding: 6px 10px;
+  min-height: 32px;
+  text-align: left;
+}
+.fallback-choice-list button:hover:not(:disabled) { border-color: var(--accent); color: var(--fg-0); }
+.fallback-choice-list button small {
+  display: block;
+  color: var(--fg-3);
+  margin-top: 2px;
+}
+.fallback-choice-list input {
+  flex: 1;
+  min-width: 180px;
+  border: 1px solid var(--border);
+  background: var(--bg-0);
+  color: var(--fg-1);
+  padding: 6px 8px;
+}
+.fallback-choice-list .choice-custom { margin-top: var(--space-2); }
+
 pre.ascii-banner {
   margin: 0 0 14px;
   font-family: var(--font-mono);

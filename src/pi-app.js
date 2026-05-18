@@ -2,6 +2,43 @@ import { cancelSession, createSession, deleteSession as deleteSessionRequest, de
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderTree } from "./renderers.js";
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const CHOICE_FENCE = /```json\s*([\s\S]*?)```/gi;
+
+function parseFallbackChoices(text = "") {
+  const choices = [];
+  for (const match of text.matchAll(CHOICE_FENCE)) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (parsed?.type !== "piweb_choice" || !parsed.id || !parsed.question || !Array.isArray(parsed.options)) continue;
+      choices.push({
+        id: String(parsed.id).slice(0, 120),
+        question: String(parsed.question).slice(0, 1000),
+        allowCustom: parsed.allowCustom === true,
+        options: parsed.options.slice(0, 8).filter((option) => option?.label && option?.value).map((option) => ({
+          label: String(option.label).slice(0, 120),
+          value: String(option.value).slice(0, 2000),
+          description: option.description ? String(option.description).slice(0, 1000) : "",
+        })),
+      });
+    } catch {}
+  }
+  return choices.filter((choice) => choice.options.length > 0);
+}
+
+function stripFallbackChoices(text = "") {
+  return text.replace(CHOICE_FENCE, (block, json) => {
+    try {
+      return JSON.parse(json)?.type === "piweb_choice" ? "" : block;
+    } catch {
+      return block;
+    }
+  }).trim();
+}
+
+function fallbackChoicePrompt(id, value) {
+  if (!id || !String(value).trim()) return "";
+  return `선택지 응답:\nid: ${id}\nvalue: ${value}`;
+}
 
 class PiApp extends HTMLElement {
   connectedCallback() {
@@ -323,12 +360,45 @@ class PiApp extends HTMLElement {
       return row;
     }
     if (msg.kind === "pi") {
+      const choices = parseFallbackChoices(msg.text);
+      const text = stripFallbackChoices(msg.text);
       const row = this.simpleMessage("pi", "pi >", "");
-      row.querySelector(".body").innerHTML = renderPiBody(msg.text);
-      return row;
+      row.querySelector(".body").innerHTML = renderPiBody(choices.length ? text : msg.text);
+      if (!choices.length) return row;
+      const fragment = document.createDocumentFragment();
+      fragment.append(row);
+      for (const choice of choices) fragment.append(this.choicePanel(choice));
+      return fragment;
     }
     if (msg.kind === "tool") return this.toolCard(msg);
     return this.simpleMessage("pi", "pi >", JSON.stringify(msg));
+  }
+
+  choicePanel(choice) {
+    const panel = document.createElement("div");
+    panel.className = "fallback-choice-list";
+    panel.dataset.choiceId = choice.id;
+    panel.innerHTML = `<div class="choice-head"><span>choice</span><strong></strong></div><div class="choice-options"></div>`;
+    panel.querySelector("strong").textContent = choice.question;
+    const options = panel.querySelector(".choice-options");
+    for (const option of choice.options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.action = "fallback-choice";
+      button.dataset.choiceId = choice.id;
+      button.dataset.choiceValue = option.value;
+      button.innerHTML = `<span class="choice-label"></span>${option.description ? `<small></small>` : ""}`;
+      button.querySelector(".choice-label").textContent = option.label;
+      if (option.description) button.querySelector("small").textContent = option.description;
+      options.append(button);
+    }
+    if (choice.allowCustom) {
+      const custom = document.createElement("div");
+      custom.className = "choice-custom";
+      custom.innerHTML = `<input type="text" placeholder="직접 답변 입력" data-choice-custom-input><button type="button" data-action="fallback-choice-custom" data-choice-id="${escapeHtml(choice.id)}">submit</button>`;
+      panel.append(custom);
+    }
+    return panel;
   }
 
   simpleMessage(kind, prefix, text) {
@@ -532,12 +602,30 @@ class PiApp extends HTMLElement {
     if (action === "session-menu-toggle") this.toggleSessionMenu(actionTarget.closest(".session-row"));
     if (action === "rename-session") this.renameSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "delete-session") this.deleteSession(actionTarget.closest(".session-row")?.dataset.session);
+    if (action === "fallback-choice") this.submitFallbackChoice(actionTarget.dataset.choiceId, actionTarget.dataset.choiceValue, actionTarget.closest(".fallback-choice-list"));
+    if (action === "fallback-choice-custom") this.submitFallbackChoice(actionTarget.dataset.choiceId, actionTarget.closest(".choice-custom")?.querySelector("[data-choice-custom-input]")?.value, actionTarget.closest(".fallback-choice-list"));
     if (action === "close-tweaks") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
     if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) this.pickSession(button.closest(".session-row") || button);
     if (button?.dataset.workspace && button.classList.contains("recent-row")) this.openWorkspace(button.dataset.workspace);
     if (button?.dataset.seed) this.seed(button.dataset.seed);
     if (button?.dataset.skill) this.seed(`/skill ${button.dataset.skill}\n\n`);
     if (button?.dataset.slash) this.pickSlash(button.dataset.slash);
+  }
+
+  async submitFallbackChoice(choiceId, value, panel) {
+    const prompt = fallbackChoicePrompt(choiceId, value);
+    if (!prompt || !this.apiConnected || !this.dataset.activeSessionId) return;
+    panel?.classList.add("answered");
+    panel?.querySelectorAll("button, input").forEach((item) => item.disabled = true);
+    this.finalizeStreamingMessages();
+    this.appendMessage({ kind: "user", text: prompt });
+    this.appendLoadingMessage();
+    try {
+      await postPrompt(this.dataset.activeSessionId, prompt, []);
+    } catch {
+      this.removeLoadingMessage();
+      this.setConnection("err");
+    }
   }
 
   updateSessionTitle(session) {

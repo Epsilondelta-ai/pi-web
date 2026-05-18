@@ -25,3 +25,17 @@ func TestHandlePiJSONEventStreamsTextDelta(t *testing.T) {
 		t.Fatalf("expected text delta event: %#v", replay)
 	}
 }
+
+func TestHandlePiJSONEventSkipsFinalToolCallPlaceholders(t *testing.T) {
+	broker := NewBroker()
+	store := NewMockStore()
+	state := &jsonStreamState{}
+	handlePiJSONEvent(`{"type":"message_end","message":{"role":"assistant","content":[{"type":"toolCall","name":"bash","arguments":{"command":"pwd"}}]}}`, broker, store, "8e7c-44ff", state)
+	if replay := broker.Replay("8e7c-44ff", 0); len(replay) != 0 {
+		t.Fatalf("assistant tool call placeholders should not be replayed as running tools: %#v", replay)
+	}
+	_, messages, _ := store.Session("8e7c-44ff")
+	if len(messages) != 5 {
+		t.Fatalf("assistant tool call placeholders should not be stored: %#v", messages)
+	}
+}
