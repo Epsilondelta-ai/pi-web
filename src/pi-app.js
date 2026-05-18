@@ -428,6 +428,7 @@ class PiApp extends HTMLElement {
     const text = this.prompt?.value.trim() || "";
     if (!text && !this.attachments?.children.length) return;
     const sessionId = this.dataset.activeSessionId;
+    this.showSessionMain();
     if (text) {
       this.appendMessage({ kind: "user", text });
       this.appendLoadingMessage();
@@ -662,8 +663,7 @@ class PiApp extends HTMLElement {
       title.textContent = row.dataset.title;
       title.title = `${row.dataset.title} · ${row.dataset.session}`;
     }
-    this.querySelector("[data-main='session']")?.removeAttribute("hidden");
-    this.querySelector("[data-main='empty']")?.setAttribute("hidden", "");
+    this.showSessionMain();
     this.querySelector(".app-body")?.classList.remove("drawer-open");
     if (this.apiConnected) await this.loadSession(row.dataset.session);
     else this.dataset.activeSessionId = row.dataset.session;
@@ -702,6 +702,7 @@ class PiApp extends HTMLElement {
       if (this.dataset.activeSessionId === sessionId) {
         this.dataset.activeSessionId = "";
         this.renderMessages([]);
+        this.showEmptyMain();
         this.querySelector("[data-active-session-title]").textContent = "no session";
       }
     } catch {
@@ -730,13 +731,24 @@ class PiApp extends HTMLElement {
         this.setConnection("err");
       }
     }
-    this.querySelector("[data-main='session']")?.setAttribute("hidden", "");
-    this.querySelector("[data-main='empty']")?.removeAttribute("hidden");
+    this.showEmptyMain();
     const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent || workspaceId || "workspace";
     const empty = this.querySelector("[data-empty-workspace]");
     const title = this.querySelector("[data-active-session-title]");
     if (empty) empty.textContent = label;
     if (title && !this.dataset.activeSessionId) title.textContent = "new session";
+  }
+
+  showSessionMain() {
+    this.dataset.session = "active";
+    this.querySelector("[data-main='session']")?.removeAttribute("hidden");
+    this.querySelector("[data-main='empty']")?.setAttribute("hidden", "");
+  }
+
+  showEmptyMain() {
+    this.dataset.session = "empty";
+    this.querySelector("[data-main='session']")?.setAttribute("hidden", "");
+    this.querySelector("[data-main='empty']")?.removeAttribute("hidden");
   }
 
   toggleSessionMenu(row) {

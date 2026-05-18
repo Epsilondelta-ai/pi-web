@@ -69,6 +69,32 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("hello");
   });
 
+  it("reveals the live transcript immediately when sending from the empty session view", async () => {
+    document.body.innerHTML = `
+      <pi-app data-active-session-id="s1" data-session="empty">
+        <main data-main="session" hidden><div class="term-inner"></div></main>
+        <main data-main="empty"><div class="empty-shell">new session</div></main>
+        <div class="prompt-region">
+          <div class="slash-pop" hidden></div>
+          <div class="attach-chips" hidden></div>
+          <textarea class="prompt-textarea"></textarea>
+          <button class="send-btn">send</button>
+          <button class="attach-btn">attach</button>
+          <input data-file-input type="file" />
+        </div>
+      </pi-app>
+    `;
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.prompt.value = "hello";
+    await app.submitPrompt();
+    expect(app.querySelector("[data-main='session']").hidden).toBe(false);
+    expect(app.querySelector("[data-main='empty']").hidden).toBe(true);
+    expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toBe("hello");
+    expect(app.querySelector(".msg.loading")).not.toBeNull();
+  });
+
   it("switches between picker and workspace routes", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
