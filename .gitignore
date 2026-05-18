@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+.astro/
+dist/
+storybook-static/
+storybook-server/
+.pi/sessions
+.pi/tasks/

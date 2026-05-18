@@ -1,0 +1,423 @@
+---
+import { PI_DATA } from "./mock-data.js";
+import { escapeHtml, qrHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./renderers.js";
+
+const activeWorkspace = PI_DATA.WORKSPACES[0];
+const activeSession = activeWorkspace.sessions[0];
+const shareUrl = `https://share.pi.dev/s/${activeSession.id}`;
+const conversation = PI_DATA.CONVERSATION;
+const quickPrompts = [
+  { title: "explain this repo", body: "skim the top-level README and package layout, summarize what this project does, and list any conventions a new contributor should know.", icon: "?" },
+  { title: "find the bug", body: "run the test suite, identify failing tests, and propose a minimal fix.", icon: "✗" },
+  { title: "add a feature", body: "describe what you want — pi will scaffold the change across files and run the tests.", icon: "+" },
+  { title: "refactor for clarity", body: "pick a file or module — pi will propose a smaller-footprint refactor, then apply with `auto-accept`.", icon: "↻" },
+];
+const starterSkills = [
+  { name: "tdd", desc: "write the test first, watch it fail, make it pass" },
+  { name: "monorepo", desc: "navigate workspaces, scope changes to packages" },
+  { name: "code-review", desc: "read like a reviewer · respond inline" },
+  { name: "ship-it", desc: "small commits · descriptive messages · open PR" },
+];
+const commands = [
+  { kind: "action", cmd: "/share", desc: "share session as read-only URL", hint: "⌘⇧S" },
+  { kind: "action", cmd: "/tree", desc: "show file tree" },
+  { kind: "action", cmd: "/compact", desc: "summarize older context to reclaim tokens" },
+  { kind: "action", cmd: "/model", desc: "switch model" },
+  { kind: "action", cmd: "/skill", desc: "load a skill" },
+  { kind: "action", cmd: "/undo", desc: "undo the last tool call · revert files" },
+  { kind: "action", cmd: "/diff", desc: "show pending diff for this session" },
+  { kind: "action", cmd: "/system", desc: "edit SYSTEM.md" },
+  ...PI_DATA.WORKSPACES.map((workspace) => ({ kind: "nav", cmd: `open: ${workspace.name}`, desc: `${workspace.path} · ${workspace.sessionCount} sessions` })),
+  ...PI_DATA.WORKSPACES.flatMap((workspace) => workspace.sessions.map((session) => ({ kind: "session", cmd: `session: ${session.title}`, desc: `${session.id} · ${session.lastUsed}` }))),
+  { kind: "setting", cmd: "toggle: file tree", desc: "show/hide files panel" },
+  { kind: "setting", cmd: "toggle: scanlines", desc: "CRT scanline overlay" },
+];
+
+function toolStatus(msg) {
+  if (msg.status === "running") return `<span class="spinner">⠋</span><span style="color:var(--accent)">running</span>`;
+  if (msg.status === "err") return `<span class="err">✗</span>${escapeHtml(msg.resultMeta || "failed")}`;
+  return `<span class="ok">✓</span>${msg.durationMs ? `${msg.durationMs} ms` : ""}${msg.resultMeta ? ` · ${escapeHtml(msg.resultMeta)}` : ""}`;
+}
+
+function renderTree(nodes) {
+  return nodes.map((node) => {
+    const open = !!node.open;
+    const disabled = node.type !== "dir" ? " disabled" : "";
+    const expanded = node.type === "dir" ? ` aria-expanded="${open}"` : "";
+    const cls = ["tree-node", node.type, node.status || ""].filter(Boolean).join(" ");
+    const padding = `padding-left:calc(var(--space-3) + ${node.depth * 14}px)`;
+    const caret = node.type === "dir" ? (open ? "▾" : "▸") : "";
+    const glyph = node.type === "dir" ? (open ? "▾" : "▸") : "·";
+    const children = node.children ? `<div${open ? "" : " hidden"}>${renderTree(node.children)}</div>` : "";
+    return `<div class="tree-branch"><button type="button" class="${cls}" style="${padding}"${disabled}${expanded}><span class="caret">${caret}</span><span class="glyph">${glyph}</span><span class="name">${escapeHtml(node.name)}</span></button>${children}</div>`;
+  }).join("");
+}
+---
+
+<pi-app class="app" data-route="workspace" data-tree="on" data-sidebar="open" data-session="active">
+  <header class="topbar">
+    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar">›</button>
+    <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar">≡</button>
+    <span class="brand" aria-label="pi.dev / web">
+      <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
+    </span>
+    <span class="crumb">
+      <span class="sep">/</span><span class="ws" data-active-workspace>{activeWorkspace.name}</span>
+      <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSession.title} · ${activeSession.id}`}>{activeSession.title}</span>
+    </span>
+    <div class="actions">
+      <button class="iconbtn on" type="button" data-action="toggle-tree" aria-label="toggle file tree" title="files">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 3.5h5l1.2 1.5h6.8v8.5h-13z" stroke-linejoin="round"></path></svg>
+      </button>
+      <span class="iconbtn statusbtn" style="color:var(--accent)" title="connected">●</span>
+    </div>
+  </header>
+
+  <section class="picker-shell" data-view="picker" hidden>
+    <div class="picker-inner">
+      <div class="picker-header-row">
+        <div>
+          <pre class="picker-banner" aria-label="pi.dev / web">    ____   _      _      __     __     __
+   / __ \ (_)    | | /| / /__  / /    / /
+  / /_/ // /     | |/ |/ // -_)/ _ \ / _ \
+ / ____//_/      |__/|__/ \__//_.__//_.__/
+/_/</pre>
+          <p class="picker-tag"><span class="accent">pi.dev</span> — open a folder to start a session. No login.</p>
+        </div>
+        <button class="cancel-btn" type="button" data-action="route-workspace">cancel</button>
+      </div>
+      <div class="picker-card">
+        <div class="card-head"><span class="left">open a folder</span></div>
+        <form class="input-row" data-path-form>
+          <input name="path" placeholder="~/code/my-project   or   /Users/jay/Code/pi-mono" autocomplete="off" />
+          <button class="browse-btn" type="button" title="Local filesystem bridge not wired yet" disabled>browse…</button>
+          <button class="open-btn" type="submit" aria-label="open typed path">open ↵</button>
+        </form>
+        <div style="padding:0 16px 12px;font-size:11px;color:var(--fg-3)">paste a path, or drop a folder onto the window.</div>
+      </div>
+      <div class="picker-card">
+        <div class="card-head"><span class="left">recent workspaces</span><span class="right">{PI_DATA.WORKSPACES.length} known</span></div>
+        {PI_DATA.WORKSPACES.slice(0, 4).map((workspace) => (
+          <button class="recent-row" type="button" data-workspace={workspace.id} aria-label={`open ${workspace.name}`}>
+            <span class="glyph">▸</span>
+            <span class="ws-info"><span class="name">{workspace.name}</span><span class="path">{workspace.path}</span></span>
+            <span class="ws-stat">{workspace.live ? <><span class="live">● live</span><span class="lbl">{workspace.sessionCount} sessions</span></> : <><span>{workspace.lastUsed}</span><span class="lbl">{workspace.sessionCount} sessions</span></>}</span>
+            <span class="open-cta">open ↵</span>
+          </button>
+        ))}
+      </div>
+      <div class="help-grid">
+        <div class="help-card"><h4>how it works</h4><span>this UI talks to a local <code>pi --serve</code> over WebSocket. run it once on the machine that hosts your code: <code>pi --serve --port 8732</code>. everything else stays on your disk.</span></div>
+        <div class="help-card"><h4>privacy</h4><span>no telemetry. no login. sessions live in <code>.pi/sessions/</code> on your machine. workspace paths are remembered locally in <code>localStorage</code>.</span></div>
+      </div>
+      <div style="text-align:center;color:var(--fg-4);font-size:11px;margin-top:16px"><span>v0.7.3 · MIT · </span><a href="https://pi.dev" style="color:var(--accent)">pi.dev</a><span> · </span><a href="#" style="color:var(--fg-3)">docs</a></div>
+    </div>
+  </section>
+
+  <section class="app-body with-tree tree-open" data-view="workspace" style="grid-template-columns:280px 1fr 260px">
+    <div class="sidebar-wrap">
+      <aside class="sidebar" aria-label="workspaces and sessions">
+        <div class="sb-section" style="flex:1;overflow-y:auto;min-height:0">
+          <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker">+ open</button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar">‹</button></span></div>
+          {PI_DATA.WORKSPACES.map((workspace) => (
+            <div class="workspace-group" data-workspace-group={workspace.id}>
+              <button type="button" class:list={["ws-row", workspace.id === activeWorkspace.id && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={workspace.id === activeWorkspace.id ? "true" : "false"}>
+                <span class="caret">{workspace.id === activeWorkspace.id ? "▾" : "▸"}</span>
+                <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
+                <span class="ws-meta">{workspace.sessionCount}</span>
+              </button>
+              <div class="sessions" hidden={workspace.id !== activeWorkspace.id}>
+                <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="gutter">+</span><span class="title">new session</span><span class="meta">N</span></button>
+                {workspace.sessions.map((session) => (
+                  <button type="button" class:list={["session-row", workspace.id === activeWorkspace.id && session.id === activeSession.id && "active"]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
+                    <span class="gutter"></span><span class="title">{session.title}<span class="sid">{session.id}</span></span><span class:list={["meta", session.live && "live"]}>{session.live && <span style="margin-right:4px">●</span>}{session.lastUsed}</span>
+                  </button>
+                ))}
+                {workspace.sessions.length === 0 && <div style="padding:12px 16px;color:var(--fg-3);font-size:12px;font-style:italic">no sessions yet · press N to start one</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="sb-footer"><span class="status-dot"></span><span>connected</span></div>
+      </aside>
+      <div class="sb-resizer" role="separator" aria-orientation="vertical" aria-label="resize sidebar" title="drag to resize"></div>
+    </div>
+
+    <main class="main" data-main="session">
+      <div class="context-strip">
+        <span class="chip"><span class="lbl">model</span> <span class="val accent">sonnet:high</span></span>
+        <span class="chip"><span class="lbl">ctx</span><span class="ctx-bar"><i style="width:6%"></i></span><span class="val">12.3k / 200k</span></span>
+        <span class="chip"><span class="lbl">mode</span> <span class="val">auto-accept</span></span>
+        <span class="chip"><span class="lbl">tools</span> <span class="val tool">4</span> ran</span>
+        <button type="button" class="chip share-chip" style="margin-left:auto" data-action="share"><span class="lbl">/share</span> <span class="val">to publish</span></button>
+      </div>
+      <div class="term">
+        <div class="term-inner">
+          <pre class="ascii-banner" set:html={renderBannerBody(conversation[0].text)}></pre>
+          <div class="msg"><div class="prefix user">you &gt;</div><div class="body">{conversation[1].text}</div></div>
+          <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{conversation[2].text}</div></div></div>
+          <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(conversation[3].text)}></div></div>
+          {[conversation[4], conversation[5], conversation[6], conversation[7], conversation[8]].map((msg) => (
+            <div class:list={["tool-card", msg.collapsedByDefault && "collapsed"]}>
+              <button type="button" class="tc-head" aria-expanded={msg.collapsedByDefault ? "false" : "true"} data-action="toggle-tool">
+                <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={`${toolStatus(msg)}<span class="tc-caret">${msg.collapsedByDefault ? "▸" : "▾"}</span>`}></span>
+              </button>
+              {msg.body && <div class="tc-body" hidden={msg.collapsedByDefault} set:html={renderAnsiBody(msg.body)}></div>}
+            </div>
+          ))}
+          <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(conversation[9].text)}></div></div>
+          <div class="compaction" hidden><span class="lbl">⚠ context summarized</span><span>38 messages → 1 summary · ~5.2k tokens reclaimed · /undo to revert</span></div>
+        </div>
+      </div>
+    </main>
+
+    <main class="main" data-main="empty" hidden>
+      <div class="context-strip"><span class="chip"><span class="lbl">model</span> <span class="val accent">sonnet:high</span></span><span class="chip"><span class="lbl">ctx</span><span class="ctx-bar"><i style="width:0%"></i></span><span class="val">0.0k / 200k</span></span><span class="chip"><span class="lbl">mode</span> <span class="val">ready</span></span><span class="chip"><span class="lbl">tools</span> <span class="val tool">0</span> ran</span><span class="chip" style="margin-left:auto"><span class="lbl">/share</span> <span class="val">to publish</span></span></div>
+      <div class="empty-shell"><div class="empty-inner"><pre class="empty-ascii" aria-hidden="true">┌─────────────┐
+│             │
+│      ∅      │
+│             │
+└─────────────┘</pre><div class="empty-title">new session in <span class="accent" data-empty-workspace>{activeWorkspace.name}</span></div><div class="empty-sub">pi is idle. say the first thing.</div><div class="quick-grid">{quickPrompts.map((prompt) => <button type="button" class="quick-card" data-seed={prompt.body}><span class="qc-icon">{prompt.icon}</span><span class="qc-title">{prompt.title}</span><span class="qc-body">{prompt.body}</span></button>)}</div><div class="empty-section"><div class="empty-section-head"><span>load a skill</span><span class="dim">/skill &lt;name&gt;</span></div><div class="skill-list">{starterSkills.map((skill) => <button type="button" class="skill-row" data-skill={skill.name}><span class="sk-name">/skill {skill.name}</span><span class="sk-desc">{skill.desc}</span><span class="sk-cta">load ↵</span></button>)}</div></div><div class="empty-tips"><div class="dim">session id will be assigned on first send. saved to <code>.pi/sessions/</code>.</div></div></div></div>
+    </main>
+
+    <aside class="tree" aria-label="file tree">
+      <div class="tree-head"><span>files</span><span class="branch">main · 3 ✱</span></div>
+      <div class="tree-list">
+        <Fragment set:html={renderTree(PI_DATA.FILE_TREE)} />
+        <div style="padding:8px 16px;color:var(--fg-4);font-size:11px;font-style:italic">tip: pi watches the tree · changes appear here.</div>
+      </div>
+    </aside>
+    <div class="scrim" data-action="close-drawer"></div>
+  </section>
+
+  <div class="prompt-region">
+    <div class="slash-pop" hidden>
+      <div class="slash-head">slash commands · type to filter</div>
+      <div class="slash-list">{PI_DATA.SLASH_COMMANDS.map((cmd, index) => <button type="button" class:list={["slash-item", index === 0 && "selected"]} data-slash={cmd.cmd}><span class="sl-cmd">{cmd.cmd}</span><span class="sl-desc">{cmd.desc}</span></button>)}</div>
+    </div>
+    <div class="prompt-bar">
+      <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5 6 10a2 2 0 1 0 2.8 2.8l5.7-5.7a3.5 3.5 0 0 0-5-5L3.7 7.9a5 5 0 1 0 7 7l4.8-4.8"></path></svg></button>
+      <input type="file" multiple hidden data-file-input />
+      <div class="prompt-input-col"><div class="attach-chips" hidden></div><textarea class="prompt-textarea" placeholder="ask pi to do something…" rows="1"></textarea></div>
+      <div class="prompt-actions"><button class="send-btn" type="button" disabled>send</button></div>
+      <div class="drop-overlay" hidden><span>drop to attach</span></div>
+    </div>
+    <div class="prompt-meta"><span class="model-tag">sonnet:high</span><span class="dim">·</span><span class="dim">auto-accept</span><span class="ctx-bar"><i style="width:6%"></i></span><span>6% ctx</span></div>
+  </div>
+
+  <div class="modal-scrim" data-modal="share" hidden>
+    <div class="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title">
+      <div class="modal-head"><span class="modal-eyebrow" id="share-title">/share · read-only</span><button class="modal-x" type="button" data-action="close-modal" aria-label="close">×</button></div>
+      <div class="modal-body"><div class="share-banner"><pre>┌─ session published ────────────────────────┐
+│  read-only · expires in 7 days             │
+│  conversation + tool output · no secrets   │
+└────────────────────────────────────────────┘</pre></div><div class="share-url-row"><span class="url-prefix">$</span><input class="share-url" value={shareUrl} readonly /><button class="copy-btn" type="button" data-action="copy-share">copy</button></div><div class="share-qr-row"><div class="qr" set:html={qrHtml(shareUrl)}></div><div class="share-meta"><div class="kv"><span class="k">session</span><span class="v">{activeSession.id}</span></div><div class="kv"><span class="k">messages</span><span class="v">9 / 12.3k tokens</span></div><div class="kv"><span class="k">tools</span><span class="v">4 calls · 1 running</span></div><div class="kv"><span class="k">redacted</span><span class="v">env vars · .env · ~/.ssh</span></div><div class="kv"><span class="k">expires</span><span class="v">2026-05-25 · 7 days</span></div></div></div><div class="share-actions"><label class="check-row"><input type="checkbox" checked /> <span>include tool output</span></label><label class="check-row"><input type="checkbox" checked /> <span>redact secrets</span></label><label class="check-row"><input type="checkbox" /> <span>allow comments</span></label><button class="revoke-btn" type="button">revoke</button></div></div>
+    </div>
+  </div>
+
+  <div class="modal-scrim palette-scrim" data-modal="palette" hidden>
+    <div class="palette" role="dialog" aria-modal="true" aria-label="command palette">
+      <div class="palette-head"><span class="palette-prefix">⌘K</span><input class="palette-input" placeholder="run a command, open a workspace, jump to a session…" /><span class="palette-count">{commands.length}</span></div>
+      <div class="palette-list">{["action", "nav", "session", "setting"].map((kind) => <div class="palette-group" data-kind={kind}><div class="palette-group-head">{{ action: "commands", nav: "workspaces", session: "sessions", setting: "settings" }[kind]}</div>{commands.filter((command) => command.kind === kind).map((command, index) => <button type="button" class:list={["palette-item", index === 0 && kind === "action" && "selected", `kind-${command.kind}`]} data-command={command.cmd} data-kind={command.kind}><span class="pal-glyph">{command.kind === "action" ? "›" : command.kind === "nav" ? "▸" : command.kind === "session" ? "·" : "⌥"}</span><span class="pal-cmd">{command.cmd}</span><span class="pal-desc">{command.desc}</span>{command.hint && <span class="pal-hint">{command.hint}</span>}</button>)}</div>)}</div>
+      <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> run</span><span><kbd>esc</kbd> close</span></div>
+    </div>
+  </div>
+
+  <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks">×</button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button><button class="twk-btn secondary" type="button" data-action="share">open /share modal</button><button class="twk-btn secondary" type="button" data-action="palette">open ⌘K palette</button></div></div>
+</pi-app>
+
+<script type="module">
+  class PiApp extends HTMLElement {
+    connectedCallback() {
+      this.prompt = this.querySelector(".prompt-textarea");
+      this.send = this.querySelector(".send-btn");
+      this.attach = this.querySelector(".attach-btn");
+      this.file = this.querySelector("[data-file-input]");
+      this.attachments = this.querySelector(".attach-chips");
+      this.slash = this.querySelector(".slash-pop");
+      this.bind();
+      this.restoreSidebar();
+      this.scrollTerm();
+    }
+    bind() {
+      this.addEventListener("click", (event) => this.click(event));
+      this.querySelector("[data-path-form]")?.addEventListener("submit", (event) => {
+        event.preventDefault();
+        this.route("workspace");
+      });
+      this.prompt?.addEventListener("input", () => this.updatePrompt());
+      this.prompt?.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") this.submitPrompt();
+      });
+      this.attach?.addEventListener("click", () => this.file?.click());
+      this.file?.addEventListener("change", () => this.addFiles(this.file.files));
+      window.addEventListener("keydown", (event) => this.shortcut(event));
+      window.addEventListener("message", (event) => {
+        if (event.data?.type === "__activate_edit_mode") this.querySelector("[data-tweaks]").hidden = false;
+        if (event.data?.type === "__deactivate_edit_mode") this.querySelector("[data-tweaks]").hidden = true;
+      });
+      window.parent?.postMessage({ type: "__edit_mode_available" }, "*");
+    }
+    click(event) {
+      const button = event.target.closest("button");
+      if (!button || !this.contains(button)) return;
+      const action = button.dataset.action;
+      if (action === "route-picker") this.route("picker");
+      if (action === "route-workspace") this.route("workspace");
+      if (action === "toggle-tree") this.toggleTree();
+      if (action === "collapse-sidebar") this.collapseSidebar(true);
+      if (action === "expand-sidebar") this.collapseSidebar(false);
+      if (action === "open-drawer") this.querySelector(".app-body")?.classList.add("drawer-open");
+      if (action === "close-drawer") this.querySelector(".app-body")?.classList.remove("drawer-open");
+      if (action === "share") this.openModal("share");
+      if (action === "palette") this.openModal("palette");
+      if (action === "close-modal") this.closeModals();
+      if (action === "copy-share") this.copyShare(button);
+      if (action === "toggle-tool") this.toggleTool(button);
+      if (action === "toggle-workspace") this.toggleWorkspace(button.dataset.workspace);
+      if (action === "new-session") this.newSession(button.dataset.workspace);
+      if (action === "close-tweaks") this.querySelector("[data-tweaks]").hidden = true;
+      if (button.dataset.session) this.pickSession(button);
+      if (button.dataset.workspace && button.classList.contains("recent-row")) this.route("workspace");
+      if (button.dataset.seed) this.seed(button.dataset.seed);
+      if (button.dataset.skill) this.seed(`/skill ${button.dataset.skill}\n\n`);
+      if (button.dataset.slash) this.pickSlash(button.dataset.slash);
+      if (button.dataset.command) this.runCommand(button.dataset.command, button.dataset.kind);
+    }
+    shortcut(event) {
+      const meta = event.metaKey || event.ctrlKey;
+      if (meta && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        this.openModal("palette");
+      }
+      if (meta && event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        this.openModal("share");
+      }
+      if (event.key === "Escape") this.closeModals();
+    }
+    route(route) {
+      this.dataset.route = route;
+      this.querySelector('[data-view="picker"]').hidden = route !== "picker";
+      this.querySelector('[data-view="workspace"]').hidden = route !== "workspace";
+      if (route === "picker") this.querySelector('.picker-shell input[name="path"]')?.focus();
+    }
+    toggleTree() {
+      const body = this.querySelector(".app-body");
+      const tree = this.querySelector(".tree");
+      const on = this.dataset.tree !== "on";
+      this.dataset.tree = on ? "on" : "off";
+      body?.classList.toggle("with-tree", on);
+      body?.classList.toggle("tree-open", on);
+      tree.hidden = !on;
+      body.style.gridTemplateColumns = on ? "280px 1fr 260px" : "280px 1fr";
+    }
+    collapseSidebar(collapsed) {
+      this.dataset.sidebar = collapsed ? "collapsed" : "open";
+      this.querySelector(".sidebar-wrap").hidden = collapsed;
+      this.querySelector(".sb-expand-btn").style.display = collapsed ? "inline-flex" : "none";
+      localStorage.setItem("pi.sb.collapsed", collapsed ? "1" : "0");
+      this.querySelector(".app-body").style.gridTemplateColumns = collapsed ? (this.dataset.tree === "on" ? "1fr 260px" : "1fr") : (this.dataset.tree === "on" ? "280px 1fr 260px" : "280px 1fr");
+    }
+    restoreSidebar() {
+      this.collapseSidebar(localStorage.getItem("pi.sb.collapsed") === "1");
+    }
+    toggleWorkspace(id) {
+      this.querySelectorAll("[data-workspace-group]").forEach((group) => {
+        const open = group.dataset.workspaceGroup === id && group.querySelector(".sessions")?.hidden;
+        group.querySelector(".sessions").hidden = !open;
+        const row = group.querySelector(".ws-row");
+        row.classList.toggle("open", open);
+        row.setAttribute("aria-expanded", String(open));
+        row.querySelector(".caret").textContent = open ? "▾" : "▸";
+      });
+    }
+    pickSession(button) {
+      this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
+      button.classList.add("active");
+      this.querySelector("[data-active-session-title]").textContent = button.dataset.title;
+      this.querySelector("[data-main='session']").hidden = false;
+      this.querySelector("[data-main='empty']").hidden = true;
+      this.querySelector(".app-body")?.classList.remove("drawer-open");
+      this.scrollTerm();
+    }
+    newSession(workspace) {
+      this.querySelector("[data-main='session']").hidden = true;
+      this.querySelector("[data-main='empty']").hidden = false;
+      const label = this.querySelector(`[data-workspace='${workspace}'] .label`)?.textContent || workspace || "workspace";
+      this.querySelector("[data-empty-workspace]").textContent = label;
+      this.querySelector("[data-active-session-title]").textContent = "new session";
+    }
+    openModal(name) {
+      this.closeModals();
+      const modal = this.querySelector(`[data-modal='${name}']`);
+      if (!modal) return;
+      modal.hidden = false;
+      modal.querySelector("input,button,textarea")?.focus();
+    }
+    closeModals() {
+      this.querySelectorAll("[data-modal]").forEach((modal) => modal.hidden = true);
+    }
+    async copyShare(button) {
+      const input = this.querySelector(".share-url");
+      try { await navigator.clipboard.writeText(input.value); } catch {}
+      button.textContent = "copied ✓";
+      setTimeout(() => button.textContent = "copy", 1400);
+    }
+    toggleTool(button) {
+      const card = button.closest(".tool-card");
+      const body = card.querySelector(".tc-body");
+      const collapsed = !card.classList.toggle("collapsed");
+      body.hidden = !body.hidden;
+      button.setAttribute("aria-expanded", String(!body.hidden));
+      button.querySelector(".tc-caret").textContent = body.hidden ? "▸" : "▾";
+    }
+    updatePrompt() {
+      const value = this.prompt.value;
+      this.send.disabled = !value.trim() && !this.attachments.children.length;
+      this.slash.hidden = !(value.startsWith("/") && !value.includes("\n"));
+      this.prompt.style.height = "auto";
+      this.prompt.style.height = Math.min(180, this.prompt.scrollHeight) + "px";
+    }
+    seed(value) {
+      this.prompt.value = value;
+      this.updatePrompt();
+      this.prompt.focus();
+    }
+    pickSlash(command) {
+      if (command === "/share") this.openModal("share");
+      else this.seed(command + " ");
+      this.slash.hidden = true;
+    }
+    runCommand(command, kind) {
+      if (command === "/share") this.openModal("share");
+      if (command === "toggle: file tree") this.toggleTree();
+      if (kind === "nav") this.route("workspace");
+      this.closeModals();
+    }
+    addFiles(files) {
+      for (const file of files || []) {
+        const chip = document.createElement("span");
+        chip.className = "attach-chip";
+        chip.textContent = `${file.name} ${Math.ceil(file.size / 1024)} KB`;
+        this.attachments.append(chip);
+      }
+      this.attachments.hidden = !this.attachments.children.length;
+      this.updatePrompt();
+    }
+    submitPrompt() {
+      this.prompt.value = "";
+      this.attachments.replaceChildren();
+      this.attachments.hidden = true;
+      this.updatePrompt();
+    }
+    scrollTerm() {
+      requestAnimationFrame(() => {
+        const term = this.querySelector(".term");
+        if (term) term.scrollTop = term.scrollHeight;
+      });
+    }
+  }
+  customElements.define("pi-app", PiApp);
+</script>
+

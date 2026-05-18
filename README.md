@@ -1,1 +1,40 @@
 # pi-web-ui
+
+Astro 기반으로 pi를 브라우저에서 보고 조작하기 위한 프론트엔드 프로토타입입니다.
+`/Users/juunini/Downloads/pi web`의 프로토타입을 React 없이 Astro + vanilla custom element로 재작성했습니다.
+
+## Run
+
+```bash
+bun install
+bun run dev
+```
+
+## Build
+
+```bash
+bun run build
+```
+
+## Test / Check
+
+```bash
+bun run test
+bun run check
+```
+
+## Storybook
+
+```bash
+bun run storybook
+bun run build-storybook
+```
+
+## Source
+
+- `src/pages/index.astro` — Astro page shell
+- `src/App.astro` — pi workspace/session UI
+- `src/mock-data.js` — fixture data until a `pi --serve` bridge is wired
+- `src/renderers.js` — safe inline markup render helpers
+- `src/styles.css`, `src/extras.css`, `src/design-system/colors_and_type.css` — prototype styles
+- `src/App.stories.js` — full app story

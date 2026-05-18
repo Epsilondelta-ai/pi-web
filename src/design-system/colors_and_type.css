@@ -1,0 +1,210 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+
+:root {
+  --bg-0: #000000;          --bg-1: #0a0a0a;          --bg-2: #111111;          --bg-3: #1a1a1a;          --bg-4: #232323;          --border-dim: #1f1f1f;    --border:     #2a2a2a;    --border-hi:  #3a3a3a;    --border-focus: #00ff88;  --fg-0:  #f5f5f5;         --fg-1:  #d4d4d4;         --fg-2:  #8b8b8b;         --fg-3:  #5a5a5a;         --fg-4:  #3a3a3a;         --ansi-black:    #1a1a1a;
+  --ansi-red:      #ff6b6b;
+  --ansi-green:    #00ff88;   --ansi-yellow:   #fae870;
+  --ansi-blue:     #82aaff;
+  --ansi-magenta:  #ff79c6;
+  --ansi-cyan:     #5af2ff;
+  --ansi-white:    #e6e6e6;
+
+  --ansi-bright-black:   #5a5a5a;
+  --ansi-bright-red:     #ff8b8b;
+  --ansi-bright-green:   #5cffaf;
+  --ansi-bright-yellow:  #fff09a;
+  --ansi-bright-blue:    #a5bfff;
+  --ansi-bright-magenta: #ff9ed5;
+  --ansi-bright-cyan:    #8af6ff;
+  --ansi-bright-white:   #ffffff;
+
+  --accent:        var(--ansi-green);     --accent-dim:    #00b864;               --accent-bg:     rgba(0, 255, 136, 0.08);
+  --warn:          var(--ansi-yellow);
+  --warn-bg:       rgba(250, 232, 112, 0.07);
+  --danger:        var(--ansi-red);
+  --danger-bg:     rgba(255, 107, 107, 0.08);
+  --info:          var(--ansi-cyan);
+  --tool-call:     #ffb86c;               --tool-call-bg:  rgba(255, 184, 108, 0.07);
+  --user-msg:      #82aaff;               --thinking:      #ff79c6;               --selection-bg: rgba(0, 255, 136, 0.22);
+  --selection-fg: #ffffff;
+
+  --font-mono: "JetBrains Mono", "Monaspace Neon", "SF Mono",
+               "Cascadia Code", "Fira Code", "Menlo", "Consolas",
+               ui-monospace, monospace;
+  --font-sans: var(--font-mono); --text-xs:   11px;   --text-sm:   12px;   --text-base: 14px;   --text-md:   15px;   --text-lg:   17px;   --text-xl:   20px;   --text-2xl:  26px;   --leading-tight:  1.2;
+  --leading-normal: 1.4;   --leading-loose:  1.6;   --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em; --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-0:  0;      --radius-1:  2px;    --radius-2:  4px;    --radius-3:  6px;    --radius-full: 9999px;
+
+  --shadow-0: none;
+  --shadow-glow: 0 0 0 1px var(--accent), 0 0 12px rgba(0, 255, 136, 0.25);
+  --shadow-drawer: 0 0 0 1px var(--border), -8px 0 32px rgba(0, 0, 0, 0.6);
+  --shadow-modal:  0 0 0 1px var(--border), 0 16px 48px rgba(0, 0, 0, 0.8);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-instant: 80ms;
+  --dur-fast:    140ms;
+  --dur-base:    200ms;
+  --dur-slow:    320ms;
+
+  --blink-period: 1.06s;
+
+  --hit-min: 44px;     --z-content: 1;
+  --z-sticky: 10;
+  --z-drawer: 50;
+  --z-modal:  100;
+  --z-toast:  200;
+}
+
+html, body {
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  font-feature-settings: "calt" 0, "liga" 0; }
+
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+h1, .h1 {
+  font-size: var(--text-2xl);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--fg-0);
+  margin: 0;
+}
+h2, .h2 {
+  font-size: var(--text-xl);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--fg-0);
+  margin: 0;
+}
+h3, .h3 {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  line-height: var(--leading-tight);
+  color: var(--fg-0);
+  margin: 0;
+}
+h4, .h4 {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--fg-0);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+p, .p {
+  font-size: var(--text-base);
+  line-height: var(--leading-loose);
+  color: var(--fg-1);
+  margin: 0;
+}
+
+small, .small {
+  font-size: var(--text-sm);
+  color: var(--fg-2);
+}
+
+.dim   { color: var(--fg-2); }
+.dimmer { color: var(--fg-3); }
+.accent { color: var(--accent); }
+.warn   { color: var(--warn); }
+.danger { color: var(--danger); }
+.info   { color: var(--info); }
+.tool   { color: var(--tool-call); }
+.user   { color: var(--user-msg); }
+.think  { color: var(--thinking); }
+
+code, kbd, samp, pre, .code {
+  font-family: var(--font-mono);
+  font-size: 1em;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  padding: 0 0.4em;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-1);
+  background: var(--bg-2);
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+  line-height: 1;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(0, 255, 136, 0.4);
+}
+a:hover {
+  text-decoration-color: var(--accent);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-4) 0;
+}
+
+input, textarea, select, button {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--fg-1);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+@keyframes pi-cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.cursor-block {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: pi-cursor-blink var(--blink-period) steps(2, start) infinite;
+}
+.cursor-bar {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: pi-cursor-blink var(--blink-period) steps(2, start) infinite;
+}
