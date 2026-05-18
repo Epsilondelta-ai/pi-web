@@ -15,9 +15,11 @@
     "preview": "astro preview --host 0.0.0.0",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "backend": "go run ./backend/cmd/pi-web-server",
+    "backend:test": "go test ./...",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "bun run test && bun run build && bun run build-storybook"
+    "check": "bun run test && bun run backend:test && bun run build && bun run build-storybook"
   },
   "dependencies": {
     "astro": "6.3.3"

@@ -16,10 +16,19 @@ bun run dev
 bun run build
 ```
 
+## Backend
+
+```bash
+bun run backend
+```
+
+Default backend address: `127.0.0.1:8732`.
+
 ## Test / Check
 
 ```bash
 bun run test
+bun run backend:test
 bun run check
 ```
 
