@@ -528,7 +528,7 @@ button.tc-head {
 .msg .prefix.pi { color: var(--accent); }
 .msg .prefix.think { color: var(--thinking); }
 .msg .prefix.sys { color: var(--fg-3); }
-.msg .body { color: var(--fg-1); min-width: 0; flex: 1; display: block; }
+.msg .body { color: var(--fg-1); min-width: 0; flex: 1; display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
 .msg .body.think { color: var(--fg-2); font-style: italic; }
 .msg .body.sys { color: var(--fg-3); font-size: var(--text-sm); }
 .msg .body strong { color: var(--fg-0); font-weight: 500; }

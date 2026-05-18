@@ -10,6 +10,11 @@ describe("safe inline markup rendering", () => {
     expect(html).not.toContain("<img");
   });
 
+  it("keeps newlines for CSS pre-wrap rendering", () => {
+    const html = renderPiBody("first\nsecond");
+    expect(html).toBe("first\nsecond");
+  });
+
   it("escapes untrusted banner html before restoring allowed tokens", () => {
     const html = renderBannerBody('<script>alert(1)</script><a>ready</a>');
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
