@@ -157,4 +157,23 @@ describe("pi-app controls", () => {
     expect(app.querySelector('[data-view="picker"]').hidden).toBe(true);
     expect(app.querySelector('[data-view="workspace"]').hidden).toBe(false);
   });
+
+  it("refreshes workspaces from the sidebar refresh button", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        workspaces: [{ id: "w1", name: "demo", path: "/demo", sessionCount: 0, sessions: [] }],
+      }),
+    }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+
+    await app.refreshWorkspaces();
+
+    expect(globalThis.fetch).toHaveBeenCalledWith("http://backend.test/api/workspaces", expect.any(Object));
+    expect(app.querySelector("[data-workspace-group='w1'] .label").textContent).toBe("demo");
+  });
 });

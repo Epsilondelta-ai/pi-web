@@ -120,6 +120,30 @@ func TestWorkspaceAndSessionManagementEndpoints(t *testing.T) {
 	}
 }
 
+func TestDeleteWorkspaceSessionsEndpoint(t *testing.T) {
+	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateSession(workspace.ID); err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{}, store, NewBroker())
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/workspaces/"+workspace.ID+"/sessions", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"deletedCount":1`) || !strings.Contains(res.Body.String(), `"sessions":[]`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
 func TestWorkspaceCommandsEndpointUsesMockCommandsWhenPiDisabled(t *testing.T) {
 	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
 	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/commands", nil)

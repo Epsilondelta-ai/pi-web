@@ -60,6 +60,10 @@ export function getWorkspaceSessions(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`);
 }
 
+export function deleteWorkspaceSessions(workspaceId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`, { method: "DELETE" });
+}
+
 export function createSession(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`, { method: "POST" });
 }

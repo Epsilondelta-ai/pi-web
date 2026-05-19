@@ -1,4 +1,9 @@
-import { createSession, deleteSession as deleteSessionRequest, renameSession as renameSessionRequest } from "../api";
+import {
+  createSession,
+  deleteSession as deleteSessionRequest,
+  deleteWorkspaceSessions as deleteWorkspaceSessionsRequest,
+  renameSession as renameSessionRequest,
+} from "../api";
 import { escapeHtml } from "../renderers";
 import { clearStoredActiveSession, storeActiveSession } from "./session-storage";
 
@@ -107,20 +112,77 @@ export const sessionMethods = {
     if (!confirm(`Delete session ${sessionId}? This removes the local JSONL file.`)) return;
     try {
       await deleteSessionRequest(sessionId);
+      const workspaceId = this.findWorkspaceIdForSession(sessionId);
       this.querySelector(`[data-session='${sessionId}']`)?.remove();
-      if (this.dataset.activeSessionId === sessionId) {
-        clearStoredActiveSession(sessionId);
-        this.eventSource?.close();
-        this.eventStreamId = undefined;
-        this.dataset.activeSessionId = "";
-        this.resetActiveSessionState();
-        this.renderMessages([]);
-        this.showEmptyMain();
-        this.querySelector("[data-active-session-title]").textContent = "no session";
+      this.refreshWorkspaceSessionControls(workspaceId);
+      if (this.dataset.activeSessionId === sessionId) this.clearActiveSession(sessionId);
+    } catch {
+      this.setConnection("err");
+    }
+  },
+
+  async deleteWorkspaceSessions(workspaceId) {
+    this.closeSessionMenus();
+    if (!workspaceId || !this.apiConnected) return;
+    const count = this.countWorkspaceSessions(workspaceId);
+    const suffix = count ? ` (${count} shown)` : "";
+    if (!confirm(`Delete all sessions in this workspace${suffix}? This removes local JSONL files.`)) return;
+    try {
+      await deleteWorkspaceSessionsRequest(workspaceId);
+      this.clearWorkspaceSessionRows(workspaceId);
+      if (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId) {
+        this.clearActiveSession(this.dataset.activeSessionId);
       }
     } catch {
       this.setConnection("err");
     }
+  },
+
+  clearActiveSession(sessionId) {
+    clearStoredActiveSession(sessionId);
+    this.eventSource?.close();
+    this.eventStreamId = undefined;
+    this.dataset.activeSessionId = "";
+    this.resetActiveSessionState();
+    this.renderMessages([]);
+    this.showEmptyMain();
+    const title = this.querySelector("[data-active-session-title]");
+    if (title) {
+      title.textContent = "no session";
+      title.title = "no session";
+    }
+  },
+
+  clearWorkspaceSessionRows(workspaceId) {
+    const group = this.findWorkspaceGroup?.(workspaceId)
+      || this.querySelector(`[data-workspace-group='${workspaceId}']`);
+    group?.querySelectorAll(":scope > .sessions > .session-row[data-session]").forEach((row) => row.remove());
+    this.refreshWorkspaceSessionControls(workspaceId);
+  },
+
+  refreshWorkspaceSessionControls(workspaceId) {
+    const group = this.findWorkspaceGroup?.(workspaceId)
+      || this.querySelector(`[data-workspace-group='${workspaceId}']`);
+    if (!group) return;
+    const sessions = group.querySelector(".sessions");
+    const count = this.countWorkspaceSessions(workspaceId);
+    const meta = group.querySelector(".ws-meta");
+    if (meta) meta.textContent = String(count);
+    sessions?.querySelector("[data-action='delete-workspace-sessions']")?.remove();
+    const newSessionRow = sessions?.querySelector(".new-session-row");
+    if (sessions && newSessionRow && count > 0) {
+      sessions.insertBefore(this.createDeleteWorkspaceSessionsRow(workspaceId), newSessionRow);
+    }
+  },
+
+  countWorkspaceSessions(workspaceId) {
+    return this.querySelectorAll(
+      `[data-workspace-group='${workspaceId}'] > .sessions > .session-row[data-session]`,
+    ).length;
+  },
+
+  findWorkspaceIdForSession(sessionId) {
+    return this.querySelector(`[data-session='${sessionId}']`)?.dataset.workspace;
   },
 
   async newSession(workspace) {
@@ -152,6 +214,7 @@ export const sessionMethods = {
     if (group && !group.querySelector(`[data-session='${session.id}']`)) {
       group.insertBefore(this.createSessionRow(workspaceId, session), group.querySelector(".new-session-row"));
     }
+    this.refreshWorkspaceSessionControls(workspaceId);
     group?.querySelector(`[data-session='${session.id}']`)?.classList.add("active");
     const title = this.querySelector("[data-active-session-title]");
     if (title) {

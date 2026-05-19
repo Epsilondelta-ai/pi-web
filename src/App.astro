@@ -132,7 +132,7 @@ const settingsFields = [
     <div class="sidebar-wrap" hidden={sidebarCollapsed}>
       <aside class="sidebar" aria-label="workspaces and sessions">
         <div class="sb-section" style="flex:1;overflow-y:auto;min-height:0">
-          <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker">+ open</button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar">‹</button></span></div>
+          <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker">+ open</button><button class="refresh" type="button" data-action="refresh-workspaces" title="refresh workspaces" aria-label="refresh workspaces">↻</button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar">‹</button></span></div>
           {workspaces.map((workspace) => {
             const isActiveWorkspace = workspace.id === activeWorkspaceID;
             return (

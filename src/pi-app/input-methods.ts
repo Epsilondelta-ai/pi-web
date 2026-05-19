@@ -133,6 +133,7 @@ export const inputMethods = {
     const action = actionTarget?.dataset.action || button?.dataset.action;
     if (action === "route-picker") this.route("picker");
     if (action === "route-workspace") this.route("workspace");
+    if (action === "refresh-workspaces") this.refreshWorkspaces();
     if (action === "browse-folder") this.browseFolder();
     if (action === "folder-enter") this.loadFolder(actionTarget.dataset.path);
     if (action === "folder-up") this.loadFolder(this.currentFolderParent);
@@ -153,6 +154,7 @@ export const inputMethods = {
     if (action !== "session-menu-toggle") this.closeSessionMenus(actionTarget?.closest(".session-row"));
     if (action === "toggle-workspace") this.toggleWorkspace(button.dataset.workspace);
     if (action === "delete-workspace") this.deleteWorkspace(actionTarget.dataset.workspace);
+    if (action === "delete-workspace-sessions") this.deleteWorkspaceSessions(button.dataset.workspace);
     if (action === "new-session") this.newSession(button.dataset.workspace);
     if (action === "session-menu-toggle") this.toggleSessionMenu(actionTarget.closest(".session-row"));
     if (action === "rename-session") this.renameSession(actionTarget.closest(".session-row")?.dataset.session);

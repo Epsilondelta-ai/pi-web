@@ -1,8 +1,9 @@
 package piweb
 
 func (s *Store) Workspaces() []Workspace {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.refreshAllWorkspaceSessionsLocked()
 	return cloneWorkspaces(s.workspaces)
 }
 func (s *Store) OpenWorkspace(path string) (Workspace, error) {

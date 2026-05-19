@@ -37,19 +37,21 @@ func (s *Store) CreateSession(workspaceID string) (Session, error) {
 	return Session{}, ErrNotFound
 }
 func (s *Store) Sessions(workspaceID string) ([]Session, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for _, workspace := range s.workspaces {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for index, workspace := range s.workspaces {
 		if workspace.ID == workspaceID {
-			return append([]Session(nil), workspace.Sessions...), nil
+			s.refreshWorkspaceSessionsLocked(index, false)
+			return append([]Session(nil), s.workspaces[index].Sessions...), nil
 		}
 	}
 	return nil, ErrNotFound
 }
 
 func (s *Store) Session(sessionID string) (Session, []Message, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.refreshAllWorkspaceSessionsLocked()
 	for _, workspace := range s.workspaces {
 		for _, session := range workspace.Sessions {
 			if session.ID == sessionID {
@@ -106,6 +108,7 @@ func (s *Store) RenameSession(sessionID, title string) (Session, error) {
 func (s *Store) DeleteSession(sessionID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.refreshAllWorkspaceSessionsLocked()
 	for workspaceIndex := range s.workspaces {
 		for sessionIndex := range s.workspaces[workspaceIndex].Sessions {
 			if s.workspaces[workspaceIndex].Sessions[sessionIndex].ID == sessionID {
@@ -124,6 +127,105 @@ func (s *Store) DeleteSession(sessionID string) error {
 	}
 	return ErrNotFound
 }
+
+func (s *Store) DeleteWorkspaceSessions(workspaceID string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for workspaceIndex := range s.workspaces {
+		if s.workspaces[workspaceIndex].ID != workspaceID {
+			continue
+		}
+		root := s.workspacePath[workspaceID]
+		if root == "" {
+			return 0, ErrNotFound
+		}
+		s.refreshWorkspaceSessionsLocked(workspaceIndex, true)
+		deletedIDs := map[string]struct{}{}
+		for _, session := range s.workspaces[workspaceIndex].Sessions {
+			deletedIDs[session.ID] = struct{}{}
+		}
+		if err := os.RemoveAll(piSessionDirForCWD(root)); err != nil {
+			return 0, err
+		}
+		for sessionID := range deletedIDs {
+			delete(s.conversations, sessionID)
+			delete(s.sessionFiles, sessionID)
+			delete(s.sessionCWD, sessionID)
+		}
+		delete(s.sessionDirModTime, workspaceID)
+		s.workspaces[workspaceIndex].Sessions = []Session{}
+		s.workspaces[workspaceIndex].SessionCount = 0
+		return len(deletedIDs), nil
+	}
+	return 0, ErrNotFound
+}
+
+func (s *Store) refreshAllWorkspaceSessionsLocked() {
+	for index := range s.workspaces {
+		s.refreshWorkspaceSessionsLocked(index, false)
+	}
+}
+
+func (s *Store) refreshWorkspaceSessionsLocked(workspaceIndex int, force bool) {
+	if workspaceIndex < 0 || workspaceIndex >= len(s.workspaces) {
+		return
+	}
+	workspaceID := s.workspaces[workspaceIndex].ID
+	root := s.workspacePath[workspaceID]
+	if root == "" {
+		return
+	}
+	sessionDir := piSessionDirForCWD(root)
+	stat, err := os.Stat(sessionDir)
+	if err != nil {
+		return
+	}
+	if s.sessionDirModTime == nil {
+		s.sessionDirModTime = map[string]time.Time{}
+	}
+	if !force && s.sessionDirModTime[workspaceID].Equal(stat.ModTime()) {
+		return
+	}
+	parsed, err := LoadPiSessions(sessionDir)
+	if err != nil {
+		return
+	}
+	s.sessionDirModTime[workspaceID] = stat.ModTime()
+	oldConversations := map[string][]Message{}
+	oldFiles := map[string]string{}
+	for _, session := range s.workspaces[workspaceIndex].Sessions {
+		oldConversations[session.ID] = s.conversations[session.ID]
+		oldFiles[session.ID] = s.sessionFiles[session.ID]
+		delete(s.conversations, session.ID)
+		delete(s.sessionFiles, session.ID)
+		delete(s.sessionCWD, session.ID)
+	}
+	s.workspaces[workspaceIndex].Sessions = []Session{}
+	var latestMod time.Time
+	for _, item := range parsed {
+		session := item.Session
+		session.ID = item.Header.ID
+		session.Workspace = workspaceID
+		s.workspaces[workspaceIndex].Sessions = append(s.workspaces[workspaceIndex].Sessions, session)
+		s.conversations[item.Header.ID] = refreshedMessages(item, oldConversations, oldFiles)
+		s.sessionFiles[item.Header.ID] = item.File
+		s.sessionCWD[item.Header.ID] = item.Header.CWD
+		if item.ModTime.After(latestMod) {
+			latestMod = item.ModTime
+			s.workspaces[workspaceIndex].LastUsed = item.Session.LastUsed
+		}
+	}
+	s.workspaces[workspaceIndex].SessionCount = len(s.workspaces[workspaceIndex].Sessions)
+}
+
+func refreshedMessages(item ParsedSession, oldConversations map[string][]Message, oldFiles map[string]string) []Message {
+	oldMessages := oldConversations[item.Header.ID]
+	if oldFiles[item.Header.ID] == item.File && len(oldMessages) > len(item.Messages) {
+		return oldMessages
+	}
+	return item.Messages
+}
+
 func appendSessionInfo(path, title string) error {
 	if path == "" {
 		return nil

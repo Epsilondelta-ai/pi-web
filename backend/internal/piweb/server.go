@@ -67,6 +67,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /api/workspaces/{workspaceID}", s.deleteWorkspace)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/sessions", s.workspaceSessions)
 	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/sessions", s.createSession)
+	s.mux.HandleFunc("DELETE /api/workspaces/{workspaceID}/sessions", s.deleteWorkspaceSessions)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/files", s.workspaceFiles)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/commands", s.workspaceCommands)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/runtime-status", s.workspaceRuntimeStatus)

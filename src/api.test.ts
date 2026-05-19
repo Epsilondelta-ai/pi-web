@@ -6,6 +6,7 @@ import {
   createSession,
   deleteSession,
   deleteWorkspace,
+  deleteWorkspaceSessions,
   getSession,
   getVersionStatus,
   getWorkspaceCommands,
@@ -75,6 +76,9 @@ describe("api adapter", () => {
 
   it("supports workspace and session management", async () => {
     expect((await deleteWorkspace("w1")).options.method).toBe("DELETE");
+    const deletedWorkspaceSessions = await deleteWorkspaceSessions("w1");
+    expect(deletedWorkspaceSessions.url).toBe("http://backend.test/api/workspaces/w1/sessions");
+    expect(deletedWorkspaceSessions.options.method).toBe("DELETE");
     expect((await deleteSession("s1")).options.method).toBe("DELETE");
     expect((await cancelSession("s1")).options.method).toBe("POST");
     const renamed = await renameSession("s1", "next");
