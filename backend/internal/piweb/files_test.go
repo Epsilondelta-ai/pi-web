@@ -48,11 +48,11 @@ func TestReadWorkspaceFilePreviewsTextLikeSourceFiles(t *testing.T) {
 
 func TestReadWorkspaceFileDoesNotPreviewBinaryWithTextExtension(t *testing.T) {
 	root := t.TempDir()
-	path := filepath.Join(root, "clip.ts")
+	path := filepath.Join(root, "clip.txt")
 	if err := os.WriteFile(path, []byte{0x00, 0x47, 0x40, 0x10, 0xff}, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	content, err := ReadWorkspaceFile(root, "clip.ts", 1024)
+	content, err := ReadWorkspaceFile(root, "clip.txt", 1024)
 	if err != nil {
 		t.Fatal(err)
 	}

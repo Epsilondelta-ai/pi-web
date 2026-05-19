@@ -9,14 +9,15 @@ import (
 )
 
 func detectPreviewMIME(path string, data []byte) string {
-	if textType := textPreviewMIME(path, data); textType != "" {
+	likelyText := isLikelyText(data)
+	if textType := textPreviewMIME(path, likelyText); textType != "" {
 		return textType
 	}
-	if extType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path))); extType != "" {
-		return cleanMIME(extType)
+	if extType := extensionPreviewMIME(path, likelyText); extType != "" {
+		return extType
 	}
 	detectedType := cleanMIME(http.DetectContentType(data))
-	if isLikelyText(data) && (detectedType == "application/octet-stream" || strings.HasPrefix(detectedType, "text/")) {
+	if likelyText && (detectedType == "application/octet-stream" || strings.HasPrefix(detectedType, "text/")) {
 		return "text/plain"
 	}
 	return detectedType
@@ -26,8 +27,8 @@ func cleanMIME(mimeType string) string {
 	return strings.Split(mimeType, ";")[0]
 }
 
-func textPreviewMIME(path string, data []byte) string {
-	if !isLikelyText(data) {
+func textPreviewMIME(path string, likelyText bool) string {
+	if !likelyText {
 		return ""
 	}
 	name := strings.ToLower(filepath.Base(path))
@@ -35,6 +36,14 @@ func textPreviewMIME(path string, data []byte) string {
 		return mimeType
 	}
 	return textPreviewMIMEByExtension[strings.ToLower(filepath.Ext(path))]
+}
+
+func extensionPreviewMIME(path string, likelyText bool) string {
+	extType := cleanMIME(mime.TypeByExtension(strings.ToLower(filepath.Ext(path))))
+	if extType == "" || (!likelyText && isTextPreviewMIME(extType)) {
+		return ""
+	}
+	return extType
 }
 
 func isLikelyText(data []byte) bool {
@@ -60,13 +69,17 @@ func previewKindForMIME(mimeType string) string {
 	if mimeType == "image/svg+xml" {
 		return "image"
 	}
-	if strings.HasPrefix(mimeType, "text/") || mimeType == "application/json" || strings.HasSuffix(mimeType, "+xml") {
+	if isTextPreviewMIME(mimeType) {
 		return "text"
 	}
 	if strings.HasPrefix(mimeType, "image/") {
 		return "image"
 	}
 	return "unsupported"
+}
+
+func isTextPreviewMIME(mimeType string) bool {
+	return strings.HasPrefix(mimeType, "text/") || mimeType == "application/json" || strings.HasSuffix(mimeType, "+xml")
 }
 
 var textPreviewMIMEByName = map[string]string{
