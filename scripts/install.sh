@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-REPO="${PI_WEB_REPO:-Epsilondelta-ai/pi-web-ui}"
+REPO="${PI_WEB_REPO:-Epsilondelta-ai/pi-web}"
 VERSION="${PI_WEB_VERSION:-latest}"
 INSTALL_DIR="${PI_WEB_INSTALL_DIR:-$HOME/.local/bin}"
 BIN_NAME="pi-web"
@@ -14,10 +14,10 @@ Environment variables:
   PI_WEB_VERSION      Release tag to install. Default: latest
                       Example: PI_WEB_VERSION=v1.0.0
   PI_WEB_INSTALL_DIR  Install directory. Default: $HOME/.local/bin
-  PI_WEB_REPO         GitHub repo. Default: Epsilondelta-ai/pi-web-ui
+  PI_WEB_REPO         GitHub repo. Default: Epsilondelta-ai/pi-web
 
 Examples:
-  curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web-ui/main/scripts/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
   PI_WEB_VERSION=v1.0.0 sh scripts/install.sh
   PI_WEB_INSTALL_DIR=/usr/local/bin sh scripts/install.sh
 USAGE
@@ -136,10 +136,13 @@ if [ -z "$FOUND_BIN" ]; then
 fi
 
 mkdir -p "$INSTALL_DIR"
-cp "$FOUND_BIN" "$INSTALL_DIR/$BIN_FILE"
-chmod +x "$INSTALL_DIR/$BIN_FILE"
+TARGET="$INSTALL_DIR/$BIN_FILE"
+INSTALL_TMP="$INSTALL_DIR/.${BIN_FILE}.tmp.$$"
+cp "$FOUND_BIN" "$INSTALL_TMP"
+chmod +x "$INSTALL_TMP"
+mv -f "$INSTALL_TMP" "$TARGET"
 
-echo "Installed: $INSTALL_DIR/$BIN_FILE"
+echo "Installed: $TARGET"
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
   *)

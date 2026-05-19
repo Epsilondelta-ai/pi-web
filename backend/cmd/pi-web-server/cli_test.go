@@ -166,7 +166,7 @@ func TestGitHubUpdaterDownloadsFromBrowserAssetURL(t *testing.T) {
 func TestRunUpdateReportsUpdatedVersion(t *testing.T) {
 	fake := &fakeBinaryUpdater{
 		releaseVersion: semver.MustParse("1.2.4"),
-		releaseURL:     "https://github.com/Epsilondelta-ai/pi-web-ui/releases/tag/v1.2.4",
+		releaseURL:     "https://github.com/Epsilondelta-ai/pi-web/releases/tag/v1.2.4",
 	}
 	var out bytes.Buffer
 
@@ -178,7 +178,7 @@ func TestRunUpdateReportsUpdatedVersion(t *testing.T) {
 	}
 
 	want := "Updated pi-web from 1.2.3 to 1.2.4\n" +
-		"Release: https://github.com/Epsilondelta-ai/pi-web-ui/releases/tag/v1.2.4\n"
+		"Release: https://github.com/Epsilondelta-ai/pi-web/releases/tag/v1.2.4\n"
 	if got := out.String(); got != want {
 		t.Fatalf("unexpected output: %q", got)
 	}

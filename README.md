@@ -11,7 +11,7 @@
 ## Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web-ui/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
 Run after installation:

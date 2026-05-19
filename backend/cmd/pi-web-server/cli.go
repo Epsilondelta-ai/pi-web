@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const githubRepositorySlug = "Epsilondelta-ai/pi-web-ui"
+const githubRepositorySlug = "Epsilondelta-ai/pi-web"
 
 var version = "v1.1.0"
 
