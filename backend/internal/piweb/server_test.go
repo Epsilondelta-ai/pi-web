@@ -225,6 +225,27 @@ func TestCreateSessionEndpoint(t *testing.T) {
 	}
 }
 
+func TestSteerPublishesQueuedUserMessage(t *testing.T) {
+	broker := NewBroker()
+	broker.heartbeat = time.Hour
+	server := NewServer(Config{}, NewMockStore(), broker)
+	testServer := httptest.NewServer(server.Handler())
+	defer testServer.Close()
+
+	res, err := testServer.Client().Post(
+		testServer.URL+"/api/sessions/8e7c-44ff/steer",
+		"application/json",
+		bytes.NewBufferString(`{"text":"one more thing"}`),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected steer 202, got %d", res.StatusCode)
+	}
+}
+
 func TestPromptPublishesSSE(t *testing.T) {
 	broker := NewBroker()
 	broker.heartbeat = time.Hour

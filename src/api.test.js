@@ -16,6 +16,7 @@ import {
   listFolders,
   postPrompt,
   renameSession,
+  steerSession,
   runShellCommand,
   saveWorkspaceFile,
   saveWorkspaceSettings,
@@ -105,6 +106,13 @@ describe("api adapter", () => {
     const result = await postPrompt("s1", "hello");
     expect(result.options.method).toBe("POST");
     expect(JSON.parse(result.options.body)).toEqual({ text: "hello", attachments: [] });
+  });
+
+  it("posts steering messages as json", async () => {
+    const result = await steerSession("s1", "look here");
+    expect(result.url).toBe("http://backend.test/api/sessions/s1/steer");
+    expect(result.options.method).toBe("POST");
+    expect(JSON.parse(result.options.body)).toEqual({ text: "look here", attachments: [] });
   });
 
   it("clones workspaces and runs shell commands", async () => {

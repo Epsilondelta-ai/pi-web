@@ -26,6 +26,7 @@ describe("pi-app runtime", () => {
           <div class="slash-pop" hidden><div class="slash-list"><button class="slash-item selected" data-slash="/model">/model</button></div></div>
           <div class="attach-chips" hidden></div>
           <textarea class="prompt-textarea"></textarea>
+          <button class="stop-btn" hidden>stop</button>
           <button class="send-btn" disabled>send</button>
           <button class="attach-btn">attach</button>
           <input data-file-input type="file" />
@@ -68,6 +69,26 @@ describe("pi-app runtime", () => {
     prompt.dispatchEvent(new Event("input"));
     expect(app.querySelector(".send-btn").disabled).toBe(false);
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
+  });
+
+  it("keeps send and stop as separate running controls", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    const send = app.querySelector(".send-btn");
+    const stop = app.querySelector(".stop-btn");
+
+    app.setMode("running");
+    expect(stop.hidden).toBe(false);
+    expect(send.textContent).toBe("send");
+    expect(send.disabled).toBe(true);
+
+    app.prompt.value = "one more thing";
+    app.updatePrompt();
+    expect(send.disabled).toBe(false);
+
+    app.setMode("idle");
+    expect(stop.hidden).toBe(true);
   });
 
   it("renders global and project slash commands", async () => {
@@ -310,6 +331,7 @@ describe("pi-app runtime", () => {
           <div class="slash-pop" hidden></div>
           <div class="attach-chips" hidden></div>
           <textarea class="prompt-textarea"></textarea>
+          <button class="stop-btn" hidden>stop</button>
           <button class="send-btn">send</button>
           <button class="attach-btn">attach</button>
           <input data-file-input type="file" />
@@ -325,6 +347,31 @@ describe("pi-app runtime", () => {
     expect(app.querySelector("[data-main='empty']").hidden).toBe(true);
     expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toBe("hello");
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+  });
+
+  it("sends prompt text as steering while running", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 202,
+      statusText: "Accepted",
+      json: async () => ({ accepted: true }),
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.apiConnected = true;
+    app.dataset.activeSessionId = "s1";
+    app.setMode("running");
+    app.prompt.value = "one more thing";
+
+    await app.submitPrompt();
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://backend.test/api/sessions/s1/steer",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(app.prompt.value).toBe("");
   });
 
   it("waits for the backend prompt echo when connected", async () => {

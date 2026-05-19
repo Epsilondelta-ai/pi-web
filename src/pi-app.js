@@ -16,6 +16,7 @@ class PiApp extends HTMLElement {
     this.bound = true;
     this.prompt = this.querySelector(".prompt-textarea");
     this.send = this.querySelector(".send-btn");
+    this.stop = this.querySelector(".stop-btn");
     this.attach = this.querySelector(".attach-btn");
     this.file = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
@@ -70,7 +71,8 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
     this.querySelector("[data-settings-form]")?.addEventListener("submit", (event) => this.saveSettingsForm(event));
     this.querySelector("[data-settings-scope]")?.addEventListener("change", () => this.fillSettingsForm());
-    this.send?.addEventListener("click", () => this.running ? this.cancelActiveSession() : this.submitPrompt());
+    this.send?.addEventListener("click", () => this.submitPrompt());
+    this.stop?.addEventListener("click", () => this.cancelActiveSession());
     this.prompt?.addEventListener("input", () => this.updatePrompt());
     this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event));
     this.prompt?.addEventListener("keydown", (event) => {
@@ -143,11 +145,8 @@ class PiApp extends HTMLElement {
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = ["running", "thinking"].includes(mode);
-    if (this.send) {
-      this.send.textContent = this.running ? "stop" : "send";
-      if (this.running) this.send.disabled = false;
-      else this.updatePrompt();
-    }
+    this.stop?.toggleAttribute("hidden", !this.running);
+    if (this.send) this.updatePrompt();
     this.syncLoadingMessage?.();
     if (!this.running) void this.loadRuntimeStatus?.();
   }

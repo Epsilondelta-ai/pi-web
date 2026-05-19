@@ -16,6 +16,9 @@ type jsonStreamState struct {
 func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID string, state *jsonStreamState) bool {
 	var event struct {
 		Type                  string          `json:"type"`
+		Command               string          `json:"command"`
+		Success               bool            `json:"success"`
+		Error                 string          `json:"error"`
 		Message               json.RawMessage `json:"message"`
 		ToolName              string          `json:"toolName"`
 		Args                  json.RawMessage `json:"args"`
@@ -33,6 +36,11 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 	}
 	switch event.Type {
 	case "session", "agent_start", "turn_start", "queue_update":
+		return true
+	case "response":
+		if !event.Success && event.Error != "" {
+			broker.Publish(sessionID, "error", map[string]string{"error": event.Error, "command": event.Command})
+		}
 		return true
 	case "message_update":
 		delta := event.AssistantMessageEvent.Delta

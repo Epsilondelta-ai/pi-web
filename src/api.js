@@ -144,6 +144,13 @@ export function postPrompt(sessionId, text, attachments = []) {
   });
 }
 
+export function steerSession(sessionId, text, attachments = []) {
+  return request(`/api/sessions/${encodeURIComponent(sessionId)}/steer`, {
+    method: "POST",
+    body: JSON.stringify({ text, attachments }),
+  });
+}
+
 export function sessionEvents(sessionId, { onEvent, onOpen, onError, replay = true } = {}) {
   const replayQuery = replay ? "" : "?replay=false";
   const source = new EventSource(

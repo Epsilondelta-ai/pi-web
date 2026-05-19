@@ -1,7 +1,6 @@
 package piweb
 
 import (
-	"os"
 	"strings"
 	"testing"
 )
@@ -20,24 +19,16 @@ func TestMergePromptAttachmentsLeavesImagesOutOfText(t *testing.T) {
 	}
 }
 
-func TestWritePromptImagesCreatesFilesForPiFileReferences(t *testing.T) {
-	paths, cleanup, err := writePromptImages([]PromptAttachment{
+func TestRPCImagesStripDataURLPrefix(t *testing.T) {
+	images := rpcImages([]PromptAttachment{
 		{Type: "image", Name: "shot.png", MIMEType: "image/png", DataURL: "data:image/png;base64,ZmFrZQ=="},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
 
-	if len(paths) != 1 || !strings.HasSuffix(paths[0], "shot.png") {
-		t.Fatalf("unexpected image paths: %#v", paths)
+	if len(images) != 1 {
+		t.Fatalf("unexpected images: %#v", images)
 	}
-	data, err := os.ReadFile(paths[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(data) != "fake" {
-		t.Fatalf("unexpected image data: %q", string(data))
+	if images[0].Data != "ZmFrZQ==" || images[0].MIMEType != "image/png" {
+		t.Fatalf("unexpected rpc image: %#v", images[0])
 	}
 }
 
@@ -73,13 +64,13 @@ func TestUserMessagesExtractImageAttachments(t *testing.T) {
 	}
 }
 
-func TestPiPromptArgsPassImagesAsFileReferences(t *testing.T) {
-	args := piPromptArgs("session.jsonl", "what is this?", []string{"/tmp/shot.png"})
+func TestPiRPCArgsUseRPCMode(t *testing.T) {
+	args := piRPCArgs("session.jsonl")
 	joined := strings.Join(args, "\n")
-	if !strings.Contains(joined, "@/tmp/shot.png") {
-		t.Fatalf("missing image file reference: %#v", args)
+	if !strings.Contains(joined, "--mode\nrpc") {
+		t.Fatalf("missing rpc mode: %#v", args)
 	}
-	if args[len(args)-1] != "what is this?" {
-		t.Fatalf("prompt text should be the last arg: %#v", args)
+	if !strings.Contains(joined, "--session\nsession.jsonl") {
+		t.Fatalf("missing session file: %#v", args)
 	}
 }

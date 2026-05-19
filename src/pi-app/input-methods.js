@@ -1,10 +1,14 @@
-import { cancelSession, createSession, postPrompt, runShellCommand } from "../api.js";
+import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../api.js";
 import { fallbackChoicePrompt } from "./fallback-choices.js";
 
 export const inputMethods = {
   async submitPrompt() {
     const text = this.prompt?.value.trim() || "";
     if (!text && !this.attachments?.children.length) return;
+    if (this.running) {
+      await this.submitSteeringPrompt(text);
+      return;
+    }
     let sessionId = this.dataset.activeSessionId;
     if (!sessionId && this.apiConnected && this.dataset.activeWorkspaceId) {
       try {
@@ -37,6 +41,22 @@ export const inputMethods = {
         this.removeLoadingMessage();
         this.setConnection("err");
       }
+    }
+  },
+
+  async submitSteeringPrompt(text) {
+    const sessionId = this.dataset.activeSessionId;
+    if (!sessionId || !this.apiConnected) return;
+    const attachments = this.attachmentContents.filter(Boolean);
+    try {
+      await steerSession(sessionId, text, attachments);
+      if (this.prompt) this.prompt.value = "";
+      this.attachmentContents = [];
+      this.attachments?.replaceChildren();
+      if (this.attachments) this.attachments.hidden = true;
+      this.updatePrompt();
+    } catch {
+      this.setConnection("err");
     }
   },
 

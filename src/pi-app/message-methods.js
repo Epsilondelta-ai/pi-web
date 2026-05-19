@@ -14,7 +14,7 @@ export const messageMethods = {
     if (!this.termInner || !msg) return;
     if (this.isDuplicateMessage(msg)) return;
     this.removeLoadingMessage();
-    if (msg.kind !== "tool") this.finishRunningTools();
+    if (msg.kind === "pi" || msg.kind === "think") this.finishRunningTools();
     if (msg.kind === "pi") this.piDeltaBuffer = "";
     if (msg.kind === "tool") this.finalizeStreamingMessages();
     this.termInner.querySelector(`.msg.streaming[data-kind='${msg.kind}']`)?.remove();

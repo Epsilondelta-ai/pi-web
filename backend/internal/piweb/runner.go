@@ -2,13 +2,10 @@ package piweb
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/json"
 	"errors"
-	"net/url"
-	"os"
+	"io"
 	"os/exec"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -30,11 +27,17 @@ const fallbackChoiceSystemPrompt = `Pi Web UI fallback choice protocol:
 
 type Runner struct {
 	mu      sync.Mutex
-	running map[string]context.CancelFunc
+	running map[string]*activePiRun
+}
+
+type activePiRun struct {
+	cancel context.CancelFunc
+	stdin  io.WriteCloser
+	mu     sync.Mutex
 }
 
 func NewRunner() *Runner {
-	return &Runner{running: map[string]context.CancelFunc{}}
+	return &Runner{running: map[string]*activePiRun{}}
 }
 func (r *Runner) StartPiPrompt(
 	parent context.Context,
@@ -50,20 +53,45 @@ func (r *Runner) StartPiPrompt(
 		return ErrNotFound
 	}
 	ctx, cancel := context.WithCancel(parent)
+	cmd := exec.CommandContext(ctx, "pi", piRPCArgs(sessionFile)...)
+	cmd.Dir = cwd
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		cancel()
+		return err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		cancel()
+		return err
+	}
+	stderr, _ := cmd.StderrPipe()
+
+	run := &activePiRun{cancel: cancel, stdin: stdin}
 	r.mu.Lock()
 	if _, exists := r.running[sessionID]; exists {
 		r.mu.Unlock()
 		cancel()
 		return errors.New("session already running")
 	}
-	r.running[sessionID] = cancel
+	r.running[sessionID] = run
 	r.mu.Unlock()
+
+	if err := cmd.Start(); err != nil {
+		r.forgetRun(sessionID, run)
+		cancel()
+		return err
+	}
+	if err := run.send(rpcPromptCommand(text, images, "")); err != nil {
+		r.forgetRun(sessionID, run)
+		cancel()
+		return err
+	}
 
 	go func() {
 		defer func() {
-			r.mu.Lock()
-			delete(r.running, sessionID)
-			r.mu.Unlock()
+			r.forgetRun(sessionID, run)
 			cancel()
 		}()
 		user := Message{Kind: "user", Text: displayText, Attachments: images}
@@ -71,28 +99,6 @@ func (r *Runner) StartPiPrompt(
 		broker.Publish(sessionID, "session.message", user)
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
 
-		imagePaths, cleanup, err := writePromptImages(images)
-		if err != nil {
-			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
-			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
-			return
-		}
-		defer cleanup()
-
-		args := piPromptArgs(sessionFile, text, imagePaths)
-		cmd := exec.CommandContext(ctx, "pi", args...)
-		cmd.Dir = cwd
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
-			return
-		}
-		stderr, _ := cmd.StderrPipe()
-		if err := cmd.Start(); err != nil {
-			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
-			return
-		}
 		go func() {
 			<-ctx.Done()
 			if cmd.Process != nil {
@@ -102,7 +108,12 @@ func (r *Runner) StartPiPrompt(
 
 		state := &jsonStreamState{}
 		stdoutDone := make(chan struct{})
+		agentDone := make(chan struct{})
+		var doneOnce sync.Once
 		go streamPipe(stdout, func(line string) {
+			if isPiRPCAgentEnd(line) {
+				doneOnce.Do(func() { close(agentDone) })
+			}
 			if !handlePiJSONEvent(line, broker, store, sessionID, state) {
 				broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
 			}
@@ -111,8 +122,16 @@ func (r *Runner) StartPiPrompt(
 			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
 		}, nil)
 
-		<-stdoutDone
-		err = cmd.Wait()
+		select {
+		case <-agentDone:
+			_ = stdin.Close()
+		case <-ctx.Done():
+		case <-stdoutDone:
+		}
+		err := cmd.Wait()
+		if ctx.Err() != nil {
+			return
+		}
 		if err != nil {
 			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
 			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
@@ -125,62 +144,86 @@ func (r *Runner) StartPiPrompt(
 	}()
 	return nil
 }
-func piPromptArgs(sessionFile, text string, imagePaths []string) []string {
-	args := []string{
+
+func (r *Runner) Steer(sessionID string, text string, images []PromptAttachment) error {
+	r.mu.Lock()
+	run, ok := r.running[sessionID]
+	r.mu.Unlock()
+	if !ok {
+		return errors.New("session is not running")
+	}
+	return run.send(rpcPromptCommand(text, images, "steer"))
+}
+
+func (r *Runner) forgetRun(sessionID string, run *activePiRun) {
+	r.mu.Lock()
+	if r.running[sessionID] == run {
+		delete(r.running, sessionID)
+	}
+	r.mu.Unlock()
+}
+
+func piRPCArgs(sessionFile string) []string {
+	return []string{
 		"--session", sessionFile,
-		"--mode", "json",
+		"--mode", "rpc",
 		"--append-system-prompt", fallbackChoiceSystemPrompt,
-		"--print",
 	}
-	for _, path := range imagePaths {
-		args = append(args, "@"+path)
-	}
-	if strings.TrimSpace(text) != "" {
-		args = append(args, text)
-	}
-	return args
 }
 
-func writePromptImages(images []PromptAttachment) ([]string, func(), error) {
-	if len(images) == 0 {
-		return nil, func() {}, nil
+type rpcPrompt struct {
+	Type              string     `json:"type"`
+	Message           string     `json:"message"`
+	Images            []rpcImage `json:"images,omitempty"`
+	StreamingBehavior string     `json:"streamingBehavior,omitempty"`
+}
+
+type rpcImage struct {
+	Type     string `json:"type"`
+	Data     string `json:"data"`
+	MIMEType string `json:"mimeType"`
+}
+
+func rpcPromptCommand(text string, images []PromptAttachment, streamingBehavior string) rpcPrompt {
+	return rpcPrompt{Type: "prompt", Message: text, Images: rpcImages(images), StreamingBehavior: streamingBehavior}
+}
+
+func rpcImages(images []PromptAttachment) []rpcImage {
+	result := make([]rpcImage, 0, len(images))
+	for _, image := range images {
+		data := strings.TrimSpace(image.DataURL)
+		if data == "" {
+			continue
+		}
+		if comma := strings.Index(data, ","); comma >= 0 {
+			data = data[comma+1:]
+		}
+		mimeType := image.MIMEType
+		if mimeType == "" {
+			mimeType = "image/png"
+		}
+		result = append(result, rpcImage{Type: "image", Data: data, MIMEType: mimeType})
 	}
-	dir, err := os.MkdirTemp("", "pi-web-images-*")
+	return result
+}
+
+func (r *activePiRun) send(command any) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	line, err := json.Marshal(command)
 	if err != nil {
-		return nil, func() {}, err
+		return err
 	}
-	cleanup := func() { _ = os.RemoveAll(dir) }
-	paths := make([]string, 0, len(images))
-	for index, image := range images {
-		data, err := decodeDataURL(image.DataURL)
-		if err != nil {
-			cleanup()
-			return nil, func() {}, err
-		}
-		path := filepath.Join(dir, imageFileName(image, index))
-		if err := os.WriteFile(path, data, 0o600); err != nil {
-			cleanup()
-			return nil, func() {}, err
-		}
-		paths = append(paths, path)
-	}
-	return paths, cleanup, nil
+	line = append(line, '\n')
+	_, err = r.stdin.Write(line)
+	return err
 }
 
-func decodeDataURL(dataURL string) ([]byte, error) {
-	comma := strings.Index(dataURL, ",")
-	if comma < 0 {
-		return base64.StdEncoding.DecodeString(dataURL)
+func isPiRPCAgentEnd(line string) bool {
+	var event struct {
+		Type string `json:"type"`
 	}
-	return base64.StdEncoding.DecodeString(dataURL[comma+1:])
-}
-
-func imageFileName(image PromptAttachment, index int) string {
-	name := filepath.Base(strings.TrimSpace(image.Name))
-	if name == "." || name == string(filepath.Separator) || name == "" {
-		name = "image-" + strconv.Itoa(index+1) + imageExtension(image.MIMEType)
-	}
-	return url.PathEscape(name)
+	return json.Unmarshal([]byte(line), &event) == nil && event.Type == "agent_end"
 }
 
 func imageExtension(mimeType string) string {
@@ -200,11 +243,13 @@ func imageExtension(mimeType string) string {
 
 func (r *Runner) Cancel(sessionID string) bool {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	cancel, ok := r.running[sessionID]
+	run, ok := r.running[sessionID]
 	if ok {
-		cancel()
 		delete(r.running, sessionID)
+	}
+	r.mu.Unlock()
+	if ok {
+		run.cancel()
 	}
 	return ok
 }

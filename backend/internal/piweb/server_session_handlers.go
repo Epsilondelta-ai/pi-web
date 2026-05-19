@@ -78,6 +78,35 @@ func (s *Server) prompt(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"accepted": true, "realPi": s.config.EnablePiExecution})
 }
+func (s *Server) steerSession(w http.ResponseWriter, r *http.Request) {
+	sessionID := r.PathValue("sessionID")
+	if _, _, err := s.store.Session(sessionID); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	var req PromptRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	promptText := mergePromptAttachments(req.Text, req.Attachments)
+	imageAttachments := imagePromptAttachments(req.Attachments)
+	if strings.TrimSpace(promptText) == "" && len(imageAttachments) == 0 {
+		writeError(w, http.StatusBadRequest, errors.New("text is required"))
+		return
+	}
+	displayText := promptDisplayText(req.Text, req.Attachments)
+	if s.config.EnablePiExecution {
+		if err := s.runner.Steer(sessionID, promptText, imageAttachments); err != nil {
+			writeError(w, http.StatusConflict, err)
+			return
+		}
+	}
+	user := Message{Kind: "user", Text: displayText, Attachments: imageAttachments}
+	_ = s.store.AppendMessage(sessionID, user)
+	s.broker.Publish(sessionID, "session.message", user)
+	writeJSON(w, http.StatusAccepted, map[string]any{"accepted": true, "realPi": s.config.EnablePiExecution})
+}
 func (s *Server) cancelSession(w http.ResponseWriter, r *http.Request) {
 	cancelled := s.runner.Cancel(r.PathValue("sessionID"))
 	if cancelled {
