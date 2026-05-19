@@ -1,5 +1,6 @@
 import { createSession, deleteSession as deleteSessionRequest, renameSession as renameSessionRequest } from "../api.js";
 import { escapeHtml } from "../renderers.js";
+import { clearStoredActiveSession, storeActiveSession } from "./session-storage.js";
 
 export const sessionMethods = {
   createSessionRow(workspaceId, session) {
@@ -55,7 +56,10 @@ export const sessionMethods = {
     this.showSessionMain();
     this.toggleDrawer?.(false);
     if (this.apiConnected) await this.loadSession(row.dataset.session);
-    else this.dataset.activeSessionId = row.dataset.session;
+    else {
+      this.dataset.activeSessionId = row.dataset.session;
+      storeActiveSession(row.dataset.workspace, row.dataset.session);
+    }
     this.scrollTerm();
   },
 
@@ -89,6 +93,7 @@ export const sessionMethods = {
       await deleteSessionRequest(sessionId);
       this.querySelector(`[data-session='${sessionId}']`)?.remove();
       if (this.dataset.activeSessionId === sessionId) {
+        clearStoredActiveSession(sessionId);
         this.dataset.activeSessionId = "";
         this.renderMessages([]);
         this.showEmptyMain();
@@ -119,6 +124,7 @@ export const sessionMethods = {
 
   activateCreatedSession(workspaceId, session) {
     this.dataset.activeSessionId = session.id;
+    storeActiveSession(workspaceId, session.id);
     this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
     const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
     if (group && !group.querySelector(`[data-session='${session.id}']`)) {

@@ -10,6 +10,20 @@ import {
   openWorkspace as openWorkspaceRequest,
 } from "../api.js";
 import { escapeHtml, renderTree } from "../renderers.js";
+import { readStoredActiveSession, storeActiveSession } from "./session-storage.js";
+
+function findStoredSession(workspaces, stored) {
+  if (!stored?.sessionId) return undefined;
+  const preferred = workspaces.find((workspace) => workspace.id === stored.workspaceId);
+  const candidates = preferred
+    ? [preferred, ...workspaces.filter((workspace) => workspace !== preferred)]
+    : workspaces;
+  for (const workspace of candidates) {
+    const session = workspace.sessions?.find((item) => item.id === stored.sessionId);
+    if (session) return { workspace, session };
+  }
+  return undefined;
+}
 
 export const workspaceMethods = {
   async bootstrapAPI() {
@@ -17,8 +31,10 @@ export const workspaceMethods = {
       const [{ workspaces }] = await Promise.all([getWorkspaces()]);
       this.apiConnected = true;
       this.setConnection("ok");
-      const activeWorkspace = workspaces?.[0];
-      const activeSession = activeWorkspace?.sessions?.[0];
+      const workspaceList = workspaces || [];
+      const storedSession = findStoredSession(workspaceList, readStoredActiveSession());
+      const activeWorkspace = storedSession?.workspace || workspaceList[0];
+      const activeSession = storedSession?.session || activeWorkspace?.sessions?.[0];
       if (activeWorkspace) {
         this.dataset.activeWorkspaceId = activeWorkspace.id;
         const label = this.querySelector("[data-active-workspace]");
@@ -32,8 +48,9 @@ export const workspaceMethods = {
           title.title = `${activeSession.title} · ${activeSession.id}`;
         }
       }
-      this.renderWorkspaces(workspaces || []);
-      if (this.dataset.route === "picker") await this.browseFolder();
+      this.renderWorkspaces(workspaceList);
+      if (activeSession) this.route("workspace");
+      else if (this.dataset.route === "picker") await this.browseFolder();
       if (activeWorkspace) {
         void this.loadWorkspaceCommands(activeWorkspace.id);
         void this.loadRuntimeStatus(activeWorkspace.id);
@@ -82,6 +99,9 @@ export const workspaceMethods = {
     try {
       const { session, messages } = await getSession(sessionId);
       this.dataset.activeSessionId = session.id;
+      const workspaceId = session.workspaceId
+        || this.querySelector(`[data-session='${session.id}']`)?.dataset.workspace;
+      storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
       const title = this.querySelector("[data-active-session-title]");
       if (title) {
         title.textContent = session.title;

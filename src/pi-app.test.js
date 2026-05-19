@@ -3,8 +3,19 @@ import "./pi-app.js";
 
 const nativeFetch = globalThis.fetch;
 
+function memoryStorage() {
+  const items = new Map();
+  return {
+    clear: vi.fn(() => items.clear()),
+    getItem: vi.fn((key) => items.get(String(key)) || null),
+    removeItem: vi.fn((key) => items.delete(String(key))),
+    setItem: vi.fn((key, value) => items.set(String(key), String(value))),
+  };
+}
+
 describe("pi-app runtime", () => {
   beforeEach(() => {
+    vi.stubGlobal("localStorage", memoryStorage());
     document.body.innerHTML = `
       <pi-app data-tree="on" data-sidebar="open">
         <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar" aria-expanded="false">≡</button>
@@ -42,6 +53,7 @@ describe("pi-app runtime", () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.restoreAllMocks();
     delete globalThis.PI_WEB_API_BASE;
     globalThis.fetch = nativeFetch;
@@ -357,6 +369,81 @@ describe("pi-app runtime", () => {
 
     await app.loadSession("s1");
     expect(connected).toEqual({ sessionId: "s1", options: { replay: false } });
+  });
+
+  it("remembers loaded sessions in localStorage", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        session: { id: "s1", title: "demo", workspaceId: "w1" },
+        messages: [],
+      }),
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.dataset.activeWorkspaceId = "w1";
+    app.connectEvents = () => {};
+
+    await app.loadSession("s1");
+    expect(JSON.parse(localStorage.getItem("pi.activeSession"))).toEqual({
+      workspaceId: "w1",
+      sessionId: "s1",
+    });
+  });
+
+  it("restores the remembered session on bootstrap", async () => {
+    localStorage.setItem(
+      "pi.activeSession",
+      JSON.stringify({ workspaceId: "w2", sessionId: "s2" }),
+    );
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async (url) => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => {
+        if (String(url).endsWith("/workspaces")) {
+          return {
+            workspaces: [
+              {
+                id: "w1",
+                name: "one",
+                path: "/one",
+                sessionCount: 1,
+                sessions: [{ id: "s1", title: "first" }],
+              },
+              {
+                id: "w2",
+                name: "two",
+                path: "/two",
+                sessionCount: 1,
+                sessions: [{ id: "s2", title: "second" }],
+              },
+            ],
+          };
+        }
+        return {
+          session: { id: "s2", title: "second", workspaceId: "w2" },
+          messages: [],
+        };
+      },
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.loadWorkspaceCommands = vi.fn();
+    app.loadRuntimeStatus = vi.fn();
+    app.loadWorkspaceMeta = vi.fn();
+    app.connectEvents = vi.fn();
+
+    await app.bootstrapAPI();
+    expect(app.dataset.activeWorkspaceId).toBe("w2");
+    expect(app.dataset.activeSessionId).toBe("s2");
+    expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w2");
+    expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: false });
   });
 
   it("replaces streamed fallback choice JSON with clickable answer options", async () => {
