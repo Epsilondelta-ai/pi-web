@@ -109,6 +109,16 @@ describe("pi-app controls", () => {
     });
   });
 
+  it("sets app height from the visual viewport for mobile browser chrome", async () => {
+    vi.stubGlobal("visualViewport", {
+      height: 567,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    const app = await connectPiApp();
+    expect(app.style.getPropertyValue("--app-viewport-height")).toBe("567px");
+  });
+
   it("toggles the mobile sidebar drawer from the hamburger button", async () => {
     const app = await connectPiApp();
     const hamburger = app.querySelector(".hamburger");
