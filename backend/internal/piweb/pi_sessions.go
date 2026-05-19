@@ -76,7 +76,6 @@ func DefaultPiSessionDir() string {
 	}
 	return ""
 }
-
 func LoadPiSessions(sessionDir string) ([]ParsedSession, error) {
 	if sessionDir == "" {
 		return nil, errors.New("session dir is empty")
@@ -103,7 +102,6 @@ func LoadPiSessions(sessionDir string) ([]ParsedSession, error) {
 	sort.Slice(sessions, func(i, j int) bool { return sessions[i].ModTime.After(sessions[j].ModTime) })
 	return sessions, nil
 }
-
 func CreatePiSessionFile(cwd string) (Session, string, error) {
 	cwd = filepath.Clean(cwd)
 	id := createSessionID()
@@ -125,12 +123,10 @@ func CreatePiSessionFile(cwd string) (Session, string, error) {
 	session := Session{ID: id, Title: "new session", LastUsed: "now", Workspace: workspaceIDFromPath(cwd), Active: true}
 	return session, path, nil
 }
-
 func piSessionDirForCWD(cwd string) string {
 	safePath := "--" + strings.NewReplacer("/", "-", "\\", "-", ":", "-").Replace(strings.TrimLeft(cwd, "/\\")) + "--"
 	return filepath.Join(DefaultPiSessionDir(), safePath)
 }
-
 func createSessionID() string {
 	var bytes [16]byte
 	if _, err := rand.Read(bytes[:]); err != nil {
@@ -138,7 +134,6 @@ func createSessionID() string {
 	}
 	return fmt.Sprintf("%s-%s-%s-%s-%s", hex.EncodeToString(bytes[0:4]), hex.EncodeToString(bytes[4:6]), hex.EncodeToString(bytes[6:8]), hex.EncodeToString(bytes[8:10]), hex.EncodeToString(bytes[10:16]))
 }
-
 func ParsePiSessionFile(path string) (ParsedSession, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -202,153 +197,4 @@ func ParsePiSessionFile(path string) (ParsedSession, error) {
 	}
 	session := Session{ID: header.ID, Title: title, LastUsed: relTime(stat.ModTime()), Workspace: workspaceIDFromPath(header.CWD)}
 	return ParsedSession{Header: header, Session: session, Messages: messages, File: path, ModTime: stat.ModTime()}, nil
-}
-
-func ParsePiSessionLine(line string) (Message, bool) {
-	messages := ParsePiSessionLineMessages(line)
-	if len(messages) == 0 {
-		return Message{}, false
-	}
-	return messages[0], true
-}
-
-func ParsePiSessionLineMessages(line string) []Message {
-	line = strings.TrimSpace(line)
-	if line == "" {
-		return nil
-	}
-	var entry sessionEntry
-	if err := json.Unmarshal([]byte(line), &entry); err != nil {
-		return nil
-	}
-	switch entry.Type {
-	case "message":
-		return convertAgentMessages(entry.Message)
-	case "compaction":
-		return []Message{{Kind: "pi", Text: fmt.Sprintf("context summarized · %d tokens before compaction", entry.TokensBefore)}}
-	case "model_change":
-		return []Message{{Kind: "banner", Text: fmt.Sprintf("model changed · %s/%s", entry.Provider, entry.ModelID)}}
-	case "thinking_level_change":
-		return []Message{{Kind: "banner", Text: fmt.Sprintf("thinking level · %s", entry.ThinkingLevel)}}
-	default:
-		return nil
-	}
-}
-
-func convertAgentMessages(raw json.RawMessage) []Message {
-	var msg agentMessage
-	if err := json.Unmarshal(raw, &msg); err != nil {
-		return nil
-	}
-	switch msg.Role {
-	case "user":
-		return []Message{{Kind: "user", Text: contentText(msg.Content)}}
-	case "assistant":
-		return assistantMessages(msg.Content)
-	case "toolResult":
-		status := "ok"
-		if msg.IsError {
-			status = "err"
-		}
-		return []Message{{Kind: "tool", Tool: msg.ToolName, Status: status, Body: contentText(msg.Content), CollapsedByDefault: true}}
-	case "bashExecution":
-		status := "ok"
-		if msg.ExitCode != nil && *msg.ExitCode != 0 {
-			status = "err"
-		}
-		if msg.Cancelled {
-			status = "err"
-		}
-		return []Message{{Kind: "tool", Tool: "bash", Args: msg.Command, Status: status, Body: msg.Output, CollapsedByDefault: true}}
-	case "custom":
-		return []Message{{Kind: "pi", Text: contentText(msg.Content)}}
-	default:
-		return nil
-	}
-}
-
-func contentText(raw json.RawMessage) string {
-	if len(raw) == 0 || string(raw) == "null" {
-		return ""
-	}
-	var text string
-	if err := json.Unmarshal(raw, &text); err == nil {
-		return text
-	}
-	var blocks []contentBlock
-	if err := json.Unmarshal(raw, &blocks); err == nil {
-		var parts []string
-		for _, block := range blocks {
-			if block.Text != "" {
-				parts = append(parts, block.Text)
-			}
-		}
-		return strings.Join(parts, "\n")
-	}
-	return string(raw)
-}
-
-func assistantMessages(raw json.RawMessage) []Message {
-	var blocks []contentBlock
-	if err := json.Unmarshal(raw, &blocks); err != nil {
-		text := contentText(raw)
-		if text == "" {
-			return nil
-		}
-		return []Message{{Kind: "pi", Text: text}}
-	}
-	var messages []Message
-	var text []string
-	flushText := func() {
-		if len(text) == 0 {
-			return
-		}
-		messages = append(messages, Message{Kind: "pi", Text: strings.Join(text, "\n")})
-		text = nil
-	}
-	for _, block := range blocks {
-		switch block.Type {
-		case "text":
-			if block.Text != "" {
-				text = append(text, block.Text)
-			}
-		case "thinking":
-			flushText()
-			if block.Thinking != "" {
-				messages = append(messages, Message{Kind: "think", Text: block.Thinking})
-			}
-		case "toolCall":
-			flushText()
-		}
-	}
-	flushText()
-	return messages
-}
-
-func trimTitle(value string) string {
-	value = strings.Join(strings.Fields(value), " ")
-	if len([]rune(value)) <= 48 {
-		return value
-	}
-	return string([]rune(value)[:48]) + "…"
-}
-
-func relTime(t time.Time) string {
-	d := time.Since(t)
-	switch {
-	case d < time.Minute:
-		return "now"
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	case d < 30*24*time.Hour:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	default:
-		return t.Format("2006-01-02")
-	}
-}
-
-func workspaceIDFromPath(path string) string {
-	return slug(filepath.Base(path))
 }
