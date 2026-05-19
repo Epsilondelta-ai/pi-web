@@ -54,6 +54,16 @@ export const layoutMethods = {
     button.querySelector(".glyph").textContent = open ? "▾" : "▸";
   },
 
+  toggleDrawer(forceOpen) {
+    const body = this.querySelector(".app-body");
+    if (!body) return;
+    const open = forceOpen ?? !body.classList.contains("drawer-open");
+    body.classList.toggle("drawer-open", open);
+    const button = this.querySelector('[data-action="open-drawer"]');
+    button?.setAttribute("aria-expanded", String(open));
+    button?.setAttribute("aria-label", open ? "close sidebar" : "open sidebar");
+  },
+
   collapseSidebar(collapsed) {
     this.dataset.sidebar = collapsed ? "collapsed" : "open";
     this.querySelector(".sidebar-wrap")?.toggleAttribute("hidden", collapsed);

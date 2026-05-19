@@ -91,9 +91,10 @@ class PiApp extends HTMLElement {
     window.parent?.postMessage({ type: "__edit_mode_available" }, "*");
   }
 
-  connectEvents(sessionId) {
+  connectEvents(sessionId, options = {}) {
     this.eventSource?.close();
     this.eventSource = sessionEvents(sessionId, {
+      replay: options.replay,
       onOpen: () => this.setConnection("ok"),
       onError: () => this.setConnection("err"),
       onEvent: (event) => this.applyEvent(event),
@@ -139,6 +140,8 @@ class PiApp extends HTMLElement {
   }
 
   setMode(mode) {
+    if (mode === "idle") this.finishRunningTools?.();
+    if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = ["running", "thinking"].includes(mode);
     if (this.send) {
       this.send.textContent = this.running ? "stop" : "send";

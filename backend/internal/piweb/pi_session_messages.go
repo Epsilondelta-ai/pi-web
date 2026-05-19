@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var imageFileTagPattern = regexp.MustCompile(`(?s)<file name="[^"]+">\[Image:.*?</file>\s*`)
 
 func ParsePiSessionLine(line string) (Message, bool) {
 	messages := ParsePiSessionLineMessages(line)
@@ -44,7 +47,7 @@ func convertAgentMessages(raw json.RawMessage) []Message {
 	}
 	switch msg.Role {
 	case "user":
-		return []Message{{Kind: "user", Text: contentText(msg.Content)}}
+		return userMessages(msg.Content)
 	case "assistant":
 		return assistantMessages(msg.Content)
 	case "toolResult":
@@ -68,6 +71,42 @@ func convertAgentMessages(raw json.RawMessage) []Message {
 		return nil
 	}
 }
+func userMessages(raw json.RawMessage) []Message {
+	text := strings.TrimSpace(imageFileTagPattern.ReplaceAllString(contentText(raw), ""))
+	return []Message{{Kind: "user", Text: text, Attachments: contentImageAttachments(raw)}}
+}
+
+func contentImageAttachments(raw json.RawMessage) []PromptAttachment {
+	var blocks []contentBlock
+	if err := json.Unmarshal(raw, &blocks); err != nil {
+		return nil
+	}
+	var attachments []PromptAttachment
+	for index, block := range blocks {
+		if block.Type != "image" || block.Data == "" {
+			continue
+		}
+		mimeType := block.MIMEType
+		if mimeType == "" {
+			mimeType = "image/png"
+		}
+		attachments = append(attachments, PromptAttachment{
+			Type:     "image",
+			Name:     "image-" + fmt.Sprint(index+1) + imageExtension(mimeType),
+			MIMEType: mimeType,
+			DataURL:  imageDataURL(block.Data, mimeType),
+		})
+	}
+	return attachments
+}
+
+func imageDataURL(data string, mimeType string) string {
+	if strings.HasPrefix(data, "data:") {
+		return data
+	}
+	return "data:" + mimeType + ";base64," + data
+}
+
 func contentText(raw json.RawMessage) string {
 	if len(raw) == 0 || string(raw) == "null" {
 		return ""

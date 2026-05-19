@@ -132,5 +132,8 @@ describe("api adapter", () => {
     const source = sessionEvents("s1");
     expect(source.url).toBe("http://backend.test/api/sessions/s1/events");
     expect(sources[0].listeners["session.message"]).toBeTypeOf("function");
+
+    const noReplay = sessionEvents("s1", { replay: false });
+    expect(noReplay.url).toBe("http://backend.test/api/sessions/s1/events?replay=false");
   });
 });

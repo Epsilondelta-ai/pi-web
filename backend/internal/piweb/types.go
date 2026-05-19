@@ -32,16 +32,17 @@ type FileNode struct {
 }
 
 type Message struct {
-	Kind               string `json:"kind"`
-	Text               string `json:"text,omitempty"`
-	Tool               string `json:"tool,omitempty"`
-	Args               string `json:"args,omitempty"`
-	Status             string `json:"status,omitempty"`
-	DurationMs         int    `json:"durationMs,omitempty"`
-	ResultMeta         string `json:"resultMeta,omitempty"`
-	Body               string `json:"body,omitempty"`
-	CollapsedByDefault bool   `json:"collapsedByDefault,omitempty"`
-	Running            bool   `json:"running,omitempty"`
+	Kind               string             `json:"kind"`
+	Text               string             `json:"text,omitempty"`
+	Attachments        []PromptAttachment `json:"attachments,omitempty"`
+	Tool               string             `json:"tool,omitempty"`
+	Args               string             `json:"args,omitempty"`
+	Status             string             `json:"status,omitempty"`
+	DurationMs         int                `json:"durationMs,omitempty"`
+	ResultMeta         string             `json:"resultMeta,omitempty"`
+	Body               string             `json:"body,omitempty"`
+	CollapsedByDefault bool               `json:"collapsedByDefault,omitempty"`
+	Running            bool               `json:"running,omitempty"`
 }
 
 type GitStatus struct {

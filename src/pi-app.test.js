@@ -7,8 +7,9 @@ describe("pi-app runtime", () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <pi-app data-tree="on" data-sidebar="open">
+        <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar" aria-expanded="false">≡</button>
         <section data-view="picker" hidden></section>
-        <section class="app-body with-tree" data-view="workspace"><div class="sidebar-wrap"></div><main><div class="term-inner"></div></main><aside class="tree"></aside></section>
+        <section class="app-body with-tree" data-view="workspace"><div class="sidebar-wrap"></div><main><div class="term-inner"></div></main><aside class="tree"></aside><div class="scrim" data-action="close-drawer"></div></section>
         <button class="sb-expand-btn"></button>
         <div class="prompt-region">
           <div class="slash-pop" hidden><div class="slash-list"><button class="slash-item selected" data-slash="/model">/model</button></div></div>
@@ -130,6 +131,21 @@ describe("pi-app runtime", () => {
     });
   });
 
+  it("toggles the mobile sidebar drawer from the hamburger button", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    const hamburger = app.querySelector(".hamburger");
+    const body = app.querySelector(".app-body");
+    hamburger.click();
+    expect(body.classList.contains("drawer-open")).toBe(true);
+    expect(hamburger.getAttribute("aria-expanded")).toBe("true");
+    expect(hamburger.getAttribute("aria-label")).toBe("close sidebar");
+    hamburger.click();
+    expect(body.classList.contains("drawer-open")).toBe(false);
+    expect(hamburger.getAttribute("aria-expanded")).toBe("false");
+    expect(hamburger.getAttribute("aria-label")).toBe("open sidebar");
+  });
   it("opens session actions from an ellipsis menu", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
@@ -207,6 +223,33 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
+  it("marks stale running tools complete when assistant output resumes", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.setMode("running");
+    app.appendMessage({ kind: "tool", tool: "read", status: "running" });
+    app.appendDelta({ kind: "pi", delta: "done" });
+    const tool = app.querySelector(".tool-card");
+    expect(tool.dataset.status).toBe("ok");
+    expect(tool.querySelector(".tc-meta").textContent).toContain("done");
+    expect(tool.querySelector(".tc-meta .spinner")).toBeNull();
+  });
+
+  it("marks stale running tools complete when a session becomes idle", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.setMode("running");
+    app.appendMessage({ kind: "tool", tool: "read", status: "running" });
+    app.setMode("idle");
+    const tool = app.querySelector(".tool-card");
+    expect(tool.dataset.status).toBe("ok");
+    expect(tool.querySelector(".tc-meta .spinner")).toBeNull();
+  });
+
   it("keeps streaming deltas in one row while the session is running", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
@@ -229,6 +272,21 @@ describe("pi-app runtime", () => {
     app.appendDelta({ kind: "pi", delta: "lo" });
     expect(app.querySelector(".msg.loading")).toBeNull();
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("hello");
+  });
+
+  it("wraps streaming thinking deltas immediately", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.appendLoadingMessage();
+    app.appendDelta({ kind: "think", delta: "rea" });
+    app.appendDelta({ kind: "think", delta: "son" });
+    const block = app.querySelector(".msg.streaming[data-kind='think'] .thinking-block");
+    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(block).not.toBeNull();
+    expect(block.querySelector(".label").textContent).toBe("thinking");
+    expect(block.querySelector("[data-stream-text]").textContent).toBe("reason");
   });
 
   it("reveals the live transcript immediately when sending from the empty session view", async () => {
@@ -255,6 +313,50 @@ describe("pi-app runtime", () => {
     expect(app.querySelector("[data-main='empty']").hidden).toBe(true);
     expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toBe("hello");
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+  });
+
+  it("waits for the backend prompt echo when connected", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 202,
+      statusText: "Accepted",
+      json: async () => ({ accepted: true }),
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.apiConnected = true;
+    app.dataset.activeSessionId = "s1";
+    app.prompt.value = "hello";
+
+    await app.submitPrompt();
+    expect(app.querySelector(".msg[data-kind='user']")).toBeNull();
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+
+    app.applyEvent({ type: "session.message", payload: { kind: "user", text: "hello" } });
+    expect(app.querySelectorAll(".msg[data-kind='user']")).toHaveLength(1);
+    expect(app.querySelector(".msg.loading")).toBeNull();
+  });
+
+  it("opens loaded sessions without replaying broker history", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ session: { id: "s1", title: "demo" }, messages: [] }),
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    let connected;
+    app.connectEvents = (sessionId, options) => {
+      connected = { sessionId, options };
+    };
+
+    await app.loadSession("s1");
+    expect(connected).toEqual({ sessionId: "s1", options: { replay: false } });
   });
 
   it("replaces streamed fallback choice JSON with clickable answer options", async () => {

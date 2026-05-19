@@ -55,6 +55,9 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 		return true
 	case "message_end":
 		for _, msg := range convertAgentMessages(event.Message) {
+			if msg.Kind == "user" {
+				continue
+			}
 			if msg.Kind == "tool" && msg.Status == "running" {
 				continue
 			}
@@ -115,9 +118,16 @@ func streamPipe(pipe io.Reader, onLine func(string), done chan<- struct{}) {
 	if done != nil {
 		defer close(done)
 	}
-	scanner := bufio.NewScanner(pipe)
-	scanner.Buffer(make([]byte, 1024), 1024*1024)
-	for scanner.Scan() {
-		onLine(scanner.Text())
+	reader := bufio.NewReaderSize(pipe, 64*1024)
+	for {
+		line, err := reader.ReadString('\n')
+		if line != "" {
+			line = strings.TrimSuffix(line, "\n")
+			line = strings.TrimSuffix(line, "\r")
+			onLine(line)
+		}
+		if err != nil {
+			return
+		}
 	}
 }

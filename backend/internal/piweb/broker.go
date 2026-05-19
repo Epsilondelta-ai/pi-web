@@ -100,12 +100,14 @@ func (b *Broker) ServeSession(w http.ResponseWriter, r *http.Request, sessionID 
 	if value := r.Header.Get("Last-Event-ID"); value != "" {
 		after, _ = strconv.ParseUint(value, 10, 64)
 	}
-	for _, event := range b.Replay(sessionID, after) {
-		if err := WriteSSE(w, event); err != nil {
-			return
+	if shouldReplayHistory(r, after) {
+		for _, event := range b.Replay(sessionID, after) {
+			if err := WriteSSE(w, event); err != nil {
+				return
+			}
 		}
+		flusher.Flush()
 	}
-	flusher.Flush()
 
 	events, unsubscribe := b.Subscribe(sessionID)
 	defer unsubscribe()
@@ -132,6 +134,10 @@ func (b *Broker) ServeSession(w http.ResponseWriter, r *http.Request, sessionID 
 			flusher.Flush()
 		}
 	}
+}
+
+func shouldReplayHistory(r *http.Request, after uint64) bool {
+	return after > 0 || r.URL.Query().Get("replay") != "false"
 }
 
 func WriteSSE(w io.Writer, event Event) error {

@@ -53,7 +53,7 @@ export const sessionMethods = {
       title.title = `${row.dataset.title} · ${row.dataset.session}`;
     }
     this.showSessionMain();
-    this.querySelector(".app-body")?.classList.remove("drawer-open");
+    this.toggleDrawer?.(false);
     if (this.apiConnected) await this.loadSession(row.dataset.session);
     else this.dataset.activeSessionId = row.dataset.session;
     this.scrollTerm();

@@ -66,7 +66,9 @@ func (r *Runner) StartPiPrompt(
 			r.mu.Unlock()
 			cancel()
 		}()
-		broker.Publish(sessionID, "session.message", Message{Kind: "user", Text: displayText})
+		user := Message{Kind: "user", Text: displayText, Attachments: images}
+		_ = store.AppendMessage(sessionID, user)
+		broker.Publish(sessionID, "session.message", user)
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
 
 		imagePaths, cleanup, err := writePromptImages(images)

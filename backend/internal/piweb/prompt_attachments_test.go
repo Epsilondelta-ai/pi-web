@@ -41,6 +41,38 @@ func TestWritePromptImagesCreatesFilesForPiFileReferences(t *testing.T) {
 	}
 }
 
+func TestHandlePiJSONEventSkipsUserEcho(t *testing.T) {
+	broker := NewBroker()
+	store := NewMockStore()
+	state := &jsonStreamState{}
+
+	handlePiJSONEvent(
+		`{"type":"message_end","message":{"role":"user","content":"<file name=\"/tmp/image.png\">[Image: original]</file>\n잘 보이나? 이미지?"}}`,
+		broker,
+		store,
+		"8e7c-44ff",
+		state,
+	)
+
+	if replay := broker.Replay("8e7c-44ff", 0); len(replay) != 0 {
+		t.Fatalf("user echo should not be replayed: %#v", replay)
+	}
+}
+
+func TestUserMessagesExtractImageAttachments(t *testing.T) {
+	messages := userMessages([]byte(`[
+		{"type":"image","data":"ZmFrZQ==","mimeType":"image/png"},
+		{"type":"text","text":"잘 보이나? 이미지?"}
+	]`))
+
+	if len(messages) != 1 || messages[0].Text != "잘 보이나? 이미지?" {
+		t.Fatalf("unexpected messages: %#v", messages)
+	}
+	if len(messages[0].Attachments) != 1 || !strings.Contains(messages[0].Attachments[0].DataURL, "ZmFrZQ==") {
+		t.Fatalf("image attachment missing: %#v", messages[0].Attachments)
+	}
+}
+
 func TestPiPromptArgsPassImagesAsFileReferences(t *testing.T) {
 	args := piPromptArgs("session.jsonl", "what is this?", []string{"/tmp/shot.png"})
 	joined := strings.Join(args, "\n")

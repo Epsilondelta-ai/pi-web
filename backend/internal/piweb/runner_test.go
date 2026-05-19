@@ -2,8 +2,24 @@ package piweb
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
+
+func TestStreamPipeHandlesLargeJSONLines(t *testing.T) {
+	line := strings.Repeat("x", 1024*1024+1)
+	done := make(chan struct{})
+	var got string
+
+	go streamPipe(strings.NewReader(line+"\n"), func(value string) {
+		got = value
+	}, done)
+	<-done
+
+	if got != line {
+		t.Fatalf("expected large line to pass through, got %d bytes", len(got))
+	}
+}
 
 func TestHandlePiJSONEventIgnoresToolCallDeltaAsText(t *testing.T) {
 	broker := NewBroker()

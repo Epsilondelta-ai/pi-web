@@ -88,7 +88,7 @@ export const workspaceMethods = {
         title.title = `${session.title} · ${session.id}`;
       }
       this.renderMessages(messages || []);
-      this.connectEvents(session.id);
+      this.connectEvents(session.id, { replay: false });
     } catch {
       this.setConnection("err");
     }

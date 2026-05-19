@@ -1,6 +1,7 @@
 package piweb
 
 import (
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -30,6 +31,20 @@ func TestBrokerReplayAndRedaction(t *testing.T) {
 	payload := replay[0].Payload.(map[string]string)
 	if strings.Contains(payload["chunk"], "secret-value") || !strings.Contains(payload["chunk"], "[REDACTED]") {
 		t.Fatalf("secret was not redacted: %#v", payload)
+	}
+}
+
+func TestShouldReplayHistory(t *testing.T) {
+	withoutReplay := httptest.NewRequest("GET", "/events?replay=false", nil)
+	if shouldReplayHistory(withoutReplay, 0) {
+		t.Fatal("initial loaded sessions should not replay broker history")
+	}
+	if !shouldReplayHistory(withoutReplay, 7) {
+		t.Fatal("EventSource reconnects should replay missed events after Last-Event-ID")
+	}
+	withReplay := httptest.NewRequest("GET", "/events", nil)
+	if !shouldReplayHistory(withReplay, 0) {
+		t.Fatal("new live sessions should replay by default")
 	}
 }
 

@@ -18,6 +18,23 @@ describe("pi-app prompt input", () => {
     renderApp();
   });
 
+  it("renders image attachments in user messages", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.termInner = document.createElement("div");
+    app.append(app.termInner);
+
+    app.appendMessage({
+      kind: "user",
+      text: "잘 보이나? 이미지?",
+      attachments: [{ type: "image", name: "clip.png", dataUrl: "data:image/png;base64,ZmFrZQ==" }],
+    });
+
+    expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toContain("잘 보이나? 이미지?");
+    expect(app.querySelector(".msg-image").getAttribute("src")).toBe("data:image/png;base64,ZmFrZQ==");
+  });
+
   it("attaches pasted clipboard images instead of inserting them into the prompt", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");

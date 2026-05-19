@@ -110,6 +110,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   color: var(--accent);
   display: inline-block;
   min-width: 1ch;
+  font-style: normal;
   font-variant-numeric: tabular-nums;
 }
 

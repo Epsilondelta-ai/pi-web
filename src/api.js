@@ -144,8 +144,11 @@ export function postPrompt(sessionId, text, attachments = []) {
   });
 }
 
-export function sessionEvents(sessionId, { onEvent, onOpen, onError } = {}) {
-  const source = new EventSource(`${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/events`);
+export function sessionEvents(sessionId, { onEvent, onOpen, onError, replay = true } = {}) {
+  const replayQuery = replay ? "" : "?replay=false";
+  const source = new EventSource(
+    `${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/events${replayQuery}`,
+  );
   source.onopen = () => onOpen?.();
   source.onerror = (event) => onError?.(event);
   const types = ["session.message", "session.delta", "session.status", "session.renamed", "tool.started", "tool.output", "tool.finished", "workspace.files.changed", "error", "heartbeat"];

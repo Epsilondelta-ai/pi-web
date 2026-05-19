@@ -13,7 +13,8 @@ export const messageMethods = {
   appendMessage(msg) {
     if (!this.termInner || !msg) return;
     if (this.isDuplicateMessage(msg)) return;
-    if (msg.kind !== "user") this.removeLoadingMessage();
+    this.removeLoadingMessage();
+    if (msg.kind !== "tool") this.finishRunningTools();
     if (msg.kind === "pi") this.piDeltaBuffer = "";
     if (msg.kind === "tool") this.finalizeStreamingMessages();
     this.termInner.querySelector(`.msg.streaming[data-kind='${msg.kind}']`)?.remove();
@@ -32,6 +33,7 @@ export const messageMethods = {
 
   appendDelta(payload) {
     if (!this.termInner || !payload?.delta) return;
+    this.finishRunningTools();
     this.removeLoadingMessage();
     const kind = payload.kind === "think" ? "think" : "pi";
     let delta = payload.delta;
@@ -46,9 +48,12 @@ export const messageMethods = {
       row = this.simpleMessage(`${kind} streaming`, kind === "think" ? "…" : "pi >", "");
       row.classList.add("streaming");
       row.dataset.kind = kind;
+      if (kind === "think") {
+        row.querySelector(".body").innerHTML = `<div class="thinking-block"><span class="label">thinking</span><span data-stream-text></span></div>`;
+      }
       this.termInner.append(row);
     }
-    const body = row.querySelector(".body");
+    const body = row.querySelector("[data-stream-text]") || row.querySelector(".body");
     if (body) body.textContent += delta;
     this.scrollTerm();
   },
@@ -90,6 +95,14 @@ export const messageMethods = {
     this.termInner?.querySelectorAll(".msg.streaming").forEach((row) => row.classList.remove("streaming"));
   },
 
+  finishRunningTools({ status = "ok", resultMeta = "done" } = {}) {
+    this.termInner?.querySelectorAll(".tool-card[data-status='running']").forEach((card) => {
+      card.dataset.status = status;
+      const meta = card.querySelector(".tc-meta");
+      if (meta) meta.innerHTML = this.toolStatus({ status, resultMeta });
+    });
+  },
+
   messageNode(msg) {
     if (msg.kind === "banner") {
       const pre = document.createElement("pre");
@@ -97,7 +110,7 @@ export const messageMethods = {
       pre.innerHTML = renderBannerBody(msg.text);
       return pre;
     }
-    if (msg.kind === "user") return this.simpleMessage("user", "you >", msg.text);
+    if (msg.kind === "user") return this.userMessageNode(msg);
     if (msg.kind === "think") {
       const row = this.simpleMessage("think", "…", "");
       row.querySelector(".body").innerHTML = `<div class="thinking-block"><span class="label">thinking</span>${escapeHtml(msg.text)}</div>`;
@@ -116,6 +129,23 @@ export const messageMethods = {
     }
     if (msg.kind === "tool") return this.toolCard(msg);
     return this.simpleMessage("pi", "pi >", JSON.stringify(msg));
+  },
+
+  userMessageNode(msg) {
+    const row = this.simpleMessage("user", "you >", msg.text);
+    const images = (msg.attachments || []).filter((item) => item.type === "image" && item.dataUrl);
+    if (!images.length) return row;
+    const list = document.createElement("div");
+    list.className = "msg-attachments";
+    for (const image of images) {
+      const preview = document.createElement("img");
+      preview.className = "msg-image";
+      preview.src = image.dataUrl;
+      preview.alt = image.name || "attached image";
+      list.append(preview);
+    }
+    row.querySelector(".body")?.append(list);
+    return row;
   },
 
   choicePanel(choice) {

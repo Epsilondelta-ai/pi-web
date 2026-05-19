@@ -55,6 +55,8 @@ type contentBlock struct {
 	Type      string          `json:"type"`
 	Text      string          `json:"text"`
 	Thinking  string          `json:"thinking"`
+	Data      string          `json:"data"`
+	MIMEType  string          `json:"mimeType"`
 	Name      string          `json:"name"`
 	Arguments json.RawMessage `json:"arguments"`
 }
