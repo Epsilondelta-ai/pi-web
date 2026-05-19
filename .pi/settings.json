@@ -5,8 +5,8 @@
     "keepRecentTokens": 20000,
     "reserveTokens": 16384
   },
-  "defaultProvider": "zai",
   "defaultModel": "glm-5.1",
+  "defaultProvider": "zai",
   "defaultThinkingLevel": "high",
   "enableSkillCommands": true,
   "extensions": [
