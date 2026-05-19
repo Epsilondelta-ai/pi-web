@@ -31,8 +31,18 @@ type githubSelfUpdater struct {
 	executable func() (string, error)
 }
 
+var (
+	newSelfUpdater = func() (binaryUpdater, error) {
+		return newGitHubSelfUpdater()
+	}
+	newReleaseDetector = func() (releaseDetector, error) {
+		return newGitHubSelfUpdater()
+	}
+	newSelfupdateUpdater = selfupdate.NewUpdater
+)
+
 func runUpdate(out io.Writer, options updateOptions) error {
-	updater, err := newGitHubSelfUpdater()
+	updater, err := newSelfUpdater()
 	if err != nil {
 		return err
 	}
@@ -46,11 +56,11 @@ func detectReleaseStatus(_ context.Context, currentVersion string) (piweb.Versio
 		return status, nil
 	}
 
-	updater, err := newGitHubSelfUpdater()
+	detector, err := newReleaseDetector()
 	if err != nil {
 		return status, err
 	}
-	release, found, err := updater.DetectLatest(githubRepositorySlug)
+	release, found, err := detector.DetectLatest(githubRepositorySlug)
 	if err != nil || !found {
 		return status, err
 	}
@@ -61,7 +71,7 @@ func detectReleaseStatus(_ context.Context, currentVersion string) (piweb.Versio
 }
 
 func newGitHubSelfUpdater() (*githubSelfUpdater, error) {
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+	updater, err := newSelfupdateUpdater(selfupdate.Config{
 		APIToken: os.Getenv("GITHUB_TOKEN"),
 		Filters:  []string{piWebAssetFilter},
 	})
@@ -84,9 +94,7 @@ func (u *githubSelfUpdater) UpdateSelf(current semver.Version, slug string) (*se
 }
 
 func (u *githubSelfUpdater) updateCommand(cmdPath string, current semver.Version, slug string) (*selfupdate.Release, error) {
-	if runtime.GOOS == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
-		cmdPath += ".exe"
-	}
+	cmdPath = commandPathForGOOS(runtime.GOOS, cmdPath)
 	stat, err := os.Lstat(cmdPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat %q: %w", cmdPath, err)
@@ -109,6 +117,13 @@ func (u *githubSelfUpdater) updateCommand(cmdPath string, current semver.Version
 		return nil, err
 	}
 	return release, nil
+}
+
+func commandPathForGOOS(goos string, cmdPath string) string {
+	if goos == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
+		return cmdPath + ".exe"
+	}
+	return cmdPath
 }
 
 func (u *githubSelfUpdater) DetectLatest(slug string) (*selfupdate.Release, bool, error) {
