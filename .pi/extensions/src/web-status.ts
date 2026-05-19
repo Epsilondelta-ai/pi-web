@@ -11,11 +11,11 @@ export async function persistWebStatus(
   ctx: Pick<ExtensionContext, "cwd">,
   input: WebStatusInput,
 ): Promise<void> {
-  const dir = join(ctx.cwd, ".pi");
+  const piDirectory = join(ctx.cwd, ".pi");
   const quotas = parseQuotaText(input.quotaText);
-  await mkdir(dir, { recursive: true });
+  await mkdir(piDirectory, { recursive: true });
   await writeFile(
-    join(dir, "web-status.json"),
+    join(piDirectory, "web-status.json"),
     JSON.stringify(
       {
         model: input.model,

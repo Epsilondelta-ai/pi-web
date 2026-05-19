@@ -23,24 +23,30 @@ type Broker struct {
 }
 
 func NewBroker() *Broker {
-	return &Broker{subscribers: map[string]map[chan Event]struct{}{}, history: map[string][]Event{}, buffer: 32, heartbeat: 15 * time.Second, historySize: 256}
+	return &Broker{
+		subscribers: map[string]map[chan Event]struct{}{},
+		history:     map[string][]Event{},
+		buffer:      32,
+		heartbeat:   15 * time.Second,
+		historySize: 256,
+	}
 }
 
 func (b *Broker) Subscribe(sessionID string) (<-chan Event, func()) {
-	ch := make(chan Event, b.buffer)
+	eventChannel := make(chan Event, b.buffer)
 	b.mu.Lock()
 	if b.subscribers[sessionID] == nil {
 		b.subscribers[sessionID] = map[chan Event]struct{}{}
 	}
-	b.subscribers[sessionID][ch] = struct{}{}
+	b.subscribers[sessionID][eventChannel] = struct{}{}
 	b.mu.Unlock()
 
 	unsubscribe := func() {
 		b.mu.Lock()
 		if subscribers := b.subscribers[sessionID]; subscribers != nil {
-			if _, ok := subscribers[ch]; ok {
-				delete(subscribers, ch)
-				close(ch)
+			if _, ok := subscribers[eventChannel]; ok {
+				delete(subscribers, eventChannel)
+				close(eventChannel)
 			}
 			if len(subscribers) == 0 {
 				delete(b.subscribers, sessionID)
@@ -48,24 +54,30 @@ func (b *Broker) Subscribe(sessionID string) (<-chan Event, func()) {
 		}
 		b.mu.Unlock()
 	}
-	return ch, unsubscribe
+	return eventChannel, unsubscribe
 }
 
 func (b *Broker) Publish(sessionID, eventType string, payload any) Event {
-	event := Event{ID: b.nextID.Add(1), Type: eventType, SessionID: sessionID, Payload: RedactPayload(payload), At: time.Now().UTC()}
+	event := Event{
+		ID:        b.nextID.Add(1),
+		Type:      eventType,
+		SessionID: sessionID,
+		Payload:   RedactPayload(payload),
+		At:        time.Now().UTC(),
+	}
 	b.mu.Lock()
 	b.history[sessionID] = append(b.history[sessionID], event)
 	if len(b.history[sessionID]) > b.historySize {
 		b.history[sessionID] = b.history[sessionID][len(b.history[sessionID])-b.historySize:]
 	}
 	var subscribers []chan Event
-	for ch := range b.subscribers[sessionID] {
-		subscribers = append(subscribers, ch)
+	for eventChannel := range b.subscribers[sessionID] {
+		subscribers = append(subscribers, eventChannel)
 	}
 	b.mu.Unlock()
-	for _, ch := range subscribers {
+	for _, eventChannel := range subscribers {
 		select {
-		case ch <- event:
+		case eventChannel <- event:
 		default:
 		}
 	}
@@ -127,7 +139,13 @@ func (b *Broker) ServeSession(w http.ResponseWriter, r *http.Request, sessionID 
 			}
 			flusher.Flush()
 		case <-ticker.C:
-			event := Event{ID: b.nextID.Add(1), Type: "heartbeat", SessionID: sessionID, Payload: map[string]string{"status": "ok"}, At: time.Now().UTC()}
+			event := Event{
+				ID:        b.nextID.Add(1),
+				Type:      "heartbeat",
+				SessionID: sessionID,
+				Payload:   map[string]string{"status": "ok"},
+				At:        time.Now().UTC(),
+			}
 			if err := WriteSSE(w, event); err != nil {
 				return
 			}
@@ -166,10 +184,19 @@ func (b *Broker) PublishMockPrompt(ctx context.Context, store *Store, sessionID,
 		payload  any
 	}{
 		{100 * time.Millisecond, "session.status", map[string]string{"status": "thinking"}},
-		{150 * time.Millisecond, "tool.started", Message{Kind: "tool", Tool: "bash", Args: "$ pwd", Status: "running"}},
-		{150 * time.Millisecond, "tool.output", map[string]string{"tool": "bash", "chunk": "/mock/workspace"}},
-		{150 * time.Millisecond, "tool.finished", Message{Kind: "tool", Tool: "bash", Args: "$ pwd", Status: "ok", DurationMs: 42, ResultMeta: "done", Body: "/mock/workspace"}},
-		{150 * time.Millisecond, "session.message", Message{Kind: "pi", Text: "Mock backend received your prompt and streamed this response over SSE."}},
+		{150 * time.Millisecond, "tool.started", Message{
+			Kind: "tool", Tool: "bash", Args: "$ pwd", Status: "running",
+		}},
+		{150 * time.Millisecond, "tool.output", map[string]string{
+			"tool": "bash", "chunk": "/mock/workspace",
+		}},
+		{150 * time.Millisecond, "tool.finished", Message{
+			Kind: "tool", Tool: "bash", Args: "$ pwd", Status: "ok",
+			DurationMs: 42, ResultMeta: "done", Body: "/mock/workspace",
+		}},
+		{150 * time.Millisecond, "session.message", Message{
+			Kind: "pi", Text: "Mock backend received your prompt and streamed this response over SSE.",
+		}},
 		{100 * time.Millisecond, "session.status", map[string]string{"status": "idle"}},
 	}
 	for _, step := range steps {

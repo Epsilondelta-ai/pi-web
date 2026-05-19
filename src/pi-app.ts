@@ -15,12 +15,12 @@ class PiApp extends HTMLElement {
     if (this.bound) return;
     this.bound = true;
     this.prompt = this.querySelector(".prompt-textarea");
-    this.send = this.querySelector(".send-btn");
-    this.stop = this.querySelector(".stop-btn");
-    this.attach = this.querySelector(".attach-btn");
-    this.file = this.querySelector("[data-file-input]");
+    this.sendButton = this.querySelector(".send-btn");
+    this.stopButton = this.querySelector(".stop-btn");
+    this.attachButton = this.querySelector(".attach-btn");
+    this.fileInput = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
-    this.slash = this.querySelector(".slash-pop");
+    this.slashPopover = this.querySelector(".slash-pop");
     this.settingsModal = this.querySelector("[data-settings-modal]");
     this.termInner = this.querySelector(".term-inner");
     this.eventSource = null;
@@ -31,7 +31,7 @@ class PiApp extends HTMLElement {
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
     this.runtimeStatus = {};
-    this.bind();
+    this.bindDomEvents();
     this.restoreSidebar();
     this.updatePrompt();
     this.updatePromptMeta();
@@ -64,23 +64,28 @@ class PiApp extends HTMLElement {
     });
   }
 
-  bind() {
-    this.addEventListener("click", (event) => (this as any).click(event));
+  bindDomEvents() {
+    this.addEventListener("click", (event) => (this as any).handleAppClick(event));
     this.querySelector("[data-path-form]")?.addEventListener("submit", (event) => this.submitWorkspacePath(event));
     this.querySelector("[data-clone-form]")?.addEventListener("submit", (event) => this.submitCloneWorkspace(event));
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
     this.querySelector("[data-settings-form]")?.addEventListener("submit", (event) => this.saveSettingsForm(event));
     this.querySelector("[data-settings-scope]")?.addEventListener("change", () => this.fillSettingsForm());
-    this.send?.addEventListener("click", () => this.submitPrompt());
-    this.stop?.addEventListener("click", () => this.cancelActiveSession());
+    this.sendButton?.addEventListener("click", () => this.submitPrompt());
+    this.stopButton?.addEventListener("click", () => this.cancelActiveSession());
     this.prompt?.addEventListener("input", () => this.updatePrompt());
     this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event));
     this.prompt?.addEventListener("keydown", (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") this.submitPrompt();
-      if (this.slash && !this.slash.hidden && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key)) this.navigateList(event, ".slash-item", (item) => this.pickSlash(item.dataset.slash));
+      const shouldNavigateSlashCommands = this.slashPopover
+        && !this.slashPopover.hidden
+        && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key);
+      if (shouldNavigateSlashCommands) {
+        this.navigateList(event, ".slash-item", (item) => this.pickSlash(item.dataset.slash));
+      }
     });
-    this.attach?.addEventListener("click", () => this.file?.click());
-    this.file?.addEventListener("change", () => this.addFiles(this.file.files));
+    this.attachButton?.addEventListener("click", () => this.fileInput?.click());
+    this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files));
     this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
     window.addEventListener("keydown", (event) => this.shortcut(event));
     window.addEventListener("click", (event) => {
@@ -88,7 +93,9 @@ class PiApp extends HTMLElement {
     });
     window.addEventListener("message", (event) => {
       if (event.data?.type === "__activate_edit_mode") this.querySelector("[data-tweaks]")?.removeAttribute("hidden");
-      if (event.data?.type === "__deactivate_edit_mode") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
+      if (event.data?.type === "__deactivate_edit_mode") {
+        this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
+      }
     });
     window.parent?.postMessage({ type: "__edit_mode_available" }, "*");
   }
@@ -164,8 +171,8 @@ class PiApp extends HTMLElement {
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = ["running", "thinking"].includes(mode);
-    this.stop?.toggleAttribute("hidden", !this.running);
-    if (this.send) this.updatePrompt();
+    this.stopButton?.toggleAttribute("hidden", !this.running);
+    if (this.sendButton) this.updatePrompt();
     this.syncLoadingMessage?.();
     if (!this.running) void this.loadRuntimeStatus?.();
   }

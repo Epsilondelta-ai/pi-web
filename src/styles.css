@@ -1,8 +1,8 @@
-@import "./styles/parts/part-01.css";
-@import "./styles/parts/part-02.css";
-@import "./styles/parts/part-03.css";
-@import "./styles/parts/part-04.css";
-@import "./styles/parts/part-05.css";
-@import "./styles/parts/part-06.css";
-@import "./styles/parts/part-07.css";
-@import "./styles/parts/part-08.css";
+@import "./styles/parts/foundation-layout.css";
+@import "./styles/parts/sidebar-workspaces.css";
+@import "./styles/parts/terminal-messages.css";
+@import "./styles/parts/tree-preview-status.css";
+@import "./styles/parts/prompt-composer.css";
+@import "./styles/parts/workspace-picker.css";
+@import "./styles/parts/responsive-themes.css";
+@import "./styles/parts/settings-modal.css";

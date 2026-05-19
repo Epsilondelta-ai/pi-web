@@ -51,23 +51,36 @@ export function renderAnsiBody(text) {
     rm: "removed",
   };
   let html = escapeHtml(text);
-  for (const [tag, cls] of Object.entries(tagMap)) {
-    html = html.replace(new RegExp(`&lt;${tag}&gt;([\\s\\S]*?)&lt;\\/${tag}&gt;`, "g"), `<span class="${cls}">$1</span>`);
+  for (const [tag, className] of Object.entries(tagMap)) {
+    const tagPattern = new RegExp(`&lt;${tag}&gt;([\\s\\S]*?)&lt;\\/${tag}&gt;`, "g");
+    html = html.replace(tagPattern, `<span class="${className}">$1</span>`);
   }
   return html;
 }
 
 export function renderTree(nodes) {
-  return nodes.map((node) => {
-    const open = false;
-    const action = node.type === "dir" ? "toggle-tree-node" : "open-file";
-    const expanded = node.type === "dir" ? ` aria-expanded="${open}"` : "";
-    const cls = ["tree-node", node.type, node.status || ""].filter(Boolean).join(" ");
-    const padding = `padding-left:calc(var(--space-3) + ${node.depth * 14}px)`;
-    const glyph = node.type === "dir" ? (open ? "▾" : "▸") : "·";
-    const filePath = escapeHtml(node.path || node.name);
-    const children = node.children ? `<div data-tree-children${open ? "" : " hidden"}>${renderTree(node.children)}</div>` : "";
-    return `<div class="tree-branch"><button type="button" class="${cls}" data-action="${action}" data-file-path="${filePath}" style="${padding}"${expanded}><span class="glyph">${glyph}</span><span class="name">${escapeHtml(node.name)}</span></button>${children}</div>`;
-  }).join("");
+  return nodes.map((node) => renderTreeNode(node)).join("");
+}
+
+function renderTreeNode(node) {
+  const open = false;
+  const action = node.type === "dir" ? "toggle-tree-node" : "open-file";
+  const expanded = node.type === "dir" ? ` aria-expanded="${open}"` : "";
+  const className = ["tree-node", node.type, node.status || ""].filter(Boolean).join(" ");
+  const padding = `padding-left:calc(var(--space-3) + ${node.depth * 14}px)`;
+  const glyph = node.type === "dir" ? (open ? "▾" : "▸") : "·";
+  const filePath = escapeHtml(node.path || node.name);
+  const children = renderTreeChildren(node, open);
+  return [
+    `<div class="tree-branch"><button type="button" class="${className}"`,
+    ` data-action="${action}" data-file-path="${filePath}" style="${padding}"${expanded}>`,
+    `<span class="glyph">${glyph}</span><span class="name">${escapeHtml(node.name)}</span></button>`,
+    `${children}</div>`,
+  ].join("");
+}
+
+function renderTreeChildren(node, open) {
+  if (!node.children) return "";
+  return `<div data-tree-children${open ? "" : " hidden"}>${renderTree(node.children)}</div>`;
 }
 

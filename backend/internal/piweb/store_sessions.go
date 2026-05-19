@@ -66,18 +66,18 @@ func (s *Store) AutoNameSession(sessionID, prompt string) (Session, bool, error)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for wi := range s.workspaces {
-		for si := range s.workspaces[wi].Sessions {
-			if s.workspaces[wi].Sessions[si].ID == sessionID {
-				current := strings.TrimSpace(s.workspaces[wi].Sessions[si].Title)
+	for workspaceIndex := range s.workspaces {
+		for sessionIndex := range s.workspaces[workspaceIndex].Sessions {
+			if s.workspaces[workspaceIndex].Sessions[sessionIndex].ID == sessionID {
+				current := strings.TrimSpace(s.workspaces[workspaceIndex].Sessions[sessionIndex].Title)
 				if current != "" && current != "new session" {
-					return s.workspaces[wi].Sessions[si], false, nil
+					return s.workspaces[workspaceIndex].Sessions[sessionIndex], false, nil
 				}
-				s.workspaces[wi].Sessions[si].Title = title
+				s.workspaces[workspaceIndex].Sessions[sessionIndex].Title = title
 				if err := appendSessionInfo(s.sessionFiles[sessionID], title); err != nil {
 					return Session{}, false, err
 				}
-				return s.workspaces[wi].Sessions[si], true, nil
+				return s.workspaces[workspaceIndex].Sessions[sessionIndex], true, nil
 			}
 		}
 	}
@@ -90,14 +90,14 @@ func (s *Store) RenameSession(sessionID, title string) (Session, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for wi := range s.workspaces {
-		for si := range s.workspaces[wi].Sessions {
-			if s.workspaces[wi].Sessions[si].ID == sessionID {
-				s.workspaces[wi].Sessions[si].Title = title
+	for workspaceIndex := range s.workspaces {
+		for sessionIndex := range s.workspaces[workspaceIndex].Sessions {
+			if s.workspaces[workspaceIndex].Sessions[sessionIndex].ID == sessionID {
+				s.workspaces[workspaceIndex].Sessions[sessionIndex].Title = title
 				if err := appendSessionInfo(s.sessionFiles[sessionID], title); err != nil {
 					return Session{}, err
 				}
-				return s.workspaces[wi].Sessions[si], nil
+				return s.workspaces[workspaceIndex].Sessions[sessionIndex], nil
 			}
 		}
 	}
@@ -106,11 +106,12 @@ func (s *Store) RenameSession(sessionID, title string) (Session, error) {
 func (s *Store) DeleteSession(sessionID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for wi := range s.workspaces {
-		for si := range s.workspaces[wi].Sessions {
-			if s.workspaces[wi].Sessions[si].ID == sessionID {
-				s.workspaces[wi].Sessions = append(s.workspaces[wi].Sessions[:si], s.workspaces[wi].Sessions[si+1:]...)
-				s.workspaces[wi].SessionCount = len(s.workspaces[wi].Sessions)
+	for workspaceIndex := range s.workspaces {
+		for sessionIndex := range s.workspaces[workspaceIndex].Sessions {
+			if s.workspaces[workspaceIndex].Sessions[sessionIndex].ID == sessionID {
+				sessions := s.workspaces[workspaceIndex].Sessions
+				s.workspaces[workspaceIndex].Sessions = append(sessions[:sessionIndex], sessions[sessionIndex+1:]...)
+				s.workspaces[workspaceIndex].SessionCount = len(s.workspaces[workspaceIndex].Sessions)
 				if file := s.sessionFiles[sessionID]; file != "" {
 					_ = os.Remove(file)
 				}
@@ -127,7 +128,13 @@ func appendSessionInfo(path, title string) error {
 	if path == "" {
 		return nil
 	}
-	entry := map[string]any{"type": "session_info", "id": createSessionID(), "parentId": nil, "timestamp": time.Now().UTC().Format(time.RFC3339Nano), "name": title}
+	entry := map[string]any{
+		"type":      "session_info",
+		"id":        createSessionID(),
+		"parentId":  nil,
+		"timestamp": time.Now().UTC().Format(time.RFC3339Nano),
+		"name":      title,
+	}
 	line, err := json.Marshal(entry)
 	if err != nil {
 		return err
