@@ -1,3 +1,20 @@
+const SIDEBAR_WIDTH_KEY = "pi.sb.width";
+
+function readStoredSidebarWidth() {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    if (!raw) return undefined;
+    const width = Number(raw);
+    return Number.isFinite(width) ? Math.min(480, Math.max(200, width)) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function storeSidebarWidth(width) {
+  try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width)); } catch {}
+}
+
 export const layoutMethods = {
   shortcut(event) {
     if (event.key === "Escape") this.closeModals();
@@ -48,11 +65,13 @@ export const layoutMethods = {
   },
 
   restoreSidebar() {
+    const width = readStoredSidebarWidth();
+    if (width) this.dataset.sidebarWidth = String(width);
     if (this.dataset.sidebar === "collapsed") {
       this.collapseSidebar(true);
       return;
     }
-    try { this.collapseSidebar(localStorage.getItem("pi.sb.collapsed") === "1"); } catch { this.applyGrid(); }
+    try { this.collapseSidebar(localStorage.getItem("pi.sb.collapsed") === "1"); } catch { this.applyGrid(width); }
   },
 
   applyGrid(width = Number(this.dataset.sidebarWidth || 280)) {
@@ -67,12 +86,15 @@ export const layoutMethods = {
     event.preventDefault();
     const startX = event.clientX;
     const start = Number(this.dataset.sidebarWidth || 280);
+    const saveWidth = (width) => storeSidebarWidth(width);
     const move = (moveEvent) => {
       const width = Math.min(480, Math.max(200, start + moveEvent.clientX - startX));
       this.dataset.sidebarWidth = String(width);
       this.applyGrid(width);
+      saveWidth(width);
     };
     const up = () => {
+      storeSidebarWidth(Number(this.dataset.sidebarWidth || start));
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };

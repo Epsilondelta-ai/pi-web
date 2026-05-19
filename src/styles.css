@@ -1331,7 +1331,8 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   .app-body { grid-template-columns: 1fr !important; }
   .app-body.with-tree { grid-template-columns: 1fr !important; }
   .main, .prompt-region { grid-column: 1 !important; }
-  .sb-resizer { display: none; }
+  .sb-resizer,
+  .sb-collapse { display: none; }
   .sidebar {
     position: absolute;
     left: 0; top: 0; bottom: 0;
