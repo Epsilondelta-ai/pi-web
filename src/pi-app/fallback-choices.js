@@ -37,6 +37,12 @@ export function fallbackChoicePrompt(id, value) {
   return `선택지 응답:\nid: ${id}\nvalue: ${value}`;
 }
 
+export function parseFallbackChoiceAnswer(text = "") {
+  const id = text.match(/^id:\s*(.+)$/m)?.[1]?.trim();
+  if (!text.startsWith("선택지 응답:") || !id) return undefined;
+  return id.slice(0, 120);
+}
+
 function splitPossibleChoiceFenceStart(text) {
   for (let length = Math.min(CHOICE_FENCE_MARKER.length - 1, text.length); length > 0; length -= 1) {
     const suffix = text.slice(-length);

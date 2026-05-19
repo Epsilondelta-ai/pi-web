@@ -67,6 +67,23 @@ type OpenWorkspaceRequest struct {
 	Path string `json:"path"`
 }
 
+type CloneWorkspaceRequest struct {
+	ParentPath string `json:"parentPath"`
+	GitURL     string `json:"gitUrl"`
+	Name       string `json:"name,omitempty"`
+}
+
+type ShellCommandRequest struct {
+	Command string `json:"command"`
+}
+
+type ShellCommandResult struct {
+	Command    string `json:"command"`
+	ExitCode   int    `json:"exitCode"`
+	Output     string `json:"output"`
+	DurationMs int    `json:"durationMs"`
+}
+
 type RenameSessionRequest struct {
 	Title string `json:"title"`
 }

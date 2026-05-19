@@ -79,8 +79,13 @@ function toolStatus(msg) {
           <div class="folder-browser-head"><button type="button" data-action="folder-up">↑ up</button><span data-folder-path>~</span><button type="button" data-action="folder-open-current">open this folder</button></div>
           <div class="folder-list" data-folder-list></div>
         </div>
+        <form class="clone-row" data-clone-form>
+          <input name="gitUrl" placeholder="git clone URL" autocomplete="off" />
+          <input name="name" placeholder="folder name (optional)" autocomplete="off" />
+          <button type="submit">clone & open</button>
+        </form>
       </div>
-      <div class="picker-card">
+      <div class="picker-card" data-recent-workspaces>
         <div class="card-head"><span class="left">recent workspaces</span><span class="right" data-workspace-count>{workspaces.length} known</span></div>
         {workspaces.slice(0, 4).map((workspace) => (
           <button class="recent-row" type="button" data-workspace={workspace.id} aria-label={`open ${workspace.name}`}>
@@ -135,6 +140,11 @@ function toolStatus(msg) {
         <span class="chip" style="margin-left:auto"><span class="lbl">status</span> <span class="val">local</span></span>
       </div>
       {showDisconnect && <div class="disconn"><span class="pulse"></span><span>disconnected · retrying in 2s</span></div>}
+      <form class="shell-row" data-shell-form>
+        <span class="shell-prefix">$</span>
+        <input name="command" placeholder="run shell command in workspace" autocomplete="off" />
+        <button type="submit">run</button>
+      </form>
       <div class:list={["term", scanlines && "scanlines"]}>
         <div class="term-inner">
           {conversation.length === 0 ? (

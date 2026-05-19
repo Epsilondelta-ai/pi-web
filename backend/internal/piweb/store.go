@@ -211,6 +211,16 @@ func (s *Store) DeleteWorkspace(workspaceID string) error {
 	return ErrNotFound
 }
 
+func (s *Store) WorkspacePath(workspaceID string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	root := s.workspacePath[workspaceID]
+	if root == "" {
+		return "", ErrNotFound
+	}
+	return root, nil
+}
+
 func (s *Store) Sessions(workspaceID string) ([]Session, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

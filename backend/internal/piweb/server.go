@@ -54,12 +54,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/system/folders", s.listFolders)
 	s.mux.HandleFunc("GET /api/workspaces", s.workspaces)
 	s.mux.HandleFunc("POST /api/workspaces/open", s.openWorkspace)
+	s.mux.HandleFunc("POST /api/workspaces/clone", s.cloneWorkspace)
 	s.mux.HandleFunc("DELETE /api/workspaces/{workspaceID}", s.deleteWorkspace)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/sessions", s.workspaceSessions)
 	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/sessions", s.createSession)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/files", s.workspaceFiles)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/files/read", s.readWorkspaceFile)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/status", s.gitStatus)
+	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/shell", s.shellCommand)
 	s.mux.HandleFunc("GET /api/sessions/{sessionID}", s.session)
 	s.mux.HandleFunc("PATCH /api/sessions/{sessionID}", s.renameSession)
 	s.mux.HandleFunc("DELETE /api/sessions/{sessionID}", s.deleteSession)
@@ -101,6 +103,20 @@ func (s *Server) openWorkspace(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, workspace)
+}
+
+func (s *Server) cloneWorkspace(w http.ResponseWriter, r *http.Request) {
+	var req CloneWorkspaceRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	workspace, output, err := CloneGitWorkspace(s.context(), s.store, req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, errors.New(strings.TrimSpace(err.Error()+"\n"+output)))
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"workspace": workspace, "output": output})
 }
 
 func (s *Server) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
@@ -154,6 +170,20 @@ func (s *Server) gitStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, status)
+}
+
+func (s *Server) shellCommand(w http.ResponseWriter, r *http.Request) {
+	var req ShellCommandRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	result, err := RunWorkspaceShellCommand(s.context(), s.store, r.PathValue("workspaceID"), req.Command)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {

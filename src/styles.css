@@ -423,18 +423,20 @@ button.tc-head {
 .row-action:hover { color: var(--accent); border-color: var(--accent); }
 .row-action.danger:hover { color: var(--danger); border-color: var(--danger); }
 
+button.session-row.new-session-row,
 .new-session-row {
   width: calc(100% - 16px);
   margin: 8px;
   min-height: 34px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-hi);
   border-radius: var(--radius-1);
-  background: var(--bg-2);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+  background: var(--bg-3);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 0 1px rgba(0,0,0,0.22);
 }
+button.session-row.new-session-row:hover,
 .new-session-row:hover {
   border-color: var(--accent);
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
 }
 .new-session-row .gutter { color: var(--accent); }
 .new-session-row .title { color: var(--accent); }
@@ -487,6 +489,36 @@ button.tc-head {
   scrollbar-width: none;
 }
 .context-strip::-webkit-scrollbar { display: none; }
+
+.shell-row {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px var(--space-4);
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-2);
+}
+.shell-row .shell-prefix {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.shell-row input {
+  min-width: 0;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-1);
+  color: var(--fg-0);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 0 10px;
+}
+.shell-row input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
+.shell-row button { height: 32px; }
+
 .context-strip .chip {
   display: inline-flex;
   align-items: center;
@@ -662,6 +694,13 @@ button.tc-head {
   max-width: 760px;
 }
 .fallback-choice-list.answered { opacity: 0.78; }
+.fallback-choice-list.answered .choice-head::after {
+  content: "answered";
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
 .fallback-choice-list .choice-head {
   display: grid;
   gap: 4px;
@@ -689,6 +728,11 @@ button.tc-head {
   text-align: left;
 }
 .fallback-choice-list button:hover:not(:disabled) { border-color: var(--accent); color: var(--fg-0); }
+.fallback-choice-list button:disabled,
+.fallback-choice-list input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .fallback-choice-list button small {
   display: block;
   color: var(--fg-3);
@@ -1197,6 +1241,35 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 }
 .input-row .open-btn:hover { filter: brightness(1.1); }
 .input-row .open-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.clone-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(140px, 0.7fr) auto;
+  gap: 8px;
+  padding: 0 var(--space-3) var(--space-3);
+}
+.clone-row input {
+  min-width: 0;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  color: var(--fg-0);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 8px 10px;
+  border-radius: var(--radius-1);
+}
+.clone-row button,
+.shell-row button {
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-1);
+  background: var(--bg-3);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 0 12px;
+}
+.clone-row button:hover,
+.shell-row button:hover { border-color: var(--accent); background: var(--bg-4); }
 
 .folder-browser {
   margin: 0 16px 14px;

@@ -38,6 +38,13 @@ export function openWorkspace(path) {
   });
 }
 
+export function cloneWorkspace(parentPath, gitUrl, name = "") {
+  return request("/api/workspaces/clone", {
+    method: "POST",
+    body: JSON.stringify({ parentPath, gitUrl, name }),
+  });
+}
+
 export function listFolders(path = "~") {
   return request(`/api/system/folders?path=${encodeURIComponent(path)}`);
 }
@@ -64,6 +71,13 @@ export function getWorkspaceFile(workspaceId, path) {
 
 export function getGitStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/git/status`);
+}
+
+export function runShellCommand(workspaceId, command) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/shell`, {
+    method: "POST",
+    body: JSON.stringify({ command }),
+  });
 }
 
 export function getSession(sessionId) {

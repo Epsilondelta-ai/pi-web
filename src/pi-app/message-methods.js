@@ -1,5 +1,5 @@
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "../renderers.js";
-import { parseFallbackChoices, stripFallbackChoices, streamVisibleChoiceText } from "./fallback-choices.js";
+import { parseFallbackChoiceAnswer, parseFallbackChoices, stripFallbackChoices, streamVisibleChoiceText } from "./fallback-choices.js";
 
 export const messageMethods = {
   renderMessages(messages) {
@@ -18,6 +18,7 @@ export const messageMethods = {
     if (msg.kind === "tool") this.finalizeStreamingMessages();
     this.termInner.querySelector(`.msg.streaming[data-kind='${msg.kind}']`)?.remove();
     this.termInner.append(this.messageNode(msg));
+    if (msg.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(msg.text));
     this.scrollTerm();
   },
 
@@ -123,6 +124,13 @@ export const messageMethods = {
       panel.append(custom);
     }
     return panel;
+  },
+
+  disableAnsweredChoice(choiceId) {
+    if (!choiceId) return;
+    const panel = [...this.termInner?.querySelectorAll(".fallback-choice-list") ?? []].find((item) => item.dataset.choiceId === choiceId);
+    panel?.classList.add("answered");
+    panel?.querySelectorAll("button, input").forEach((item) => item.disabled = true);
   },
 
   simpleMessage(kind, prefix, text) {

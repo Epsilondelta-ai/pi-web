@@ -1,4 +1,4 @@
-import { deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFile, getWorkspaceFiles, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
+import { cloneWorkspace as cloneWorkspaceRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFile, getWorkspaceFiles, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
 import { escapeHtml, renderTree } from "../renderers.js";
 
 export const workspaceMethods = {
@@ -63,7 +63,7 @@ export const workspaceMethods = {
   renderWorkspaces(workspaces) {
     const count = this.querySelector("[data-workspace-count]");
     if (count) count.textContent = `${workspaces.length} known`;
-    const recentCard = this.querySelector(".picker-card:nth-of-type(2)");
+    const recentCard = this.querySelector("[data-recent-workspaces]");
     if (recentCard) {
       recentCard.querySelectorAll(".recent-row").forEach((row) => row.remove());
       for (const workspace of workspaces.slice(0, 4)) recentCard.append(this.createRecentWorkspace(workspace));
@@ -161,6 +161,29 @@ export const workspaceMethods = {
     this.renderWorkspaces(workspaces || []);
     const workspace = (workspaces || []).find((item) => item.path === path) || workspaces?.[0];
     if (workspace) await this.openWorkspace(workspace.id);
+  },
+
+  async submitCloneWorkspace(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const gitUrl = form.querySelector("input[name='gitUrl']")?.value.trim();
+    const name = form.querySelector("input[name='name']")?.value.trim() || "";
+    if (!gitUrl || !this.apiConnected) return;
+    const button = form.querySelector("button[type='submit']");
+    if (button) button.disabled = true;
+    try {
+      const cloned = await cloneWorkspaceRequest(this.currentFolder || "~", gitUrl, name);
+      form.reset();
+      const { workspaces } = await getWorkspaces();
+      this.renderWorkspaces(workspaces || []);
+      const workspace = cloned.workspace || workspaces?.[0];
+      if (workspace) await this.openWorkspace(workspace.id);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : String(error));
+      this.setConnection("err");
+    } finally {
+      if (button) button.disabled = false;
+    }
   },
 
   async submitWorkspacePath(event) {

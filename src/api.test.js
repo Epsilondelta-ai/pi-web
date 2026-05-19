@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cancelSession, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, listFolders, postPrompt, renameSession, sessionEvents } from "./api.js";
+import { cancelSession, cloneWorkspace, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, listFolders, postPrompt, renameSession, runShellCommand, sessionEvents } from "./api.js";
 
 describe("api adapter", () => {
   beforeEach(() => {
@@ -56,6 +56,15 @@ describe("api adapter", () => {
     const result = await postPrompt("s1", "hello");
     expect(result.options.method).toBe("POST");
     expect(JSON.parse(result.options.body)).toEqual({ text: "hello", attachments: [] });
+  });
+
+  it("clones workspaces and runs shell commands", async () => {
+    const cloned = await cloneWorkspace("/tmp", "https://example.test/repo.git", "repo");
+    expect(cloned.url).toBe("http://backend.test/api/workspaces/clone");
+    expect(JSON.parse(cloned.options.body)).toEqual({ parentPath: "/tmp", gitUrl: "https://example.test/repo.git", name: "repo" });
+    const shell = await runShellCommand("w/1", "pwd");
+    expect(shell.url).toBe("http://backend.test/api/workspaces/w%2F1/shell");
+    expect(JSON.parse(shell.options.body)).toEqual({ command: "pwd" });
   });
 
   it("creates EventSource connections for session streams", () => {

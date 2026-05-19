@@ -1,4 +1,4 @@
-import { cancelSession, createSession, postPrompt } from "../api.js";
+import { cancelSession, createSession, postPrompt, runShellCommand } from "../api.js";
 import { fallbackChoicePrompt } from "./fallback-choices.js";
 
 export const inputMethods = {
@@ -36,6 +36,37 @@ export const inputMethods = {
         this.removeLoadingMessage();
         this.setConnection("err");
       }
+    }
+  },
+
+  async submitShellCommand(event) {
+    event.preventDefault();
+    const input = event.currentTarget.querySelector("input[name='command']");
+    const command = input?.value.trim();
+    const workspaceId = this.dataset.activeWorkspaceId;
+    if (!command || !workspaceId || !this.apiConnected) return;
+    const button = event.currentTarget.querySelector("button[type='submit']");
+    if (button) button.disabled = true;
+    this.showSessionMain();
+    this.finalizeStreamingMessages();
+    this.appendMessage({ kind: "tool", tool: "shell", args: `$ ${command}`, status: "running", collapsedByDefault: false });
+    try {
+      const result = await runShellCommand(workspaceId, command);
+      this.finishTool({
+        kind: "tool",
+        tool: "shell",
+        args: `$ ${command}`,
+        status: result.exitCode === 0 ? "ok" : "err",
+        durationMs: result.durationMs,
+        resultMeta: result.exitCode === 0 ? "done" : `exit ${result.exitCode}`,
+        body: result.output || "[no output]",
+      });
+      if (input) input.value = "";
+    } catch (error) {
+      this.finishTool({ kind: "tool", tool: "shell", args: `$ ${command}`, status: "err", resultMeta: error instanceof Error ? error.message : String(error), body: "" });
+      this.setConnection("err");
+    } finally {
+      if (button) button.disabled = false;
     }
   },
 

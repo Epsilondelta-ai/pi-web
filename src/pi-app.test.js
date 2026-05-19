@@ -149,6 +149,19 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).not.toContain("piweb_choice");
   });
 
+  it("disables already answered fallback choices on reload", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([
+      { kind: "pi", text: "Pick one\n```json\n{\"type\":\"piweb_choice\",\"id\":\"runtime\",\"question\":\"Runtime?\",\"options\":[{\"label\":\"Go\",\"value\":\"go\"}],\"allowCustom\":true}\n```" },
+      { kind: "user", text: "선택지 응답:\nid: runtime\nvalue: go" },
+    ]);
+    expect(app.querySelector(".fallback-choice-list").classList.contains("answered")).toBe(true);
+    expect(app.querySelector("[data-action='fallback-choice']").disabled).toBe(true);
+    expect(app.querySelector("[data-choice-custom-input]").disabled).toBe(true);
+  });
+
   it("animates spinner frames by swapping glyphs", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
