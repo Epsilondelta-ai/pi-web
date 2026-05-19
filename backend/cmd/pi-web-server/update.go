@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/blang/semver"
@@ -19,8 +21,14 @@ type binaryUpdater interface {
 	UpdateSelf(current semver.Version, slug string) (*selfupdate.Release, error)
 }
 
+type releaseDetector interface {
+	DetectLatest(slug string) (*selfupdate.Release, bool, error)
+}
+
 type githubSelfUpdater struct {
-	updater *selfupdate.Updater
+	detector   releaseDetector
+	updateTo   func(assetURL, cmdPath string) error
+	executable func() (string, error)
 }
 
 func runUpdate(out io.Writer, options updateOptions) error {
@@ -60,15 +68,51 @@ func newGitHubSelfUpdater() (*githubSelfUpdater, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &githubSelfUpdater{updater: updater}, nil
+	return &githubSelfUpdater{
+		detector:   updater,
+		updateTo:   selfupdate.UpdateTo,
+		executable: os.Executable,
+	}, nil
 }
 
 func (u *githubSelfUpdater) UpdateSelf(current semver.Version, slug string) (*selfupdate.Release, error) {
-	return u.updater.UpdateSelf(current, slug)
+	cmdPath, err := u.executable()
+	if err != nil {
+		return nil, err
+	}
+	return u.updateCommand(cmdPath, current, slug)
+}
+
+func (u *githubSelfUpdater) updateCommand(cmdPath string, current semver.Version, slug string) (*selfupdate.Release, error) {
+	if runtime.GOOS == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
+		cmdPath += ".exe"
+	}
+	stat, err := os.Lstat(cmdPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat %q: %w", cmdPath, err)
+	}
+	if stat.Mode()&os.ModeSymlink != 0 {
+		cmdPath, err = filepath.EvalSymlinks(cmdPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve symlink %q: %w", cmdPath, err)
+		}
+	}
+
+	release, found, err := u.detector.DetectLatest(slug)
+	if err != nil {
+		return nil, err
+	}
+	if !found || release.Version.Equals(current) {
+		return &selfupdate.Release{Version: current}, nil
+	}
+	if err := u.updateTo(release.AssetURL, cmdPath); err != nil {
+		return nil, err
+	}
+	return release, nil
 }
 
 func (u *githubSelfUpdater) DetectLatest(slug string) (*selfupdate.Release, bool, error) {
-	return u.updater.DetectLatest(slug)
+	return u.detector.DetectLatest(slug)
 }
 
 func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUpdater) error {

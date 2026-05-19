@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io"
+	"os"
 	"testing"
 
 	"github.com/blang/semver"
@@ -122,6 +123,46 @@ func TestRunUpdateReportsAlreadyCurrent(t *testing.T) {
 	}
 }
 
+func TestGitHubUpdaterDownloadsFromBrowserAssetURL(t *testing.T) {
+	cmd, err := os.CreateTemp(t.TempDir(), "pi-web")
+	if err != nil {
+		t.Fatalf("create temp command: %v", err)
+	}
+	if err := cmd.Close(); err != nil {
+		t.Fatalf("close temp command: %v", err)
+	}
+
+	assetURL := "https://github.com/owner/repo/releases/download/v1.2.4/pi-web_1.2.4_linux_arm64.tar.gz"
+	var gotAssetURL string
+	var gotCmdPath string
+	updater := &githubSelfUpdater{
+		detector: &fakeReleaseDetector{release: &selfupdate.Release{
+			Version:  semver.MustParse("1.2.4"),
+			AssetURL: assetURL,
+		}},
+		updateTo: func(assetURL, cmdPath string) error {
+			gotAssetURL = assetURL
+			gotCmdPath = cmdPath
+			return nil
+		},
+	}
+
+	release, err := updater.updateCommand(cmd.Name(), semver.MustParse("1.2.3"), "owner/repo")
+	if err != nil {
+		t.Fatalf("update command: %v", err)
+	}
+
+	if !release.Version.Equals(semver.MustParse("1.2.4")) {
+		t.Fatalf("unexpected release: %s", release.Version)
+	}
+	if gotAssetURL != assetURL {
+		t.Fatalf("expected browser asset URL %q, got %q", assetURL, gotAssetURL)
+	}
+	if gotCmdPath != cmd.Name() {
+		t.Fatalf("expected command path %q, got %q", cmd.Name(), gotCmdPath)
+	}
+}
+
 func TestRunUpdateReportsUpdatedVersion(t *testing.T) {
 	fake := &fakeBinaryUpdater{
 		releaseVersion: semver.MustParse("1.2.4"),
@@ -141,6 +182,22 @@ func TestRunUpdateReportsUpdatedVersion(t *testing.T) {
 	if got := out.String(); got != want {
 		t.Fatalf("unexpected output: %q", got)
 	}
+}
+
+type fakeReleaseDetector struct {
+	release *selfupdate.Release
+	found   bool
+	err     error
+}
+
+func (f *fakeReleaseDetector) DetectLatest(string) (*selfupdate.Release, bool, error) {
+	if f.err != nil {
+		return nil, false, f.err
+	}
+	if f.release == nil {
+		return nil, f.found, nil
+	}
+	return f.release, true, nil
 }
 
 type fakeBinaryUpdater struct {
