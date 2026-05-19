@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 )
 
 type Store struct {
@@ -43,6 +44,7 @@ func NewPiStore(sessionDir string) (*Store, error) {
 	sessionFiles := map[string]string{}
 	sessionCWD := map[string]string{}
 	conversations := map[string][]Message{}
+	workspaceLastUsed := map[string]time.Time{}
 	for _, item := range parsed {
 		id := workspaceIDFromPath(item.Header.CWD)
 		workspace, ok := byWorkspace[id]
@@ -50,6 +52,10 @@ func NewPiStore(sessionDir string) (*Store, error) {
 			workspace = &Workspace{ID: id, Name: filepath.Base(item.Header.CWD), Path: item.Header.CWD, LastUsed: item.Session.LastUsed}
 			byWorkspace[id] = workspace
 			workspacePath[id] = item.Header.CWD
+		}
+		if lastUsedAt, ok := workspaceLastUsed[id]; !ok || item.ModTime.After(lastUsedAt) {
+			workspaceLastUsed[id] = item.ModTime
+			workspace.LastUsed = item.Session.LastUsed
 		}
 		item.Session.Workspace = id
 		item.Session.ID = item.Header.ID
@@ -61,7 +67,6 @@ func NewPiStore(sessionDir string) (*Store, error) {
 	}
 	var workspaces []Workspace
 	for _, workspace := range byWorkspace {
-		sort.Slice(workspace.Sessions, func(i, j int) bool { return workspace.Sessions[i].ID < workspace.Sessions[j].ID })
 		workspaces = append(workspaces, *workspace)
 	}
 	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].Path < workspaces[j].Path })
@@ -97,6 +102,7 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 	workspace := Workspace{ID: id, Name: filepath.Base(clean), Path: clean, LastUsed: "now", Sessions: []Session{}}
 	parsed, err := LoadPiSessions(piSessionDirForCWD(clean))
 	if err == nil {
+		var latestSessionModTime time.Time
 		for _, item := range parsed {
 			item.Session.Workspace = id
 			item.Session.ID = item.Header.ID
@@ -104,9 +110,10 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 			s.conversations[item.Header.ID] = item.Messages
 			s.sessionFiles[item.Header.ID] = item.File
 			s.sessionCWD[item.Header.ID] = item.Header.CWD
-		}
-		if len(parsed) > 0 {
-			workspace.LastUsed = parsed[0].Session.LastUsed
+			if item.ModTime.After(latestSessionModTime) {
+				latestSessionModTime = item.ModTime
+				workspace.LastUsed = item.Session.LastUsed
+			}
 		}
 	}
 	workspace.SessionCount = len(workspace.Sessions)

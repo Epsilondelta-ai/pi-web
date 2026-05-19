@@ -62,11 +62,12 @@ type contentBlock struct {
 }
 
 type ParsedSession struct {
-	Header   sessionHeader
-	Session  Session
-	Messages []Message
-	File     string
-	ModTime  time.Time
+	Header    sessionHeader
+	Session   Session
+	Messages  []Message
+	File      string
+	ModTime   time.Time
+	CreatedAt time.Time
 }
 
 func DefaultPiSessionDir() string {
@@ -101,8 +102,15 @@ func LoadPiSessions(sessionDir string) ([]ParsedSession, error) {
 			sessions = append(sessions, parsed)
 		}
 	}
-	sort.Slice(sessions, func(i, j int) bool { return sessions[i].ModTime.After(sessions[j].ModTime) })
+	sort.Slice(sessions, func(i, j int) bool { return sessionCreatedAfter(sessions[i], sessions[j]) })
 	return sessions, nil
+}
+
+func sessionCreatedAfter(left, right ParsedSession) bool {
+	if !left.CreatedAt.Equal(right.CreatedAt) {
+		return left.CreatedAt.After(right.CreatedAt)
+	}
+	return left.File > right.File
 }
 func CreatePiSessionFile(cwd string) (Session, string, error) {
 	cwd = filepath.Clean(cwd)
@@ -197,6 +205,14 @@ func ParsePiSessionFile(path string) (ParsedSession, error) {
 	if title == "" {
 		title = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	}
+	createdAt, _ := time.Parse(time.RFC3339Nano, header.Timestamp)
 	session := Session{ID: header.ID, Title: title, LastUsed: relTime(stat.ModTime()), Workspace: workspaceIDFromPath(header.CWD)}
-	return ParsedSession{Header: header, Session: session, Messages: messages, File: path, ModTime: stat.ModTime()}, nil
+	return ParsedSession{
+		Header:    header,
+		Session:   session,
+		Messages:  messages,
+		File:      path,
+		ModTime:   stat.ModTime(),
+		CreatedAt: createdAt,
+	}, nil
 }

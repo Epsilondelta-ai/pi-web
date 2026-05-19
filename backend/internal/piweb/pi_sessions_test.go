@@ -1,9 +1,11 @@
 package piweb
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestParsePiSessionLineSkipsAssistantToolCallPlaceholders(t *testing.T) {
@@ -39,6 +41,56 @@ func TestParsePiSessionFile(t *testing.T) {
 	}
 }
 
+func TestLoadPiSessionsOrdersByCreationTimeNotModTime(t *testing.T) {
+	dir := t.TempDir()
+	olderFile := writeTestSessionFile(t, dir, "a-old", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	newerFile := writeTestSessionFile(t, dir, "z-new", "2026-01-02T00:00:00.000Z", "/tmp/project")
+	laterModTime := time.Now().Add(time.Hour)
+	if err := os.Chtimes(olderFile, laterModTime, laterModTime); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(newerFile, time.Now(), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+
+	sessions, err := LoadPiSessions(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 2 || sessions[0].Session.ID != "z-new" || sessions[1].Session.ID != "a-old" {
+		t.Fatalf("unexpected order: %#v", sessions)
+	}
+}
+
+func TestNewPiStoreKeepsSessionCreationOrder(t *testing.T) {
+	root := t.TempDir()
+	sessionDir := filepath.Join(root, "--tmp-project--")
+	if err := os.MkdirAll(sessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	olderFile := writeTestSessionFile(t, sessionDir, "a-old", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	newerFile := writeTestSessionFile(t, sessionDir, "z-new", "2026-01-02T00:00:00.000Z", "/tmp/project")
+	laterModTime := time.Now().Add(time.Hour)
+	if err := os.Chtimes(olderFile, laterModTime, laterModTime); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(newerFile, time.Now(), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+
+	store, err := NewPiStore(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaces := store.Workspaces()
+	if len(workspaces) != 1 || len(workspaces[0].Sessions) != 2 {
+		t.Fatalf("unexpected workspaces: %#v", workspaces)
+	}
+	if workspaces[0].Sessions[0].ID != "z-new" || workspaces[0].Sessions[1].ID != "a-old" {
+		t.Fatalf("unexpected session order: %#v", workspaces[0].Sessions)
+	}
+}
+
 func TestNewPiStore(t *testing.T) {
 	root := t.TempDir()
 	sessionDir := filepath.Join(root, "--tmp-project--")
@@ -60,4 +112,19 @@ func TestNewPiStore(t *testing.T) {
 	if len(workspaces) != 1 || workspaces[0].ID != "project" || len(workspaces[0].Sessions) != 1 {
 		t.Fatalf("unexpected workspaces: %#v", workspaces)
 	}
+}
+
+func writeTestSessionFile(t *testing.T, dir, id, timestamp, cwd string) string {
+	t.Helper()
+	file := filepath.Join(dir, id+".jsonl")
+	data := fmt.Sprintf(
+		"{\"type\":\"session\",\"version\":3,\"id\":%q,\"timestamp\":%q,\"cwd\":%q}\n",
+		id,
+		timestamp,
+		cwd,
+	)
+	if err := os.WriteFile(file, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return file
 }
