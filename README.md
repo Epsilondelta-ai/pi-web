@@ -21,6 +21,12 @@ pi-web
 # Open http://127.0.0.1:8732
 ```
 
+Update the installed single binary:
+
+```bash
+pi-web update
+```
+
 ## Introduction
 
 A web UI for viewing and controlling the local `pi` coding agent in your browser.
