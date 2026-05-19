@@ -87,7 +87,8 @@ export const messageMethods = {
   hasActiveTranscriptItem() {
     const last = this.termInner?.lastElementChild;
     const hasRunningTool = !!this.termInner?.querySelector(".tool-card[data-status='running']");
-    return !!last?.matches?.(".msg.streaming") || hasRunningTool;
+    const hasAssistantOutput = !!last?.matches?.(".msg[data-kind='pi']");
+    return !!last?.matches?.(".msg.streaming") || hasRunningTool || hasAssistantOutput;
   },
 
   finalizeStreamingMessages() {

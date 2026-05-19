@@ -307,6 +307,16 @@ describe("pi-app runtime", () => {
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("hello");
   });
 
+  it("does not show loading after a final assistant message while waiting for idle status", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.setMode("running");
+    app.appendMessage({ kind: "pi", text: "complete answer" });
+    expect(app.querySelector(".msg.loading")).toBeNull();
+  });
+
   it("wraps streaming thinking deltas immediately", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
