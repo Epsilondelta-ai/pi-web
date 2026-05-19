@@ -125,16 +125,21 @@ function textPreviewNode(file) {
   textarea.disabled = !!file.truncated;
   textarea.setAttribute("aria-label", `edit ${file.path || "file"}`);
 
-  const refreshHighlight = () => {
-    code.innerHTML = renderHighlightedCode(textarea.value, file);
+  let highlightRequest = 0;
+  const refreshHighlight = async () => {
+    const request = ++highlightRequest;
+    const html = await renderHighlightedCode(textarea.value, file);
+    if (request === highlightRequest) code.innerHTML = html;
   };
   const syncScroll = () => {
     highlight.scrollTop = textarea.scrollTop;
     highlight.scrollLeft = textarea.scrollLeft;
   };
-  textarea.addEventListener("input", refreshHighlight);
+  textarea.addEventListener("input", () => {
+    void refreshHighlight();
+  });
   textarea.addEventListener("scroll", syncScroll);
-  refreshHighlight();
+  void refreshHighlight();
 
   container.append(highlight, textarea);
   return container;

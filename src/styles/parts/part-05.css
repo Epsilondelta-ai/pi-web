@@ -44,11 +44,6 @@
 }
 .file-preview-modal textarea::selection { background: rgba(0, 255, 136, 0.24); }
 .file-preview-modal textarea:disabled { opacity: 1; cursor: text; }
-.syntax-comment { color: var(--fg-3); font-style: italic; }
-.syntax-string { color: var(--accent); }
-.syntax-keyword { color: var(--info); }
-.syntax-property { color: var(--warn); }
-.syntax-number { color: var(--danger); }
 .file-preview-modal img {
   display: block;
   max-width: 100%;
