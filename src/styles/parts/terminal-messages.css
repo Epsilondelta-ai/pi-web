@@ -255,6 +255,18 @@
 .tool-card .tc-body .ansi-dim { color: var(--fg-3); }
 .tool-card .tc-body .added { color: var(--accent); }
 .tool-card .tc-body .removed { color: var(--danger); }
+.tool-card .tc-body-notice {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-1);
+  color: var(--fg-3);
+  margin: 8px 0;
+  padding: 6px 8px;
+}
+.tool-card .tc-body-notice button {
+  color: var(--accent);
+  margin-left: 6px;
+  text-decoration: underline;
+}
 .tool-card .tc-caret { color: var(--fg-3); font-size: 10px; padding-right: 4px; }
 
 .inline-out {

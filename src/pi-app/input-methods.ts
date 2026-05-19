@@ -149,6 +149,7 @@ export const inputMethods = {
     if (action === "open-drawer") this.toggleDrawer();
     if (action === "close-drawer") this.toggleDrawer(false);
     if (action === "toggle-tool") this.toggleTool(button);
+    if (action === "show-full-tool-output") this.showFullToolOutput(actionTarget);
     if (action !== "session-menu-toggle") this.closeSessionMenus(actionTarget?.closest(".session-row"));
     if (action === "toggle-workspace") this.toggleWorkspace(button.dataset.workspace);
     if (action === "delete-workspace") this.deleteWorkspace(actionTarget.dataset.workspace);

@@ -1,3 +1,5 @@
+import { fullToolBody } from "./tool-output-rendering";
+
 const SIDEBAR_WIDTH_KEY = "pi.sb.width";
 
 function readStoredSidebarWidth() {
@@ -123,14 +125,24 @@ export const layoutMethods = {
     button.querySelector(".tc-caret").textContent = body.hidden ? "▸" : "▾";
   },
 
+  showFullToolOutput(button) {
+    const body = button?.closest(".tc-body");
+    const fullBody = fullToolBody(body);
+    if (!body || !fullBody) return;
+    body.textContent = fullBody;
+    body.dataset.largeToolBody = "rendered";
+  },
+
   scrollTerm() {
+    if (this.scrollFrame) return;
     const scroll = () => {
       const term = this.querySelector(".term");
       if (term) term.scrollTop = term.scrollHeight;
     };
-    requestAnimationFrame(() => {
+    this.scrollFrame = window.requestAnimationFrame(() => {
+      this.scrollFrame = undefined;
       scroll();
-      requestAnimationFrame(scroll);
+      window.requestAnimationFrame(scroll);
     });
   },
 };

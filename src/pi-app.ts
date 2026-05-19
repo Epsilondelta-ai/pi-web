@@ -8,6 +8,7 @@ import { messageMethods } from "./pi-app/message-methods";
 import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
 import { sessionMethods } from "./pi-app/session-methods";
 import { settingsMethods } from "./pi-app/settings-methods";
+import { toolMessageMethods } from "./pi-app/tool-message-methods";
 import { versionMethods } from "./pi-app/version-methods";
 import { workspaceMethods } from "./pi-app/workspace-methods";
 
@@ -48,6 +49,8 @@ class PiApp extends HTMLElement {
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
+    if (this.streamingRenderFrame) window.cancelAnimationFrame(this.streamingRenderFrame);
+    if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
     this.uninstallViewportSizing?.();
   }
 
@@ -233,6 +236,7 @@ Object.assign(
   workspaceMethods,
   sessionMethods,
   messageMethods,
+  toolMessageMethods,
   inputMethods,
   attachmentMethods,
   filePreviewMethods,

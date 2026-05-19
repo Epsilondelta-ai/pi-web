@@ -190,6 +190,8 @@ describe("pi-app session isolation", () => {
       payload: { kind: "pi", delta: "still streaming" },
     });
 
+    app.flushStreamingRender();
+
     expect(app.running).toBe(true);
     expect(app.querySelector(".stop-btn").hidden).toBe(false);
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("still streaming");

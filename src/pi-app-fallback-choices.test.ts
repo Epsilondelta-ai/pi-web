@@ -30,6 +30,7 @@ describe("pi-app fallback choices", () => {
     app.renderMessages([]);
     app.appendDelta({ kind: "pi", delta: "질문입니다\n`" });
     app.appendDelta({ kind: "pi", delta: `\`\`json${fallbackChoiceJson.slice(7)}` });
+    app.flushStreamingRender();
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("질문입니다");
     expect(app.querySelector(".msg.streaming .body").textContent).not.toContain("piweb_choice");
     expect(app.querySelector(".fallback-choice-list")).toBeNull();
