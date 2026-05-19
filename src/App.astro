@@ -9,6 +9,8 @@ const {
   showCompaction = false,
   showDisconnect = false,
   scanlines = false,
+  showUpdateRelease = false,
+  showUpdateTip = false,
   workspaces = [],
   fileTree = [],
   conversation = [],
@@ -155,8 +157,8 @@ const settingsFields = [
         </div>
         <div class="sb-footer">
           <span class="status-dot"></span><span>connecting</span>
-          <button class="update-release" type="button" data-action="show-update-tip" hidden>New Version Released!</button>
-          <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+          <button class="update-release" type="button" data-action="show-update-tip" hidden={!showUpdateRelease}>New Version Released!</button>
+          <span class="update-tip" data-update-tip hidden={!showUpdateTip}>Run <code>pi-web update</code>, then restart pi-web.</span>
           <button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings">⚙</button>
         </div>
       </aside>

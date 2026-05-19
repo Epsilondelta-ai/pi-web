@@ -15,6 +15,8 @@ const meta = {
     showCompaction: false,
     showDisconnect: false,
     scanlines: false,
+    showUpdateRelease: false,
+    showUpdateTip: false,
     workspaces: PI_DATA.WORKSPACES,
     fileTree: PI_DATA.FILE_TREE,
     conversation: PI_DATA.CONVERSATION,
@@ -55,5 +57,12 @@ export const SidebarCollapsed = {
 export const WithFileTree = {
   args: {
     treeOpen: true,
+  },
+};
+
+export const NewVersionReleased = {
+  args: {
+    showUpdateRelease: true,
+    showUpdateTip: true,
   },
 };
