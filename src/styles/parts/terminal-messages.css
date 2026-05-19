@@ -50,6 +50,13 @@
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.32);
   z-index: var(--z-toast);
 }
+.sb-footer .update-tip code {
+  color: var(--accent);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  padding: 1px 4px;
+}
 
 .main {
   display: flex;

@@ -63,6 +63,5 @@ export const WithFileTree = {
 export const NewVersionReleased = {
   args: {
     showUpdateRelease: true,
-    showUpdateTip: true,
   },
 };
