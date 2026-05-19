@@ -70,7 +70,13 @@ export const inputMethods = {
     if (button) button.disabled = true;
     this.showSessionMain();
     this.finalizeStreamingMessages();
-    this.appendMessage({ kind: "tool", tool: "shell", args: `$ ${command}`, status: "running", collapsedByDefault: false });
+    this.appendMessage({
+      kind: "tool",
+      tool: "shell",
+      args: `$ ${command}`,
+      status: "running",
+      collapsedByDefault: false,
+    });
     try {
       const result = await runShellCommand(workspaceId, command);
       this.finishTool({
@@ -86,7 +92,14 @@ export const inputMethods = {
       void this.loadRuntimeStatus?.(workspaceId);
       void this.loadWorkspaceMeta?.(workspaceId);
     } catch (error) {
-      this.finishTool({ kind: "tool", tool: "shell", args: `$ ${command}`, status: "err", resultMeta: error instanceof Error ? error.message : String(error), body: "" });
+      this.finishTool({
+        kind: "tool",
+        tool: "shell",
+        args: `$ ${command}`,
+        status: "err",
+        resultMeta: error instanceof Error ? error.message : String(error),
+        body: "",
+      });
       this.setConnection("err");
     } finally {
       if (button) button.disabled = false;
@@ -104,10 +117,10 @@ export const inputMethods = {
     }
   },
 
-  click(event) {
-    const remove = event.target.closest("[data-remove-attachment]");
-    if (remove) {
-      const chip = remove.closest(".attach-chip");
+  handleAppClick(event) {
+    const removeAttachmentButton = event.target.closest("[data-remove-attachment]");
+    if (removeAttachmentButton) {
+      const chip = removeAttachmentButton.closest(".attach-chip");
       const index = Number(chip?.dataset.attachmentIndex);
       if (Number.isInteger(index)) this.attachmentContents[index] = "";
       chip?.remove();
@@ -143,16 +156,32 @@ export const inputMethods = {
     if (action === "session-menu-toggle") this.toggleSessionMenu(actionTarget.closest(".session-row"));
     if (action === "rename-session") this.renameSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "delete-session") this.deleteSession(actionTarget.closest(".session-row")?.dataset.session);
-    if (action === "fallback-choice") this.submitFallbackChoice(actionTarget.dataset.choiceId, actionTarget.dataset.choiceValue, actionTarget.closest(".fallback-choice-list"));
-    if (action === "fallback-choice-custom") this.submitFallbackChoice(actionTarget.dataset.choiceId, actionTarget.closest(".choice-custom")?.querySelector("[data-choice-custom-input]")?.value, actionTarget.closest(".fallback-choice-list"));
+    if (action === "fallback-choice") {
+      this.submitFallbackChoice(
+        actionTarget.dataset.choiceId,
+        actionTarget.dataset.choiceValue,
+        actionTarget.closest(".fallback-choice-list"),
+      );
+    }
+    if (action === "fallback-choice-custom") {
+      this.submitFallbackChoice(
+        actionTarget.dataset.choiceId,
+        actionTarget.closest(".choice-custom")?.querySelector("[data-choice-custom-input]")?.value,
+        actionTarget.closest(".fallback-choice-list"),
+      );
+    }
     if (action === "open-settings") this.openSettingsModal?.();
     if (action === "close-settings") this.closeSettingsModal?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
     if (action === "close-tweaks") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
-    if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) this.pickSession(button.closest(".session-row") || button);
-    if (button?.dataset.workspace && button.classList.contains("recent-row")) this.openWorkspace(button.dataset.workspace);
-    if (button?.dataset.seed) this.seed(button.dataset.seed);
-    if (button?.dataset.skill) this.seed(`/skill ${button.dataset.skill}\n\n`);
+    if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) {
+      this.pickSession(button.closest(".session-row") || button);
+    }
+    if (button?.dataset.workspace && button.classList.contains("recent-row")) {
+      this.openWorkspace(button.dataset.workspace);
+    }
+    if (button?.dataset.seed) this.fillPrompt(button.dataset.seed);
+    if (button?.dataset.skill) this.fillPrompt(`/skill ${button.dataset.skill}\n\n`);
     if (button?.dataset.slash) this.pickSlash(button.dataset.slash);
   },
 
@@ -173,17 +202,17 @@ export const inputMethods = {
   },
 
   updatePrompt() {
-    if (!this.prompt || !this.send) return;
+    if (!this.prompt || !this.sendButton) return;
     const value = this.prompt.value;
     const hasAttachments = !!this.attachments?.children.length;
-    this.send.disabled = !value.trim() && !hasAttachments;
-    this.slash?.toggleAttribute("hidden", !(value.startsWith("/") && !value.includes("\n")));
+    this.sendButton.disabled = !value.trim() && !hasAttachments;
+    this.slashPopover?.toggleAttribute("hidden", !(value.startsWith("/") && !value.includes("\n")));
     this.filterSlash(value);
     this.prompt.style.height = "auto";
     this.prompt.style.height = Math.min(180, this.prompt.scrollHeight) + "px";
   },
 
-  seed(value) {
+  fillPrompt(value) {
     if (!this.prompt) return;
     this.prompt.value = value;
     this.updatePrompt();
@@ -203,7 +232,11 @@ export const inputMethods = {
       item.dataset.slash = name;
       const scope = command.scope || command.location || "global";
       const source = command.source || "command";
-      item.innerHTML = `<span class="sl-cmd"></span><span class="sl-tags"><span class="sl-scope"></span><span class="sl-source"></span></span><span class="sl-desc"></span>`;
+      item.innerHTML = [
+        `<span class="sl-cmd"></span>`,
+        `<span class="sl-tags"><span class="sl-scope"></span><span class="sl-source"></span></span>`,
+        `<span class="sl-desc"></span>`,
+      ].join("");
       item.querySelector(".sl-cmd").textContent = name;
       item.querySelector(".sl-scope").textContent = scope;
       item.querySelector(".sl-source").textContent = source;
@@ -232,11 +265,11 @@ export const inputMethods = {
   },
 
   pickSlash(command) {
-    this.seed(command + " ");
-    this.slash?.setAttribute("hidden", "");
+    this.fillPrompt(command + " ");
+    this.slashPopover?.setAttribute("hidden", "");
   },
 
-  navigateList(event, selector, run) {
+  navigateList(event, selector, onSelect) {
     event.preventDefault();
     const items = [...this.querySelectorAll(selector)].filter((item) => !item.hidden);
     if (!items.length) return;
@@ -246,7 +279,7 @@ export const inputMethods = {
     items.forEach((item) => item.classList.remove("selected"));
     items[index].classList.add("selected");
     items[index].scrollIntoView({ block: "nearest" });
-    if (event.key === "Enter") run(items[index]);
+    if (event.key === "Enter") onSelect(items[index]);
   },
 
 };

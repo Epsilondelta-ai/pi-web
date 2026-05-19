@@ -10,12 +10,29 @@ export const sessionMethods = {
     row.dataset.session = session.id;
     row.dataset.workspace = workspaceId;
     row.dataset.title = session.title;
-    row.innerHTML = `<button type="button" class="session-main" data-session="${escapeHtml(session.id)}" data-workspace="${escapeHtml(workspaceId)}" data-title="${escapeHtml(session.title)}"><span class="gutter"></span><span class="title"></span><span class="meta"></span></button><button type="button" class="session-menu-button" data-action="session-menu-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="${menuId}" aria-label="session actions">…</button><div class="session-menu" id="${menuId}" role="menu" hidden><button type="button" role="menuitem" data-action="rename-session">rename</button><button type="button" role="menuitem" class="danger" data-action="delete-session">delete</button></div>`;
+    row.innerHTML = this.sessionRowTemplate(workspaceId, session, menuId);
     row.querySelector(".title").textContent = session.title;
     row.querySelector(".meta").textContent = session.lastUsed;
     row.querySelector(".meta").classList.toggle("live", !!session.live);
     row.classList.toggle("active", session.active || session.id === this.dataset.activeSessionId);
     return row;
+  },
+
+  sessionRowTemplate(workspaceId, session, menuId) {
+    return [
+      `<button type="button" class="session-main"`,
+      ` data-session="${escapeHtml(session.id)}"`,
+      ` data-workspace="${escapeHtml(workspaceId)}"`,
+      ` data-title="${escapeHtml(session.title)}">`,
+      `<span class="gutter"></span><span class="title"></span><span class="meta"></span></button>`,
+      `<button type="button" class="session-menu-button" data-action="session-menu-toggle"`,
+      ` aria-haspopup="true" aria-expanded="false" aria-controls="${menuId}"`,
+      ` aria-label="session actions">…</button>`,
+      `<div class="session-menu" id="${menuId}" role="menu" hidden>`,
+      `<button type="button" role="menuitem" data-action="rename-session">rename</button>`,
+      `<button type="button" role="menuitem" class="danger" data-action="delete-session">delete</button>`,
+      `</div>`,
+    ].join("");
   },
 
   updateSessionTitle(session) {
@@ -117,7 +134,9 @@ export const sessionMethods = {
       }
     }
     this.showEmptyMain();
-    const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent || workspaceId || "workspace";
+    const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent
+      || workspaceId
+      || "workspace";
     const empty = this.querySelector("[data-empty-workspace]");
     const title = this.querySelector("[data-active-session-title]");
     if (empty) empty.textContent = label;
@@ -147,7 +166,7 @@ export const sessionMethods = {
     this.running = false;
     this.piDeltaBuffer = "";
     this.removeLoadingMessage?.();
-    this.stop?.setAttribute("hidden", "");
+    this.stopButton?.setAttribute("hidden", "");
     this.updatePrompt?.();
   },
 

@@ -14,7 +14,8 @@ import (
 
 const fallbackChoiceSystemPrompt = `Pi Web UI fallback choice protocol:
 - You are running inside Pi Web UI.
-- When you need the user to choose between options, or the user asks you to ask a choice question, output a fenced json block with top-level type "piweb_choice".
+- When you need the user to choose between options, or the user asks you to ask a choice question,
+  output a fenced json block with top-level type "piweb_choice".
 - Stop after emitting the fallback block and wait for the user's follow-up.
 - When the user later sends:
   선택지 응답:
@@ -22,7 +23,13 @@ const fallbackChoiceSystemPrompt = `Pi Web UI fallback choice protocol:
   value: <value>
   continue using that id/value as the selected answer.
 - Required schema:
-  {"type":"piweb_choice","id":"stable-choice-id","question":"Question text","options":[{"label":"Option A","value":"A","description":"What A means"}],"allowCustom":false}
+  {
+    "type":"piweb_choice",
+    "id":"stable-choice-id",
+    "question":"Question text",
+    "options":[{"label":"Option A","value":"A","description":"What A means"}],
+    "allowCustom":false
+  }
 - Keep id stable, short, and unique. Use at most 8 options. Use inert plain text only.`
 
 type Runner struct {
@@ -68,30 +75,30 @@ func (r *Runner) StartPiPrompt(
 	}
 	stderr, _ := cmd.StderrPipe()
 
-	run := &activePiRun{cancel: cancel, stdin: stdin}
+	activeRun := &activePiRun{cancel: cancel, stdin: stdin}
 	r.mu.Lock()
 	if _, exists := r.running[sessionID]; exists {
 		r.mu.Unlock()
 		cancel()
 		return errors.New("session already running")
 	}
-	r.running[sessionID] = run
+	r.running[sessionID] = activeRun
 	r.mu.Unlock()
 
 	if err := cmd.Start(); err != nil {
-		r.forgetRun(sessionID, run)
+		r.forgetRun(sessionID, activeRun)
 		cancel()
 		return err
 	}
-	if err := run.send(rpcPromptCommand(text, images, "")); err != nil {
-		r.forgetRun(sessionID, run)
+	if err := activeRun.send(rpcPromptCommand(text, images, "")); err != nil {
+		r.forgetRun(sessionID, activeRun)
 		cancel()
 		return err
 	}
 
 	go func() {
 		defer func() {
-			r.forgetRun(sessionID, run)
+			r.forgetRun(sessionID, activeRun)
 			cancel()
 		}()
 		user := Message{Kind: "user", Text: displayText, Attachments: images}

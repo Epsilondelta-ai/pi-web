@@ -2,9 +2,9 @@ const SIDEBAR_WIDTH_KEY = "pi.sb.width";
 
 function readStoredSidebarWidth() {
   try {
-    const raw = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    if (!raw) return undefined;
-    const width = Number(raw);
+    const storedWidthValue = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    if (!storedWidthValue) return undefined;
+    const width = Number(storedWidthValue);
     return Number.isFinite(width) ? Math.min(480, Math.max(200, width)) : undefined;
   } catch {
     return undefined;
@@ -35,12 +35,12 @@ export const layoutMethods = {
   toggleTree() {
     const body = this.querySelector(".app-body");
     const tree = this.querySelector(".tree");
-    const on = this.dataset.tree !== "on";
-    this.dataset.tree = on ? "on" : "off";
-    body?.classList.toggle("with-tree", on);
-    body?.classList.toggle("tree-open", on);
-    this.querySelector('[data-action="toggle-tree"]')?.classList.toggle("on", on);
-    tree?.toggleAttribute("hidden", !on);
+    const treeEnabled = this.dataset.tree !== "on";
+    this.dataset.tree = treeEnabled ? "on" : "off";
+    body?.classList.toggle("with-tree", treeEnabled);
+    body?.classList.toggle("tree-open", treeEnabled);
+    this.querySelector('[data-action="toggle-tree"]')?.classList.toggle("on", treeEnabled);
+    tree?.toggleAttribute("hidden", !treeEnabled);
     this.applyGrid();
   },
 
@@ -88,27 +88,29 @@ export const layoutMethods = {
     if (!body) return;
     const tree = this.dataset.tree === "on";
     const collapsed = this.dataset.sidebar === "collapsed";
-    body.style.gridTemplateColumns = collapsed ? (tree ? "1fr 260px" : "1fr") : (tree ? `${width}px 1fr 260px` : `${width}px 1fr`);
+    const expandedColumns = tree ? `${width}px 1fr 260px` : `${width}px 1fr`;
+    const collapsedColumns = tree ? "1fr 260px" : "1fr";
+    body.style.gridTemplateColumns = collapsed ? collapsedColumns : expandedColumns;
   },
 
   startResize(event) {
     event.preventDefault();
     const startX = event.clientX;
-    const start = Number(this.dataset.sidebarWidth || 280);
+    const startWidth = Number(this.dataset.sidebarWidth || 280);
     const saveWidth = (width) => storeSidebarWidth(width);
     const move = (moveEvent) => {
-      const width = Math.min(480, Math.max(200, start + moveEvent.clientX - startX));
+      const width = Math.min(480, Math.max(200, startWidth + moveEvent.clientX - startX));
       this.dataset.sidebarWidth = String(width);
       this.applyGrid(width);
       saveWidth(width);
     };
-    const up = () => {
-      storeSidebarWidth(Number(this.dataset.sidebarWidth || start));
+    const stopResize = () => {
+      storeSidebarWidth(Number(this.dataset.sidebarWidth || startWidth));
       window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointerup", stopResize);
     };
     window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+    window.addEventListener("pointerup", stopResize);
   },
 
   toggleTool(button) {
