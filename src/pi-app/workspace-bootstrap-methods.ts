@@ -112,15 +112,15 @@ export const workspaceBootstrapMethods = {
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
     try {
-      const { session, messages } = await getSession(sessionId);
+      const { session, messages, status } = await getSession(sessionId);
       if (this.sessionLoadToken !== loadToken) return;
-      this.applyLoadedSession(session, messages || []);
+      this.applyLoadedSession(session, messages || [], status);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
     }
   },
 
-  applyLoadedSession(session, messages) {
+  applyLoadedSession(session, messages, status = "idle") {
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState?.();
     const workspaceId = session.workspaceId
@@ -128,6 +128,7 @@ export const workspaceBootstrapMethods = {
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
     this.activateBootstrapSession(session);
     this.renderMessages(messages);
+    this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });
   },
 };
