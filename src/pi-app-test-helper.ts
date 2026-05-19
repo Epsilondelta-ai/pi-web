@@ -36,7 +36,7 @@ export function installPiAppFixture() {
             <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
           </div>
         </div>
-        <main><div class="term-inner"></div></main>
+        <main><div class="term"><div class="term-inner"></div></div></main>
         <aside class="tree"></aside>
         <div class="scrim" data-action="close-drawer"></div>
       </section>
@@ -93,7 +93,7 @@ export function installEmptySessionFixture() {
   vi.stubGlobal("localStorage", memoryStorage());
   document.body.innerHTML = `
     <pi-app data-active-session-id="s1" data-session="empty">
-      <main data-main="session" hidden><div class="term-inner"></div></main>
+      <main data-main="session" hidden><div class="term"><div class="term-inner"></div></div></main>
       <main data-main="empty"><div class="empty-shell">new session</div></main>
       <div class="prompt-region">
         <div class="slash-pop" hidden></div>

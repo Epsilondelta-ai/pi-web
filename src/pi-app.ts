@@ -9,6 +9,7 @@ import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
 import { sessionMethods } from "./pi-app/session-methods";
 import { settingsMethods } from "./pi-app/settings-methods";
 import { toolMessageMethods } from "./pi-app/tool-message-methods";
+import { transcriptWindowMethods } from "./pi-app/transcript-window-methods";
 import { versionMethods } from "./pi-app/version-methods";
 import { workspaceMethods } from "./pi-app/workspace-methods";
 
@@ -25,6 +26,7 @@ class PiApp extends HTMLElement {
     this.slashPopover = this.querySelector(".slash-pop");
     this.settingsModal = this.querySelector("[data-settings-modal]");
     this.termInner = this.querySelector(".term-inner");
+    this.initTranscriptWindow();
     this.eventSource = null;
     this.apiConnected = false;
     this.currentFolder = "~";
@@ -237,6 +239,7 @@ Object.assign(
   sessionMethods,
   messageMethods,
   toolMessageMethods,
+  transcriptWindowMethods,
   inputMethods,
   attachmentMethods,
   filePreviewMethods,
