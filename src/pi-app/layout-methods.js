@@ -8,7 +8,11 @@ export const layoutMethods = {
     this.querySelector('[data-view="picker"]')?.toggleAttribute("hidden", route !== "picker");
     this.querySelector('[data-view="workspace"]')?.toggleAttribute("hidden", route !== "workspace");
     this.querySelector('[data-action="toggle-tree"]')?.toggleAttribute("hidden", route !== "workspace");
-    if (route === "picker") this.querySelector('.picker-shell input[name="path"]')?.focus();
+    if (route === "picker") {
+      this.querySelector('.picker-shell input[name="path"]')?.focus();
+      if (this.apiConnected) void this.browseFolder();
+    }
+    if (route === "workspace") this.scrollTerm();
   },
 
   toggleTree() {
@@ -87,9 +91,13 @@ export const layoutMethods = {
   },
 
   scrollTerm() {
-    requestAnimationFrame(() => {
+    const scroll = () => {
       const term = this.querySelector(".term");
       if (term) term.scrollTop = term.scrollHeight;
+    };
+    requestAnimationFrame(() => {
+      scroll();
+      requestAnimationFrame(scroll);
     });
   },
 };

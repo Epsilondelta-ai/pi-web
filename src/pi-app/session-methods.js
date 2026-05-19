@@ -136,6 +136,7 @@ export const sessionMethods = {
     this.dataset.session = "active";
     this.querySelector("[data-main='session']")?.removeAttribute("hidden");
     this.querySelector("[data-main='empty']")?.setAttribute("hidden", "");
+    this.scrollTerm();
   },
 
   showEmptyMain() {

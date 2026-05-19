@@ -23,6 +23,7 @@ export const workspaceMethods = {
         }
       }
       this.renderWorkspaces(workspaces || []);
+      if (this.dataset.route === "picker") await this.browseFolder();
       if (activeWorkspace) await this.loadWorkspaceMeta(activeWorkspace.id);
       if (activeSession) await this.loadSession(activeSession.id);
     } catch {

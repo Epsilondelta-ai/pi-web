@@ -3,6 +3,7 @@
 [hidden] { display: none !important; }
 
 html, body, #root {
+  height: 100%;
   min-height: 100%;
   margin: 0;
   padding: 0;
@@ -13,6 +14,7 @@ body {
   color: var(--fg-1);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  overflow: hidden;
 }
 
 button {
@@ -54,9 +56,11 @@ button.tc-head {
 .app {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   min-height: 100vh;
   background: var(--bg-1);
   position: relative;
+  overflow: hidden;
 }
 
 .topbar {
@@ -264,16 +268,22 @@ button.tc-head {
 }
 .sidebar .sb-head .count { color: var(--fg-4); }
 .sidebar .sb-head .add {
-  background: transparent;
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 4px 10px;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
 }
-.sidebar .sb-head .add:hover { color: var(--ansi-bright-green); }
+.sidebar .sb-head .add:hover { color: var(--ansi-bright-green); border-color: var(--accent); background: var(--bg-3); }
 
 .workspace-shell {
   position: relative;
@@ -413,6 +423,19 @@ button.tc-head {
 .row-action:hover { color: var(--accent); border-color: var(--accent); }
 .row-action.danger:hover { color: var(--danger); border-color: var(--danger); }
 
+.new-session-row {
+  width: calc(100% - 16px);
+  margin: 8px;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+}
+.new-session-row:hover {
+  border-color: var(--accent);
+  background: var(--bg-3);
+}
 .new-session-row .gutter { color: var(--accent); }
 .new-session-row .title { color: var(--accent); }
 
@@ -441,6 +464,7 @@ button.tc-head {
   background: var(--bg-1);
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   position: relative;
   grid-column: 2;
   grid-row: 1;
@@ -488,7 +512,8 @@ button.tc-head {
 }
 
 .term {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-4) var(--space-4) var(--space-6);
@@ -513,7 +538,7 @@ button.tc-head {
   z-index: 1;
 }
 
-.term-inner { position: relative; z-index: 2; max-width: 960px; }
+.term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; }
 
 .msg { display: flex; gap: var(--space-2); margin-bottom: 14px; }
 .msg .prefix {
@@ -1158,19 +1183,6 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 }
 .input-row input::placeholder { color: var(--fg-3); }
 .input-row input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
-.input-row .browse-btn {
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  color: var(--fg-1);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  padding: 0 14px;
-  border-radius: var(--radius-1);
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-}
-.input-row .browse-btn:hover { border-color: var(--accent); color: var(--accent); }
 .input-row .open-btn {
   background: var(--accent);
   color: #002211;
