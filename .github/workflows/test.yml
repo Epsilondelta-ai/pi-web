@@ -37,5 +37,18 @@ jobs:
       - name: Backend tests
         run: bun run backend:test
 
+      - name: Backend coverage 100% check
+        run: |
+          go test ./backend/... -coverprofile=coverage.out -covermode=atomic
+          go tool cover -func=coverage.out > coverage_func.txt
+          TOTAL=$(tail -1 coverage_func.txt | grep -oP '\d+\.\d+')
+          echo "Total coverage: ${TOTAL}%"
+          if [ "$TOTAL" != "100.0" ]; then
+            echo "❌ Coverage is ${TOTAL}%, expected 100.0%"
+            go tool cover -func=coverage.out | grep -v '100.0%'
+            exit 1
+          fi
+          echo "✅ Coverage is 100%"
+
       - name: Build UI
         run: bun run build
