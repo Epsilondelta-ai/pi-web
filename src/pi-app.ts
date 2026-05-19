@@ -136,6 +136,7 @@ class PiApp extends HTMLElement {
       return;
     }
     if (event.type === "session.delta") {
+      if (!this.running) this.setMode("running");
       this.appendDelta(event.payload);
       return;
     }
@@ -144,10 +145,12 @@ class PiApp extends HTMLElement {
       return;
     }
     if (event.type === "tool.started") {
+      if (!this.running) this.setMode("running");
       this.appendMessage(event.payload);
       return;
     }
     if (event.type === "tool.output") {
+      if (!this.running) this.setMode("running");
       this.appendToolOutput(event.payload);
       return;
     }

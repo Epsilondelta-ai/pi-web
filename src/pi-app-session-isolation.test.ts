@@ -157,4 +157,41 @@ describe("pi-app session isolation", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
     expect(app.querySelector(".stop-btn").hidden).toBe(true);
   });
+
+  it("restores running controls from loaded session status", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        session: { id: "s2", title: "second", workspaceId: "w1" },
+        messages: [],
+        status: "running",
+      }),
+    }));
+    const app = await connectedApp();
+    app.connectEvents = vi.fn();
+
+    await app.loadSession("s2");
+
+    expect(app.running).toBe(true);
+    expect(app.querySelector(".stop-btn").hidden).toBe(false);
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+  });
+
+  it("restores running controls when deltas arrive without replayed status", async () => {
+    const app = await connectedApp();
+    app.dataset.activeSessionId = "s1";
+    app.renderMessages([]);
+
+    app.applyEvent({
+      type: "session.delta",
+      sessionId: "s1",
+      payload: { kind: "pi", delta: "still streaming" },
+    });
+
+    expect(app.running).toBe(true);
+    expect(app.querySelector(".stop-btn").hidden).toBe(false);
+    expect(app.querySelector(".msg.streaming .body").textContent).toBe("still streaming");
+  });
 });

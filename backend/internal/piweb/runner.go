@@ -162,6 +162,13 @@ func (r *Runner) Steer(sessionID string, text string, images []PromptAttachment)
 	return run.send(rpcPromptCommand(text, images, "steer"))
 }
 
+func (r *Runner) IsRunning(sessionID string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	_, ok := r.running[sessionID]
+	return ok
+}
+
 func (r *Runner) forgetRun(sessionID string, run *activePiRun) {
 	r.mu.Lock()
 	if r.running[sessionID] == run {

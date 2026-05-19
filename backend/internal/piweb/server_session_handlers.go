@@ -8,12 +8,24 @@ import (
 )
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {
-	session, messages, err := s.store.Session(r.PathValue("sessionID"))
+	sessionID := r.PathValue("sessionID")
+	session, messages, err := s.store.Session(sessionID)
 	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"session": session, "messages": messages})
+	writeJSON(w, http.StatusOK, map[string]any{
+		"session":  session,
+		"messages": messages,
+		"status":   s.sessionStatus(sessionID),
+	})
+}
+
+func (s *Server) sessionStatus(sessionID string) string {
+	if s.runner.IsRunning(sessionID) {
+		return "running"
+	}
+	return "idle"
 }
 func (s *Server) renameSession(w http.ResponseWriter, r *http.Request) {
 	var req RenameSessionRequest
