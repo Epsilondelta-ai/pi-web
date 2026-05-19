@@ -1,4 +1,4 @@
-import { cloneWorkspace as cloneWorkspaceRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFile, getWorkspaceFiles, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
+import { cloneWorkspace as cloneWorkspaceRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFiles, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
 import { escapeHtml, renderTree } from "../renderers.js";
 
 export const workspaceMethods = {
@@ -232,51 +232,6 @@ export const workspaceMethods = {
     if (activeWorkspace) activeWorkspace.textContent = workspaceName;
     await this.loadWorkspaceMeta(workspaceId);
     this.route("workspace");
-  },
-
-  async openFile(button) {
-    const path = button?.dataset.filePath;
-    const workspaceId = this.dataset.activeWorkspaceId;
-    if (!path || !workspaceId || !this.apiConnected) return;
-    try {
-      this.querySelectorAll(".tree-node.selected").forEach((node) => node.classList.remove("selected"));
-      button.classList.add("selected");
-      this.renderFilePreview({ path, previewKind: "loading" });
-      const file = await getWorkspaceFile(workspaceId, path);
-      this.renderFilePreview(file);
-    } catch (error) {
-      this.renderFilePreview({ path, previewKind: "error", content: error instanceof Error ? error.message : String(error) });
-      this.setConnection("err");
-    }
-  },
-
-  renderFilePreview(file) {
-    const preview = this.querySelector("[data-file-preview]");
-    if (!preview) return;
-    preview.hidden = false;
-    const meta = [file.mime, file.truncated ? "truncated" : ""].filter(Boolean).join(" · ");
-    preview.innerHTML = `<div class="fp-head"><span class="fp-path"></span><small></small></div><div class="fp-body"></div>`;
-    preview.querySelector(".fp-path").textContent = file.path || "file";
-    preview.querySelector("small").textContent = meta;
-    const body = preview.querySelector(".fp-body");
-    if (file.previewKind === "loading") {
-      body.textContent = "loading preview…";
-      return;
-    }
-    if (file.previewKind === "text") {
-      const pre = document.createElement("pre");
-      pre.textContent = `${file.content || ""}${file.truncated ? "\n\n[truncated]" : ""}`;
-      body.append(pre);
-      return;
-    }
-    if (file.previewKind === "image" && file.dataUrl) {
-      const image = document.createElement("img");
-      image.src = file.dataUrl;
-      image.alt = file.path || "file preview";
-      body.append(image);
-      return;
-    }
-    body.textContent = file.previewKind === "error" ? file.content : "미리보기를 지원하지 않습니다.";
   },
 
   toggleWorkspace(id) {

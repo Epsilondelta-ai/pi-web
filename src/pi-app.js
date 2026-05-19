@@ -1,5 +1,6 @@
 import { sessionEvents } from "./api.js";
 import { SPINNER_FRAMES } from "./pi-app/constants.js";
+import { filePreviewMethods } from "./pi-app/file-preview-methods.js";
 import { inputMethods } from "./pi-app/input-methods.js";
 import { layoutMethods } from "./pi-app/layout-methods.js";
 import { messageMethods } from "./pi-app/message-methods.js";
@@ -142,6 +143,7 @@ Object.assign(
   sessionMethods,
   messageMethods,
   inputMethods,
+  filePreviewMethods,
   layoutMethods,
 );
 

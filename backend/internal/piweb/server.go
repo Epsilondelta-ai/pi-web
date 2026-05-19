@@ -60,6 +60,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/sessions", s.createSession)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/files", s.workspaceFiles)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/files/read", s.readWorkspaceFile)
+	s.mux.HandleFunc("PUT /api/workspaces/{workspaceID}/files/write", s.writeWorkspaceFile)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/status", s.gitStatus)
 	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/shell", s.shellCommand)
 	s.mux.HandleFunc("GET /api/sessions/{sessionID}", s.session)
@@ -156,6 +157,20 @@ func (s *Server) workspaceFiles(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) readWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	file, err := s.store.ReadFile(r.PathValue("workspaceID"), r.URL.Query().Get("path"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, file)
+}
+
+func (s *Server) writeWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+	var req WriteFileRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	file, err := s.store.WriteFile(r.PathValue("workspaceID"), r.URL.Query().Get("path"), req.Content)
 	if err != nil {
 		writeStoreError(w, err)
 		return

@@ -85,7 +85,7 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 	previewKind := previewKindForMIME(mimeType)
 	content := ""
 	dataURL := ""
-	if previewKind == "text" {
+	if previewKind == "text" || mimeType == "image/svg+xml" {
 		content = string(data)
 	}
 	if previewKind == "image" && !truncated {
@@ -113,6 +113,9 @@ func detectPreviewMIME(path string, data []byte) string {
 }
 
 func previewKindForMIME(mimeType string) string {
+	if mimeType == "image/svg+xml" {
+		return "image"
+	}
 	if strings.HasPrefix(mimeType, "text/") || mimeType == "application/json" || strings.HasSuffix(mimeType, "+xml") {
 		return "text"
 	}
@@ -120,6 +123,24 @@ func previewKindForMIME(mimeType string) string {
 		return "image"
 	}
 	return "unsupported"
+}
+
+func WriteWorkspaceFile(root, rel, content string) (FileContent, error) {
+	full, err := SafeJoin(root, rel)
+	if err != nil {
+		return FileContent{}, err
+	}
+	info, err := os.Stat(full)
+	if err != nil {
+		return FileContent{}, err
+	}
+	if info.IsDir() {
+		return FileContent{}, errors.New("path is a directory")
+	}
+	if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
+		return FileContent{}, err
+	}
+	return ReadWorkspaceFile(root, rel, 256*1024)
 }
 
 func SafeJoin(root, rel string) (string, error) {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cancelSession, cloneWorkspace, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, listFolders, postPrompt, renameSession, runShellCommand, sessionEvents } from "./api.js";
+import { cancelSession, cloneWorkspace, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, listFolders, postPrompt, renameSession, runShellCommand, saveWorkspaceFile, sessionEvents } from "./api.js";
 
 describe("api adapter", () => {
   beforeEach(() => {
@@ -47,9 +47,13 @@ describe("api adapter", () => {
     expect(JSON.parse(renamed.options.body)).toEqual({ title: "next" });
   });
 
-  it("reads workspace files", async () => {
+  it("reads and saves workspace files", async () => {
     const result = await getWorkspaceFile("w1", "src/main.go");
     expect(result.url).toBe("http://backend.test/api/workspaces/w1/files/read?path=src%2Fmain.go");
+    const saved = await saveWorkspaceFile("w1", "src/main.go", "package main");
+    expect(saved.url).toBe("http://backend.test/api/workspaces/w1/files/write?path=src%2Fmain.go");
+    expect(saved.options.method).toBe("PUT");
+    expect(JSON.parse(saved.options.body)).toEqual({ content: "package main" });
   });
 
   it("posts prompts as json", async () => {

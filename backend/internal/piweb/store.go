@@ -357,6 +357,16 @@ func (s *Store) ReadFile(workspaceID, rel string) (FileContent, error) {
 	return ReadWorkspaceFile(root, rel, 256*1024)
 }
 
+func (s *Store) WriteFile(workspaceID, rel, content string) (FileContent, error) {
+	s.mu.RLock()
+	root := s.workspacePath[workspaceID]
+	s.mu.RUnlock()
+	if root == "" {
+		return FileContent{}, ErrNotFound
+	}
+	return WriteWorkspaceFile(root, rel, content)
+}
+
 func (s *Store) GitStatus(workspaceID string) (GitStatus, error) {
 	s.mu.RLock()
 	root := s.workspacePath[workspaceID]

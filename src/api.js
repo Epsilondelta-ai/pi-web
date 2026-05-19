@@ -69,6 +69,13 @@ export function getWorkspaceFile(workspaceId, path) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`);
 }
 
+export function saveWorkspaceFile(workspaceId, path, content) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/write?path=${encodeURIComponent(path)}`, {
+    method: "PUT",
+    body: JSON.stringify({ content }),
+  });
+}
+
 export function getGitStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/git/status`);
 }

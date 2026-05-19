@@ -88,6 +88,10 @@ type RenameSessionRequest struct {
 	Title string `json:"title"`
 }
 
+type WriteFileRequest struct {
+	Content string `json:"content"`
+}
+
 type FileContent struct {
 	Path        string `json:"path"`
 	Content     string `json:"content,omitempty"`

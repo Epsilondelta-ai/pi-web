@@ -104,6 +104,9 @@ export const inputMethods = {
     if (action === "toggle-tree") this.toggleTree();
     if (action === "toggle-tree-node") this.toggleTreeNode(button);
     if (action === "open-file") this.openFile(button);
+    if (action === "close-file-preview") this.closeFilePreview();
+    if (action === "toggle-file-preview-mode") this.toggleFilePreviewMode();
+    if (action === "save-file-preview") this.saveFilePreview();
     if (action === "collapse-sidebar") this.collapseSidebar(true);
     if (action === "expand-sidebar") this.collapseSidebar(false);
     if (action === "open-drawer") this.querySelector(".app-body")?.classList.add("drawer-open");
