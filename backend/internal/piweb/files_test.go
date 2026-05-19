@@ -20,6 +20,47 @@ func TestReadWorkspaceFileRejectsTraversal(t *testing.T) {
 	}
 }
 
+func TestReadWorkspaceFilePreviewsTextLikeSourceFiles(t *testing.T) {
+	root := t.TempDir()
+	files := map[string]string{
+		"script.sh":       "#!/usr/bin/env bash\necho hello\n",
+		"component.ts":    "export const answer: number = 42\n",
+		"component.tsx":   "export function Demo() { return <div /> }\n",
+		"README.md":       "# hello\n",
+		"Dockerfile":      "FROM scratch\n",
+		"config.yaml":     "name: demo\n",
+		"unknown.configx": "plain text config\n",
+	}
+	for name, body := range files {
+		path := filepath.Join(root, name)
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		content, err := ReadWorkspaceFile(root, name, 1024)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if content.PreviewKind != "text" || content.Content != body {
+			t.Fatalf("%s: unexpected preview: %#v", name, content)
+		}
+	}
+}
+
+func TestReadWorkspaceFileDoesNotPreviewBinaryWithTextExtension(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "clip.ts")
+	if err := os.WriteFile(path, []byte{0x00, 0x47, 0x40, 0x10, 0xff}, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	content, err := ReadWorkspaceFile(root, "clip.ts", 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if content.PreviewKind == "text" || content.Content != "" {
+		t.Fatalf("unexpected binary preview: %#v", content)
+	}
+}
+
 func TestRealFileTree(t *testing.T) {
 	root := t.TempDir()
 	if err := os.Mkdir(filepath.Join(root, "src"), 0o700); err != nil {
