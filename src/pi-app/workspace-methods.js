@@ -96,9 +96,13 @@ export const workspaceMethods = {
   },
 
   async loadSession(sessionId) {
+    const loadToken = Symbol(sessionId);
+    this.sessionLoadToken = loadToken;
     try {
       const { session, messages } = await getSession(sessionId);
+      if (this.sessionLoadToken !== loadToken) return;
       this.dataset.activeSessionId = session.id;
+      this.resetActiveSessionState?.();
       const workspaceId = session.workspaceId
         || this.querySelector(`[data-session='${session.id}']`)?.dataset.workspace;
       storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
@@ -110,7 +114,7 @@ export const workspaceMethods = {
       this.renderMessages(messages || []);
       this.connectEvents(session.id, { replay: false });
     } catch {
-      this.setConnection("err");
+      if (this.sessionLoadToken === loadToken) this.setConnection("err");
     }
   },
 

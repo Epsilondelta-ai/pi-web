@@ -95,15 +95,28 @@ class PiApp extends HTMLElement {
 
   connectEvents(sessionId, options = {}) {
     this.eventSource?.close();
+    const eventStreamId = Symbol(sessionId);
+    this.eventStreamId = eventStreamId;
     this.eventSource = sessionEvents(sessionId, {
       replay: options.replay,
-      onOpen: () => this.setConnection("ok"),
-      onError: () => this.setConnection("err"),
-      onEvent: (event) => this.applyEvent(event),
+      onOpen: () => {
+        if (this.isActiveEventStream(eventStreamId, sessionId)) this.setConnection("ok");
+      },
+      onError: () => {
+        if (this.isActiveEventStream(eventStreamId, sessionId)) this.setConnection("err");
+      },
+      onEvent: (event) => {
+        if (this.isActiveEventStream(eventStreamId, sessionId)) this.applyEvent(event);
+      },
     });
   }
 
+  isActiveEventStream(eventStreamId, sessionId) {
+    return this.eventStreamId === eventStreamId && this.dataset.activeSessionId === sessionId;
+  }
+
   applyEvent(event) {
+    if (!this.isCurrentSessionEvent(event)) return;
     if (event.type === "heartbeat") return;
     if (event.type === "session.status") {
       const mode = event.payload?.status || "auto-accept";
@@ -139,6 +152,12 @@ class PiApp extends HTMLElement {
     if (!indicator) return;
     indicator.style.color = status === "ok" ? "var(--accent)" : "var(--danger)";
     indicator.title = status === "ok" ? "connected" : "backend disconnected";
+  }
+
+  isCurrentSessionEvent(event) {
+    const eventSessionId = event?.sessionId;
+    const activeSessionId = this.dataset.activeSessionId;
+    return !eventSessionId || !activeSessionId || eventSessionId === activeSessionId;
   }
 
   setMode(mode) {

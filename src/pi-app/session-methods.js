@@ -53,13 +53,12 @@ export const sessionMethods = {
       title.textContent = row.dataset.title;
       title.title = `${row.dataset.title} · ${row.dataset.session}`;
     }
+    this.dataset.activeSessionId = row.dataset.session;
+    this.resetActiveSessionState();
     this.showSessionMain();
     this.toggleDrawer?.(false);
     if (this.apiConnected) await this.loadSession(row.dataset.session);
-    else {
-      this.dataset.activeSessionId = row.dataset.session;
-      storeActiveSession(row.dataset.workspace, row.dataset.session);
-    }
+    else storeActiveSession(row.dataset.workspace, row.dataset.session);
     this.scrollTerm();
   },
 
@@ -94,7 +93,10 @@ export const sessionMethods = {
       this.querySelector(`[data-session='${sessionId}']`)?.remove();
       if (this.dataset.activeSessionId === sessionId) {
         clearStoredActiveSession(sessionId);
+        this.eventSource?.close();
+        this.eventStreamId = undefined;
         this.dataset.activeSessionId = "";
+        this.resetActiveSessionState();
         this.renderMessages([]);
         this.showEmptyMain();
         this.querySelector("[data-active-session-title]").textContent = "no session";
@@ -124,6 +126,7 @@ export const sessionMethods = {
 
   activateCreatedSession(workspaceId, session) {
     this.dataset.activeSessionId = session.id;
+    this.resetActiveSessionState();
     storeActiveSession(workspaceId, session.id);
     this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
     const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
@@ -138,6 +141,14 @@ export const sessionMethods = {
     }
     this.renderMessages([]);
     this.connectEvents(session.id);
+  },
+
+  resetActiveSessionState() {
+    this.running = false;
+    this.piDeltaBuffer = "";
+    this.removeLoadingMessage?.();
+    this.stop?.setAttribute("hidden", "");
+    this.updatePrompt?.();
   },
 
   showSessionMain() {
