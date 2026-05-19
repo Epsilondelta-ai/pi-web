@@ -2,6 +2,15 @@ import { afterEach, describe, expect, it } from "vitest";
 import "./pi-app";
 import { renderHighlightedCode } from "./pi-app/file-highlight";
 
+async function waitForHighlight(code) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (code.innerHTML.includes("style=\"color:")) return;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error("highlight did not render");
+}
+
 function mountPreview() {
   document.body.innerHTML = `
     <pi-app>
@@ -28,7 +37,7 @@ describe("file preview highlighting", () => {
     document.body.innerHTML = "";
   });
 
-  it("renders clicked text files with a highlighted editable overlay", () => {
+  it("renders clicked text files with a highlighted editable overlay", async () => {
     const app = mountPreview();
     app.renderFilePreview({
       path: "src/demo.ts",
@@ -43,13 +52,14 @@ describe("file preview highlighting", () => {
 
     expect(preview.hidden).toBe(false);
     expect(editor.value).toBe("const answer = \"yes\";\n// done");
-    expect(code.innerHTML).toContain('<span class="syntax-keyword">const</span>');
-    expect(code.innerHTML).toContain('<span class="syntax-string">"yes"</span>');
-    expect(code.innerHTML).toContain('<span class="syntax-comment">// done</span>');
+    await waitForHighlight(code);
+    expect(code.textContent).toContain('const answer = "yes";');
+    expect(code.textContent).toContain("// done");
+    expect(code.innerHTML).toContain("style=\"color:");
     expect(app.querySelector("[data-action='save-file-preview']").hidden).toBe(false);
   });
 
-  it("updates highlighting as the editable preview changes", () => {
+  it("updates highlighting as the editable preview changes", async () => {
     const app = mountPreview();
     app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
 
@@ -58,12 +68,13 @@ describe("file preview highlighting", () => {
     editor.dispatchEvent(new Event("input"));
 
     const code = app.querySelector(".fp-highlight code");
-    expect(code.innerHTML).toContain('<span class="syntax-keyword">function</span>');
-    expect(code.innerHTML).toContain('<span class="syntax-number">2</span>');
+    await waitForHighlight(code);
+    expect(code.textContent).toContain("function demo() { return 2; }");
+    expect(code.innerHTML).toContain("style=\"color:");
   });
 
-  it("escapes unsupported text files instead of injecting markup", () => {
-    const html = renderHighlightedCode('<script>alert("x")</script>', {
+  it("escapes unsupported text files instead of injecting markup", async () => {
+    const html = await renderHighlightedCode('<script>alert("x")</script>', {
       path: "plain.txt",
       mime: "text/plain",
     });
