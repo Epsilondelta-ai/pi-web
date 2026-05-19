@@ -128,6 +128,7 @@
 }
 
 .term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; }
+.transcript-spacer { width: 100%; flex: 0 0 auto; }
 
 .msg { display: flex; gap: var(--space-2); margin-bottom: 14px; }
 .msg .prefix {

@@ -7,6 +7,7 @@ export const toolMessageMethods = {
     card.className = `tool-card ${message.collapsedByDefault ? "collapsed" : ""}`.trim();
     card.dataset.tool = message.tool || "tool";
     card.dataset.status = message.status || "";
+    this.latestToolCards = { ...(this.latestToolCards || {}), [card.dataset.tool]: card };
     const collapsed = !!message.collapsedByDefault;
     card.innerHTML = this.toolCardTemplate(collapsed, !!message.body);
     card.querySelector(".tc-name").textContent = message.tool || "tool";
@@ -55,7 +56,8 @@ export const toolMessageMethods = {
 
   appendToolOutput(payload) {
     const cards = [...this.querySelectorAll(".tool-card")];
-    const card = cards.reverse().find((item) => item.dataset.tool === payload?.tool);
+    const visibleCard = cards.reverse().find((item) => item.dataset.tool === payload?.tool);
+    const card = visibleCard || this.latestToolCards?.[payload?.tool];
     const body = card?.querySelector(".tc-body");
     if (!body) return;
     body.hidden = false;
@@ -79,13 +81,14 @@ export const toolMessageMethods = {
 
   finishTool(message) {
     const cards = [...this.querySelectorAll(".tool-card")];
-    const card = cards.reverse().find((item) => item.dataset.tool === message?.tool);
+    const visibleCard = cards.reverse().find((item) => item.dataset.tool === message?.tool);
+    const card = visibleCard || this.latestToolCards?.[message?.tool];
     if (!card) {
       this.appendMessage(message);
       return;
     }
     const next = this.toolCard(message);
-    card.replaceWith(next);
+    if (!this.replaceTranscriptNode(card, next)) card.replaceWith(next);
     this.syncLoadingMessage();
   },
 };

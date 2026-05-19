@@ -11,7 +11,14 @@ export const messageMethods = {
     if (!this.termInner) return;
     this.piDeltaBuffer = "";
     this.termInner.replaceChildren();
+    this.resetTranscriptWindow();
+    this.deferTranscriptRender = true;
     for (const message of messages) this.appendMessage(message);
+    this.deferTranscriptRender = false;
+    this.renderTranscriptWindow({ stickToBottom: true });
+    for (const message of messages) {
+      if (message.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(message.text));
+    }
     this.scrollTerm();
   },
 
@@ -22,9 +29,10 @@ export const messageMethods = {
     if (message.kind === "pi" || message.kind === "think") this.finishRunningTools();
     if (message.kind === "pi") this.piDeltaBuffer = "";
     if (message.kind === "tool") this.finalizeStreamingMessages();
-    this.termInner.querySelector(`.msg.streaming[data-kind='${message.kind}']`)?.remove();
+    const streamingRow = this.currentStreamingRow(message.kind);
+    if (streamingRow) this.removeTranscriptNode(streamingRow);
     if (message.kind === "pi") this.flushStreamingRender();
-    this.termInner.append(this.messageNode(message));
+    this.appendTranscriptNode(this.messageNode(message), { stickToBottom: true });
     if (message.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(message.text));
     if (message.kind !== "user") this.syncLoadingMessage();
     this.scrollTerm();
@@ -54,8 +62,9 @@ export const messageMethods = {
       messageRow = this.simpleMessage(`${kind} streaming`, kind === "think" ? "…" : "pi >", "");
       messageRow.classList.add("streaming");
       messageRow.dataset.kind = kind;
+      this.streamingRows = { ...(this.streamingRows || {}), [kind]: messageRow };
       if (kind === "think") this.attachThinkingStream(messageRow);
-      this.termInner.append(messageRow);
+      this.appendTranscriptNode(messageRow, { stickToBottom: true });
     }
     const body = messageRow.querySelector("[data-stream-text]") || messageRow.querySelector(".body");
     if (body && kind === "pi") {
@@ -89,8 +98,9 @@ export const messageMethods = {
   },
 
   currentStreamingRow(kind) {
-    const lastElement = this.termInner.lastElementChild;
-    return lastElement?.matches?.(`.msg.streaming[data-kind='${kind}']`) ? lastElement : null;
+    const cached = this.streamingRows?.[kind];
+    if (cached?.matches?.(`.msg.streaming[data-kind='${kind}']`)) return cached;
+    return this.termInner?.querySelector(`.msg.streaming[data-kind='${kind}']`);
   },
 
   attachThinkingStream(messageRow) {
@@ -104,12 +114,13 @@ export const messageMethods = {
     row.querySelector(".body").innerHTML = `<span class="spinner">⠋</span><span>waiting for response…</span>`;
     row.classList.add("loading");
     row.dataset.kind = "loading";
-    this.termInner.append(row);
+    this.appendTranscriptNode(row, { stickToBottom: true });
     this.scrollTerm();
   },
 
   removeLoadingMessage() {
-    this.termInner?.querySelector(".msg.loading")?.remove();
+    const loading = this.termInner?.querySelector(".msg.loading");
+    if (loading) this.removeTranscriptNode(loading);
   },
 
   syncLoadingMessage() {
@@ -134,6 +145,8 @@ export const messageMethods = {
   finalizeStreamingMessages() {
     this.flushStreamingRender();
     this.piDeltaBuffer = "";
+    Object.values(this.streamingRows || {}).forEach((row: Element) => row.classList.remove("streaming"));
+    this.streamingRows = {};
     this.termInner?.querySelectorAll(".msg.streaming").forEach((row) => row.classList.remove("streaming"));
   },
 
