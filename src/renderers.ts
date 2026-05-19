@@ -6,6 +6,12 @@ const markdown = new MarkdownIt({
   linkify: true,
 });
 
+markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
+  tokens[index].attrSet("target", "_blank");
+  tokens[index].attrSet("rel", "noopener noreferrer");
+  return self.renderToken(tokens, index, options);
+};
+
 export function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")

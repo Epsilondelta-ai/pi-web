@@ -18,6 +18,13 @@ describe("safe markdown rendering", () => {
     expect(html).toContain("<li>two</li>");
   });
 
+  it("opens markdown links in a new tab", () => {
+    const html = renderPiBody("[docs](https://example.com)");
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+  });
+
   it("escapes untrusted banner html before restoring allowed tokens", () => {
     const html = renderBannerBody('<script>alert(1)</script><a>ready</a>');
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
