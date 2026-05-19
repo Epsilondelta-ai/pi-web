@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
 
 describe("pi-app messages", () => {
@@ -25,6 +25,7 @@ describe("pi-app messages", () => {
     app.finalizeStreamingMessages();
     app.appendMessage({ kind: "user", text: "next" });
     app.appendDelta({ kind: "pi", delta: "new" });
+    app.flushStreamingRender();
     const bodies = [...app.querySelectorAll(".msg[data-kind='pi'] .body")].map((node) => node.textContent);
     expect(bodies).toEqual(["old", "new"]);
   });
@@ -35,6 +36,7 @@ describe("pi-app messages", () => {
     app.appendDelta({ kind: "pi", delta: "before" });
     app.appendMessage({ kind: "tool", tool: "bash", status: "running" });
     app.appendDelta({ kind: "pi", delta: "after" });
+    app.flushStreamingRender();
     const bodies = [...app.querySelectorAll(".msg[data-kind='pi'] .body")].map((node) => node.textContent);
     expect(bodies).toEqual(["before", "after"]);
   });
@@ -80,6 +82,7 @@ describe("pi-app messages", () => {
     app.setMode("running");
     app.appendDelta({ kind: "pi", delta: "hel" });
     app.appendDelta({ kind: "pi", delta: "lo" });
+    app.flushStreamingRender();
     const bodies = [...app.querySelectorAll(".msg[data-kind='pi'] .body")].map((node) => node.textContent);
     expect(bodies).toEqual(["hello"]);
   });
@@ -89,6 +92,7 @@ describe("pi-app messages", () => {
     app.renderMessages([]);
     app.appendDelta({ kind: "pi", delta: "**bo" });
     app.appendDelta({ kind: "pi", delta: "ld**" });
+    app.flushStreamingRender();
     const body = app.querySelector(".msg.streaming .body");
     expect(body.classList.contains("markdown-body")).toBe(true);
     expect(body.innerHTML).toContain("<strong>bold</strong>");
@@ -100,6 +104,7 @@ describe("pi-app messages", () => {
     app.appendLoadingMessage();
     app.appendDelta({ kind: "pi", delta: "hel" });
     app.appendDelta({ kind: "pi", delta: "lo" });
+    app.flushStreamingRender();
     expect(app.querySelector(".msg.loading")).toBeNull();
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("hello");
   });
@@ -123,5 +128,81 @@ describe("pi-app messages", () => {
     expect(block).not.toBeNull();
     expect(block.querySelector(".label").textContent).toBe("thinking");
     expect(block.querySelector("[data-stream-text]").textContent).toBe("reason");
+  });
+
+  it("batches streaming assistant markdown rendering to an animation frame", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
+
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    app.appendDelta({ kind: "pi", delta: "**bo" });
+    app.appendDelta({ kind: "pi", delta: "ld**" });
+
+    const body = app.querySelector(".msg.streaming .body");
+    expect(body.textContent).toBe("");
+
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(body.innerHTML).toContain("<strong>bold</strong>");
+  });
+
+  it("coalesces repeated terminal scroll requests into one animation frame", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    app.scrollFrame = undefined;
+    app.scrollTerm();
+    app.scrollTerm();
+    app.scrollTerm();
+
+    expect(frames).toHaveLength(1);
+  });
+
+  it("renders only a preview for collapsed large tool output", async () => {
+    const app = await connectPiApp();
+    const largeBody = `${"line\n".repeat(5000)}tail-marker`;
+
+    app.renderMessages([]);
+    app.appendMessage({
+      kind: "tool",
+      tool: "bash",
+      status: "ok",
+      collapsedByDefault: true,
+      body: largeBody,
+    });
+
+    const body = app.querySelector(".tool-card .tc-body");
+    expect(body.hidden).toBe(true);
+    expect(body.textContent).not.toContain("tail-marker");
+    expect(body.textContent.length).toBeLessThan(largeBody.length);
+  });
+
+  it("renders full large tool output only after explicit request", async () => {
+    const app = await connectPiApp();
+    const largeBody = `${"line\n".repeat(5000)}tail-marker`;
+
+    app.renderMessages([]);
+    app.appendMessage({
+      kind: "tool",
+      tool: "bash",
+      status: "ok",
+      collapsedByDefault: true,
+      body: largeBody,
+    });
+
+    app.toggleTool(app.querySelector(".tc-head"));
+    expect(app.querySelector(".tool-card .tc-body").textContent).not.toContain("tail-marker");
+
+    app.showFullToolOutput(app.querySelector("[data-action='show-full-tool-output']"));
+    expect(app.querySelector(".tool-card .tc-body").textContent).toContain("tail-marker");
   });
 });
