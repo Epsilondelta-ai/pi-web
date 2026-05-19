@@ -200,16 +200,14 @@ export const messageMethods = {
       if (option.description) button.querySelector("small").textContent = option.description;
       options.append(button);
     }
-    if (choice.allowCustom) {
-      const custom = document.createElement("div");
-      custom.className = "choice-custom";
-      custom.innerHTML = [
-        `<input type="text" placeholder="직접 답변 입력" data-choice-custom-input>`,
-        `<button type="button" data-action="fallback-choice-custom"`,
-        ` data-choice-id="${escapeHtml(choice.id)}">submit</button>`,
-      ].join("");
-      panel.append(custom);
-    }
+    const custom = document.createElement("div");
+    custom.className = "choice-custom";
+    custom.innerHTML = [
+      `<input type="text" placeholder="직접 답변 입력" data-choice-custom-input>`,
+      `<button type="button" data-action="fallback-choice-custom"`,
+      ` data-choice-id="${escapeHtml(choice.id)}">보내기</button>`,
+    ].join("");
+    panel.append(custom);
     return panel;
   },
 

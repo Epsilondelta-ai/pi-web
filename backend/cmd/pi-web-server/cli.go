@@ -8,7 +8,7 @@ import (
 
 const githubRepositorySlug = "Epsilondelta-ai/pi-web-ui"
 
-var version = "v1.0.0"
+var version = "v1.1.0"
 
 type rootDependencies struct {
 	stdout io.Writer
@@ -29,7 +29,7 @@ type updateOptions struct {
 }
 
 func newRootCommand(deps rootDependencies) *cobra.Command {
-	options := serverOptions{Host: "127.0.0.1", Port: "8732"}
+	options := serverOptions{Host: "0.0.0.0", Port: "8732"}
 
 	cmd := &cobra.Command{
 		Use:           "pi-web",
