@@ -17,16 +17,6 @@ func TestParseStateModelRPCLineUsesDisplayName(t *testing.T) {
 	}
 }
 
-func TestParseRPCSuccessLine(t *testing.T) {
-	matched, err := parseRPCSuccessLine(`{"id":"web-status","type":"response","command":"prompt","success":true}`, "web-status", "prompt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !matched {
-		t.Fatal("expected matching response")
-	}
-}
-
 func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
 	primary := &quotaUsageWindow{UsedPercent: float64(16)}
 	if got := remainingFromWindow(primary); got == nil || *got != 84 {

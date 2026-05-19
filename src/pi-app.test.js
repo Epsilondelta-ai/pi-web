@@ -72,6 +72,18 @@ describe("pi-app runtime", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("keeps the new session button below sessions created without reload", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.connectEvents = () => {};
+    app.append(app.createWorkspaceGroup({ id: "w1", name: "demo", path: "/demo", sessions: [] }));
+    app.activateCreatedSession("w1", { id: "s1", title: "new session", lastUsed: "now" });
+    const rows = [...app.querySelectorAll("[data-workspace-group='w1'] .sessions > .session-row")];
+    expect(rows.map((row) => row.dataset.session || row.dataset.action)).toEqual(["s1", "new-session"]);
+    expect(rows.at(-1).classList.contains("new-session-row")).toBe(true);
+  });
+
   it("deduplicates echoed user prompts and removes loading on response", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
@@ -109,6 +121,32 @@ describe("pi-app runtime", () => {
     app.appendDelta({ kind: "pi", delta: "after" });
     const bodies = [...app.querySelectorAll(".msg[data-kind='pi'] .body")].map((node) => node.textContent);
     expect(bodies).toEqual(["before", "after"]);
+  });
+
+  it("shows loading again after a tool finishes while the session is still running", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.setMode("running");
+    app.appendMessage({ kind: "tool", tool: "read", status: "running" });
+    expect(app.querySelector(".msg.loading")).toBeNull();
+    app.finishTool({ kind: "tool", tool: "read", status: "ok" });
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+    app.setMode("idle");
+    expect(app.querySelector(".msg.loading")).toBeNull();
+  });
+
+  it("keeps streaming deltas in one row while the session is running", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.setMode("running");
+    app.appendDelta({ kind: "pi", delta: "hel" });
+    app.appendDelta({ kind: "pi", delta: "lo" });
+    const bodies = [...app.querySelectorAll(".msg[data-kind='pi'] .body")].map((node) => node.textContent);
+    expect(bodies).toEqual(["hello"]);
   });
 
   it("streams assistant deltas before the final message", async () => {

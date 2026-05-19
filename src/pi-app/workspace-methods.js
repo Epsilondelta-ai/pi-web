@@ -1,4 +1,14 @@
-import { cloneWorkspace as cloneWorkspaceRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceCommands, getWorkspaceFiles, getWorkspaceRuntimeStatus, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
+import {
+  cloneWorkspace as cloneWorkspaceRequest,
+  deleteWorkspace as deleteWorkspaceRequest,
+  getGitStatus,
+  getSession,
+  getWorkspaceCommands,
+  getWorkspaceFiles,
+  getWorkspaces,
+  listFolders,
+  openWorkspace as openWorkspaceRequest,
+} from "../api.js";
 import { escapeHtml, renderTree } from "../renderers.js";
 
 export const workspaceMethods = {
@@ -53,14 +63,6 @@ export const workspaceMethods = {
     try {
       const { commands } = await getWorkspaceCommands(workspaceId);
       this.renderSlashCommands(commands || []);
-    } catch {}
-  },
-
-  async loadRuntimeStatus(workspaceId = this.dataset.activeWorkspaceId) {
-    if (!workspaceId || !this.apiConnected) return;
-    try {
-      const { status } = await getWorkspaceRuntimeStatus(workspaceId);
-      if (status) this.updatePromptMeta(status);
     } catch {}
   },
 

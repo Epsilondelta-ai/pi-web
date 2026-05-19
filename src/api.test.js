@@ -1,5 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cancelSession, cloneWorkspace, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceCommands, getWorkspaceFile, getWorkspaceRuntimeStatus, getWorkspaces, listFolders, postPrompt, renameSession, runShellCommand, saveWorkspaceFile, sessionEvents } from "./api.js";
+import {
+  cancelSession,
+  cloneWorkspace,
+  createSession,
+  deleteSession,
+  deleteWorkspace,
+  getSession,
+  getWorkspaceCommands,
+  getWorkspaceFile,
+  getWorkspaceRuntimeModel,
+  getWorkspaceRuntimeQuota,
+  getWorkspaceRuntimeStatus,
+  getWorkspaces,
+  listFolders,
+  postPrompt,
+  renameSession,
+  runShellCommand,
+  saveWorkspaceFile,
+  sessionEvents,
+} from "./api.js";
 
 describe("api adapter", () => {
   beforeEach(() => {
@@ -58,6 +77,10 @@ describe("api adapter", () => {
     expect(commands.url).toBe("http://backend.test/api/workspaces/w1/commands");
     const status = await getWorkspaceRuntimeStatus("w1");
     expect(status.url).toBe("http://backend.test/api/workspaces/w1/runtime-status");
+    const model = await getWorkspaceRuntimeModel("w1");
+    expect(model.url).toBe("http://backend.test/api/workspaces/w1/runtime-model");
+    const quota = await getWorkspaceRuntimeQuota("w1", "GPT-5.5");
+    expect(quota.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota?model=GPT-5.5");
   });
 
   it("reads and saves workspace files", async () => {

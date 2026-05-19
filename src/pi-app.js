@@ -4,6 +4,7 @@ import { filePreviewMethods } from "./pi-app/file-preview-methods.js";
 import { inputMethods } from "./pi-app/input-methods.js";
 import { layoutMethods } from "./pi-app/layout-methods.js";
 import { messageMethods } from "./pi-app/message-methods.js";
+import { runtimeStatusMethods } from "./pi-app/runtime-status-methods.js";
 import { sessionMethods } from "./pi-app/session-methods.js";
 import { workspaceMethods } from "./pi-app/workspace-methods.js";
 
@@ -138,6 +139,7 @@ class PiApp extends HTMLElement {
       if (this.running) this.send.disabled = false;
       else this.updatePrompt();
     }
+    this.syncLoadingMessage?.();
     if (!this.running) void this.loadRuntimeStatus?.();
   }
 
@@ -175,6 +177,7 @@ Object.assign(
   inputMethods,
   filePreviewMethods,
   layoutMethods,
+  runtimeStatusMethods,
 );
 
 if (!customElements.get("pi-app")) customElements.define("pi-app", PiApp);

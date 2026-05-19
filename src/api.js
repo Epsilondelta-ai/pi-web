@@ -76,6 +76,15 @@ export function getWorkspaceRuntimeStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-status`);
 }
 
+export function getWorkspaceRuntimeModel(workspaceId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-model`);
+}
+
+export function getWorkspaceRuntimeQuota(workspaceId, model = "") {
+  const query = model ? `?model=${encodeURIComponent(model)}` : "";
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-quota${query}`);
+}
+
 export function getWorkspaceFile(workspaceId, path) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`);
 }

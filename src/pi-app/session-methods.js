@@ -121,7 +121,9 @@ export const sessionMethods = {
     this.dataset.activeSessionId = session.id;
     this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
     const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
-    if (group && !group.querySelector(`[data-session='${session.id}']`)) group.append(this.createSessionRow(workspaceId, session));
+    if (group && !group.querySelector(`[data-session='${session.id}']`)) {
+      group.insertBefore(this.createSessionRow(workspaceId, session), group.querySelector(".new-session-row"));
+    }
     group?.querySelector(`[data-session='${session.id}']`)?.classList.add("active");
     const title = this.querySelector("[data-active-session-title]");
     if (title) {

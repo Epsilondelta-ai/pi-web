@@ -19,6 +19,7 @@ export const messageMethods = {
     this.termInner.querySelector(`.msg.streaming[data-kind='${msg.kind}']`)?.remove();
     this.termInner.append(this.messageNode(msg));
     if (msg.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(msg.text));
+    if (msg.kind !== "user") this.syncLoadingMessage();
     this.scrollTerm();
   },
 
@@ -64,6 +65,24 @@ export const messageMethods = {
 
   removeLoadingMessage() {
     this.termInner?.querySelector(".msg.loading")?.remove();
+  },
+
+  syncLoadingMessage() {
+    if (!this.running) {
+      this.removeLoadingMessage();
+      return;
+    }
+    if (this.hasActiveTranscriptItem()) {
+      this.removeLoadingMessage();
+      return;
+    }
+    this.appendLoadingMessage();
+  },
+
+  hasActiveTranscriptItem() {
+    const last = this.termInner?.lastElementChild;
+    const hasRunningTool = !!this.termInner?.querySelector(".tool-card[data-status='running']");
+    return !!last?.matches?.(".msg.streaming") || hasRunningTool;
   },
 
   finalizeStreamingMessages() {
@@ -147,6 +166,7 @@ export const messageMethods = {
     const card = document.createElement("div");
     card.className = `tool-card ${msg.collapsedByDefault ? "collapsed" : ""}`.trim();
     card.dataset.tool = msg.tool || "tool";
+    card.dataset.status = msg.status || "";
     const collapsed = !!msg.collapsedByDefault;
     card.innerHTML = `<button type="button" class="tc-head" aria-expanded="${!collapsed}" data-action="toggle-tool"><span class="tc-glyph">●</span><span class="tc-name"></span><span class="tc-args"></span><span class="tc-meta"></span></button><div class="tc-body"${collapsed || !msg.body ? " hidden" : ""}></div>`;
     card.querySelector(".tc-name").textContent = msg.tool || "tool";
@@ -178,5 +198,6 @@ export const messageMethods = {
     }
     const next = this.toolCard(msg);
     card.replaceWith(next);
+    this.syncLoadingMessage();
   },
 };
