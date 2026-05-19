@@ -843,7 +843,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   user-select: none;
 }
 .tree-head .branch { color: var(--accent); text-transform: none; letter-spacing: 0; font-size: var(--text-xs); }
-.tree-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.tree-list { flex: 1 1 auto; min-height: 120px; overflow-y: auto; padding: 4px 0; }
 .tree-node {
   display: grid;
   grid-template-columns: 14px 1fr auto;
@@ -857,7 +857,8 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   min-height: 24px;
   white-space: nowrap;
 }
-.tree-node:hover:not(:disabled) { background: var(--bg-3); }
+.tree-node:hover:not(:disabled),
+.tree-node.selected { background: var(--bg-3); }
 .tree-node:disabled { cursor: default; opacity: 1; }
 .tree-node .glyph { color: var(--fg-3); font-size: 11px; text-align: center; }
 .tree-node.dir .glyph { color: var(--fg-2); }
@@ -867,6 +868,52 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-node.modified::after { content: "M"; color: var(--warn); font-size: 10px; }
 .tree-node.added::after { content: "A"; color: var(--accent); font-size: 10px; }
 .tree-node.modified .glyph, .tree-node.added .glyph { color: inherit; }
+
+.file-preview {
+  flex: 0 0 42%;
+  min-height: 180px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.file-preview .fp-head {
+  flex-shrink: 0;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.file-preview .fp-path {
+  color: var(--fg-0);
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-preview small { color: var(--fg-3); font-size: 10px; }
+.file-preview .fp-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+}
+.file-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  color: var(--fg-1);
+}
+.file-preview img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
 
 .prompt-region {
   border-top: 1px solid var(--border);

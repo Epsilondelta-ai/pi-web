@@ -41,7 +41,7 @@ export function renderAnsiBody(text) {
 
 export function renderTree(nodes) {
   return nodes.map((node) => {
-    const open = !!node.open;
+    const open = false;
     const action = node.type === "dir" ? "toggle-tree-node" : "open-file";
     const expanded = node.type === "dir" ? ` aria-expanded="${open}"` : "";
     const cls = ["tree-node", node.type, node.status || ""].filter(Boolean).join(" ");

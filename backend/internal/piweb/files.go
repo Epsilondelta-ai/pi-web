@@ -1,7 +1,10 @@
 package piweb
 
 import (
+	"encoding/base64"
 	"errors"
+	"mime"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,7 +33,6 @@ func fileNodes(root, parent string, entries []os.DirEntry, depth, maxDepth int) 
 		node := FileNode{Name: name, Path: filepath.ToSlash(rel), Depth: depth}
 		if entry.IsDir() {
 			node.Type = "dir"
-			node.Open = depth == 0
 			if depth < maxDepth {
 				if children, err := os.ReadDir(path); err == nil {
 					node.Children = fileNodes(root, path, children, depth+1, maxDepth)
@@ -78,7 +80,46 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 	if truncated {
 		n = int(limit)
 	}
-	return FileContent{Path: filepath.ToSlash(filepath.Clean(rel)), Content: string(buf[:n]), Truncated: truncated}, nil
+	data := buf[:n]
+	mimeType := detectPreviewMIME(full, data)
+	previewKind := previewKindForMIME(mimeType)
+	content := ""
+	dataURL := ""
+	if previewKind == "text" {
+		content = string(data)
+	}
+	if previewKind == "image" && !truncated {
+		encoded := base64.StdEncoding.EncodeToString(data)
+		dataURL = "data:" + mimeType + ";base64," + encoded
+	}
+	if previewKind == "image" && truncated {
+		previewKind = "unsupported"
+	}
+	return FileContent{
+		Path:        filepath.ToSlash(filepath.Clean(rel)),
+		Content:     content,
+		DataURL:     dataURL,
+		MIME:        mimeType,
+		PreviewKind: previewKind,
+		Truncated:   truncated,
+	}, nil
+}
+
+func detectPreviewMIME(path string, data []byte) string {
+	if extType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path))); extType != "" {
+		return strings.Split(extType, ";")[0]
+	}
+	return http.DetectContentType(data)
+}
+
+func previewKindForMIME(mimeType string) string {
+	if strings.HasPrefix(mimeType, "text/") || mimeType == "application/json" || strings.HasSuffix(mimeType, "+xml") {
+		return "text"
+	}
+	if strings.HasPrefix(mimeType, "image/") {
+		return "image"
+	}
+	return "unsupported"
 }
 
 func SafeJoin(root, rel string) (string, error) {

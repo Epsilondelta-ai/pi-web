@@ -176,6 +176,7 @@ function toolStatus(msg) {
       <div class="tree-list">
         {fileTree.length > 0 ? <Fragment set:html={renderTree(fileTree)} /> : <div style="padding:8px 16px;color:var(--fg-4);font-size:11px;font-style:italic">file tree loads from backend.</div>}
       </div>
+      <div class="file-preview" data-file-preview hidden></div>
     </aside>
   <div class="prompt-region">
     <div class="slash-pop" hidden>
