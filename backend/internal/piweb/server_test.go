@@ -28,7 +28,7 @@ func TestHealthEndpoint(t *testing.T) {
 func TestServesStaticUI(t *testing.T) {
 	files := fstest.MapFS{
 		"index.html":    {Data: []byte("<html>app shell</html>")},
-		"_astro/app.js": {Data: []byte("console.log('app')")},
+		"assets/app.js": {Data: []byte("console.log('app')")},
 	}
 	server := NewServer(Config{StaticFiles: files}, NewMockStore(), NewBroker())
 
@@ -37,7 +37,7 @@ func TestServesStaticUI(t *testing.T) {
 		want string
 	}{
 		{path: "/", want: "app shell"},
-		{path: "/_astro/app.js", want: "console.log('app')"},
+		{path: "/assets/app.js", want: "console.log('app')"},
 		{path: "/workspaces/demo", want: "app shell"},
 	} {
 		t.Run(tc.path, func(t *testing.T) {

@@ -16,7 +16,7 @@ import (
 	"pi-web-ui/backend/internal/piweb"
 )
 
-//go:embed static
+//go:embed all:static
 var staticAssets embed.FS
 
 func main() {

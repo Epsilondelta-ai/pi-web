@@ -107,7 +107,7 @@ func fsFileExists(files fs.FS, name string) bool {
 }
 
 func staticFallbackToIndex(name string) bool {
-	return !strings.HasPrefix(name, "_astro/") && !strings.Contains(path.Base(name), ".")
+	return !strings.HasPrefix(name, "assets/") && !strings.Contains(path.Base(name), ".")
 }
 
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
