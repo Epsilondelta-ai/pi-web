@@ -23,7 +23,8 @@
     "backend:test": "go test ./...",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "bun run test && bun run backend:test && bun run build && bun run build-storybook"
+    "typecheck": "tsc --noEmit",
+    "check": "bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
   },
   "dependencies": {
     "astro": "6.3.3"
@@ -34,6 +35,7 @@
     "@testing-library/jest-dom": "6.9.1",
     "jsdom": "29.1.1",
     "storybook": "10.4.0",
+    "typescript": "6.0.3",
     "vitest": "4.1.6"
   }
 }

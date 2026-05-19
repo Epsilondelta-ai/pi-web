@@ -1,4 +1,4 @@
-import { getWorkspaceRuntimeModel, getWorkspaceRuntimeQuota, getWorkspaceRuntimeStatus } from "../api.js";
+import { getWorkspaceRuntimeModel, getWorkspaceRuntimeQuota, getWorkspaceRuntimeStatus } from "../api";
 
 export const runtimeStatusMethods = {
   async loadRuntimeStatus(workspaceId = this.dataset.activeWorkspaceId) {

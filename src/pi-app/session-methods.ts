@@ -1,6 +1,6 @@
-import { createSession, deleteSession as deleteSessionRequest, renameSession as renameSessionRequest } from "../api.js";
-import { escapeHtml } from "../renderers.js";
-import { clearStoredActiveSession, storeActiveSession } from "./session-storage.js";
+import { createSession, deleteSession as deleteSessionRequest, renameSession as renameSessionRequest } from "../api";
+import { escapeHtml } from "../renderers";
+import { clearStoredActiveSession, storeActiveSession } from "./session-storage";
 
 export const sessionMethods = {
   createSessionRow(workspaceId, session) {

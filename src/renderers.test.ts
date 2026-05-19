@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { describe, expect, it } from "vitest";
-import { renderBannerBody, renderPiBody, renderTree } from "./renderers.js";
+import { renderBannerBody, renderPiBody, renderTree } from "./renderers";
 
 describe("safe inline markup rendering", () => {
   it("escapes untrusted pi message html before restoring allowed tokens", () => {

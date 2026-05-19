@@ -7,18 +7,48 @@
   color: var(--fg-2);
   font-size: var(--text-xs);
 }
-.file-preview-modal textarea {
-  width: 100%;
+.file-preview-modal .fp-code-editor {
+  position: relative;
+  display: grid;
   min-height: 100%;
-  resize: none;
   border: 1px solid var(--border);
   border-radius: var(--radius-1);
   background: var(--bg-0);
-  color: var(--fg-1);
+  overflow: hidden;
+}
+.file-preview-modal .fp-highlight,
+.file-preview-modal textarea {
+  grid-area: 1 / 1;
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
   font: inherit;
   line-height: 1.5;
+  tab-size: 2;
   padding: 10px;
+  white-space: pre;
 }
+.file-preview-modal .fp-highlight {
+  overflow: hidden;
+  color: var(--fg-1);
+  pointer-events: none;
+}
+.file-preview-modal textarea {
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--fg-0);
+  outline: none;
+  overflow: auto;
+}
+.file-preview-modal textarea::selection { background: rgba(0, 255, 136, 0.24); }
+.file-preview-modal textarea:disabled { opacity: 1; cursor: text; }
+.syntax-comment { color: var(--fg-3); font-style: italic; }
+.syntax-string { color: var(--accent); }
+.syntax-keyword { color: var(--info); }
+.syntax-property { color: var(--warn); }
+.syntax-number { color: var(--danger); }
 .file-preview-modal img {
   display: block;
   max-width: 100%;

@@ -1,0 +1,10 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "types": ["astro/client", "vitest/globals", "@testing-library/jest-dom"],
+    "moduleResolution": "bundler",
+    "strict": false,
+    "noEmit": true
+  },
+  "include": [".storybook/**/*.ts", "src/**/*.astro", "src/**/*.ts", "astro.config.ts", "vitest.config.ts", "vitest.setup.ts"]
+}

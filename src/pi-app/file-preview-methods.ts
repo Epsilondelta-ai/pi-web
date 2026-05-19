@@ -1,4 +1,5 @@
-import { getWorkspaceFile, saveWorkspaceFile } from "../api.js";
+import { getWorkspaceFile, saveWorkspaceFile } from "../api";
+import { languageForFile, renderHighlightedCode } from "./file-highlight";
 
 export const filePreviewMethods = {
   async openFile(button) {
@@ -107,12 +108,36 @@ function isTextEditable(file) {
 }
 
 function textPreviewNode(file) {
+  const container = document.createElement("div");
+  container.className = "fp-code-editor";
+  container.dataset.language = languageForFile(file);
+
+  const highlight = document.createElement("pre");
+  highlight.className = "fp-highlight";
+  highlight.setAttribute("aria-hidden", "true");
+  const code = document.createElement("code");
+  highlight.append(code);
+
   const textarea = document.createElement("textarea");
   textarea.dataset.filePreviewEditor = "";
   textarea.spellcheck = false;
   textarea.value = `${file.content || ""}${file.truncated ? "\n\n[truncated]" : ""}`;
   textarea.disabled = !!file.truncated;
-  return textarea;
+  textarea.setAttribute("aria-label", `edit ${file.path || "file"}`);
+
+  const refreshHighlight = () => {
+    code.innerHTML = renderHighlightedCode(textarea.value, file);
+  };
+  const syncScroll = () => {
+    highlight.scrollTop = textarea.scrollTop;
+    highlight.scrollLeft = textarea.scrollLeft;
+  };
+  textarea.addEventListener("input", refreshHighlight);
+  textarea.addEventListener("scroll", syncScroll);
+  refreshHighlight();
+
+  container.append(highlight, textarea);
+  return container;
 }
 
 function imagePreviewNode(file) {

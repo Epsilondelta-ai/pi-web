@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import "./pi-app.js";
+import "./pi-app";
 
 const nativeEventSource = globalThis.EventSource;
 const nativeFetch = globalThis.fetch;

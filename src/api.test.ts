@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cancelSession,
@@ -21,7 +22,7 @@ import {
   saveWorkspaceFile,
   saveWorkspaceSettings,
   sessionEvents,
-} from "./api.js";
+} from "./api";
 
 describe("api adapter", () => {
   beforeEach(() => {

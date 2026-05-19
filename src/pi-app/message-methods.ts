@@ -1,5 +1,5 @@
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "../renderers.js";
-import { parseFallbackChoiceAnswer, parseFallbackChoices, stripFallbackChoices, streamVisibleChoiceText } from "./fallback-choices.js";
+import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "../renderers";
+import { parseFallbackChoiceAnswer, parseFallbackChoices, stripFallbackChoices, streamVisibleChoiceText } from "./fallback-choices";
 
 export const messageMethods = {
   renderMessages(messages) {

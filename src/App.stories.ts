@@ -1,5 +1,5 @@
 import App from "./App.astro";
-import { PI_DATA } from "../.storybook/pi-fixtures.js";
+import { PI_DATA } from "../.storybook/pi-fixtures";
 
 const meta = {
   title: "Pi Web/App",

@@ -1,5 +1,5 @@
-import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../api.js";
-import { fallbackChoicePrompt } from "./fallback-choices.js";
+import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../api";
+import { fallbackChoicePrompt } from "./fallback-choices";
 
 export const inputMethods = {
   async submitPrompt() {

@@ -1,14 +1,14 @@
-import { sessionEvents } from "./api.js";
-import { attachmentMethods } from "./pi-app/attachment-methods.js";
-import { SPINNER_FRAMES } from "./pi-app/constants.js";
-import { filePreviewMethods } from "./pi-app/file-preview-methods.js";
-import { inputMethods } from "./pi-app/input-methods.js";
-import { layoutMethods } from "./pi-app/layout-methods.js";
-import { messageMethods } from "./pi-app/message-methods.js";
-import { runtimeStatusMethods } from "./pi-app/runtime-status-methods.js";
-import { sessionMethods } from "./pi-app/session-methods.js";
-import { settingsMethods } from "./pi-app/settings-methods.js";
-import { workspaceMethods } from "./pi-app/workspace-methods.js";
+import { sessionEvents } from "./api";
+import { attachmentMethods } from "./pi-app/attachment-methods";
+import { SPINNER_FRAMES } from "./pi-app/constants";
+import { filePreviewMethods } from "./pi-app/file-preview-methods";
+import { inputMethods } from "./pi-app/input-methods";
+import { layoutMethods } from "./pi-app/layout-methods";
+import { messageMethods } from "./pi-app/message-methods";
+import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
+import { sessionMethods } from "./pi-app/session-methods";
+import { settingsMethods } from "./pi-app/settings-methods";
+import { workspaceMethods } from "./pi-app/workspace-methods";
 
 class PiApp extends HTMLElement {
   connectedCallback() {
@@ -65,7 +65,7 @@ class PiApp extends HTMLElement {
   }
 
   bind() {
-    this.addEventListener("click", (event) => this.click(event));
+    this.addEventListener("click", (event) => (this as any).click(event));
     this.querySelector("[data-path-form]")?.addEventListener("submit", (event) => this.submitWorkspacePath(event));
     this.querySelector("[data-clone-form]")?.addEventListener("submit", (event) => this.submitCloneWorkspace(event));
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
@@ -93,7 +93,7 @@ class PiApp extends HTMLElement {
     window.parent?.postMessage({ type: "__edit_mode_available" }, "*");
   }
 
-  connectEvents(sessionId, options = {}) {
+  connectEvents(sessionId: string, options: any = {}) {
     this.eventSource?.close();
     const eventStreamId = Symbol(sessionId);
     this.eventStreamId = eventStreamId;
@@ -170,7 +170,7 @@ class PiApp extends HTMLElement {
     if (!this.running) void this.loadRuntimeStatus?.();
   }
 
-  updatePromptMeta(status = {}) {
+  updatePromptMeta(status: any = {}) {
     const meta = this.querySelector("[data-prompt-meta]");
     if (!meta) return;
     this.runtimeStatus = {

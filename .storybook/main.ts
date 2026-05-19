@@ -1,5 +1,5 @@
 const config = {
-  stories: ["../src/**/*.stories.@(js|ts)"],
+  stories: ["../src/**/*.stories.ts"],
   addons: ["@storybook/addon-docs"],
   framework: {
     name: "@storybook-astro/framework",

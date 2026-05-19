@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { beforeEach, describe, expect, it } from "vitest";
-import "./pi-app.js";
+import "./pi-app";
 
 function renderApp() {
   document.body.innerHTML = `

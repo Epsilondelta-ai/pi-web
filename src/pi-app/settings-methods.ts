@@ -1,4 +1,4 @@
-import { getWorkspaceSettings, saveWorkspaceSettings } from "../api.js";
+import { getWorkspaceSettings, saveWorkspaceSettings } from "../api";
 
 const SETTINGS_FIELDS = [
   { path: "defaultModel", type: "text" },

@@ -8,9 +8,9 @@ import {
   getWorkspaces,
   listFolders,
   openWorkspace as openWorkspaceRequest,
-} from "../api.js";
-import { escapeHtml, renderTree } from "../renderers.js";
-import { readStoredActiveSession, storeActiveSession } from "./session-storage.js";
+} from "../api";
+import { escapeHtml, renderTree } from "../renderers";
+import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 
 function findStoredSession(workspaces, stored) {
   if (!stored?.sessionId) return undefined;

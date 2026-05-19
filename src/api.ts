@@ -7,7 +7,7 @@ function apiBase() {
   return "";
 }
 
-async function request(path, options = {}) {
+async function request(path: string, options: RequestInit = {}) {
   const response = await fetch(`${apiBase()}${path}`, {
     ...options,
     headers: {
@@ -151,14 +151,25 @@ export function steerSession(sessionId, text, attachments = []) {
   });
 }
 
-export function sessionEvents(sessionId, { onEvent, onOpen, onError, replay = true } = {}) {
+export function sessionEvents(sessionId: string, { onEvent, onOpen, onError, replay = true }: any = {}) {
   const replayQuery = replay ? "" : "?replay=false";
   const source = new EventSource(
     `${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/events${replayQuery}`,
   );
   source.onopen = () => onOpen?.();
   source.onerror = (event) => onError?.(event);
-  const types = ["session.message", "session.delta", "session.status", "session.renamed", "tool.started", "tool.output", "tool.finished", "workspace.files.changed", "error", "heartbeat"];
+  const types = [
+    "session.message",
+    "session.delta",
+    "session.status",
+    "session.renamed",
+    "tool.started",
+    "tool.output",
+    "tool.finished",
+    "workspace.files.changed",
+    "error",
+    "heartbeat",
+  ];
   for (const type of types) {
     source.addEventListener(type, (message) => {
       try {
