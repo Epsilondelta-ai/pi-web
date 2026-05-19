@@ -1,4 +1,26 @@
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap");
+@font-face {
+  font-family: "Fira Code";
+  src: url("/fonts/fira-code/FiraCode-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fira Code";
+  src: url("/fonts/fira-code/FiraCode-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Fira Code";
+  src: url("/fonts/fira-code/FiraCode-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --bg-0: #000000;          --bg-1: #0a0a0a;          --bg-2: #111111;          --bg-3: #1a1a1a;          --bg-4: #232323;          --border-dim: #1f1f1f;    --border:     #2a2a2a;    --border-hi:  #3a3a3a;    --border-focus: #00ff88;  --fg-0:  #f5f5f5;         --fg-1:  #d4d4d4;         --fg-2:  #8b8b8b;         --fg-3:  #5a5a5a;         --fg-4:  #3a3a3a;         --ansi-black:    #1a1a1a;
@@ -28,8 +50,8 @@
   --user-msg:      #82aaff;               --thinking:      #ff79c6;               --selection-bg: rgba(0, 255, 136, 0.22);
   --selection-fg: #ffffff;
 
-  --font-mono: "JetBrains Mono", "Monaspace Neon", "SF Mono",
-               "Cascadia Code", "Fira Code", "Menlo", "Consolas",
+  --font-mono: "Fira Code", "JetBrains Mono", "Monaspace Neon", "SF Mono",
+               "Cascadia Code", "Menlo", "Consolas",
                ui-monospace, monospace;
   --font-sans: var(--font-mono); --text-xs:   11px;   --text-sm:   12px;   --text-base: 14px;   --text-md:   15px;   --text-lg:   17px;   --text-xl:   20px;   --text-2xl:  26px;   --leading-tight:  1.2;
   --leading-normal: 1.4;   --leading-loose:  1.6;   --tracking-tight: -0.01em;
