@@ -8,7 +8,7 @@ import (
 
 const githubRepositorySlug = "Epsilondelta-ai/pi-web-ui"
 
-var version = "v1.0.0"
+var version = "v1.1.0"
 
 type rootDependencies struct {
 	stdout io.Writer
