@@ -9,6 +9,12 @@ html, body, #root {
   padding: 0;
 }
 
+:root { --app-viewport-height: 100vh; }
+
+@supports (height: 100dvh) {
+  :root { --app-viewport-height: 100dvh; }
+}
+
 body {
   background: var(--bg-0);
   color: var(--fg-1);
@@ -56,8 +62,9 @@ button.tc-head {
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  min-height: 100vh;
+  height: var(--app-viewport-height);
+  min-height: 0;
+  max-height: var(--app-viewport-height);
   background: var(--bg-1);
   position: relative;
   overflow: hidden;

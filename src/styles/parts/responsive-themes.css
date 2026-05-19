@@ -31,6 +31,7 @@
   .app-body.tree-open .tree { transform: translateX(0); }
   .app-body.tree-open .scrim { display: block; }
   .topbar .hamburger { display: inline-flex; }
+  .prompt-region { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
   .session-row { min-height: 44px; }
   .ws-row { min-height: 44px; }
   .recent-row { min-height: 56px; }

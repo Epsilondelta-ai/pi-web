@@ -32,6 +32,7 @@ class PiApp extends HTMLElement {
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
     this.runtimeStatus = {};
+    this.installViewportSizing();
     this.bindDomEvents();
     this.restoreSidebar();
     this.updatePrompt();
@@ -47,6 +48,25 @@ class PiApp extends HTMLElement {
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
+    this.uninstallViewportSizing?.();
+  }
+
+  installViewportSizing() {
+    const applyViewportHeight = () => {
+      const viewport = window.visualViewport;
+      const height = viewport?.height || window.innerHeight;
+      if (height > 0) this.style.setProperty("--app-viewport-height", `${height}px`);
+    };
+    const viewport = window.visualViewport;
+    applyViewportHeight();
+    window.addEventListener("resize", applyViewportHeight);
+    viewport?.addEventListener("resize", applyViewportHeight);
+    viewport?.addEventListener("scroll", applyViewportHeight);
+    this.uninstallViewportSizing = () => {
+      window.removeEventListener("resize", applyViewportHeight);
+      viewport?.removeEventListener("resize", applyViewportHeight);
+      viewport?.removeEventListener("scroll", applyViewportHeight);
+    };
   }
 
   startRuntimeStatusPolling() {
