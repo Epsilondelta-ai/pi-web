@@ -15,6 +15,7 @@ describe("pi-app runtime", () => {
           <button class="send-btn" disabled>send</button>
           <button class="attach-btn">attach</button>
           <input data-file-input type="file" />
+          <div class="prompt-meta" data-prompt-meta></div>
         </div>
       </pi-app>
     `;
@@ -29,6 +30,15 @@ describe("pi-app runtime", () => {
     prompt.dispatchEvent(new Event("input"));
     expect(app.querySelector(".send-btn").disabled).toBe(false);
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
+  });
+
+  it("renders the compact prompt status line", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("GPT-5.5 | 5h 🔋(84%) | Week 🪫(14%) |  main");
+    app.updatePromptMeta({ branch: "feature/ui" });
+    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("GPT-5.5 | 5h 🔋(84%) | Week 🪫(14%) |  feature/ui");
   });
 
   it("opens session actions from an ellipsis menu", async () => {

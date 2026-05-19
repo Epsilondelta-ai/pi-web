@@ -28,6 +28,7 @@ class PiApp extends HTMLElement {
     this.bind();
     this.restoreSidebar();
     this.updatePrompt();
+    this.updatePromptMeta();
     this.scrollTerm();
     this.startSpinners();
     this.bootstrapAPI();
@@ -124,16 +125,19 @@ class PiApp extends HTMLElement {
 
   setMode(mode) {
     this.running = ["running", "thinking"].includes(mode);
-    this.querySelectorAll(".context-strip .chip").forEach((chip) => {
-      if (chip.querySelector(".lbl")?.textContent === "mode") chip.querySelector(".val").textContent = mode;
-    });
-    const promptMode = this.querySelector(".prompt-meta .dim:nth-of-type(2)");
-    if (promptMode) promptMode.textContent = mode;
     if (this.send) {
       this.send.textContent = this.running ? "stop" : "send";
       if (this.running) this.send.disabled = false;
       else this.updatePrompt();
     }
+  }
+
+  updatePromptMeta({ branch } = {}) {
+    const meta = this.querySelector("[data-prompt-meta]");
+    if (!meta) return;
+    const gitBranch = branch || this.dataset.gitBranch || "main";
+    this.dataset.gitBranch = gitBranch;
+    meta.textContent = `GPT-5.5 | 5h 🔋(84%) | Week 🪫(14%) |  ${gitBranch}`;
   }
 }
 

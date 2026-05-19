@@ -41,6 +41,7 @@ export const workspaceMethods = {
       }
       const status = this.querySelector("[data-git-status]");
       if (status && git) status.textContent = `${git.branch} · ${git.dirty} ✱`;
+      if (git?.branch) this.updatePromptMeta({ branch: git.branch });
     } catch {}
   },
 
