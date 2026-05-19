@@ -117,6 +117,10 @@ export function getCodexQuotaFooterText(_width: number): string | undefined {
   return latestSnapshot ? formatQuotaSnapshot(latestSnapshot) : undefined;
 }
 
+export async function fetchCodexQuotaSnapshot(ctx: ExtensionContext): Promise<QuotaSnapshot> {
+  return fetchLiveSnapshot(ctx);
+}
+
 export function hasActiveCodexQuotaContext(): boolean {
   return Boolean(activeCtx && isCodexModel(activeCtx));
 }

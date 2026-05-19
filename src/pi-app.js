@@ -151,11 +151,17 @@ class PiApp extends HTMLElement {
     };
     const model = this.runtimeStatus.model || "—";
     const currentBranch = this.runtimeStatus.currentBranch || "—";
-    meta.textContent = `${model} | ${this.quotaLabel("5h", this.runtimeStatus.fiveHourQuota)} | ${this.quotaLabel("Week", this.runtimeStatus.weeklyQuota)} |  ${currentBranch}`;
+    const parts = [model];
+    const fiveHour = this.quotaLabel("5h", this.runtimeStatus.fiveHourQuota);
+    const weekly = this.quotaLabel("Week", this.runtimeStatus.weeklyQuota);
+    if (fiveHour) parts.push(fiveHour);
+    if (weekly) parts.push(weekly);
+    parts.push(` ${currentBranch}`);
+    meta.textContent = parts.join(" | ");
   }
 
   quotaLabel(label, quota) {
-    if (!Number.isFinite(quota)) return `${label} 🪫(—)`;
+    if (!Number.isFinite(quota)) return undefined;
     const percent = Math.max(0, Math.min(100, Math.round(quota)));
     return `${label} ${percent > 20 ? "🔋" : "🪫"}(${percent}%)`;
   }

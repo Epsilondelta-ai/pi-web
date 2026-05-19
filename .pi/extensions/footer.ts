@@ -4,12 +4,15 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 
 import { getQuotaFooterText, registerQuota } from "./src/quota";
+import { persistWebStatus } from "./src/web-status";
 
 export default function (pi: ExtensionAPI): void {
   registerQuota(pi, setModelQuotaFooter);
 }
 
 function setModelQuotaFooter(ctx: ExtensionContext): void {
+  const model = getModelDisplayName(ctx);
+  void persistWebStatus(ctx, { model, quotaText: getQuotaFooterText(200) });
   if (!ctx.hasUI) return;
 
   ctx.ui.setFooter((tui, theme, footerData) => {
@@ -19,9 +22,11 @@ function setModelQuotaFooter(ctx: ExtensionContext): void {
       dispose: unsubscribeFromBranchChange,
       invalidate() {},
       render(width: number): string[] {
+        const quotaText = getQuotaFooterText(width);
+        void persistWebStatus(ctx, { model, quotaText });
         const parts = [
-          getModelDisplayName(ctx),
-          getQuotaFooterText(width),
+          model,
+          quotaText,
           getGitBranchText(footerData),
         ].filter(Boolean);
         return [theme.fg("accent", truncateToWidth(parts.join(" | "), width))];

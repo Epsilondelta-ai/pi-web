@@ -17,6 +17,34 @@ func TestParseStateModelRPCLineUsesDisplayName(t *testing.T) {
 	}
 }
 
+func TestParseRPCSuccessLine(t *testing.T) {
+	matched, err := parseRPCSuccessLine(`{"id":"web-status","type":"response","command":"prompt","success":true}`, "web-status", "prompt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !matched {
+		t.Fatal("expected matching response")
+	}
+}
+
+func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
+	primary := &quotaUsageWindow{UsedPercent: float64(16)}
+	if got := remainingFromWindow(primary); got == nil || *got != 84 {
+		t.Fatalf("expected codex remaining 84, got %v", got)
+	}
+	kimi := &kimiUsagePayload{Limits: []kimiLimit{{Label: "5h", UsedPercent: float64(80)}, {Label: "week", UsedPercent: float64(86)}}}
+	if got := kimiWindow(kimi, "5H:"); got == nil || *got != 20 {
+		t.Fatalf("expected kimi 5h remaining 20, got %v", got)
+	}
+	if got := kimiWindow(kimi, "7D:"); got == nil || *got != 14 {
+		t.Fatalf("expected kimi weekly remaining 14, got %v", got)
+	}
+	zai := &zaiQuotaPayload{Limits: []zaiLimit{{Type: "TOKENS_LIMIT", Percentage: float64(10)}, {Type: "WEEKLY", Percentage: float64(90)}}}
+	if got := zaiWindow(zai, "7D:"); got == nil || *got != 10 {
+		t.Fatalf("expected zai weekly remaining 10, got %v", got)
+	}
+}
+
 func TestRuntimeQuotaLoadsProjectFileAndClamps(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {

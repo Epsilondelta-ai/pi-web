@@ -50,11 +50,14 @@ describe("pi-app runtime", () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
     app.connectedCallback();
-    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("— | 5h 🪫(—) | Week 🪫(—) |  —");
+    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("— |  —");
     app.updatePromptMeta({ model: "GPT-5.5", fiveHourQuota: 84, weeklyQuota: 14, currentBranch: "feature/ui" });
     expect(app.querySelector("[data-prompt-meta]").textContent).toBe("GPT-5.5 | 5h 🔋(84%) | Week 🪫(14%) |  feature/ui");
     app.updatePromptMeta({ fiveHourQuota: 20, weeklyQuota: 21 });
     expect(app.querySelector("[data-prompt-meta]").textContent).toBe("GPT-5.5 | 5h 🪫(20%) | Week 🔋(21%) |  feature/ui");
+    app.runtimeStatus = {};
+    app.updatePromptMeta({ model: "Claude", currentBranch: "main" });
+    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("Claude |  main");
   });
 
   it("opens session actions from an ellipsis menu", async () => {
