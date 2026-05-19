@@ -58,7 +58,7 @@
   left: var(--space-3);
   right: 120px;
   bottom: calc(100% + 4px);
-  max-width: 460px;
+  max-width: 640px;
   background: var(--bg-2);
   border: 1px solid var(--border-hi);
   box-shadow: var(--shadow-modal);
@@ -79,7 +79,7 @@
 }
 .slash-item {
   display: grid;
-  grid-template-columns: 90px 1fr;
+  grid-template-columns: minmax(120px, .8fr) auto minmax(0, 1.4fr);
   gap: 10px;
   padding: 6px var(--space-3);
   cursor: pointer;
@@ -87,6 +87,10 @@
   align-items: baseline;
 }
 .slash-item.selected { background: var(--bg-4); }
-.slash-item .sl-cmd { color: var(--accent); font-family: var(--font-mono); }
+.slash-item .sl-cmd { color: var(--accent); font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slash-item .sl-tags { display: inline-flex; gap: 4px; align-items: center; }
+.slash-item .sl-scope,
+.slash-item .sl-source { border: 1px solid var(--border); color: var(--fg-3); font-size: 10px; padding: 1px 5px; text-transform: uppercase; }
+.slash-item .sl-scope { color: var(--tool-call); }
 .slash-item .sl-desc { color: var(--fg-2); font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slash-empty { padding: 10px var(--space-3); color: var(--fg-3); font-size: var(--text-sm); }

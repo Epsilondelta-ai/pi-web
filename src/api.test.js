@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cancelSession, cloneWorkspace, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceFile, getWorkspaces, listFolders, postPrompt, renameSession, runShellCommand, saveWorkspaceFile, sessionEvents } from "./api.js";
+import { cancelSession, cloneWorkspace, createSession, deleteSession, deleteWorkspace, getSession, getWorkspaceCommands, getWorkspaceFile, getWorkspaces, listFolders, postPrompt, renameSession, runShellCommand, saveWorkspaceFile, sessionEvents } from "./api.js";
 
 describe("api adapter", () => {
   beforeEach(() => {
@@ -51,6 +51,11 @@ describe("api adapter", () => {
     const renamed = await renameSession("s1", "next");
     expect(renamed.options.method).toBe("PATCH");
     expect(JSON.parse(renamed.options.body)).toEqual({ title: "next" });
+  });
+
+  it("fetches workspace slash commands", async () => {
+    const result = await getWorkspaceCommands("w1");
+    expect(result.url).toBe("http://backend.test/api/workspaces/w1/commands");
   });
 
   it("reads and saves workspace files", async () => {

@@ -9,7 +9,7 @@ describe("pi-app runtime", () => {
         <section class="app-body with-tree" data-view="workspace"><div class="sidebar-wrap"></div><main><div class="term-inner"></div></main><aside class="tree"></aside></section>
         <button class="sb-expand-btn"></button>
         <div class="prompt-region">
-          <div class="slash-pop" hidden><button class="slash-item selected" data-slash="/model">/model</button></div>
+          <div class="slash-pop" hidden><div class="slash-list"><button class="slash-item selected" data-slash="/model">/model</button></div></div>
           <div class="attach-chips" hidden></div>
           <textarea class="prompt-textarea"></textarea>
           <button class="send-btn" disabled>send</button>
@@ -30,6 +30,20 @@ describe("pi-app runtime", () => {
     prompt.dispatchEvent(new Event("input"));
     expect(app.querySelector(".send-btn").disabled).toBe(false);
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
+  });
+
+  it("renders global and project slash commands", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderSlashCommands([
+      { command: "/team", description: "global team", source: "extension", scope: "global" },
+      { command: "/review", description: "project review", source: "prompt", scope: "project" },
+    ]);
+    const items = [...app.querySelectorAll(".slash-item")];
+    expect(items.map((item) => item.dataset.slash)).toEqual(["/team", "/review"]);
+    expect(items[0].querySelector(".sl-scope").textContent).toBe("global");
+    expect(items[1].querySelector(".sl-scope").textContent).toBe("project");
   });
 
   it("renders the compact prompt status line", async () => {

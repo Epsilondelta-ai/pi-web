@@ -164,6 +164,35 @@ export const inputMethods = {
     this.prompt.focus();
   },
 
+  renderSlashCommands(commands = []) {
+    const list = this.querySelector(".slash-list");
+    if (!list) return;
+    list.replaceChildren();
+    for (const command of commands) {
+      const name = command.command || command.cmd || `/${command.name}`;
+      if (!name || name === "/undefined") continue;
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "slash-item";
+      item.dataset.slash = name;
+      const scope = command.scope || command.location || "global";
+      const source = command.source || "command";
+      item.innerHTML = `<span class="sl-cmd"></span><span class="sl-tags"><span class="sl-scope"></span><span class="sl-source"></span></span><span class="sl-desc"></span>`;
+      item.querySelector(".sl-cmd").textContent = name;
+      item.querySelector(".sl-scope").textContent = scope;
+      item.querySelector(".sl-source").textContent = source;
+      item.querySelector(".sl-desc").textContent = command.description || command.desc || "";
+      list.append(item);
+    }
+    if (!list.children.length) {
+      const empty = document.createElement("div");
+      empty.className = "slash-empty";
+      empty.textContent = "no slash commands found";
+      list.append(empty);
+    }
+    this.filterSlash();
+  },
+
   filterSlash(value = this.prompt?.value || "") {
     const query = value.replace(/^\//, "").toLowerCase();
     const items = [...this.querySelectorAll(".slash-item")];

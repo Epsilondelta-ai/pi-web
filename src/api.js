@@ -68,6 +68,10 @@ export function getWorkspaceFiles(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files`);
 }
 
+export function getWorkspaceCommands(workspaceId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/commands`);
+}
+
 export function getWorkspaceFile(workspaceId, path) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`);
 }

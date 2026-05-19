@@ -181,7 +181,10 @@ function toolStatus(msg) {
   <div class="prompt-region">
     <div class="slash-pop" hidden>
       <div class="slash-head">slash commands · type to filter</div>
-      <div class="slash-list">{slashCommands.map((cmd, index) => <button type="button" class:list={["slash-item", index === 0 && "selected"]} data-slash={cmd.cmd}><span class="sl-cmd">{cmd.cmd}</span><span class="sl-desc">{cmd.desc}</span></button>)}</div>
+      <div class="slash-list">{slashCommands.map((cmd, index) => {
+        const command = cmd.command || cmd.cmd || `/${cmd.name}`;
+        return <button type="button" class:list={["slash-item", index === 0 && "selected"]} data-slash={command}><span class="sl-cmd">{command}</span><span class="sl-tags"><span class="sl-scope">{cmd.scope || "global"}</span><span class="sl-source">{cmd.source || "command"}</span></span><span class="sl-desc">{cmd.description || cmd.desc}</span></button>;
+      })}</div>
     </div>
     <div class="prompt-bar">
       <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5 6 10a2 2 0 1 0 2.8 2.8l5.7-5.7a3.5 3.5 0 0 0-5-5L3.7 7.9a5 5 0 1 0 7 7l4.8-4.8"></path></svg></button>

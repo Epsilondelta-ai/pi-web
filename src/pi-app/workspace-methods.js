@@ -1,4 +1,4 @@
-import { cloneWorkspace as cloneWorkspaceRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceFiles, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
+import { cloneWorkspace as cloneWorkspaceRequest, deleteWorkspace as deleteWorkspaceRequest, getGitStatus, getSession, getWorkspaceCommands, getWorkspaceFiles, getWorkspaces, listFolders, openWorkspace as openWorkspaceRequest } from "../api.js";
 import { escapeHtml, renderTree } from "../renderers.js";
 
 export const workspaceMethods = {
@@ -24,7 +24,10 @@ export const workspaceMethods = {
       }
       this.renderWorkspaces(workspaces || []);
       if (this.dataset.route === "picker") await this.browseFolder();
-      if (activeWorkspace) await this.loadWorkspaceMeta(activeWorkspace.id);
+      if (activeWorkspace) {
+        void this.loadWorkspaceCommands(activeWorkspace.id);
+        await this.loadWorkspaceMeta(activeWorkspace.id);
+      }
       if (activeSession) await this.loadSession(activeSession.id);
     } catch {
       this.apiConnected = false;
@@ -42,6 +45,13 @@ export const workspaceMethods = {
       const status = this.querySelector("[data-git-status]");
       if (status && git) status.textContent = `${git.branch} · ${git.dirty} ✱`;
       if (git?.branch) this.updatePromptMeta({ branch: git.branch });
+    } catch {}
+  },
+
+  async loadWorkspaceCommands(workspaceId) {
+    try {
+      const { commands } = await getWorkspaceCommands(workspaceId);
+      this.renderSlashCommands(commands || []);
     } catch {}
   },
 
@@ -243,6 +253,7 @@ export const workspaceMethods = {
     const workspaceName = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent || workspaceId;
     const activeWorkspace = this.querySelector("[data-active-workspace]");
     if (activeWorkspace) activeWorkspace.textContent = workspaceName;
+    void this.loadWorkspaceCommands(workspaceId);
     await this.loadWorkspaceMeta(workspaceId);
     this.route("workspace");
   },

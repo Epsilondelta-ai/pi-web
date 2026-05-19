@@ -173,11 +173,10 @@ const CONVERSATION = [
 ];
 
 const SLASH_COMMANDS = [
-  { cmd: "/tree", desc: "show file tree" },
-  { cmd: "/compact", desc: "summarize older context" },
-  { cmd: "/model", desc: "switch model" },
-  { cmd: "/skill", desc: "load a skill" },
-  { cmd: "/exit", desc: "end session" },
+  { command: "/review", description: "Review staged git changes", source: "prompt", scope: "project" },
+  { command: "/skill:init-project", description: "Use when creating a new project", source: "skill", scope: "project" },
+  { command: "/team", description: "Coordinate a team of agents", source: "extension", scope: "global" },
+  { command: "/websearch", description: "Open web search curator", source: "extension", scope: "global" },
 ];
 
 const MODEL_OPTIONS = [

@@ -97,6 +97,19 @@ func TestWorkspaceAndSessionManagementEndpoints(t *testing.T) {
 	}
 }
 
+func TestWorkspaceCommandsEndpointUsesMockCommandsWhenPiDisabled(t *testing.T) {
+	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/commands", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"command":"/review"`) || !strings.Contains(res.Body.String(), `"scope":"project"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
 func TestCreateSessionEndpoint(t *testing.T) {
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
 	store := NewMockStore()
