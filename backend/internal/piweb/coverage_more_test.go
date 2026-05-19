@@ -636,6 +636,136 @@ done
 	}
 }
 
+func TestCoverageRemainingEasyBranches(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "dir"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadWorkspaceFile(root, "dir", 0); err == nil {
+		t.Fatal("expected read directory error")
+	}
+	if err := os.WriteFile(filepath.Join(root, "text.txt"), []byte("hello"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if file, err := ReadWorkspaceFile(root, "text.txt", 0); err != nil || file.Content != "hello" {
+		t.Fatalf("default limit read=%+v err=%v", file, err)
+	}
+	if _, err := WriteWorkspaceFile(root, "../x", "x"); err == nil {
+		t.Fatal("expected write traversal error")
+	}
+	if _, err := WriteWorkspaceFile(root, "missing", "x"); err == nil {
+		t.Fatal("expected write missing error")
+	}
+	if _, err := WriteWorkspaceFile(root, "dir", "x"); err == nil {
+		t.Fatal("expected write dir error")
+	}
+	readonly := filepath.Join(root, "readonly.txt")
+	if err := os.WriteFile(readonly, []byte("x"), 0o400); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = WriteWorkspaceFile(root, "readonly.txt", "x")
+	fakeGit := filepath.Join(t.TempDir(), "bin")
+	if err := os.Mkdir(fakeGit, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(fakeGit, "git"), []byte("#!/bin/sh\nif [ \"$3\" = branch ]; then exit 1; fi\nif [ \"$3\" = status ]; then exit 2; fi\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	oldPath := os.Getenv("PATH")
+	t.Setenv("PATH", fakeGit+string(os.PathListSeparator)+oldPath)
+	if _, err := RealGitStatus(root); err == nil {
+		t.Fatal("expected branch error")
+	}
+	if err := os.WriteFile(filepath.Join(fakeGit, "git"), []byte("#!/bin/sh\nif [ \"$3\" = branch ]; then exit 0; fi\nif [ \"$3\" = status ]; then exit 2; fi\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := RealGitStatus(root); err == nil {
+		t.Fatal("expected status error")
+	}
+	if err := os.WriteFile(filepath.Join(fakeGit, "git"), []byte("#!/bin/sh\nif [ \"$3\" = branch ]; then exit 0; fi\nif [ \"$3\" = status ]; then echo ' M x'; fi\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if status, err := RealGitStatus(root); err != nil || status.Branch != "HEAD" || status.Dirty != 1 {
+		t.Fatalf("expected HEAD dirty status=%+v err=%v", status, err)
+	}
+
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if expanded, err := ExpandUserPath("~"); err != nil || expanded != home {
+		t.Fatalf("expand ~= %q err=%v", expanded, err)
+	}
+	if expanded, err := ExpandUserPath("~/child"); err != nil || expanded != filepath.Join(home, "child") {
+		t.Fatalf("expand child= %q err=%v", expanded, err)
+	}
+	filePath := filepath.Join(root, "file")
+	if err := os.WriteFile(filePath, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ListFolders(filePath); err == nil {
+		t.Fatal("expected file not dir")
+	}
+	if err := os.Mkdir(filepath.Join(root, ".hidden"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(root, ".config"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if listing, err := ListFolders(root); err != nil || listing.Path != root || len(listing.Folders) == 0 {
+		t.Fatalf("listing=%+v err=%v", listing, err)
+	}
+	if _, err := ListFolders(filepath.Join(root, "missing")); err == nil {
+		t.Fatal("expected missing list error")
+	}
+
+	for _, raw := range []string{
+		`bad`,
+		`{"type":"message","message":{"role":"unknown","content":"x"}}`,
+		`{"type":"message","message":bad}`,
+		`{"type":"message","message":{"role":"bashExecution","cancelled":true,"output":"cancel"}}`,
+		`{"type":"message","message":{"role":"assistant","content":"plain"}}`,
+		`{"type":"message","message":{"role":"assistant","content":null}}`,
+		`{"type":"message","message":{"role":"user","content":[{"type":"image","data":"data:image/png;base64,abc"},{"type":"image","data":""},{"type":"text","text":"text"}]}}`,
+	} {
+		_ = ParsePiSessionLineMessages(raw)
+	}
+	if imageDataURL("data:image/png;base64,abc", "image/png") != "data:image/png;base64,abc" {
+		t.Fatal("image data URL preserve failed")
+	}
+	if contentText(json.RawMessage(`{"x":1}`)) != `{"x":1}` {
+		t.Fatal("raw contentText failed")
+	}
+
+	if got, ok := kimiUsedPercent(&kimiLimit{Details: &kimiLimit{UsedPercentage: 50}}); !ok || got != 50 {
+		t.Fatalf("unexpected kimi details percent %v %v", got, ok)
+	}
+	if _, ok := kimiUsedPercent(nil); ok {
+		t.Fatal("expected nil kimi percent false")
+	}
+	if _, ok := kimiUsedPercent(&kimiLimit{Limit: 0, Used: 1}); ok {
+		t.Fatal("expected bad limit false")
+	}
+	if got := remainingFromUsedPercent(150, true); got == nil || *got != 0 {
+		t.Fatalf("remaining clamp=%v", got)
+	}
+	if remainingFromUsedPercent(0, false) != nil {
+		t.Fatal("expected nil remaining from false")
+	}
+	t.Setenv("PI_WEB_5H_QUOTA", "bad")
+	if quotaFromEnv("PI_WEB_5H_QUOTA") != nil {
+		t.Fatal("expected bad env nil")
+	}
+
+	oldHome := os.Getenv("HOME")
+	t.Setenv("HOME", filepath.Join(t.TempDir(), "missing"))
+	if five, weekly := fetchCodexQuota(context.Background()); five != nil || weekly != nil {
+		t.Fatal("expected codex missing auth nil")
+	}
+	if five, weekly := fetchKimiCodeQuota(context.Background()); five != nil || weekly != nil {
+		t.Fatal("expected kimi missing token nil")
+	}
+	t.Setenv("HOME", oldHome)
+}
+
 func TestCoverageRuntimeQuotaHTTPFilesAndSessions(t *testing.T) {
 	root := t.TempDir()
 	if output, err := exec.Command("git", "-C", root, "init", "-b", "main").CombinedOutput(); err != nil {
@@ -847,7 +977,49 @@ done
 	if err != nil || model != "GPT-Test" {
 		t.Fatalf("model=%q err=%v", model, err)
 	}
+	for _, tc := range []struct {
+		name   string
+		script string
+		want   string
+	}{
+		{name: "stderr", script: "#!/bin/sh\ncat >/dev/null\necho boom >&2\nsleep 0.1\n", want: "boom"},
+		{name: "no-response", script: "#!/bin/sh\ncat >/dev/null\n", want: "no response"},
+		{name: "scanner", script: "#!/bin/sh\ncat >/dev/null\npython3 - <<'PY'\nprint('x' * (9*1024*1024))\nPY\n", want: "token too long"},
+	} {
+		t.Run("commands "+tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeFakePi(t, dir, tc.script)
+			_, err := ListPiCommands(context.Background(), root)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("expected %q error, got %v", tc.want, err)
+			}
+		})
+	}
+	for _, tc := range []struct {
+		name   string
+		script string
+		want   string
+	}{
+		{name: "stderr", script: "#!/bin/sh\ncat >/dev/null\necho boom >&2\nsleep 0.1\n", want: "boom"},
+		{name: "no-response", script: "#!/bin/sh\ncat >/dev/null\n", want: "no response"},
+		{name: "scanner", script: "#!/bin/sh\ncat >/dev/null\npython3 - <<'PY'\nprint('x' * (3*1024*1024))\nPY\n", want: "token too long"},
+	} {
+		t.Run("model "+tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			writeFakePi(t, dir, tc.script)
+			_, err := CurrentPiModel(context.Background(), root)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("expected %q error, got %v", tc.want, err)
+			}
+		})
+	}
 
+	if _, matched, err := parseCommandsRPCLine(`bad`); matched || err != nil {
+		t.Fatal("expected invalid command line to be ignored")
+	}
+	if _, matched, err := parseCommandsRPCLine(`{"id":"other","type":"response","command":"get_commands"}`); matched || err != nil {
+		t.Fatal("expected unmatched command line to be ignored")
+	}
 	if _, matched, err := parseCommandsRPCLine(`{"id":"commands","type":"response","command":"get_commands","success":false}`); !matched || err == nil {
 		t.Fatal("expected commands error")
 	}
