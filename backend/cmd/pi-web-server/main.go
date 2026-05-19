@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 )
@@ -10,10 +11,23 @@ import (
 //go:embed all:static
 var staticAssets embed.FS
 
+type rootCommandExecutor interface {
+	Execute() error
+}
+
+var (
+	newRootCommandForMain = func(deps rootDependencies) rootCommandExecutor {
+		return newRootCommand(deps)
+	}
+	defaultRootDependenciesForMain           = defaultRootDependencies
+	stderrForMain                  io.Writer = os.Stderr
+	exitForMain                              = os.Exit
+)
+
 func main() {
-	if err := newRootCommand(defaultRootDependencies()).Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	if err := newRootCommandForMain(defaultRootDependenciesForMain()).Execute(); err != nil {
+		fmt.Fprintln(stderrForMain, err)
+		exitForMain(1)
 	}
 }
 
@@ -27,7 +41,11 @@ func defaultRootDependencies() rootDependencies {
 }
 
 func staticFiles() fs.FS {
-	files, err := fs.Sub(staticAssets, "static")
+	return mustSub(staticAssets, "static")
+}
+
+func mustSub(fsys fs.FS, dir string) fs.FS {
+	files, err := fs.Sub(fsys, dir)
 	if err != nil {
 		panic(err)
 	}
