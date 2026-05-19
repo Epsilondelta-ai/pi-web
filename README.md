@@ -18,7 +18,10 @@ Run after installation:
 
 ```bash
 pi-web
-# Open http://127.0.0.1:8732
+# Listens on 0.0.0.0:8732. Open http://127.0.0.1:8732
+
+pi-web --port 9999
+# Open http://127.0.0.1:9999
 ```
 
 Update the installed single binary:

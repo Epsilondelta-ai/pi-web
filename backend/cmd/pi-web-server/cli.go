@@ -29,7 +29,7 @@ type updateOptions struct {
 }
 
 func newRootCommand(deps rootDependencies) *cobra.Command {
-	options := serverOptions{Host: "127.0.0.1", Port: "8732"}
+	options := serverOptions{Host: "0.0.0.0", Port: "8732"}
 
 	cmd := &cobra.Command{
 		Use:           "pi-web",

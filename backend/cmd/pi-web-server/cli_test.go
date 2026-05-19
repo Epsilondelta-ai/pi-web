@@ -29,7 +29,7 @@ func TestRootCommandRunsServerWithDefaults(t *testing.T) {
 		t.Fatalf("execute root command: %v", err)
 	}
 
-	if got.Host != "127.0.0.1" || got.Port != "8732" || got.Mock {
+	if got.Host != "0.0.0.0" || got.Port != "8732" || got.Mock {
 		t.Fatalf("unexpected server options: %+v", got)
 	}
 }
