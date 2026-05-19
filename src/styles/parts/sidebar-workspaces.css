@@ -43,11 +43,12 @@
   white-space: nowrap;
 }
 .sidebar .sb-head .count { color: var(--fg-4); }
-.sidebar .sb-head .add {
+.sidebar .sb-head .add,
+.sidebar .sb-head .refresh {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 26px;
+  height: 26px;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-1);
@@ -59,7 +60,18 @@
   text-transform: uppercase;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
 }
-.sidebar .sb-head .add:hover { color: var(--ansi-bright-green); border-color: var(--accent); background: var(--bg-3); }
+.sidebar .sb-head .refresh {
+  width: 26px;
+  padding: 0;
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+.sidebar .sb-head .add:hover,
+.sidebar .sb-head .refresh:hover {
+  color: var(--ansi-bright-green);
+  border-color: var(--accent);
+  background: var(--bg-3);
+}
 
 .workspace-shell {
   position: relative;
@@ -215,6 +227,8 @@
 .row-action:hover { color: var(--accent); border-color: var(--accent); }
 .row-action.danger:hover { color: var(--danger); border-color: var(--danger); }
 
+button.session-row.clear-sessions-row,
+.clear-sessions-row,
 button.session-row.new-session-row,
 .new-session-row {
   display: flex;
@@ -233,4 +247,14 @@ button.session-row.new-session-row:hover,
 .new-session-row:hover {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
+}
+button.session-row.clear-sessions-row,
+.clear-sessions-row {
+  color: var(--danger);
+  margin-bottom: 0;
+}
+button.session-row.clear-sessions-row:hover,
+.clear-sessions-row:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg-3));
 }

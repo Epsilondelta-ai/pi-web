@@ -97,6 +97,23 @@ export const workspaceBootstrapMethods = {
     } catch {}
   },
 
+  async refreshWorkspaces() {
+    if (!this.apiConnected) return;
+    const button = this.querySelector("[data-action='refresh-workspaces']");
+    if (button) button.disabled = true;
+    try {
+      const { workspaces } = await getWorkspaces();
+      const workspaceList = workspaces || [];
+      const activeWorkspaceId = this.dataset.activeWorkspaceId;
+      this.renderWorkspaces(workspaceList);
+      if (activeWorkspaceId) this.openActiveWorkspaceGroup(activeWorkspaceId);
+    } catch {
+      this.setConnection("err");
+    } finally {
+      if (button) button.disabled = false;
+    }
+  },
+
   async refreshTree() {
     const workspaceId = this.dataset.activeWorkspaceId;
     if (!workspaceId || !this.apiConnected) return;

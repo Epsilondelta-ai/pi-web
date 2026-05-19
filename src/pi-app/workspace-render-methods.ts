@@ -85,7 +85,18 @@ export const workspaceRenderMethods = {
     group.querySelector(".dot").classList.toggle("live", !!workspace.live);
     const sessions = group.querySelector(".sessions");
     for (const session of workspace.sessions || []) sessions.append(this.createSessionRow(workspace.id, session));
+    if ((workspace.sessions || []).length > 0) sessions.append(this.createDeleteWorkspaceSessionsRow(workspace.id));
     sessions.append(this.createNewSessionRow(workspace.id));
+  },
+
+  createDeleteWorkspaceSessionsRow(workspaceId) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "session-row clear-sessions-row";
+    row.dataset.action = "delete-workspace-sessions";
+    row.dataset.workspace = workspaceId;
+    row.innerHTML = `<span class="title">delete all sessions</span>`;
+    return row;
   },
 
   createNewSessionRow(workspaceId) {

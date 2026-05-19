@@ -89,6 +89,14 @@ func (s *Server) workspaceSessions(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"sessions": sessions})
 }
+func (s *Server) deleteWorkspaceSessions(w http.ResponseWriter, r *http.Request) {
+	deletedCount, err := s.store.DeleteWorkspaceSessions(r.PathValue("workspaceID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"deletedCount": deletedCount, "sessions": []Session{}})
+}
 func (s *Server) workspaceFiles(w http.ResponseWriter, r *http.Request) {
 	files, err := s.store.Files(r.PathValue("workspaceID"))
 	if err != nil {

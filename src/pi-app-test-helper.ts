@@ -28,6 +28,23 @@ export function installPiAppFixture() {
       <section data-view="picker" hidden></section>
       <section class="app-body with-tree" data-view="workspace">
         <div class="sidebar-wrap">
+          <aside class="sidebar">
+            <div class="sb-section">
+              <div class="sb-head">
+                <span>workspaces</span>
+                <span class="sb-head-actions">
+                  <button class="add" type="button" data-action="route-picker">+ open</button>
+                  <button
+                    class="refresh"
+                    type="button"
+                    data-action="refresh-workspaces"
+                    title="refresh workspaces"
+                    aria-label="refresh workspaces"
+                  >↻</button>
+                </span>
+              </div>
+            </div>
+          </aside>
           <div class="sb-footer">
             <button class="update-release" type="button" data-action="show-update-tip" hidden>
               New Version Released!

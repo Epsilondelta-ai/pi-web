@@ -8,14 +8,15 @@ import (
 )
 
 type Store struct {
-	mu            sync.RWMutex
-	workspaces    []Workspace
-	files         map[string][]FileNode
-	conversations map[string][]Message
-	workspacePath map[string]string
-	sessionFiles  map[string]string
-	sessionCWD    map[string]string
-	dbPath        string
+	mu                sync.RWMutex
+	workspaces        []Workspace
+	files             map[string][]FileNode
+	conversations     map[string][]Message
+	workspacePath     map[string]string
+	sessionFiles      map[string]string
+	sessionCWD        map[string]string
+	sessionDirModTime map[string]time.Time
+	dbPath            string
 }
 
 func NewAutoStore() *Store {
@@ -32,7 +33,16 @@ func NewWebStore(dbPath string) *Store {
 	return store
 }
 func emptyStore(dbPath string) *Store {
-	return &Store{workspaces: []Workspace{}, files: map[string][]FileNode{}, conversations: map[string][]Message{}, workspacePath: map[string]string{}, sessionFiles: map[string]string{}, sessionCWD: map[string]string{}, dbPath: dbPath}
+	return &Store{
+		workspaces:        []Workspace{},
+		files:             map[string][]FileNode{},
+		conversations:     map[string][]Message{},
+		workspacePath:     map[string]string{},
+		sessionFiles:      map[string]string{},
+		sessionCWD:        map[string]string{},
+		sessionDirModTime: map[string]time.Time{},
+		dbPath:            dbPath,
+	}
 }
 func NewPiStore(sessionDir string) (*Store, error) {
 	parsed, err := LoadPiSessions(sessionDir)
@@ -70,7 +80,15 @@ func NewPiStore(sessionDir string) (*Store, error) {
 		workspaces = append(workspaces, *workspace)
 	}
 	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].Path < workspaces[j].Path })
-	return &Store{workspaces: workspaces, files: map[string][]FileNode{}, conversations: conversations, workspacePath: workspacePath, sessionFiles: sessionFiles, sessionCWD: sessionCWD}, nil
+	return &Store{
+		workspaces:        workspaces,
+		files:             map[string][]FileNode{},
+		conversations:     conversations,
+		workspacePath:     workspacePath,
+		sessionFiles:      sessionFiles,
+		sessionCWD:        sessionCWD,
+		sessionDirModTime: map[string]time.Time{},
+	}, nil
 }
 func (s *Store) saveWorkspaceRecentsLocked() {
 	paths := make([]string, 0, len(s.workspaces))
