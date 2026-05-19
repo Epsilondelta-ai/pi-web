@@ -124,6 +124,9 @@ export const inputMethods = {
     if (action === "delete-session") this.deleteSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "fallback-choice") this.submitFallbackChoice(actionTarget.dataset.choiceId, actionTarget.dataset.choiceValue, actionTarget.closest(".fallback-choice-list"));
     if (action === "fallback-choice-custom") this.submitFallbackChoice(actionTarget.dataset.choiceId, actionTarget.closest(".choice-custom")?.querySelector("[data-choice-custom-input]")?.value, actionTarget.closest(".fallback-choice-list"));
+    if (action === "open-settings") this.openSettingsModal?.();
+    if (action === "close-settings") this.closeSettingsModal?.();
+    if (action === "save-settings") this.saveSettingsForm?.(event);
     if (action === "close-tweaks") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
     if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) this.pickSession(button.closest(".session-row") || button);
     if (button?.dataset.workspace && button.classList.contains("recent-row")) this.openWorkspace(button.dataset.workspace);

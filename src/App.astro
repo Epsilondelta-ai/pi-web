@@ -41,6 +41,33 @@ function toolStatus(msg) {
   if (msg.status === "err") return `<span class="err">✗</span>${escapeHtml(msg.resultMeta || "failed")}`;
   return `<span class="ok">✓</span>${msg.durationMs ? `${msg.durationMs} ms` : ""}${msg.resultMeta ? ` · ${escapeHtml(msg.resultMeta)}` : ""}`;
 }
+
+const settingsFields = [
+  { path: "defaultModel", label: "Default model", type: "text", hint: "model id or provider/model" },
+  { path: "defaultThinkingLevel", label: "Thinking level", type: "select", values: ["off", "minimal", "low", "medium", "high", "xhigh"] },
+  { path: "theme", label: "Theme", type: "text", hint: "dark, light, or custom theme" },
+  { path: "compaction.enabled", label: "Auto-compact", type: "boolean" },
+  { path: "terminal.showImages", label: "Show images", type: "boolean" },
+  { path: "terminal.imageWidthCells", label: "Image width", type: "numberSelect", values: ["60", "80", "120"] },
+  { path: "images.autoResize", label: "Auto-resize images", type: "boolean" },
+  { path: "images.blockImages", label: "Block images", type: "boolean" },
+  { path: "enableSkillCommands", label: "Skill commands", type: "boolean" },
+  { path: "showHardwareCursor", label: "Show hardware cursor", type: "boolean" },
+  { path: "editorPaddingX", label: "Editor padding", type: "numberSelect", values: ["0", "1", "2", "3"] },
+  { path: "autocompleteMaxVisible", label: "Autocomplete max items", type: "numberSelect", values: ["3", "5", "7", "10", "15", "20"] },
+  { path: "terminal.clearOnShrink", label: "Clear on shrink", type: "boolean" },
+  { path: "terminal.showTerminalProgress", label: "Terminal progress", type: "boolean" },
+  { path: "steeringMode", label: "Steering mode", type: "select", values: ["one-at-a-time", "all"] },
+  { path: "followUpMode", label: "Follow-up mode", type: "select", values: ["one-at-a-time", "all"] },
+  { path: "transport", label: "Transport", type: "select", values: ["sse", "websocket", "websocket-cached", "auto"] },
+  { path: "hideThinkingBlock", label: "Hide thinking", type: "boolean" },
+  { path: "collapseChangelog", label: "Collapse changelog", type: "boolean" },
+  { path: "quietStartup", label: "Quiet startup", type: "boolean" },
+  { path: "enableInstallTelemetry", label: "Install telemetry", type: "boolean" },
+  { path: "doubleEscapeAction", label: "Double-escape action", type: "select", values: ["tree", "fork", "none"] },
+  { path: "treeFilterMode", label: "Tree filter mode", type: "select", values: ["default", "no-tools", "user-only", "labeled-only", "all"] },
+  { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
+];
 ---
 
 <pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-sidebar={sidebarCollapsed ? "collapsed" : "open"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
@@ -126,7 +153,7 @@ function toolStatus(msg) {
             );
           })}
         </div>
-        <div class="sb-footer"><span class="status-dot"></span><span>connecting</span></div>
+        <div class="sb-footer"><span class="status-dot"></span><span>connecting</span><button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings">⚙</button></div>
       </aside>
       <div class="sb-resizer" role="separator" aria-orientation="vertical" aria-label="resize sidebar" title="drag to resize"></div>
     </div>
@@ -200,6 +227,51 @@ function toolStatus(msg) {
   </section>
 
 
+
+  <div class="settings-modal" data-settings-modal hidden>
+    <form class="settings-dialog" data-settings-form>
+      <div class="settings-head">
+        <div><strong>pi settings</strong><small>same files used by <code>/settings</code></small></div>
+        <button type="button" data-action="close-settings" aria-label="close settings">×</button>
+      </div>
+      <div class="settings-toolbar">
+        <label>scope
+          <select name="scope" data-settings-scope>
+            <option value="project">project</option>
+            <option value="global">global</option>
+          </select>
+        </label>
+        <span data-settings-path>—</span>
+      </div>
+      <div class="settings-grid">
+        {settingsFields.map((field) => (
+          <label class="settings-field">
+            <span>{field.label}</span>
+            {field.type === "text" ? (
+              <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
+            ) : field.type === "boolean" ? (
+              <select data-setting={field.path}>
+                <option value="inherit">inherit</option>
+                <option value="true">on</option>
+                <option value="false">off</option>
+              </select>
+            ) : (
+              <select data-setting={field.path}>
+                <option value="inherit">inherit</option>
+                {field.values.map((value) => <option value={value}>{value}</option>)}
+              </select>
+            )}
+            <small>effective: not set</small>
+          </label>
+        ))}
+      </div>
+      <div class="settings-foot">
+        <span data-settings-status>blank fields inherit from effective settings</span>
+        <button type="button" data-action="close-settings">cancel</button>
+        <button type="submit">save</button>
+      </div>
+    </form>
+  </div>
 
   <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks">×</button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
 </pi-app>

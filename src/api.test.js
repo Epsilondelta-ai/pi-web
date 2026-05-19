@@ -11,12 +11,14 @@ import {
   getWorkspaceRuntimeModel,
   getWorkspaceRuntimeQuota,
   getWorkspaceRuntimeStatus,
+  getWorkspaceSettings,
   getWorkspaces,
   listFolders,
   postPrompt,
   renameSession,
   runShellCommand,
   saveWorkspaceFile,
+  saveWorkspaceSettings,
   sessionEvents,
 } from "./api.js";
 
@@ -83,7 +85,14 @@ describe("api adapter", () => {
     expect(quota.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota?model=GPT-5.5");
   });
 
-  it("reads and saves workspace files", async () => {
+  it("reads and saves workspace settings and files", async () => {
+    const settings = await getWorkspaceSettings("w1");
+    expect(settings.url).toBe("http://backend.test/api/workspaces/w1/settings");
+    const savedSettings = await saveWorkspaceSettings("w1", "project", { theme: "dark" });
+    expect(savedSettings.url).toBe("http://backend.test/api/workspaces/w1/settings");
+    expect(savedSettings.options.method).toBe("PUT");
+    expect(JSON.parse(savedSettings.options.body)).toEqual({ scope: "project", settings: { theme: "dark" } });
+
     const result = await getWorkspaceFile("w1", "src/main.go");
     expect(result.url).toBe("http://backend.test/api/workspaces/w1/files/read?path=src%2Fmain.go");
     const saved = await saveWorkspaceFile("w1", "src/main.go", "package main");

@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "./pi-app.js";
+
+const nativeFetch = globalThis.fetch;
 
 describe("pi-app runtime", () => {
   beforeEach(() => {
@@ -17,8 +19,31 @@ describe("pi-app runtime", () => {
           <input data-file-input type="file" />
           <div class="prompt-meta" data-prompt-meta></div>
         </div>
+        <div class="settings-modal" data-settings-modal hidden>
+          <form data-settings-form>
+            <select name="scope" data-settings-scope><option value="project">project</option><option value="global">global</option></select>
+            <span data-settings-path></span>
+            <label class="settings-field"><input data-setting="defaultModel" /><small></small></label>
+            <label class="settings-field"><select data-setting="defaultThinkingLevel"><option value="inherit">inherit</option><option value="high">high</option></select><small></small></label>
+            <label class="settings-field"><input data-setting="theme" /><small></small></label>
+            <label class="settings-field"><select data-setting="steeringMode"><option value="inherit">inherit</option><option value="all">all</option></select><small></small></label>
+            <label class="settings-field"><select data-setting="followUpMode"><option value="inherit">inherit</option><option value="all">all</option></select><small></small></label>
+            <label class="settings-field"><select data-setting="transport"><option value="inherit">inherit</option><option value="sse">sse</option></select><small></small></label>
+            <label class="settings-field"><select data-setting="hideThinkingBlock"><option value="inherit">inherit</option><option value="true">true</option><option value="false">false</option></select><small></small></label>
+            <label class="settings-field"><select data-setting="compaction.enabled"><option value="inherit">inherit</option><option value="true">true</option><option value="false">false</option></select><small></small></label>
+            <label class="settings-field"><select data-setting="enableSkillCommands"><option value="inherit">inherit</option><option value="true">true</option><option value="false">false</option></select><small></small></label>
+            <span data-settings-status></span>
+            <button type="submit">save</button>
+          </form>
+        </div>
       </pi-app>
     `;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete globalThis.PI_WEB_API_BASE;
+    globalThis.fetch = nativeFetch;
   });
 
   it("enables send and shows slash commands as the prompt changes", async () => {
@@ -58,6 +83,51 @@ describe("pi-app runtime", () => {
     app.runtimeStatus = {};
     app.updatePromptMeta({ model: "Claude", currentBranch: "main" });
     expect(app.querySelector("[data-prompt-meta]").textContent).toBe("Claude |  main");
+  });
+
+  it("opens and saves workspace settings from the settings modal", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async (url, options = {}) => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => {
+        if (String(url).endsWith("/settings") && options.method === "PUT") {
+          return { settings: { project: JSON.parse(options.body).settings, effective: {}, paths: {} } };
+        }
+        if (String(url).endsWith("/settings")) {
+          return {
+            settings: {
+              global: { theme: "dark" },
+              project: { defaultModel: "gpt-5.5" },
+              effective: { theme: "dark", defaultModel: "gpt-5.5", compaction: { enabled: true } },
+              paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
+            },
+          };
+        }
+        return { workspaces: [] };
+      },
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+
+    await app.openSettingsModal();
+    expect(app.querySelector("[data-settings-modal]").hidden).toBe(false);
+    expect(app.querySelector("[data-settings-path]").textContent).toBe("/demo/.pi/settings.json");
+    expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
+    expect(app.querySelector("[data-setting='theme']").placeholder).toBe("dark");
+
+    app.querySelector("[data-setting='transport']").value = "sse";
+    app.querySelector("[data-setting='compaction.enabled']").value = "false";
+    await app.saveSettingsForm(new Event("submit"));
+    const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
+    expect(JSON.parse(putCall[1].body)).toMatchObject({
+      scope: "project",
+      settings: { transport: "sse", compaction: { enabled: false } },
+    });
   });
 
   it("opens session actions from an ellipsis menu", async () => {

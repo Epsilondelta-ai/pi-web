@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -120,6 +122,64 @@ func TestWorkspaceRuntimeStatusEndpointUsesMockStatusWhenPiDisabled(t *testing.T
 	}
 	if !strings.Contains(res.Body.String(), `"model":"GPT-5.5"`) || !strings.Contains(res.Body.String(), `"weeklyQuota":14`) {
 		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
+func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	globalPath := filepath.Join(home, ".pi", "agent", "settings.json")
+	projectPath := filepath.Join(root, ".pi", "settings.json")
+	if err := os.WriteFile(globalPath, []byte(`{"theme":"dark","compaction":{"enabled":true}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(projectPath, []byte(`{"defaultModel":"gpt-5.5"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{}, store, NewBroker())
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspace.ID+"/settings", nil)
+	getRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(getRes, getReq)
+	if getRes.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", getRes.Code, getRes.Body.String())
+	}
+	if !strings.Contains(getRes.Body.String(), `"theme":"dark"`) ||
+		!strings.Contains(getRes.Body.String(), `"defaultModel":"gpt-5.5"`) ||
+		!strings.Contains(getRes.Body.String(), `"transport":"auto"`) ||
+		!strings.Contains(getRes.Body.String(), `"imageWidthCells":60`) {
+		t.Fatalf("unexpected settings body: %s", getRes.Body.String())
+	}
+
+	body := `{"scope":"project","settings":{"defaultModel":null,"transport":"sse","warnings":{"anthropicExtraUsage":null},"compaction":{"enabled":false}}}`
+	putReq := httptest.NewRequest(http.MethodPut, "/api/workspaces/"+workspace.ID+"/settings", bytes.NewBufferString(body))
+	putRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(putRes, putReq)
+	if putRes.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", putRes.Code, putRes.Body.String())
+	}
+	saved, err := os.ReadFile(projectPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(saved), "defaultModel") || strings.Contains(string(saved), "warnings") ||
+		!strings.Contains(string(saved), `"transport": "sse"`) {
+		t.Fatalf("unexpected saved settings: %s", string(saved))
+	}
+	if !strings.Contains(putRes.Body.String(), `"enabled":false`) {
+		t.Fatalf("effective settings did not include project compaction override: %s", putRes.Body.String())
 	}
 }
 

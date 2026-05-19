@@ -168,5 +168,6 @@ export const sessionMethods = {
   closeModals() {
     this.closeSessionMenus();
     this.closeFilePreview?.();
+    this.closeSettingsModal?.();
   },
 };

@@ -7,6 +7,7 @@ import { layoutMethods } from "./pi-app/layout-methods.js";
 import { messageMethods } from "./pi-app/message-methods.js";
 import { runtimeStatusMethods } from "./pi-app/runtime-status-methods.js";
 import { sessionMethods } from "./pi-app/session-methods.js";
+import { settingsMethods } from "./pi-app/settings-methods.js";
 import { workspaceMethods } from "./pi-app/workspace-methods.js";
 
 class PiApp extends HTMLElement {
@@ -19,6 +20,7 @@ class PiApp extends HTMLElement {
     this.file = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
     this.slash = this.querySelector(".slash-pop");
+    this.settingsModal = this.querySelector("[data-settings-modal]");
     this.termInner = this.querySelector(".term-inner");
     this.eventSource = null;
     this.apiConnected = false;
@@ -66,6 +68,8 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-path-form]")?.addEventListener("submit", (event) => this.submitWorkspacePath(event));
     this.querySelector("[data-clone-form]")?.addEventListener("submit", (event) => this.submitCloneWorkspace(event));
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
+    this.querySelector("[data-settings-form]")?.addEventListener("submit", (event) => this.saveSettingsForm(event));
+    this.querySelector("[data-settings-scope]")?.addEventListener("change", () => this.fillSettingsForm());
     this.send?.addEventListener("click", () => this.running ? this.cancelActiveSession() : this.submitPrompt());
     this.prompt?.addEventListener("input", () => this.updatePrompt());
     this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event));
@@ -181,6 +185,7 @@ Object.assign(
   filePreviewMethods,
   layoutMethods,
   runtimeStatusMethods,
+  settingsMethods,
 );
 
 if (!customElements.get("pi-app")) customElements.define("pi-app", PiApp);

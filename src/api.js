@@ -85,6 +85,17 @@ export function getWorkspaceRuntimeQuota(workspaceId, model = "") {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-quota${query}`);
 }
 
+export function getWorkspaceSettings(workspaceId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/settings`);
+}
+
+export function saveWorkspaceSettings(workspaceId, scope, settings) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/settings`, {
+    method: "PUT",
+    body: JSON.stringify({ scope, settings }),
+  });
+}
+
 export function getWorkspaceFile(workspaceId, path) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/read?path=${encodeURIComponent(path)}`);
 }

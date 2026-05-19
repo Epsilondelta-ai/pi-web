@@ -142,6 +142,37 @@ func (s *Server) workspaceRuntimeQuota(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"status": status})
 }
+func (s *Server) workspaceSettings(w http.ResponseWriter, r *http.Request) {
+	root, err := s.store.WorkspacePath(r.PathValue("workspaceID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	settings, err := WorkspaceSettings(root)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"settings": settings})
+}
+func (s *Server) saveWorkspaceSettings(w http.ResponseWriter, r *http.Request) {
+	root, err := s.store.WorkspacePath(r.PathValue("workspaceID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	var req SettingsPatchRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	settings, err := SaveWorkspaceSettings(root, req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"settings": settings})
+}
 func (s *Server) readWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 	file, err := s.store.ReadFile(r.PathValue("workspaceID"), r.URL.Query().Get("path"))
 	if err != nil {
