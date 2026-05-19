@@ -3,6 +3,7 @@ package piweb
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,26 @@ func TestHealthEndpoint(t *testing.T) {
 		t.Fatalf("expected 200, got %d", res.Code)
 	}
 	if !strings.Contains(res.Body.String(), `"ok":true`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
+func TestVersionEndpoint(t *testing.T) {
+	server := NewServer(Config{
+		CurrentVersion: "1.0.0",
+		VersionStatus: func(_ context.Context, current string) (VersionStatus, error) {
+			return VersionStatus{CurrentVersion: current, LatestVersion: "1.1.0", UpdateAvailable: true}, nil
+		},
+	}, NewMockStore(), NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/version", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", res.Code)
+	}
+	if !strings.Contains(res.Body.String(), `"currentVersion":"1.0.0"`) ||
+		!strings.Contains(res.Body.String(), `"latestVersion":"1.1.0"`) ||
+		!strings.Contains(res.Body.String(), `"updateAvailable":true`) {
 		t.Fatalf("unexpected body: %s", res.Body.String())
 	}
 }

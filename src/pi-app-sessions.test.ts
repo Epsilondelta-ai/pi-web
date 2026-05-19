@@ -94,6 +94,34 @@ describe("pi-app sessions", () => {
     expect(connected).toEqual({ sessionId: "s1", options: { replay: false } });
   });
 
+  it("shows the update hint when a newer version is available", async () => {
+    const app = await connectPiApp();
+    app.renderVersionStatus({ currentVersion: "1.0.0", latestVersion: "1.1.0", updateAvailable: true });
+
+    const button = app.querySelector("[data-action='show-update-tip']");
+    expect(button.hidden).toBe(false);
+    button.click();
+    expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
+  });
+
+  it("switches workspace metadata to the loaded session workspace", async () => {
+    const app = await connectPiApp();
+    app.loadWorkspaceCommands = vi.fn();
+    app.loadRuntimeStatus = vi.fn();
+    app.loadWorkspaceMeta = vi.fn();
+    app.connectEvents = vi.fn();
+    app.dataset.activeWorkspaceId = "w1";
+    app.append(app.createWorkspaceGroup({ id: "w1", name: "one", path: "/one", sessions: [] }));
+    app.append(app.createWorkspaceGroup({ id: "w2", name: "two", path: "/two", sessions: [] }));
+
+    app.applyLoadedSession({ id: "s2", title: "second", workspaceId: "w2" }, [], "idle");
+
+    expect(app.dataset.activeWorkspaceId).toBe("w2");
+    expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w2");
+    expect(app.querySelector("[data-workspace-group='w2'] .sessions").hidden).toBe(false);
+    expect(app.querySelector("[data-workspace-group='w1'] .sessions").hidden).toBe(true);
+  });
+
   it("remembers loaded sessions in localStorage", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({

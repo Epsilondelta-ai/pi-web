@@ -24,6 +24,8 @@ func runServer(options serverOptions) error {
 		Port:              options.Port,
 		EnablePiExecution: !options.Mock,
 		StaticFiles:       staticFiles(),
+		CurrentVersion:    version,
+		VersionStatus:     detectReleaseStatus,
 	}, store, piweb.NewBroker())
 	httpServer := &http.Server{
 		Addr:              server.Addr(),

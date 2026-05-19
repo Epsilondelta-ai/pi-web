@@ -8,6 +8,7 @@ import { messageMethods } from "./pi-app/message-methods";
 import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
 import { sessionMethods } from "./pi-app/session-methods";
 import { settingsMethods } from "./pi-app/settings-methods";
+import { versionMethods } from "./pi-app/version-methods";
 import { workspaceMethods } from "./pi-app/workspace-methods";
 
 class PiApp extends HTMLElement {
@@ -45,6 +46,7 @@ class PiApp extends HTMLElement {
     this.eventSource?.close();
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
+    if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
   }
 
   startRuntimeStatusPolling() {
@@ -217,6 +219,7 @@ Object.assign(
   layoutMethods,
   runtimeStatusMethods,
   settingsMethods,
+  versionMethods,
 );
 
 if (!customElements.get("pi-app")) customElements.define("pi-app", PiApp);

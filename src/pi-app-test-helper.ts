@@ -27,7 +27,15 @@ export function installPiAppFixture() {
       >≡</button>
       <section data-view="picker" hidden></section>
       <section class="app-body with-tree" data-view="workspace">
-        <div class="sidebar-wrap"></div>
+        <div class="sidebar-wrap">
+          <div class="sb-footer">
+            <button class="update-release" type="button" data-action="show-update-tip" hidden>
+              New Version Released!
+            </button>
+            <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+            <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
+          </div>
+        </div>
         <main><div class="term-inner"></div></main>
         <aside class="tree"></aside>
         <div class="scrim" data-action="close-drawer"></div>

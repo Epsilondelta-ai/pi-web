@@ -16,6 +16,8 @@ type Config struct {
 	AllowedOrigins    []string
 	EnablePiExecution bool
 	StaticFiles       fs.FS
+	CurrentVersion    string
+	VersionStatus     func(context.Context, string) (VersionStatus, error)
 }
 
 type Server struct {
@@ -34,7 +36,15 @@ func NewServer(config Config, store *Store, broker *Broker) *Server {
 		config.Port = "8732"
 	}
 	if len(config.AllowedOrigins) == 0 {
-		config.AllowedOrigins = []string{"http://localhost:4321", "http://127.0.0.1:4321", "http://localhost:6006", "http://127.0.0.1:6006"}
+		config.AllowedOrigins = []string{
+			"http://localhost:4321",
+			"http://127.0.0.1:4321",
+			"http://localhost:6006",
+			"http://127.0.0.1:6006",
+		}
+	}
+	if config.CurrentVersion == "" {
+		config.CurrentVersion = "dev"
 	}
 	s := &Server{store: store, broker: broker, runner: NewRunner(), mux: http.NewServeMux(), config: config}
 	s.routes()
@@ -49,6 +59,7 @@ func (s *Server) Handler() http.Handler {
 }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
+	s.mux.HandleFunc("GET /api/version", s.versionStatus)
 	s.mux.HandleFunc("GET /api/system/folders", s.listFolders)
 	s.mux.HandleFunc("GET /api/workspaces", s.workspaces)
 	s.mux.HandleFunc("POST /api/workspaces/open", s.openWorkspace)
