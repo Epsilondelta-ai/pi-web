@@ -46,24 +46,35 @@ func (s *Server) prompt(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	text := mergePromptAttachments(req.Text, req.Attachments)
-	if strings.TrimSpace(text) == "" {
+	promptText := mergePromptAttachments(req.Text, req.Attachments)
+	imageAttachments := imagePromptAttachments(req.Attachments)
+	if strings.TrimSpace(promptText) == "" && len(imageAttachments) == 0 {
 		writeError(w, http.StatusBadRequest, errors.New("text is required"))
 		return
 	}
-	if session, changed, err := s.store.AutoNameSession(sessionID, text); err != nil {
+	displayText := promptDisplayText(req.Text, req.Attachments)
+	if session, changed, err := s.store.AutoNameSession(sessionID, displayText); err != nil {
 		writeStoreError(w, err)
 		return
 	} else if changed {
 		s.broker.Publish(sessionID, "session.renamed", session)
 	}
 	if s.config.EnablePiExecution {
-		if err := s.runner.StartPiPrompt(s.context(), s.broker, s.store, sessionID, text); err != nil {
+		err := s.runner.StartPiPrompt(
+			s.context(),
+			s.broker,
+			s.store,
+			sessionID,
+			promptText,
+			imageAttachments,
+			displayText,
+		)
+		if err != nil {
 			writeError(w, http.StatusConflict, err)
 			return
 		}
 	} else {
-		go s.broker.PublishMockPrompt(s.context(), s.store, sessionID, text)
+		go s.broker.PublishMockPrompt(s.context(), s.store, sessionID, displayText)
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"accepted": true, "realPi": s.config.EnablePiExecution})
 }
@@ -82,21 +93,55 @@ func (s *Server) sessionEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	s.broker.ServeSession(w, r, sessionID)
 }
-func mergePromptAttachments(text string, attachments []string) string {
+func mergePromptAttachments(text string, attachments []PromptAttachment) string {
 	if len(attachments) == 0 {
 		return text
 	}
 	var b strings.Builder
 	b.WriteString(text)
 	for i, attachment := range attachments {
-		if strings.TrimSpace(attachment) == "" {
+		if attachment.Type == "image" || strings.TrimSpace(attachment.Content) == "" {
 			continue
 		}
 		b.WriteString("\n\n<attachment index=\"")
 		b.WriteString(strconv.Itoa(i + 1))
 		b.WriteString("\">\n")
-		b.WriteString(attachment)
+		b.WriteString(attachmentPromptText(attachment))
 		b.WriteString("\n</attachment>")
 	}
 	return b.String()
+}
+
+func attachmentPromptText(attachment PromptAttachment) string {
+	if strings.TrimSpace(attachment.Name) == "" {
+		return attachment.Content
+	}
+	return "File: " + attachment.Name + "\n\n" + attachment.Content
+}
+
+func imagePromptAttachments(attachments []PromptAttachment) []PromptAttachment {
+	var images []PromptAttachment
+	for _, attachment := range attachments {
+		if attachment.Type == "image" && strings.TrimSpace(attachment.DataURL) != "" {
+			images = append(images, attachment)
+		}
+	}
+	return images
+}
+
+func promptDisplayText(text string, attachments []PromptAttachment) string {
+	if strings.TrimSpace(text) != "" {
+		return text
+	}
+	for _, attachment := range attachments {
+		kind := attachment.Type
+		if kind == "" {
+			kind = "file"
+		}
+		if strings.TrimSpace(attachment.Name) == "" {
+			return "[" + kind + "]"
+		}
+		return "[" + kind + ": " + attachment.Name + "]"
+	}
+	return text
 }

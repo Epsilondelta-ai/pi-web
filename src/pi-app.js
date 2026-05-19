@@ -1,4 +1,5 @@
 import { sessionEvents } from "./api.js";
+import { attachmentMethods } from "./pi-app/attachment-methods.js";
 import { SPINNER_FRAMES } from "./pi-app/constants.js";
 import { filePreviewMethods } from "./pi-app/file-preview-methods.js";
 import { inputMethods } from "./pi-app/input-methods.js";
@@ -67,6 +68,7 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
     this.send?.addEventListener("click", () => this.running ? this.cancelActiveSession() : this.submitPrompt());
     this.prompt?.addEventListener("input", () => this.updatePrompt());
+    this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event));
     this.prompt?.addEventListener("keydown", (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") this.submitPrompt();
       if (this.slash && !this.slash.hidden && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key)) this.navigateList(event, ".slash-item", (item) => this.pickSlash(item.dataset.slash));
@@ -175,6 +177,7 @@ Object.assign(
   sessionMethods,
   messageMethods,
   inputMethods,
+  attachmentMethods,
   filePreviewMethods,
   layoutMethods,
   runtimeStatusMethods,

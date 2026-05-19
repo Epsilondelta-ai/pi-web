@@ -2,8 +2,14 @@ package piweb
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
+	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -30,7 +36,15 @@ type Runner struct {
 func NewRunner() *Runner {
 	return &Runner{running: map[string]context.CancelFunc{}}
 }
-func (r *Runner) StartPiPrompt(parent context.Context, broker *Broker, store *Store, sessionID, text string) error {
+func (r *Runner) StartPiPrompt(
+	parent context.Context,
+	broker *Broker,
+	store *Store,
+	sessionID string,
+	text string,
+	images []PromptAttachment,
+	displayText string,
+) error {
 	sessionFile, cwd, ok := store.SessionRuntime(sessionID)
 	if !ok {
 		return ErrNotFound
@@ -52,10 +66,18 @@ func (r *Runner) StartPiPrompt(parent context.Context, broker *Broker, store *St
 			r.mu.Unlock()
 			cancel()
 		}()
-		broker.Publish(sessionID, "session.message", Message{Kind: "user", Text: text})
+		broker.Publish(sessionID, "session.message", Message{Kind: "user", Text: displayText})
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
 
-		args := []string{"--session", sessionFile, "--mode", "json", "--append-system-prompt", fallbackChoiceSystemPrompt, "--print", text}
+		imagePaths, cleanup, err := writePromptImages(images)
+		if err != nil {
+			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
+			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
+			return
+		}
+		defer cleanup()
+
+		args := piPromptArgs(sessionFile, text, imagePaths)
 		cmd := exec.CommandContext(ctx, "pi", args...)
 		cmd.Dir = cwd
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -94,10 +116,86 @@ func (r *Runner) StartPiPrompt(parent context.Context, broker *Broker, store *St
 			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
 			return
 		}
-		broker.Publish(sessionID, "session.status", map[string]string{"status": "idle", "finishedAt": time.Now().UTC().Format(time.RFC3339)})
+		broker.Publish(sessionID, "session.status", map[string]string{
+			"status":     "idle",
+			"finishedAt": time.Now().UTC().Format(time.RFC3339),
+		})
 	}()
 	return nil
 }
+func piPromptArgs(sessionFile, text string, imagePaths []string) []string {
+	args := []string{
+		"--session", sessionFile,
+		"--mode", "json",
+		"--append-system-prompt", fallbackChoiceSystemPrompt,
+		"--print",
+	}
+	for _, path := range imagePaths {
+		args = append(args, "@"+path)
+	}
+	if strings.TrimSpace(text) != "" {
+		args = append(args, text)
+	}
+	return args
+}
+
+func writePromptImages(images []PromptAttachment) ([]string, func(), error) {
+	if len(images) == 0 {
+		return nil, func() {}, nil
+	}
+	dir, err := os.MkdirTemp("", "pi-web-images-*")
+	if err != nil {
+		return nil, func() {}, err
+	}
+	cleanup := func() { _ = os.RemoveAll(dir) }
+	paths := make([]string, 0, len(images))
+	for index, image := range images {
+		data, err := decodeDataURL(image.DataURL)
+		if err != nil {
+			cleanup()
+			return nil, func() {}, err
+		}
+		path := filepath.Join(dir, imageFileName(image, index))
+		if err := os.WriteFile(path, data, 0o600); err != nil {
+			cleanup()
+			return nil, func() {}, err
+		}
+		paths = append(paths, path)
+	}
+	return paths, cleanup, nil
+}
+
+func decodeDataURL(dataURL string) ([]byte, error) {
+	comma := strings.Index(dataURL, ",")
+	if comma < 0 {
+		return base64.StdEncoding.DecodeString(dataURL)
+	}
+	return base64.StdEncoding.DecodeString(dataURL[comma+1:])
+}
+
+func imageFileName(image PromptAttachment, index int) string {
+	name := filepath.Base(strings.TrimSpace(image.Name))
+	if name == "." || name == string(filepath.Separator) || name == "" {
+		name = "image-" + strconv.Itoa(index+1) + imageExtension(image.MIMEType)
+	}
+	return url.PathEscape(name)
+}
+
+func imageExtension(mimeType string) string {
+	subtype := strings.TrimPrefix(strings.ToLower(mimeType), "image/")
+	subtype = strings.Split(subtype, ";")[0]
+	switch subtype {
+	case "jpeg":
+		return ".jpg"
+	case "png", "gif", "webp", "bmp":
+		return "." + subtype
+	case "svg+xml":
+		return ".svg"
+	default:
+		return ".png"
+	}
+}
+
 func (r *Runner) Cancel(sessionID string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -225,36 +225,4 @@ export const inputMethods = {
     if (event.key === "Enter") run(items[index]);
   },
 
-  async addFiles(files) {
-    if (!this.attachments) return;
-    for (const file of files || []) {
-      const text = file.size <= 256 * 1024 ? await file.text() : "[file too large to inline]";
-      this.attachmentContents.push(`File: ${file.name}\n\n${text}`);
-      this.addAttachmentChip(file.name, file.size, file);
-    }
-    this.attachments.hidden = !this.attachments.children.length;
-    this.updatePrompt();
-  },
-
-  addAttachmentChip(name, size, file) {
-    const chip = document.createElement("span");
-    chip.className = "attach-chip";
-    chip.dataset.attachmentIndex = String(this.attachmentContents.length - 1);
-    chip.innerHTML = `<span class="ac-glyph">${file ? this.kindGlyph(file) : "file"}</span><span class="ac-name"></span><span class="ac-size">${this.formatBytes(size)}</span><button class="ac-remove" type="button" data-remove-attachment aria-label="remove">×</button>`;
-    chip.querySelector(".ac-name").textContent = name;
-    this.attachments.append(chip);
-  },
-
-  kindGlyph(file) {
-    if (file.type?.startsWith("image")) return "img";
-    if (file.name.endsWith(".pdf")) return "pdf";
-    if (/\.(js|ts|jsx|tsx|astro|py|go|rs)$/.test(file.name)) return "&lt;/&gt;";
-    return "txt";
-  },
-
-  formatBytes(size) {
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / 1024 / 1024).toFixed(1)} MB`;
-  },
 };

@@ -59,8 +59,16 @@ type Event struct {
 }
 
 type PromptRequest struct {
-	Text        string   `json:"text"`
-	Attachments []string `json:"attachments,omitempty"`
+	Text        string             `json:"text"`
+	Attachments []PromptAttachment `json:"attachments,omitempty"`
+}
+
+type PromptAttachment struct {
+	Type     string `json:"type,omitempty"`
+	Name     string `json:"name,omitempty"`
+	MIMEType string `json:"mimeType,omitempty"`
+	Content  string `json:"content,omitempty"`
+	DataURL  string `json:"dataUrl,omitempty"`
 }
 
 type OpenWorkspaceRequest struct {
