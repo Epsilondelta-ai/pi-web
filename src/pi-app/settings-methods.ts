@@ -1,6 +1,7 @@
 import { getWorkspaceSettings, saveWorkspaceSettings } from "../api";
 
 const SETTINGS_FIELDS = [
+  { path: "defaultProvider", type: "text" },
   { path: "defaultModel", type: "text" },
   { path: "defaultThinkingLevel", type: "select" },
   { path: "theme", type: "text" },

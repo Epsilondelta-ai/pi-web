@@ -80,8 +80,13 @@ describe("pi-app controls", () => {
           return {
             settings: {
               global: { theme: "dark" },
-              project: { defaultModel: "gpt-5.5" },
-              effective: { theme: "dark", defaultModel: "gpt-5.5", compaction: { enabled: true } },
+              project: { defaultProvider: "zai", defaultModel: "gpt-5.5" },
+              effective: {
+                theme: "dark",
+                defaultProvider: "zai",
+                defaultModel: "gpt-5.5",
+                compaction: { enabled: true },
+              },
               paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
             },
           };
@@ -96,6 +101,7 @@ describe("pi-app controls", () => {
     await app.openSettingsModal();
     expect(app.querySelector("[data-settings-modal]").hidden).toBe(false);
     expect(app.querySelector("[data-settings-path]").textContent).toBe("/demo/.pi/settings.json");
+    expect(app.querySelector("[data-setting='defaultProvider']").value).toBe("zai");
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='theme']").placeholder).toBe("dark");
 

@@ -79,6 +79,7 @@ export function installPiAppFixture() {
             <option value="global">global</option>
           </select>
           <span data-settings-path></span>
+          ${settingsField("input", "defaultProvider")}
           ${settingsField("input", "defaultModel")}
           ${settingsSelect("defaultThinkingLevel", ["inherit", "high"])}
           ${settingsField("input", "theme")}
