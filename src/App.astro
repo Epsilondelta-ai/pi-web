@@ -156,10 +156,12 @@ const settingsFields = [
           })}
         </div>
         <div class="sb-footer">
-          <span class="status-dot"></span><span>connecting</span>
           <button class="update-release" type="button" data-action="show-update-tip" hidden={!showUpdateRelease}>New Version Released!</button>
           <span class="update-tip" data-update-tip hidden={!showUpdateTip}>Run <code>pi-web update</code>, then restart pi-web.</span>
-          <button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings">⚙</button>
+          <div class="sb-footer-status">
+            <span class="status-dot"></span><span>connecting</span>
+            <button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings">⚙</button>
+          </div>
         </div>
       </aside>
       <div class="sb-resizer" role="separator" aria-orientation="vertical" aria-label="resize sidebar" title="drag to resize"></div>

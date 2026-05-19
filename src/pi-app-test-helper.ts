@@ -33,6 +33,7 @@ export function installPiAppFixture() {
               New Version Released!
             </button>
             <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+            <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
           </div>
         </div>
         <main><div class="term-inner"></div></main>
