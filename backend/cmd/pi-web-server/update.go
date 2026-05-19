@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
+
+	"pi-web-ui/backend/internal/piweb"
 )
 
 const piWebAssetFilter = `^pi-web_`
@@ -28,6 +31,27 @@ func runUpdate(out io.Writer, options updateOptions) error {
 	return runUpdateWithUpdater(out, options, updater)
 }
 
+func detectReleaseStatus(_ context.Context, currentVersion string) (piweb.VersionStatus, error) {
+	status := piweb.VersionStatus{CurrentVersion: currentVersion}
+	current, err := parseCurrentVersion(currentVersion)
+	if err != nil {
+		return status, nil
+	}
+
+	updater, err := newGitHubSelfUpdater()
+	if err != nil {
+		return status, err
+	}
+	release, found, err := updater.DetectLatest(githubRepositorySlug)
+	if err != nil || !found {
+		return status, err
+	}
+
+	status.LatestVersion = release.Version.String()
+	status.UpdateAvailable = !release.Version.Equals(current)
+	return status, nil
+}
+
 func newGitHubSelfUpdater() (*githubSelfUpdater, error) {
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		APIToken: os.Getenv("GITHUB_TOKEN"),
@@ -41,6 +65,10 @@ func newGitHubSelfUpdater() (*githubSelfUpdater, error) {
 
 func (u *githubSelfUpdater) UpdateSelf(current semver.Version, slug string) (*selfupdate.Release, error) {
 	return u.updater.UpdateSelf(current, slug)
+}
+
+func (u *githubSelfUpdater) DetectLatest(slug string) (*selfupdate.Release, bool, error) {
+	return u.updater.DetectLatest(slug)
 }
 
 func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUpdater) error {

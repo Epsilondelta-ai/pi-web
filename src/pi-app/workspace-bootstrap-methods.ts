@@ -38,6 +38,7 @@ export const workspaceBootstrapMethods = {
       if (activeSession) this.activateBootstrapSession(activeSession);
 
       this.renderWorkspaces(workspaceList);
+      void this.loadVersionStatus?.();
       if (activeSession) this.route("workspace");
       else if (this.dataset.route === "picker") await this.browseFolder();
 
@@ -124,11 +125,54 @@ export const workspaceBootstrapMethods = {
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState?.();
     const workspaceId = session.workspaceId
-      || this.querySelector(`[data-session='${session.id}']`)?.dataset.workspace;
+      || this.findSessionRow(session.id)?.dataset.workspace;
+    if (workspaceId) this.activateWorkspaceForSession(workspaceId);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
     this.activateBootstrapSession(session);
     this.renderMessages(messages);
     this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });
+  },
+
+  findSessionRow(sessionId) {
+    return [...this.querySelectorAll("[data-session]")].find((row) => row.dataset.session === sessionId);
+  },
+
+  findWorkspaceGroup(workspaceId) {
+    return [...this.querySelectorAll("[data-workspace-group]")]
+      .find((group) => group.dataset.workspaceGroup === workspaceId);
+  },
+
+  activateWorkspaceForSession(workspaceId) {
+    const changed = this.dataset.activeWorkspaceId !== workspaceId;
+    this.dataset.activeWorkspaceId = workspaceId;
+    this.openActiveWorkspaceGroup(workspaceId);
+    this.updateActiveWorkspaceLabel(workspaceId);
+    if (!changed) return;
+    void this.loadWorkspaceCommands(workspaceId);
+    void this.loadRuntimeStatus(workspaceId);
+    void this.loadWorkspaceMeta(workspaceId);
+  },
+
+  openActiveWorkspaceGroup(workspaceId) {
+    this.querySelectorAll("[data-workspace-group]").forEach((group) => {
+      const open = group.dataset.workspaceGroup === workspaceId;
+      const sessions = group.querySelector(".sessions");
+      const row = group.querySelector(".ws-row");
+      if (sessions) sessions.hidden = !open;
+      row?.classList.toggle("open", open);
+      row?.setAttribute("aria-expanded", String(open));
+      const caret = row?.querySelector(".caret");
+      if (caret) caret.textContent = open ? "▾" : "▸";
+    });
+  },
+
+  updateActiveWorkspaceLabel(workspaceId) {
+    const group = this.findWorkspaceGroup(workspaceId);
+    const name = group?.querySelector(".label")?.textContent || workspaceId;
+    const label = this.querySelector("[data-active-workspace]");
+    const empty = this.querySelector("[data-empty-workspace]");
+    if (label) label.textContent = name;
+    if (empty) empty.textContent = name;
   },
 };

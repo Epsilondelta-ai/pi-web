@@ -30,6 +30,10 @@ export function health() {
   return request("/api/health");
 }
 
+export function getVersionStatus() {
+  return request("/api/version");
+}
+
 export function getWorkspaces() {
   return request("/api/workspaces");
 }

@@ -170,6 +170,7 @@ export const inputMethods = {
         actionTarget.closest(".fallback-choice-list"),
       );
     }
+    if (action === "show-update-tip") this.showUpdateTip?.();
     if (action === "open-settings") this.openSettingsModal?.();
     if (action === "close-settings") this.closeSettingsModal?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);

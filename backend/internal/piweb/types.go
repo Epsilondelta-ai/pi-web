@@ -124,6 +124,13 @@ type FolderListing struct {
 	Folders           []FolderEntry `json:"folders"`
 }
 
+type VersionStatus struct {
+	CurrentVersion  string `json:"currentVersion"`
+	LatestVersion   string `json:"latestVersion,omitempty"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+	Error           string `json:"error,omitempty"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

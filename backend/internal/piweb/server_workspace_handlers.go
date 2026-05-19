@@ -10,6 +10,21 @@ import (
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "time": time.Now().UTC()})
 }
+func (s *Server) versionStatus(w http.ResponseWriter, r *http.Request) {
+	status := VersionStatus{CurrentVersion: s.config.CurrentVersion}
+	if s.config.VersionStatus != nil {
+		resolved, err := s.config.VersionStatus(r.Context(), s.config.CurrentVersion)
+		if err != nil {
+			status.Error = err.Error()
+		} else {
+			status = resolved
+		}
+	}
+	if status.CurrentVersion == "" {
+		status.CurrentVersion = s.config.CurrentVersion
+	}
+	writeJSON(w, http.StatusOK, status)
+}
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	if path == "" {
