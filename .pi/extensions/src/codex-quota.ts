@@ -11,7 +11,7 @@ import {
   truncateInline,
   type QuotaSnapshot,
   type QuotaWindow,
-} from "./quota-common";
+} from "./quota-shared";
 
 const POLL_INTERVAL_MS = 60_000;
 const MIN_EVENT_REFRESH_MS = 15_000;

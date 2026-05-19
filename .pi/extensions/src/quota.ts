@@ -9,10 +9,10 @@ import {
   registerCodexQuota,
 } from "./codex-quota";
 import {
-  getGlmQuotaFooterText,
-  hasActiveGlmQuotaContext,
-  registerGlmQuota,
-} from "./glm-quota";
+  getZaiQuotaFooterText,
+  hasActiveZaiQuotaContext,
+  registerZaiQuota,
+} from "./zai-quota";
 import {
   getKimiQuotaFooterText,
   hasActiveKimiQuotaContext,
@@ -24,13 +24,13 @@ export function registerQuota(
   onUpdate: (ctx: ExtensionContext) => void,
 ): void {
   registerCodexQuota(pi, onUpdate);
-  registerGlmQuota(pi, onUpdate);
+  registerZaiQuota(pi, onUpdate);
   registerKimiQuota(pi, onUpdate);
 }
 
 export function getQuotaFooterText(width: number): string | undefined {
   if (hasActiveCodexQuotaContext()) return getCodexQuotaFooterText(width);
-  if (hasActiveGlmQuotaContext()) return getGlmQuotaFooterText(width);
+  if (hasActiveZaiQuotaContext()) return getZaiQuotaFooterText(width);
   if (hasActiveKimiQuotaContext()) return getKimiQuotaFooterText(width);
   return undefined;
 }
