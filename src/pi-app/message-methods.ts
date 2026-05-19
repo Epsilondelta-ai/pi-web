@@ -54,7 +54,14 @@ export const messageMethods = {
       this.termInner.append(row);
     }
     const body = row.querySelector("[data-stream-text]") || row.querySelector(".body");
-    if (body) body.textContent += delta;
+    if (body && kind === "pi") {
+      const streamText = `${row.dataset.streamText || ""}${delta}`;
+      row.dataset.streamText = streamText;
+      body.classList.add("markdown-body");
+      body.innerHTML = renderPiBody(streamText);
+    } else if (body) {
+      body.textContent += delta;
+    }
     this.scrollTerm();
   },
 
@@ -121,7 +128,9 @@ export const messageMethods = {
       const choices = parseFallbackChoices(msg.text);
       const text = stripFallbackChoices(msg.text);
       const row = this.simpleMessage("pi", "pi >", "");
-      row.querySelector(".body").innerHTML = renderPiBody(choices.length ? text : msg.text);
+      const body = row.querySelector(".body");
+      body.classList.add("markdown-body");
+      body.innerHTML = renderPiBody(choices.length ? text : msg.text);
       if (!choices.length) return row;
       const fragment = document.createDocumentFragment();
       fragment.append(row);

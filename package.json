@@ -28,12 +28,14 @@
   },
   "dependencies": {
     "astro": "6.3.3",
+    "markdown-it": "^14.1.1",
     "shiki": "4.0.2"
   },
   "devDependencies": {
     "@storybook-astro/framework": "1.2.0",
     "@storybook/addon-docs": "10.4.0",
     "@testing-library/jest-dom": "6.9.1",
+    "@types/markdown-it": "^14.1.2",
     "jsdom": "29.1.1",
     "storybook": "10.4.0",
     "typescript": "6.0.3",

@@ -296,6 +296,18 @@ describe("pi-app runtime", () => {
     expect(bodies).toEqual(["hello"]);
   });
 
+  it("renders streaming assistant markdown", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.renderMessages([]);
+    app.appendDelta({ kind: "pi", delta: "**bo" });
+    app.appendDelta({ kind: "pi", delta: "ld**" });
+    const body = app.querySelector(".msg.streaming .body");
+    expect(body.classList.contains("markdown-body")).toBe(true);
+    expect(body.innerHTML).toContain("<strong>bold</strong>");
+  });
+
   it("streams assistant deltas before the final message", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
@@ -512,7 +524,7 @@ describe("pi-app runtime", () => {
     const text = "```json\n{\"type\":\"piweb_choice\",\"id\":\"runtime\",\"question\":\"Runtime?\",\"options\":[{\"label\":\"Go\",\"value\":\"go\"}],\"allowCustom\":false}\n```";
     app.appendDelta({ kind: "pi", delta: "질문입니다\n`" });
     app.appendDelta({ kind: "pi", delta: `\`\`json${text.slice(7)}` });
-    expect(app.querySelector(".msg.streaming .body").textContent).toBe("질문입니다\n");
+    expect(app.querySelector(".msg.streaming .body").textContent).toBe("질문입니다");
     expect(app.querySelector(".msg.streaming .body").textContent).not.toContain("piweb_choice");
     expect(app.querySelector(".fallback-choice-list")).toBeNull();
     app.appendMessage({ kind: "pi", text: `질문입니다\n${text}` });
