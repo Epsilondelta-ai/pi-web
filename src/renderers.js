@@ -46,11 +46,10 @@ export function renderTree(nodes) {
     const expanded = node.type === "dir" ? ` aria-expanded="${open}"` : "";
     const cls = ["tree-node", node.type, node.status || ""].filter(Boolean).join(" ");
     const padding = `padding-left:calc(var(--space-3) + ${node.depth * 14}px)`;
-    const caret = node.type === "dir" ? (open ? "▾" : "▸") : "";
     const glyph = node.type === "dir" ? (open ? "▾" : "▸") : "·";
     const filePath = escapeHtml(node.path || node.name);
     const children = node.children ? `<div data-tree-children${open ? "" : " hidden"}>${renderTree(node.children)}</div>` : "";
-    return `<div class="tree-branch"><button type="button" class="${cls}" data-action="${action}" data-file-path="${filePath}" style="${padding}"${expanded}><span class="caret">${caret}</span><span class="glyph">${glyph}</span><span class="name">${escapeHtml(node.name)}</span></button>${children}</div>`;
+    return `<div class="tree-branch"><button type="button" class="${cls}" data-action="${action}" data-file-path="${filePath}" style="${padding}"${expanded}><span class="glyph">${glyph}</span><span class="name">${escapeHtml(node.name)}</span></button>${children}</div>`;
   }).join("");
 }
 

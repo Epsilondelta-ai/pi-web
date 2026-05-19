@@ -99,13 +99,24 @@ export const workspaceMethods = {
     group.className = "workspace-group";
     group.dataset.workspaceGroup = workspace.id;
     const open = workspace.id === this.dataset.activeWorkspaceId;
-    group.innerHTML = `<div class="workspace-shell"><button type="button" class="ws-row ${open ? "open" : ""}" data-action="toggle-workspace" data-workspace="${escapeHtml(workspace.id)}" aria-expanded="${open}"><span class="caret">${open ? "▾" : "▸"}</span><span class="ws-stack"><span class="ws-name"><span class="dot"></span><span class="label"></span></span><span class="ws-path"></span></span><span class="ws-meta">${workspace.sessionCount}</span></button><button type="button" class="row-action danger" data-action="delete-workspace" data-workspace="${escapeHtml(workspace.id)}" title="remove workspace">×</button></div><div class="sessions"${open ? "" : " hidden"}><button type="button" class="session-row new-session-row" data-action="new-session" data-workspace="${escapeHtml(workspace.id)}"><span class="gutter">+</span><span class="title">new session</span><span class="meta">N</span></button></div>`;
+    group.innerHTML = `<div class="workspace-shell"><button type="button" class="ws-row ${open ? "open" : ""}" data-action="toggle-workspace" data-workspace="${escapeHtml(workspace.id)}" aria-expanded="${open}"><span class="caret">${open ? "▾" : "▸"}</span><span class="ws-stack"><span class="ws-name"><span class="dot"></span><span class="label"></span></span><span class="ws-path"></span></span><span class="ws-meta">${workspace.sessionCount}</span></button><button type="button" class="row-action danger" data-action="delete-workspace" data-workspace="${escapeHtml(workspace.id)}" title="remove workspace">×</button></div><div class="sessions"${open ? "" : " hidden"}></div>`;
     group.querySelector(".label").textContent = workspace.name;
     group.querySelector(".ws-path").textContent = workspace.path;
     group.querySelector(".dot").classList.toggle("live", !!workspace.live);
     const sessions = group.querySelector(".sessions");
     for (const session of workspace.sessions || []) sessions.append(this.createSessionRow(workspace.id, session));
+    sessions.append(this.createNewSessionRow(workspace.id));
     return group;
+  },
+
+  createNewSessionRow(workspaceId) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "session-row new-session-row";
+    row.dataset.action = "new-session";
+    row.dataset.workspace = workspaceId;
+    row.innerHTML = `<span class="title">+ new session</span>`;
+    return row;
   },
 
   async browseFolder() {

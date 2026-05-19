@@ -425,12 +425,16 @@ button.tc-head {
 
 button.session-row.new-session-row,
 .new-session-row {
+  display: flex;
+  justify-content: center;
   width: calc(100% - 16px);
   margin: 8px;
   min-height: 34px;
+  padding: 7px var(--space-3);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-1);
   background: var(--bg-3);
+  text-align: center;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 0 1px rgba(0,0,0,0.22);
 }
 button.session-row.new-session-row:hover,
@@ -438,8 +442,7 @@ button.session-row.new-session-row:hover,
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
 }
-.new-session-row .gutter { color: var(--accent); }
-.new-session-row .title { color: var(--accent); }
+.new-session-row .title { color: var(--accent); text-align: center; }
 
 .sb-footer {
   margin-top: auto;
@@ -843,7 +846,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-list { flex: 1; overflow-y: auto; padding: 4px 0; }
 .tree-node {
   display: grid;
-  grid-template-columns: 14px 14px 1fr auto;
+  grid-template-columns: 14px 1fr auto;
   align-items: center;
   gap: 4px;
   padding: 4px var(--space-3);
@@ -856,7 +859,6 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 }
 .tree-node:hover:not(:disabled) { background: var(--bg-3); }
 .tree-node:disabled { cursor: default; opacity: 1; }
-.tree-node .caret { color: var(--fg-3); font-size: 10px; text-align: center; }
 .tree-node .glyph { color: var(--fg-3); font-size: 11px; text-align: center; }
 .tree-node.dir .glyph { color: var(--fg-2); }
 .tree-node.file .glyph { color: var(--fg-3); }

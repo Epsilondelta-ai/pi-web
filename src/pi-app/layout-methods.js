@@ -51,7 +51,6 @@ export const layoutMethods = {
     const open = children.hidden;
     children.hidden = !open;
     button.setAttribute("aria-expanded", String(open));
-    button.querySelector(".caret").textContent = open ? "▾" : "▸";
     button.querySelector(".glyph").textContent = open ? "▾" : "▸";
   },
 
