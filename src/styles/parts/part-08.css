@@ -2,6 +2,7 @@
   margin-left: auto;
   width: 28px;
   height: 28px;
+  font-size: 28px;
   border: 1px solid transparent;
   border-radius: var(--radius-1);
   background: transparent;
