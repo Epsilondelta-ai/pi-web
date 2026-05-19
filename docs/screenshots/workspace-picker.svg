@@ -1,0 +1,43 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">pi-web-ui workspace picker</title>
+  <desc id="desc">Workspace picker screen showing folder open, git clone, and recent workspace list.</desc>
+  <rect width="1200" height="720" fill="#050505"/>
+  <rect x="24" y="24" width="1152" height="672" rx="18" fill="#0A0A0A" stroke="#2A2A2A"/>
+  <rect x="24" y="24" width="1152" height="48" rx="18" fill="#111111"/>
+  <path d="M24 54H1176" stroke="#2A2A2A"/>
+  <text x="48" y="55" fill="#00FF88" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">pi.dev</text>
+  <text x="112" y="55" fill="#5A5A5A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">/</text>
+  <text x="130" y="55" fill="#D4D4D4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">web</text>
+  <rect x="174" y="40" width="8" height="18" fill="#00FF88"/>
+
+  <text x="132" y="134" fill="#00FF88" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">pi.dev</text>
+  <text x="194" y="134" fill="#8B8B8B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">— open a folder to start a session. No login.</text>
+  <rect x="980" y="112" width="88" height="32" rx="4" fill="#0A0A0A" stroke="#2A2A2A"/>
+  <text x="1000" y="133" fill="#8B8B8B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">cancel</text>
+
+  <rect x="132" y="172" width="936" height="234" rx="10" fill="#101010" stroke="#2A2A2A"/>
+  <rect x="132" y="172" width="936" height="44" rx="10" fill="#111111"/>
+  <path d="M132 216H1068" stroke="#2A2A2A"/>
+  <text x="156" y="200" fill="#D4D4D4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">open a folder</text>
+  <rect x="156" y="238" width="736" height="42" rx="5" fill="#0A0A0A" stroke="#3A3A3A"/>
+  <text x="180" y="264" fill="#5A5A5A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">~/code/my-project   or   /Users/me/Code/project</text>
+  <rect x="908" y="238" width="136" height="42" rx="5" fill="#00B864"/>
+  <text x="944" y="264" fill="#001B0E" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700">open ↵</text>
+  <text x="156" y="304" fill="#5A5A5A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">paste a path, pick from ~, or drop a folder onto the window.</text>
+  <rect x="156" y="328" width="888" height="52" rx="5" fill="#0A0A0A" stroke="#1F1F1F"/>
+  <text x="180" y="360" fill="#8B8B8B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">↑ up</text>
+  <text x="274" y="360" fill="#D4D4D4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">~/code</text>
+  <text x="894" y="360" fill="#00FF88" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">open this folder</text>
+
+  <rect x="132" y="430" width="936" height="178" rx="10" fill="#101010" stroke="#2A2A2A"/>
+  <rect x="132" y="430" width="936" height="44" rx="10" fill="#111111"/>
+  <path d="M132 474H1068" stroke="#2A2A2A"/>
+  <text x="156" y="458" fill="#D4D4D4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">recent workspaces</text>
+  <text x="958" y="458" fill="#5A5A5A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">3 known</text>
+  <rect x="156" y="496" width="888" height="40" rx="5" fill="rgba(0,255,136,.08)" stroke="#00B864"/>
+  <text x="180" y="521" fill="#00FF88" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">▸ pi-web-ui</text>
+  <text x="320" y="521" fill="#5A5A5A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">/Users/juunini/Desktop/code/epsilondelta/pi-web-ui</text>
+  <text x="914" y="521" fill="#D4D4D4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">open ↵</text>
+  <text x="180" y="565" fill="#D4D4D4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">▸ context-mode</text>
+  <text x="320" y="565" fill="#5A5A5A" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">~/code/context-mode</text>
+</svg>
