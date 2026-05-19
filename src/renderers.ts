@@ -1,3 +1,17 @@
+import MarkdownIt from "markdown-it";
+
+const markdown = new MarkdownIt({
+  breaks: true,
+  html: false,
+  linkify: true,
+});
+
+markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
+  tokens[index].attrSet("target", "_blank");
+  tokens[index].attrSet("rel", "noopener noreferrer");
+  return self.renderToken(tokens, index, options);
+};
+
 export function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -8,7 +22,11 @@ export function escapeHtml(value) {
 }
 
 export function renderPiBody(text) {
-  return escapeHtml(text)
+  return restorePiInlineMarkup(markdown.render(String(text ?? ""))).trim();
+}
+
+function restorePiInlineMarkup(html) {
+  return html
     .replace(/&lt;tool&gt;([\s\S]*?)&lt;\/tool&gt;/g, '<span class="tool-ref">$1</span>')
     .replace(/&lt;code&gt;([\s\S]*?)&lt;\/code&gt;/g, '<code>$1</code>')
     .replace(/&lt;cursor&gt;&lt;\/cursor&gt;/g, '<span class="cursor"></span>');

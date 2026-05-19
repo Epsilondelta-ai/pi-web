@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { renderBannerBody, renderPiBody, renderTree } from "./renderers";
 
-describe("safe inline markup rendering", () => {
+describe("safe markdown rendering", () => {
   it("escapes untrusted pi message html before restoring allowed tokens", () => {
     const html = renderPiBody('<img src=x onerror="alert(1)"><tool>bash</tool><code>x</code><cursor></cursor>');
     expect(html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
@@ -11,9 +11,18 @@ describe("safe inline markup rendering", () => {
     expect(html).not.toContain("<img");
   });
 
-  it("keeps newlines for CSS pre-wrap rendering", () => {
-    const html = renderPiBody("first\nsecond");
-    expect(html).toBe("first\nsecond");
+  it("renders assistant markdown", () => {
+    const html = renderPiBody("**bold**\n\n- one\n- two");
+    expect(html).toContain("<strong>bold</strong>");
+    expect(html).toContain("<li>one</li>");
+    expect(html).toContain("<li>two</li>");
+  });
+
+  it("opens markdown links in a new tab", () => {
+    const html = renderPiBody("[docs](https://example.com)");
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
   });
 
   it("escapes untrusted banner html before restoring allowed tokens", () => {

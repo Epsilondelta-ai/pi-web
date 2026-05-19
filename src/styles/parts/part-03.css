@@ -104,6 +104,35 @@
 .msg .prefix.think { color: var(--thinking); }
 .msg .prefix.sys { color: var(--fg-3); }
 .msg .body { color: var(--fg-1); min-width: 0; flex: 1; display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .body.markdown-body { white-space: normal; }
+.msg .body.markdown-body > :first-child { margin-top: 0; }
+.msg .body.markdown-body > :last-child { margin-bottom: 0; }
+.msg .body.markdown-body p { margin: 0 0 0.75em; }
+.msg .body.markdown-body ul,
+.msg .body.markdown-body ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.35em;
+}
+.msg .body.markdown-body pre {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  margin: 0 0 0.75em;
+  overflow-x: auto;
+  padding: 8px 10px;
+  white-space: pre;
+}
+.msg .body.markdown-body pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.msg .body.markdown-body blockquote {
+  border-left: 2px solid var(--border);
+  color: var(--fg-2);
+  margin: 0 0 0.75em;
+  padding-left: 0.75em;
+}
 .msg .body.think { color: var(--fg-2); font-style: italic; }
 .msg .body.sys { color: var(--fg-3); font-size: var(--text-sm); }
 .msg .body strong { color: var(--fg-0); font-weight: 500; }
