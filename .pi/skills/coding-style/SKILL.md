@@ -7,7 +7,7 @@ description: Standards for keeping code readable and small when writing or refac
 - Write tests first → then write code.
 - Names should reveal their role without abbreviations.
 - Keep case style consistent.
-- Prefer files under 200 lines; do not exceed 300 lines. If exceeded, split by responsibility.
+- do not exceed 300 lines. If a touched file exceeds 300 lines, split it by responsibility immediately before proceeding to the next task.
 - Follow the Boy Scout Rule: if you notice cleanup opportunities in files you touch, handle them immediately within the task scope.
 
 ## Development Philosophy
