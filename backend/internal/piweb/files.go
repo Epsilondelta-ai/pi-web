@@ -3,8 +3,6 @@ package piweb
 import (
 	"encoding/base64"
 	"errors"
-	"mime"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -103,26 +101,6 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 		PreviewKind: previewKind,
 		Truncated:   truncated,
 	}, nil
-}
-
-func detectPreviewMIME(path string, data []byte) string {
-	if extType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path))); extType != "" {
-		return strings.Split(extType, ";")[0]
-	}
-	return http.DetectContentType(data)
-}
-
-func previewKindForMIME(mimeType string) string {
-	if mimeType == "image/svg+xml" {
-		return "image"
-	}
-	if strings.HasPrefix(mimeType, "text/") || mimeType == "application/json" || strings.HasSuffix(mimeType, "+xml") {
-		return "text"
-	}
-	if strings.HasPrefix(mimeType, "image/") {
-		return "image"
-	}
-	return "unsupported"
 }
 
 func WriteWorkspaceFile(root, rel, content string) (FileContent, error) {
