@@ -49,16 +49,43 @@ describe("pi-app workspace navigation", () => {
     expect(app.querySelector("[data-session='s2'] .meta").hidden).toBe(true);
   });
 
-  it("marks workspaces that contain a waiting session", async () => {
+  it("keeps workspace rendering no-ops safe without optional containers", async () => {
     const app = await connectPiApp();
+    const bare = document.createElement("div");
+    bare.dataset.workspaceGroup = "bare";
+    bare.innerHTML = `<button class="ws-row"></button>`;
+    app.append(bare);
+    expect(() => app.toggleWorkspace("bare")).not.toThrow();
+    app.querySelector(".sidebar .sb-section").remove();
+    expect(() => app.renderSidebarWorkspaces([{ id: "w1", name: "one", path: "/one", sessions: [] }])).not.toThrow();
+    expect(() => app.renderRecentWorkspaces([{ id: "w1", name: "one", path: "/one", sessions: [] }])).not.toThrow();
+  });
+
+  it("renders recent workspaces and marks workspaces that contain a waiting session", async () => {
+    const app = await connectPiApp();
+    const count = document.createElement("span");
+    const recent = document.createElement("div");
+    count.dataset.workspaceCount = "";
+    recent.dataset.recentWorkspaces = "";
+    recent.append(document.createElement("button"));
+    recent.firstElementChild.className = "recent-row";
+    app.prepend(count, recent);
     app.dataset.activeSessionId = "s2";
 
     app.renderWorkspaces([
-      { id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [{ id: "s1", title: "first" }] },
-      { id: "w2", name: "two", path: "/two", sessionCount: 1, sessions: [{ id: "s2", title: "second", live: true }] },
+      { id: "w1", name: "one", path: "/one", sessionCount: 1, lastUsed: "<old>", sessions: [{ id: "s1", title: "first" }] },
+      { id: "w2", name: "two", path: "/two", sessionCount: 1, live: true, sessions: [{ id: "s2", title: "second", live: true }] },
+      { id: "w3", name: "three", path: "/three", sessionCount: 0, sessions: [] },
+      { id: "w4", name: "four", path: "/four", sessionCount: 0, sessions: [] },
+      { id: "w5", name: "five", path: "/five", sessionCount: 0, sessions: [] },
     ]);
 
     const row = app.querySelector("[data-workspace='w2'].ws-row");
+    expect(count.textContent).toBe("5 known");
+    expect(recent.querySelectorAll(".recent-row")).toHaveLength(4);
+    expect(recent.querySelector(".recent-row").getAttribute("aria-label")).toBe("open one");
+    expect(recent.querySelector(".ws-stat").innerHTML).toContain("&lt;old&gt;");
+    expect(recent.querySelectorAll(".ws-stat")[1].textContent).toContain("● live");
     expect(row.classList.contains("has-active-session")).toBe(true);
     expect(row.querySelector(".ws-name .dot").classList.contains("live")).toBe(true);
     expect(app.querySelector("[data-session='s2']").classList.contains("active")).toBe(true);

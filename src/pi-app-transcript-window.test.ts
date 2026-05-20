@@ -35,6 +35,18 @@ describe("pi-app transcript window", () => {
     expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
   });
 
+  it("covers tool fallback metadata and output chunks", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    const card = app.toolCard({ kind: "tool", tool: "read" });
+    expect(card.dataset.status).toBe("");
+    expect(app.toolStatus({ status: "err" })).toContain("failed");
+    app.appendTranscriptNode(card, { stickToBottom: true });
+    app.appendToolOutput({ tool: "read" });
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    expect(card.querySelector(".tc-body").textContent).toBe("");
+  });
+
   it("renders error tools and appends finished tools that were not visible", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
@@ -130,10 +142,15 @@ describe("pi-app transcript window", () => {
   it("covers tool card default and expanded paths", async () => {
     const app = await connectPiApp();
     const card = app.toolCard({ status: "ok", collapsedByDefault: false, body: "body" });
+    const errorStatus = app.toolStatus({ status: "err" });
+    const outputCard = app.toolCard({ tool: "pi", status: "running", body: "" });
+    app.append(outputCard);
+    app.appendToolOutput({ tool: "pi" });
 
     expect(card.dataset.tool).toBe("tool");
     expect(card.querySelector(".tc-body").hidden).toBe(false);
     expect(card.querySelector(".tc-caret").textContent).toBe("▾");
+    expect(errorStatus).toContain("failed");
   });
 
   it("binds an existing scroll-bottom button", async () => {

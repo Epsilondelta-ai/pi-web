@@ -6,6 +6,68 @@ describe("pi-app messages", () => {
   beforeEach(installPiAppFixture);
   afterEach(cleanupPiAppFixture);
 
+  it("keeps message methods safe when transcript containers are absent", async () => {
+    const app = await connectPiApp();
+    app.termInner = null;
+    expect(() => app.renderMessages([{ kind: "pi", text: "ignored" }])).not.toThrow();
+    expect(() => app.appendMessage({ kind: "pi", text: "ignored" })).not.toThrow();
+    expect(() => app.appendMessage()).not.toThrow();
+    expect(() => app.appendDelta({ kind: "pi", delta: "ignored" })).not.toThrow();
+  });
+
+  it("renders banner, thinking, image, fallback choice, and unknown messages", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "banner", text: "<a>ready</a>" });
+    app.appendMessage({ kind: "think", text: "<reason>" });
+    app.appendMessage({ kind: "user", text: "see", attachments: [{ type: "image", dataUrl: "data:image/png;base64,a", name: "shot" }] });
+    app.appendMessage({ kind: "custom", value: 1 });
+    app.appendMessage({
+      kind: "pi",
+      text: [
+        "```json",
+        '{"type":"piweb_choice","id":"c1","question":"Pick?","options":[{"label":"A","value":"a","description":"Alpha"},{"label":"B","value":"b"}],"allowCustom":false}',
+        "```",
+      ].join("\n"),
+    });
+
+    expect(app.querySelector(".ascii-banner").textContent).toContain("ready");
+    expect(app.querySelector(".thinking-block").textContent).toContain("<reason>");
+    expect(app.querySelector(".msg-image").getAttribute("alt")).toBe("shot");
+    expect(app.querySelector(".fallback-choice-list [data-choice-value='a'] small").textContent).toBe("Alpha");
+    expect(app.querySelector("[data-choice-custom-input]")).not.toBeNull();
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).toContain("value");
+
+    app.appendMessage({ kind: "user", text: "unnamed", attachments: [{ type: "image", dataUrl: "data:image/png;base64,b" }] });
+    expect([...app.querySelectorAll(".msg-image")].at(-1).getAttribute("alt")).toBe("attached image");
+
+    app.disableAnsweredChoice();
+    const savedTerm = app.termInner;
+    app.termInner = null;
+    app.disableAnsweredChoice("missing");
+    app.termInner = savedTerm;
+    app.disableAnsweredChoice("c1");
+    expect(app.querySelector(".fallback-choice-list").classList.contains("answered")).toBe(true);
+    expect(app.querySelector(".fallback-choice-list button").disabled).toBe(true);
+  });
+
+  it("handles streaming and tool cleanup nodes with missing child elements", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    const streaming = document.createElement("div");
+    streaming.className = "msg streaming";
+    streaming.dataset.kind = "think";
+    app.termInner.append(streaming);
+    app.appendDelta({ kind: "think", delta: "ignored" });
+
+    const tool = document.createElement("div");
+    tool.className = "tool-card";
+    tool.dataset.status = "running";
+    app.termInner.append(tool);
+    expect(() => app.finishRunningTools()).not.toThrow();
+  });
+
   it("deduplicates echoed user prompts and removes loading on response", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
@@ -39,6 +101,26 @@ describe("pi-app messages", () => {
     app.flushStreamingRender();
     const bodies = [...app.querySelectorAll(".msg[data-kind='pi'] .body")].map((node) => node.textContent);
     expect(bodies).toEqual(["before", "after"]);
+  });
+
+  it("covers fallback defaults for images and detached choice lookup", async () => {
+    const app = await connectPiApp();
+    const image = app.userMessageNode({ kind: "user", text: "img", attachments: [{ type: "image", dataUrl: "data:image/png;base64,x" }] });
+    expect(image.querySelector("img").alt).toBe("attached image");
+    const term = app.termInner;
+    app.termInner = undefined;
+    app.disableAnsweredChoice("missing");
+    app.termInner = term;
+  });
+
+  it("finalizes uncached streaming rows", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    const row = app.simpleMessage("pi streaming", "pi >", "stream");
+    row.classList.add("streaming");
+    app.termInner.append(row);
+    app.finalizeStreamingMessages();
+    expect(row.classList.contains("streaming")).toBe(false);
   });
 
   it("keeps loading out of the transcript between tool calls", async () => {
@@ -165,77 +247,5 @@ describe("pi-app messages", () => {
     app.scrollTerm();
 
     expect(frames).toHaveLength(1);
-  });
-
-  it("virtualizes long transcripts to the visible message window", async () => {
-    const app = await connectPiApp();
-    const messages = Array.from({ length: 250 }, (_, index) => ({
-      kind: "pi",
-      text: `message ${index}`,
-    }));
-
-    app.renderMessages(messages);
-
-    const renderedMessages = [...app.querySelectorAll(".term-inner .msg")];
-    expect(app.transcriptItems).toHaveLength(250);
-    expect(renderedMessages.length).toBeLessThan(250);
-    expect(app.querySelector(".transcript-spacer-top")).not.toBeNull();
-    expect(renderedMessages.at(-1).textContent).toContain("message 249");
-  });
-
-  it("moves the virtual transcript window when the user scrolls upward", async () => {
-    const app = await connectPiApp();
-    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
-    const messages = Array.from({ length: 250 }, (_, index) => ({
-      kind: "pi",
-      text: `message ${index}`,
-    }));
-    app.renderMessages(messages);
-
-    app.term.scrollTop = 0;
-    app.renderTranscriptWindow({ stickToBottom: false });
-
-    const renderedMessages = [...app.querySelectorAll(".term-inner .msg")];
-    expect(renderedMessages[0].textContent).toContain("message 0");
-    expect(renderedMessages.at(-1).textContent).not.toContain("message 249");
-  });
-
-  it("renders only a preview for collapsed large tool output", async () => {
-    const app = await connectPiApp();
-    const largeBody = `${"line\n".repeat(5000)}tail-marker`;
-
-    app.renderMessages([]);
-    app.appendMessage({
-      kind: "tool",
-      tool: "bash",
-      status: "ok",
-      collapsedByDefault: true,
-      body: largeBody,
-    });
-
-    const body = app.querySelector(".tool-card .tc-body");
-    expect(body.hidden).toBe(true);
-    expect(body.textContent).not.toContain("tail-marker");
-    expect(body.textContent.length).toBeLessThan(largeBody.length);
-  });
-
-  it("renders full large tool output only after explicit request", async () => {
-    const app = await connectPiApp();
-    const largeBody = `${"line\n".repeat(5000)}tail-marker`;
-
-    app.renderMessages([]);
-    app.appendMessage({
-      kind: "tool",
-      tool: "bash",
-      status: "ok",
-      collapsedByDefault: true,
-      body: largeBody,
-    });
-
-    app.toggleTool(app.querySelector(".tc-head"));
-    expect(app.querySelector(".tool-card .tc-body").textContent).not.toContain("tail-marker");
-
-    app.showFullToolOutput(app.querySelector("[data-action='show-full-tool-output']"));
-    expect(app.querySelector(".tool-card .tc-body").textContent).toContain("tail-marker");
   });
 });

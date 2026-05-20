@@ -40,7 +40,7 @@ describe("pi-app session method mutations", () => {
   beforeEach(installPiAppFixture);
   afterEach(cleanupPiAppFixture);
 
-  it("updates session titles and autonames edge cases", async () => {
+  it("updates session titles, running metadata, and autonames edge cases", async () => {
     const app = await connectPiApp();
     const { activeTitle } = appendSessionShell(app);
     app.dataset.activeSessionId = "s-safe";
@@ -64,6 +64,8 @@ describe("pi-app session method mutations", () => {
     partial.dataset.session = "partial";
     app.append(partial);
     app.updateSessionTitle({ id: "partial", title: "no children" });
+    app.markSessionRunning(partial, true);
+    app.updateSessionMeta(partial, true);
 
     app.dataset.activeSessionId = "";
     app.autonameActiveSession("ignored");
