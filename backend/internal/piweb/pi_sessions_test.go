@@ -42,6 +42,42 @@ func TestParsePiSessionFile(t *testing.T) {
 	}
 }
 
+func TestParsePiSessionFileUsesNewSessionTitleWhenUnnamed(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "2026-01-01T00-00-00_session-id.jsonl")
+	data := `{"type":"session","version":3,"id":"s1","timestamp":"2026-01-01T00:00:00.000Z","cwd":"/tmp/project"}
+`
+	if err := os.WriteFile(file, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := ParsePiSessionFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Session.Title != "new session" {
+		t.Fatalf("unexpected title: %q", parsed.Session.Title)
+	}
+}
+
+func TestParsePiSessionFileRenamesNewSessionFromFirstUserMessage(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "session.jsonl")
+	data := `{"type":"session","version":3,"id":"s1","timestamp":"2026-01-01T00:00:00.000Z","cwd":"/tmp/project"}
+{"type":"session_info","id":"i1","parentId":null,"timestamp":"2026-01-01T00:00:01.000Z","name":"new session"}
+{"type":"message","id":"a","parentId":null,"timestamp":"2026-01-01T00:00:02.000Z","message":{"role":"user","content":"rename me from prompt"}}
+`
+	if err := os.WriteFile(file, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := ParsePiSessionFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Session.Title != "rename me from prompt" {
+		t.Fatalf("unexpected title: %q", parsed.Session.Title)
+	}
+}
+
 func TestLoadPiSessionsAnnotatesNestedSubagentSessions(t *testing.T) {
 	dir := t.TempDir()
 	parentFile := writeTestSessionFile(t, dir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
