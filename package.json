@@ -1,6 +1,6 @@
 {
   "name": "pi-web-ui",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "description": "Astro prototype for operating pi from a browser.",
   "license": "MIT",
