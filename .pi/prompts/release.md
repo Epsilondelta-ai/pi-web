@@ -11,13 +11,13 @@ Requirements:
 - If lockfiles need refresh after the version bump, refresh them with the project's package manager.
 - Run the full project verification command before tagging: `bun run check`.
 - Build frontend/static assets once, then build release binaries for all required OS/architecture targets.
-- Package these release assets under `dist/release/`:
-  - `pi-web-$1-linux-amd64`
-  - `pi-web-$1-linux-arm64`
-  - `pi-web-$1-macos-amd64`
-  - `pi-web-$1-macos-arm64`
-  - `SHA256SUMS`
-- `SHA256SUMS` must include checksums for all four binaries.
+- Package these release assets under `dist/release/` using the updater/installer-compatible naming scheme:
+  - `pi-web_${1#v}_linux_amd64.tar.gz`
+  - `pi-web_${1#v}_linux_arm64.tar.gz`
+  - `pi-web_${1#v}_darwin_amd64.tar.gz`
+  - `pi-web_${1#v}_darwin_arm64.tar.gz`
+  - `checksums.txt`
+- `checksums.txt` must include checksums for all four archives.
 - Commit the version bump with message `chore: release $1`.
 - Create annotated tag `$1`.
 - Push the commit and tag to `origin`.
@@ -36,13 +36,12 @@ Execution checklist:
 7. Prepare embedded frontend assets with:
    - `bun run build`
    - `bun run embed:assets`
-8. Build all release binaries with the target version ldflag:
-   - `GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$1" -o dist/release/pi-web-$1-linux-amd64 ./backend/cmd/pi-web-server`
-   - `GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=$1" -o dist/release/pi-web-$1-linux-arm64 ./backend/cmd/pi-web-server`
-   - `GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$1" -o dist/release/pi-web-$1-macos-amd64 ./backend/cmd/pi-web-server`
-   - `GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=$1" -o dist/release/pi-web-$1-macos-arm64 ./backend/cmd/pi-web-server`
-9. Make binaries executable.
-10. Generate `dist/release/SHA256SUMS` from all four binaries.
+8. Build all release binaries with the target version ldflag, then archive each binary as `pi-web` inside a `.tar.gz`:
+   - `GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$1" -o dist/release/pi-web ./backend/cmd/pi-web-server`
+   - `tar -C dist/release -czf dist/release/pi-web_${1#v}_linux_amd64.tar.gz pi-web`
+   - Repeat for `linux/arm64`, `darwin/amd64`, and `darwin/arm64`.
+9. Remove the temporary `dist/release/pi-web` file after packaging.
+10. Generate `dist/release/checksums.txt` from all four archives.
 11. Commit, tag, push, create the release, and upload all five assets.
 12. Return the release URL and the uploaded asset names.
 
