@@ -10,6 +10,7 @@ export const messageMethods = {
   renderMessages(messages, { preserveScroll = false } = {}) {
     if (!this.termInner) return;
     const scrollTop = this.term?.scrollTop || 0;
+    const followBottom = this.transcriptFollowBottom;
     this.piDeltaBuffer = "";
     this.streamingRows = {};
     this.termInner.replaceChildren();
@@ -18,6 +19,7 @@ export const messageMethods = {
     this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
     this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
     this.renderTranscriptWindow({ stickToBottom: !preserveScroll, immediate: !preserveScroll });
+    if (preserveScroll) this.transcriptFollowBottom = followBottom;
     if (preserveScroll && this.term) this.term.scrollTop = scrollTop;
   },
 
