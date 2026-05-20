@@ -5,6 +5,7 @@ import { filePreviewMethods } from "./pi-app/file-preview-methods";
 import { inputMethods } from "./pi-app/input-methods";
 import { layoutMethods } from "./pi-app/layout-methods";
 import { messageMethods } from "./pi-app/message-methods";
+import { promptDraftMethods } from "./pi-app/prompt-draft-methods";
 import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
 import { sessionMethods } from "./pi-app/session-methods";
 import { settingsMethods } from "./pi-app/settings-methods";
@@ -36,6 +37,7 @@ class PiApp extends HTMLElement {
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
     this.runtimeStatus = {};
+    this.restorePromptDraft();
     this.installViewportSizing();
     this.bindDomEvents();
     this.restoreSidebar();
@@ -282,6 +284,7 @@ Object.assign(
   messageMethods,
   toolMessageMethods,
   transcriptWindowMethods,
+  promptDraftMethods,
   inputMethods,
   attachmentMethods,
   filePreviewMethods,

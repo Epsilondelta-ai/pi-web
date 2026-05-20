@@ -36,7 +36,9 @@ describe("pi-app core events", () => {
     app.tickSpinners();
     expect(spinner.textContent).not.toBe("");
 
+    const backgroundSource = { close: vi.fn() };
     app.eventSource = { close: vi.fn() };
+    app.backgroundSessionWatches = new Map([["s2", { source: backgroundSource }]]);
     app.streamingRenderFrame = 1;
     app.scrollFrame = 2;
     app.updateTipTimer = setTimeout(() => {}, 1000);
@@ -44,6 +46,7 @@ describe("pi-app core events", () => {
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => undefined);
     app.disconnectedCallback();
     expect(app.eventSource.close).toHaveBeenCalled();
+    expect(backgroundSource.close).toHaveBeenCalled();
     expect(app.uninstallViewportSizing).toHaveBeenCalled();
     app.eventSource = null;
     app.spinnerTimer = undefined;

@@ -91,6 +91,11 @@ describe("pi-app core events coverage", () => {
 
     app.confirmConnection();
     expect(indicator.title).toBe("connected");
+
+    globalThis.EventSource = { CLOSED: 2 };
+    app.eventSource = { readyState: 2, close: vi.fn() };
+    app.deferEventStreamError();
+    expect(indicator.title).toBe("backend disconnected");
   });
 
   it("marks the backend disconnected when the event stream stays down", async () => {
@@ -104,8 +109,19 @@ describe("pi-app core events coverage", () => {
     indicator.className = "statusbtn";
     app.append(indicator);
     app.eventSource = { readyState: 0, close: vi.fn() };
+    app.connectionErrorTimer = 7;
+    vi.spyOn(window, "clearTimeout").mockImplementation(() => undefined);
     app.deferEventStreamError();
     timeoutCallback();
+    expect(window.clearTimeout).toHaveBeenCalledWith(7);
+    expect(indicator.title).toBe("backend disconnected");
+
+    app.eventSource = { readyState: 0, close: vi.fn() };
+    app.deferEventStreamError();
+    app.eventSource = { readyState: 0, close: vi.fn() };
+    expect(() => timeoutCallback()).not.toThrow();
+
+    app.setConnection("unexpected");
     expect(indicator.title).toBe("backend disconnected");
   });
 
