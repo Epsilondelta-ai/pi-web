@@ -143,7 +143,6 @@ export const inputMethods = {
     if (action === "folder-open-current") this.openWorkspacePath(this.currentFolder);
     if (action === "toggle-tree") this.toggleTree();
     if (action === "refresh-tree") this.refreshTree();
-    if (action === "toggle-tree-node") this.toggleTreeNode(button);
     if (action === "open-file") this.openFile(button);
     if (action === "close-file-preview") this.closeFilePreview();
     if (action === "toggle-file-preview-mode") this.toggleFilePreviewMode();

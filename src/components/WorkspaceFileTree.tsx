@@ -107,7 +107,7 @@ function FileTreeRow({ node, style, dragHandle }: any) {
       style={style}
       type="button"
       className={classes}
-      data-action={isDir ? "toggle-tree-node-react" : "open-file"}
+      data-action={isDir ? undefined : "open-file"}
       data-file-path={item.path}
       aria-expanded={isDir ? node.isOpen : undefined}
       aria-current={node.isSelected ? "true" : undefined}

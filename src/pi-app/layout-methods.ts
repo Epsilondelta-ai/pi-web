@@ -53,16 +53,6 @@ export const layoutMethods = {
     this.toggleTree(false);
   },
 
-  toggleTreeNode(button) {
-    const branch = button.closest(".tree-branch");
-    const children = branch?.querySelector(":scope > [data-tree-children]");
-    if (!children) return;
-    const open = children.hidden;
-    children.hidden = !open;
-    button.setAttribute("aria-expanded", String(open));
-    button.querySelector(".glyph").textContent = open ? "▾" : "▸";
-  },
-
   toggleDrawer(forceOpen) {
     const body = this.querySelector(".app-body");
     if (!body) return;
