@@ -1,19 +1,18 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as api from "./api";
 import "./pi-app";
-import { renderHighlightedCode } from "./pi-app/file-highlight";
 
-async function waitForHighlight(code) {
-  const deadline = Date.now() + 5000;
-  while (Date.now() < deadline) {
-    if (code.innerHTML.includes("style=\"color:")) return;
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-  throw new Error("highlight did not render");
-}
+vi.mock("./api", async () => {
+  const actual = await vi.importActual<typeof import("./api")>("./api");
+  return {
+    ...actual,
+    saveWorkspaceFile: vi.fn(),
+  };
+});
 
 function mountPreview() {
   document.body.innerHTML = `
-    <pi-app>
+    <pi-app data-active-workspace-id="workspace-1">
       <div class="file-preview-modal" data-file-preview hidden>
         <div class="fp-dialog">
           <div class="fp-head">
@@ -29,57 +28,144 @@ function mountPreview() {
       </div>
     </pi-app>
   `;
-  return document.querySelector("pi-app");
+  const app = document.querySelector("pi-app");
+  app.apiConnected = true;
+  app.loadWorkspaceMeta = vi.fn();
+  return app;
 }
 
-describe("file preview highlighting", () => {
+function dispatchEditorChange(app, text: string) {
+  const view = app.filePreview.editor.view;
+  view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+}
+
+describe("file preview CodeMirror editor", () => {
+  beforeEach(() => {
+    vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
   afterEach(() => {
+    vi.restoreAllMocks();
     document.body.innerHTML = "";
   });
 
-  it("renders clicked text files with a highlighted editable overlay", async () => {
+  it("renders editable text files in CodeMirror and tracks dirty state", () => {
     const app = mountPreview();
     app.renderFilePreview({
       path: "src/demo.ts",
       mime: "text/typescript",
       previewKind: "text",
-      content: "const answer = \"yes\";\n// done",
+      content: "const answer = 1;",
     });
 
     const preview = app.querySelector("[data-file-preview]");
     const editor = app.querySelector("[data-file-preview-editor]");
-    const code = app.querySelector(".fp-highlight code");
+    const save = app.querySelector("[data-action='save-file-preview']");
 
     expect(preview.hidden).toBe(false);
-    expect(editor.value).toBe("const answer = \"yes\";\n// done");
-    await waitForHighlight(code);
-    expect(code.textContent).toContain('const answer = "yes";');
-    expect(code.textContent).toContain("// done");
-    expect(code.innerHTML).toContain("style=\"color:");
-    expect(app.querySelector("[data-action='save-file-preview']").hidden).toBe(false);
+    expect(editor.querySelector(".cm-editor")).toBeTruthy();
+    expect(editor.dataset.language).toBe("typescript");
+    expect(app.filePreview.editor.getValue()).toBe("const answer = 1;");
+    expect(save.hidden).toBe(false);
+    expect(save.disabled).toBe(true);
+
+    dispatchEditorChange(app, "const answer = 2;");
+
+    expect(app.filePreview.dirty).toBe(true);
+    expect(save.disabled).toBe(false);
+    expect(save.textContent).toBe("save *");
+    expect(app.querySelector(".fp-head small").textContent).toContain("modified");
   });
 
-  it("updates highlighting as the editable preview changes", async () => {
+  it("saves current CodeMirror document and keeps edits after save failure", async () => {
     const app = mountPreview();
+    vi.mocked(api.saveWorkspaceFile).mockRejectedValueOnce(new Error("permission denied"));
     app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    dispatchEditorChange(app, "let x = 2;");
 
-    const editor = app.querySelector("[data-file-preview-editor]");
-    editor.value = "function demo() { return 2; }";
-    editor.dispatchEvent(new Event("input"));
+    await app.saveFilePreview();
 
-    const code = app.querySelector(".fp-highlight code");
-    await waitForHighlight(code);
-    expect(code.textContent).toContain("function demo() { return 2; }");
-    expect(code.innerHTML).toContain("style=\"color:");
+    expect(api.saveWorkspaceFile).toHaveBeenCalledWith("workspace-1", "demo.js", "let x = 2;");
+    expect(app.filePreview.editor.getValue()).toBe("let x = 2;");
+    expect(app.filePreview.dirty).toBe(true);
+    expect(window.alert).toHaveBeenCalledWith("permission denied");
   });
 
-  it("escapes unsupported text files instead of injecting markup", async () => {
-    const html = await renderHighlightedCode('<script>alert("x")</script>', {
-      path: "plain.txt",
-      mime: "text/plain",
+  it("updates clean baseline after save success", async () => {
+    const app = mountPreview();
+    vi.mocked(api.saveWorkspaceFile).mockResolvedValueOnce({
+      path: "demo.js",
+      mime: "text/javascript",
+      previewKind: "text",
+      content: "let x = 2;",
     });
+    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    dispatchEditorChange(app, "let x = 2;");
 
-    expect(html).toContain("&lt;script&gt;");
-    expect(html).not.toContain("<script>");
+    await app.saveFilePreview();
+
+    expect(app.filePreview.dirty).toBe(false);
+    expect(app.filePreview.cleanContent).toBe("let x = 2;");
+    expect(app.filePreview.editor.getValue()).toBe("let x = 2;");
+    expect(app.querySelector("[data-action='save-file-preview']").textContent).toBe("saved");
+  });
+
+  it("keeps newer edits typed while save is in flight", async () => {
+    const app = mountPreview();
+    let resolveSave: (file: unknown) => void = () => undefined;
+    vi.mocked(api.saveWorkspaceFile).mockReturnValueOnce(new Promise((resolve) => { resolveSave = resolve; }) as never);
+    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    dispatchEditorChange(app, "let x = 2;");
+
+    const saving = app.saveFilePreview();
+    dispatchEditorChange(app, "let x = 3;");
+    resolveSave({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 2;" });
+    await saving;
+
+    expect(app.filePreview.editor.getValue()).toBe("let x = 3;");
+    expect(app.filePreview.cleanContent).toBe("let x = 2;");
+    expect(app.filePreview.dirty).toBe(true);
+  });
+
+  it("asks before switching files with unsaved changes and guards reload", () => {
+    const app = mountPreview();
+    app.installFilePreviewUnloadGuard();
+    app.renderFilePreview({ path: "a.txt", mime: "text/plain", previewKind: "text", content: "a" });
+    dispatchEditorChange(app, "changed");
+    vi.mocked(window.confirm).mockReturnValueOnce(false);
+
+    const clean = app.confirmCleanFilePreview();
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(clean).toBe(false);
+    expect(window.confirm).toHaveBeenCalledWith("Discard unsaved file changes?");
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("keeps image, large, and unsupported files on preview fallback paths", () => {
+    const app = mountPreview();
+    app.renderFilePreview({ path: "logo.png", mime: "image/png", previewKind: "image", dataUrl: "data:image/png;base64,aa" });
+    expect(app.querySelector(".fp-body img")).toBeTruthy();
+    expect(app.querySelector("[data-file-preview-editor]")).toBeFalsy();
+
+    app.renderFilePreview({ path: "big.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
+    expect(app.querySelector("[data-file-preview-editor] .cm-editor")).toBeTruthy();
+    expect(app.querySelector("[data-action='save-file-preview']").hidden).toBe(true);
+
+    app.renderFilePreview({ path: "app.bin", mime: "application/octet-stream", previewKind: "unsupported" });
+    expect(app.querySelector(".fp-body").textContent).toContain("미리보기를 지원하지 않습니다");
+  });
+
+  it("clears discarded dirty state when closing preview", () => {
+    const app = mountPreview();
+    app.renderFilePreview({ path: "a.txt", mime: "text/plain", previewKind: "text", content: "a" });
+    dispatchEditorChange(app, "changed");
+
+    app.closeFilePreview();
+
+    expect(app.filePreview).toBeUndefined();
+    expect(app.hasDirtyFilePreview()).toBe(false);
   });
 });
