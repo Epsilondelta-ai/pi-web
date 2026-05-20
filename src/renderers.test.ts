@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, expect, it } from "vitest";
-import { renderBannerBody, renderPiBody } from "./renderers";
+import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./renderers";
 
 describe("safe markdown rendering", () => {
   it("escapes untrusted pi message html before restoring allowed tokens", () => {
@@ -26,9 +26,29 @@ describe("safe markdown rendering", () => {
   });
 
   it("escapes untrusted banner html before restoring allowed tokens", () => {
-    const html = renderBannerBody('<script>alert(1)</script><a>ready</a>');
+    const html = renderBannerBody('<script>alert(1)</script><a>ready</a><d>dim</d><t>tool</t>');
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain('<span class="accent">ready</span>');
+    expect(html).toContain('<span class="dim">dim</span>');
+    expect(html).toContain('<span class="tool">tool</span>');
     expect(html).not.toContain("<script>");
+  });
+
+  it("escapes html scalar values", () => {
+    expect(escapeHtml(null)).toBe("");
+    expect(escapeHtml('&<>"\'')).toBe("&amp;&lt;&gt;&quot;&#39;");
+  });
+
+  it("restores pi ansi tags after escaping the body", () => {
+    const html = renderAnsiBody("<a>ok</a><r>bad</r><y>warn</y><c>cyan</c><d>dim</d><t>tool</t><ad>add</ad><rm>rm</rm><x>&</x>");
+    expect(html).toContain('<span class="ansi-green">ok</span>');
+    expect(html).toContain('<span class="ansi-red">bad</span>');
+    expect(html).toContain('<span class="ansi-yellow">warn</span>');
+    expect(html).toContain('<span class="ansi-cyan">cyan</span>');
+    expect(html).toContain('<span class="ansi-dim">dim</span>');
+    expect(html).toContain('<span class="ansi-yellow">tool</span>');
+    expect(html).toContain('<span class="added">add</span>');
+    expect(html).toContain('<span class="removed">rm</span>');
+    expect(html).toContain("&lt;x&gt;&amp;&lt;/x&gt;");
   });
 });

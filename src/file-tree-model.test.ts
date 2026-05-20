@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decorateFileTree } from "./file-tree-model";
+import { decorateFileTree, isDirtyStatus } from "./file-tree-model";
 
 const tree = [
   {
@@ -44,5 +44,21 @@ describe("decorateFileTree", () => {
     const [node] = decorateFileTree([{ type: "file", name: "x", path: "x" }], { x: "ignored" });
     expect(node.gitStatus).toBe("clean");
     expect(node.dirtyDescendants).toBe(false);
+  });
+
+  it("normalizes paths, empty input, open folders, status overrides, and dirty statuses", () => {
+    expect(decorateFileTree()).toEqual([]);
+    const [src, readme] = decorateFileTree([
+      { type: "dir", name: "src", path: "./src", open: true, status: "modified", children: [] },
+      { type: "file", name: "README.md" },
+    ], { src: "clean", "README.md": "added" });
+    expect(src).toMatchObject({ id: "src", path: "src", children: undefined, expanded: true, gitStatus: "clean" });
+    expect(readme).toMatchObject({ id: "README.md", path: "README.md", gitStatus: "added" });
+    for (const status of ["modified", "added", "untracked", "deleted", "renamed"]) {
+      expect(isDirtyStatus(status)).toBe(true);
+    }
+    expect(isDirtyStatus("clean")).toBe(false);
+    expect(isDirtyStatus("unknown")).toBe(false);
+    expect(isDirtyStatus(undefined)).toBe(false);
   });
 });
