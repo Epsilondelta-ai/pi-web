@@ -9,8 +9,12 @@ description: Standards for readable, small code, naming, function extraction, fi
 - Keep case style consistent.
 - For source code only, keep lines ≤120 characters; wrap at semantic boundaries like arguments, properties, or chains.
 - Do not reflow prose, Markdown docs, prompts, or comments just to satisfy the code line-length rule.
-- For source code only, keep files ≤300 lines. If a touched file exceeds 300 lines, split it by responsibility.
-- Follow the Boy Scout Rule: if you notice cleanup opportunities in files you touch, handle them within the task scope.
+## Boy Scout Rule
+
+- Leave touched code cleaner through small, safe, behavior-preserving improvements.
+- Before finishing, fix touched-file issues: naming, duplication, dead code, complexity, unclear structure.
+- Touched source files must stay ≤300 lines and reach 100% Statements, Branches, Functions, and Lines coverage.
+- Refactor only with passing tests, then rerun relevant tests.
 
 ## Development Philosophy
 

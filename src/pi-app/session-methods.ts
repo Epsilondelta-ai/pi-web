@@ -191,6 +191,9 @@ export const sessionMethods = {
       try {
         const { session } = await createSession(workspaceId);
         this.activateCreatedSession(workspaceId, session);
+        this.route("workspace");
+        this.showSessionMain();
+        return;
       } catch {
         this.setConnection("err");
       }

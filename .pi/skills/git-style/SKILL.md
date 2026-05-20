@@ -9,6 +9,6 @@ description: Git workflow
    - Prefer fast checks first: install, lint, typecheck, unit tests, then e2e tests when present.
    - Keep workflow names explicit, e.g. `test.yml` or `ci.yml`.
 3. Commit — keep units of work small and write meaningful commit messages.
-4. Create a PR — clearly explain the changes and intent, including CI/test coverage.
+4. Create a PR — clearly explain the changes and intent, including CI/test coverage. For multiline bodies, use heredoc → temp file → `--body-file`; never inline `\n` in shell args. Verify the body after creation/edit.
 5. Review & feedback — apply reviewer feedback and revise.
 6. Merge to main — merge into `main` after review and required CI checks pass.
