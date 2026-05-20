@@ -58,6 +58,7 @@ export const workspaceBootstrapMethods = {
     this.dataset.activeWorkspaceId = workspace.id;
     const label = this.querySelector("[data-active-workspace]");
     if (label) label.textContent = workspace.name;
+    this.syncActiveWorkspaceRows?.();
   },
 
   activateBootstrapSession(session) {
@@ -143,7 +144,8 @@ export const workspaceBootstrapMethods = {
     this.resetActiveSessionState?.();
     const workspaceId = session.workspaceId
       || this.findSessionRow(session.id)?.dataset.workspace;
-    if (workspaceId) this.activateWorkspaceForSession(workspaceId);
+    if (workspaceId) this.activateWorkspaceForSession(workspaceId, { loadContext: true });
+    this.markSelectedSessionRow?.(session.id);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
     this.activateBootstrapSession(session);
     this.renderMessages(messages);
@@ -160,12 +162,17 @@ export const workspaceBootstrapMethods = {
       .find((group) => group.dataset.workspaceGroup === workspaceId);
   },
 
-  activateWorkspaceForSession(workspaceId) {
+  activateWorkspaceForSession(workspaceId, { loadContext = false, forceLoadContext = false } = {}) {
     const changed = this.dataset.activeWorkspaceId !== workspaceId;
     this.dataset.activeWorkspaceId = workspaceId;
     this.openActiveWorkspaceGroup(workspaceId);
     this.updateActiveWorkspaceLabel(workspaceId);
-    if (!changed) return;
+    this.syncActiveWorkspaceRows?.();
+    const shouldLoadContext = loadContext && (changed || forceLoadContext);
+    if (this.apiConnected && shouldLoadContext) this.loadWorkspaceContext(workspaceId);
+  },
+
+  loadWorkspaceContext(workspaceId) {
     void this.loadWorkspaceCommands(workspaceId);
     void this.loadRuntimeStatus(workspaceId);
     void this.loadWorkspaceMeta(workspaceId);
@@ -179,8 +186,6 @@ export const workspaceBootstrapMethods = {
       if (sessions) sessions.hidden = !open;
       row?.classList.toggle("open", open);
       row?.setAttribute("aria-expanded", String(open));
-      const caret = row?.querySelector(".caret");
-      if (caret) caret.textContent = open ? "▾" : "▸";
     });
   },
 

@@ -143,15 +143,17 @@ const settingsFields = [
             return (
               <div class="workspace-group" data-workspace-group={workspace.id}>
                 <button type="button" class:list={["ws-row", isActiveWorkspace && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={isActiveWorkspace ? "true" : "false"}>
-                  <span class="caret">{isActiveWorkspace ? "▾" : "▸"}</span>
                   <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
                   <span class="ws-meta">{workspace.sessionCount}</span>
                 </button>
                 <div class="sessions" hidden={!isActiveWorkspace}>
                   {(workspace.sessions || []).map((session) => (
-                    <button type="button" class:list={["session-row", isActiveWorkspace && session.id === activeSessionID && "active"]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
-                      <span class="gutter"><span class:list={["dot", session.live && "live"]}></span></span>
-                      <span class="title">{session.title}</span><span class:list={["meta", session.live && "live"]}>{session.lastUsed}</span>
+                    <button type="button" class:list={[
+                      "session-row",
+                      isActiveWorkspace && session.id === activeSessionID && "selected",
+                      (session.active || session.live) && "active",
+                    ]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
+                      <span class="title">{session.title}</span><span class:list={["meta", (session.active || session.live) && "live"]} hidden={!(session.active || session.live)}>{session.active || session.live ? "waiting" : ""}</span>
                     </button>
                   ))}
                   {(workspace.sessions || []).length === 0 && <div style="padding:12px 16px;color:var(--fg-3);font-size:12px;font-style:italic">no sessions yet · press N to start one</div>}

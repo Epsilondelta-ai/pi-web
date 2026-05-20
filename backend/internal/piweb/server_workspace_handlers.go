@@ -38,7 +38,7 @@ func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, folders)
 }
 func (s *Server) workspaces(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"workspaces": s.store.Workspaces()})
+	writeJSON(w, http.StatusOK, map[string]any{"workspaces": s.withLiveSessions(s.store.Workspaces())})
 }
 func (s *Server) openWorkspace(w http.ResponseWriter, r *http.Request) {
 	var req OpenWorkspaceRequest
@@ -87,8 +87,41 @@ func (s *Server) workspaceSessions(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"sessions": sessions})
+	writeJSON(w, http.StatusOK, map[string]any{"sessions": s.withLiveSessionFlags(sessions)})
 }
+func (s *Server) withLiveSessions(workspaces []Workspace) []Workspace {
+	for workspaceIndex := range workspaces {
+		workspaces[workspaceIndex].Sessions = s.withLiveSessionFlags(workspaces[workspaceIndex].Sessions)
+		for _, session := range workspaces[workspaceIndex].Sessions {
+			workspaces[workspaceIndex].Live = workspaces[workspaceIndex].Live || session.Live
+		}
+	}
+	return workspaces
+}
+
+func (s *Server) withLiveSessionFlags(sessions []Session) []Session {
+	running := s.runningSessionIDs()
+	for index := range sessions {
+		if !running[sessions[index].ID] {
+			continue
+		}
+		sessions[index].Live = true
+		sessions[index].Active = true
+		sessions[index].LastUsed = "live"
+	}
+	return sessions
+}
+
+func (s *Server) runningSessionIDs() map[string]bool {
+	s.runner.mu.Lock()
+	defer s.runner.mu.Unlock()
+	running := make(map[string]bool, len(s.runner.running))
+	for sessionID := range s.runner.running {
+		running[sessionID] = true
+	}
+	return running
+}
+
 func (s *Server) deleteWorkspaceSessions(w http.ResponseWriter, r *http.Request) {
 	deletedCount, err := s.store.DeleteWorkspaceSessions(r.PathValue("workspaceID"))
 	if err != nil {

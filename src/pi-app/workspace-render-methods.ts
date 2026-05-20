@@ -58,21 +58,31 @@ export const workspaceRenderMethods = {
     group.className = "workspace-group";
     group.dataset.workspaceGroup = workspace.id;
     const open = workspace.id === this.dataset.activeWorkspaceId;
+    group.classList.toggle("active", open);
+    group.classList.toggle("has-active-session", this.workspaceHasActiveSession(workspace));
     group.innerHTML = this.workspaceGroupTemplate(workspace, open);
     this.fillWorkspaceGroup(group, workspace);
     return group;
   },
 
+  workspaceHasActiveSession(workspace) {
+    return (workspace.sessions || []).some((session) => session.active || session.live);
+  },
+
   workspaceGroupTemplate(workspace, open) {
+    const active = workspace.id === this.dataset.activeWorkspaceId;
+    const hasActiveSession = this.workspaceHasActiveSession(workspace);
+    const stateClasses = [open && "open", active && "active", hasActiveSession && "has-active-session"]
+      .filter(Boolean)
+      .join(" ");
     return [
       "<div class=\"workspace-shell\">",
-      `<button type="button" class="ws-row ${open ? "open" : ""}"`,
+      `<button type="button" class="ws-row ${stateClasses}"`,
       ` data-action="toggle-workspace" data-workspace="${escapeHtml(workspace.id)}"`,
-      ` aria-expanded="${open}">`,
-      `<span class="caret">${open ? "▾" : "▸"}</span>`,
+      ` aria-expanded="${open}" aria-current="${active ? "true" : "false"}">`,
       "<span class=\"ws-stack\"><span class=\"ws-name\"><span class=\"dot\"></span>",
       "<span class=\"label\"></span></span><span class=\"ws-path\"></span></span>",
-      `<span class="ws-meta">${workspace.sessionCount}</span></button>`,
+      `<span class="ws-meta"><span class="ws-count">${workspace.sessionCount}</span></span></button>`,
       `<button type="button" class="row-action danger" data-action="delete-workspace"`,
       ` data-workspace="${escapeHtml(workspace.id)}" title="remove workspace">×</button>`,
       `</div><div class="sessions"${open ? "" : " hidden"}></div>`,
@@ -82,7 +92,10 @@ export const workspaceRenderMethods = {
   fillWorkspaceGroup(group, workspace) {
     group.querySelector(".label").textContent = workspace.name;
     group.querySelector(".ws-path").textContent = workspace.path;
-    group.querySelector(".dot").classList.toggle("live", !!workspace.live);
+    group.querySelector(".ws-name .dot").classList.toggle(
+      "live",
+      !!workspace.live || this.workspaceHasActiveSession(workspace),
+    );
     const sessions = group.querySelector(".sessions");
     for (const session of workspace.sessions || []) sessions.append(this.createSessionRow(workspace.id, session));
     if ((workspace.sessions || []).length > 0) sessions.append(this.createDeleteWorkspaceSessionsRow(workspace.id));
@@ -110,15 +123,33 @@ export const workspaceRenderMethods = {
   },
 
   toggleWorkspace(id) {
+    const targetSessions = this.findWorkspaceGroup?.(id)?.querySelector(".sessions");
+    const shouldOpen = !!targetSessions?.hidden;
+    this.activateWorkspaceForSession(id);
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
       const sessions = group.querySelector(".sessions");
       const row = group.querySelector(".ws-row");
-      const open = group.dataset.workspaceGroup === id && sessions?.hidden;
+      const open = group.dataset.workspaceGroup === id ? shouldOpen : false;
       if (sessions) sessions.hidden = !open;
       row?.classList.toggle("open", open);
       row?.setAttribute("aria-expanded", String(open));
-      const caret = row?.querySelector(".caret");
-      if (caret) caret.textContent = open ? "▾" : "▸";
+    });
+    this.syncActiveWorkspaceRows();
+  },
+
+  syncActiveWorkspaceRows() {
+    const activeWorkspaceId = this.dataset.activeWorkspaceId;
+    this.querySelectorAll("[data-workspace-group]").forEach((group) => {
+      const row = group.querySelector(".ws-row");
+      const active = group.dataset.workspaceGroup === activeWorkspaceId;
+      const hasLiveSession = group.querySelector(".session-row.active");
+      const hasActiveSession = !!hasLiveSession;
+      group.classList.toggle("active", active);
+      group.classList.toggle("has-active-session", hasActiveSession);
+      row?.classList.toggle("active", active);
+      row?.classList.toggle("has-active-session", hasActiveSession);
+      row?.setAttribute("aria-current", active ? "true" : "false");
+      row?.querySelector(".ws-name .dot")?.classList.toggle("live", hasActiveSession);
     });
   },
 };

@@ -40,7 +40,7 @@ describe("pi-app session method mutations", () => {
   beforeEach(installPiAppFixture);
   afterEach(cleanupPiAppFixture);
 
-  it("updates session titles and autonames edge cases", async () => {
+  it("updates session titles, running metadata, and autonames edge cases", async () => {
     const app = await connectPiApp();
     const { activeTitle } = appendSessionShell(app);
     app.dataset.activeSessionId = "s-safe";
@@ -53,7 +53,7 @@ describe("pi-app session method mutations", () => {
     expect(safe.querySelector(".session-main").dataset.title).toBe("renamed");
     expect(safe.querySelector(".title").textContent).toBe("renamed");
     expect(safe.querySelector(".meta").classList.contains("live")).toBe(true);
-    expect(safe.querySelector(".gutter .dot").classList.contains("live")).toBe(true);
+    expect(safe.querySelector(".gutter")).toBeNull();
 
     app.dataset.activeSessionId = "s safe/1";
     app.updateSessionTitle({ id: "s safe/1", title: "active" });
@@ -64,6 +64,8 @@ describe("pi-app session method mutations", () => {
     partial.dataset.session = "partial";
     app.append(partial);
     app.updateSessionTitle({ id: "partial", title: "no children" });
+    app.markSessionRunning(partial, true);
+    app.updateSessionMeta(partial, true);
 
     app.dataset.activeSessionId = "";
     app.autonameActiveSession("ignored");
@@ -92,8 +94,8 @@ describe("pi-app session method mutations", () => {
     app.apiConnected = true;
 
     await app.pickSession(row);
-    expect(oldRow.classList.contains("active")).toBe(false);
-    expect(row.classList.contains("active")).toBe(true);
+    expect(oldRow.classList.contains("selected")).toBe(false);
+    expect(row.classList.contains("selected")).toBe(true);
     expect(activeTitle.textContent).toBe("one");
     expect(app.loadSession).toHaveBeenCalledWith("s1");
 

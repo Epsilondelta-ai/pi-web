@@ -90,6 +90,5 @@ export const toolMessageMethods = {
     const body = card.querySelector(".tc-body");
     const next = this.toolCard({ ...message, collapsedByDefault: body?.hidden !== false });
     if (!this.replaceTranscriptNode(card, next)) card.replaceWith(next);
-    this.syncLoadingMessage();
   },
 };

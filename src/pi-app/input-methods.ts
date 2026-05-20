@@ -35,9 +35,11 @@ export const inputMethods = {
     if (this.attachments) this.attachments.hidden = true;
     this.updatePrompt();
     if (waitForServerEcho) {
+      this.setMode("running");
       try {
         await postPrompt(sessionId, text, attachments);
       } catch {
+        this.setMode("idle");
         this.removeLoadingMessage();
         this.setConnection("err");
       }
@@ -197,9 +199,11 @@ export const inputMethods = {
     this.finalizeStreamingMessages();
     this.appendMessage({ kind: "user", text: prompt });
     this.appendLoadingMessage();
+    this.setMode("running");
     try {
       await postPrompt(this.dataset.activeSessionId, prompt, []);
     } catch {
+      this.setMode("idle");
       this.removeLoadingMessage();
       this.setConnection("err");
     }

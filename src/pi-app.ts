@@ -201,6 +201,7 @@ class PiApp extends HTMLElement {
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = ["running", "thinking"].includes(mode);
+    this.syncCurrentSessionRunState?.(this.running);
     this.stopButton?.toggleAttribute("hidden", !this.running);
     if (this.sendButton) this.updatePrompt();
     this.syncLoadingMessage?.();
