@@ -78,7 +78,9 @@ export const transcriptWindowMethods = {
       this.scrollFrame = window.requestAnimationFrame(() => {
         this.scrollFrame = undefined;
         scroll();
-        window.requestAnimationFrame(scroll);
+        window.requestAnimationFrame(() => {
+          if (!this.isTermPinnedToBottom()) scroll();
+        });
       });
     };
   },
@@ -86,9 +88,11 @@ export const transcriptWindowMethods = {
   scrollTermToBottomImmediately() {
     const term = this.term;
     if (!term) return;
+    const target = Math.max(0, term.scrollHeight - term.clientHeight);
+    if (Math.abs(term.scrollTop - target) < 1) return;
     const previousScrollBehavior = term.style.scrollBehavior;
     term.style.scrollBehavior = "auto";
-    term.scrollTop = term.scrollHeight;
+    term.scrollTop = target;
     term.style.scrollBehavior = previousScrollBehavior;
   },
 

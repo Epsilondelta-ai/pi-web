@@ -60,10 +60,15 @@ class PiApp extends HTMLElement {
   }
 
   installViewportSizing() {
+    let currentHeight = "";
     const applyViewportHeight = () => {
       const viewport = window.visualViewport;
-      const height = viewport?.height || window.innerHeight;
-      if (height > 0) this.style.setProperty("--app-viewport-height", `${height}px`);
+      const height = Math.round(viewport?.height || window.innerHeight);
+      if (height <= 0) return;
+      const nextHeight = `${height}px`;
+      if (nextHeight === currentHeight) return;
+      currentHeight = nextHeight;
+      this.style.setProperty("--app-viewport-height", nextHeight);
     };
     const viewport = window.visualViewport;
     applyViewportHeight();

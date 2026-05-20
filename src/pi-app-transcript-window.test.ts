@@ -198,6 +198,7 @@ describe("pi-app transcript window", () => {
     app.term.style.scrollBehavior = "smooth";
     let scrollTop = 0;
     const scrollWrites = [];
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
     Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
     Object.defineProperty(app.term, "scrollTop", {
       configurable: true,
@@ -212,10 +213,7 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollWrites).toEqual([
-      { behavior: "auto", value: 1000 },
-      { behavior: "auto", value: 1000 },
-    ]);
+    expect(scrollWrites).toEqual([{ behavior: "auto", value: 900 }]);
     expect(app.term.style.scrollBehavior).toBe("smooth");
   });
 
@@ -245,7 +243,7 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(app.term.scrollTop).toBe(1000);
+    expect(app.term.scrollTop).toBe(900);
     expect(app.transcriptFollowBottom).toBe(true);
   });
 });
