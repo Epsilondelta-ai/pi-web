@@ -17,9 +17,8 @@ export const messageMethods = {
     this.deferTranscriptRender = false;
     this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
     this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
-    this.renderTranscriptWindow({ stickToBottom: !preserveScroll });
+    this.renderTranscriptWindow({ stickToBottom: !preserveScroll, immediate: !preserveScroll });
     if (preserveScroll && this.term) this.term.scrollTop = scrollTop;
-    else this.scrollTerm();
   },
 
   answeredChoiceIdsFrom(messages) {

@@ -91,7 +91,6 @@ export const sessionMethods = {
     this.toggleDrawer?.(false);
     if (this.apiConnected) await this.loadSession(row.dataset.session);
     else storeActiveSession(row.dataset.workspace, row.dataset.session);
-    this.scrollTerm();
   },
 
   markSelectedSessionRow(sessionId) {
