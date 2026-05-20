@@ -147,7 +147,10 @@ export const transcriptWindowMethods = {
   appendTranscriptNode(node, { stickToBottom = true } = {}) {
     const nodes = this.transcriptElementNodes(node);
     if (!nodes.length) return;
-    this.transcriptItems.push(this.createTranscriptItem(undefined, { nodes }));
+    this.transcriptItems = [
+      ...(this.transcriptItems || []),
+      this.createTranscriptItem(undefined, { nodes }),
+    ];
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom });
   },
 
