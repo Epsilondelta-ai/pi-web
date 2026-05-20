@@ -43,17 +43,18 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Backend tests
-        run: go test ./...
-
-      - name: Backend coverage 100% check
+      - name: Backend tests with coverage
         run: |
           go test ./backend/... -coverprofile=coverage.out -covermode=atomic
-          go tool cover -func=coverage.out > coverage_func.txt
-          TOTAL=$(tail -1 coverage_func.txt | grep -oP '\d+\.\d+')
+          echo ""
+          echo "=== Coverage by function ==="
+          go tool cover -func=coverage.out
+          echo ""
+          TOTAL=$(go tool cover -func=coverage.out | tail -1 | grep -oP '\d+\.\d+')
           echo "Total coverage: ${TOTAL}%"
           if [ "$TOTAL" != "100.0" ]; then
             echo "❌ Coverage is ${TOTAL}%, expected 100.0%"
+            echo "Uncovered functions:"
             go tool cover -func=coverage.out | grep -v '100.0%'
             exit 1
           fi
