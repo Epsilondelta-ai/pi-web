@@ -145,7 +145,8 @@ export const workspaceBootstrapMethods = {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
       this.rememberSessionPage(loaded);
-      if (cachedPage) return;
+      if (cachedPage && sessionPageSignature(cachedPage) === sessionPageSignature(loaded)) return;
+      if (cachedPage) loaded.preserveScroll = true;
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");

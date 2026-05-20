@@ -104,7 +104,7 @@ describe("pi-app session switch UX", () => {
     expect(renderMessages).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps cached session visible while refreshing in the background", async () => {
+  it("renders fresh session messages without scrolling when refresh changes", async () => {
     const responses = [
       Promise.resolve({
         ok: true,
@@ -155,7 +155,7 @@ describe("pi-app session switch UX", () => {
     });
     await refreshing;
 
-    expect(app.querySelector(".msg .body").textContent).toBe("cached");
+    expect(app.querySelector(".msg .body").textContent).toBe("fresh");
     expect(app.term.scrollTop).toBe(42);
     expect(scrollWrites).toEqual([]);
     expect(app.transcriptFollowBottom).toBe(false);
