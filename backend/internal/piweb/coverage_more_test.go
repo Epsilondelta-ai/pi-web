@@ -1192,6 +1192,95 @@ func containsString(values []string, want string) bool {
 	return false
 }
 
+func TestRunnerSelectCtxDoneAndStdoutDone(t *testing.T) {
+	t.Run("stdoutDone", func(t *testing.T) {
+		// Fake pi that reads stdin then exits without agent_end → stdoutDone fires
+		dir := t.TempDir()
+		bin := filepath.Join(dir, "bin")
+		if err := os.MkdirAll(bin, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		// cat with timeout: read stdin briefly then exit without agent_end
+		// stdoutDone fires because stdout closes without agent_end
+		script := "#!/bin/sh\ntimeout 0.1 cat >/dev/null 2>&1; exit 0\n"
+		if err := os.WriteFile(filepath.Join(bin, "pi"), []byte(script), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+		t.Setenv("PI_CODING_AGENT_SESSION_DIR", dir)
+		store := NewMockStore()
+		ws, err := store.OpenWorkspace(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		session, err := store.CreateSession(ws.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		broker := NewBroker()
+		runner := NewRunner()
+		if err := runner.StartPiPrompt(context.Background(), broker, store, session.ID, "hi", nil, "hi"); err != nil {
+			t.Fatalf("start: %v", err)
+		}
+		deadline := time.After(3 * time.Second)
+		for runner.IsRunning(session.ID) {
+			select {
+			case <-deadline:
+				t.Fatal("runner did not finish")
+			default:
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+	})
+
+	t.Run("ctxDone", func(t *testing.T) {
+		// Fake pi that blocks forever → we cancel the context → ctx.Done fires
+		dir := t.TempDir()
+		bin := filepath.Join(dir, "bin")
+		if err := os.MkdirAll(bin, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		script := "#!/bin/sh\nsleep 30\n"
+		if err := os.WriteFile(filepath.Join(bin, "pi"), []byte(script), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+		t.Setenv("PI_CODING_AGENT_SESSION_DIR", dir)
+		store := NewMockStore()
+		ws, err := store.OpenWorkspace(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		session, err := store.CreateSession(ws.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		broker := NewBroker()
+		runner := NewRunner()
+		ctx, cancel := context.WithCancel(context.Background())
+		if err := runner.StartPiPrompt(ctx, broker, store, session.ID, "hi", nil, "hi"); err != nil {
+			cancel()
+			t.Fatalf("start: %v", err)
+		}
+		// Give the runner time to start and enter the select
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+		deadline := time.After(3 * time.Second)
+		for runner.IsRunning(session.ID) {
+			select {
+			case <-deadline:
+				t.Fatal("runner did not finish after cancel")
+			default:
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+	})
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }

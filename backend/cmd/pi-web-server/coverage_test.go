@@ -324,6 +324,35 @@ func TestNewGitHubSelfUpdater(t *testing.T) {
 	}
 }
 
+func TestFuncLiteralBodies(t *testing.T) {
+	t.Run("newRootCommandForMain returns real command", func(t *testing.T) {
+		cmd := newRootCommandForMain(defaultRootDependencies())
+		if cmd == nil {
+			t.Fatal("expected non-nil command")
+		}
+	})
+
+	t.Run("newSelfUpdater returns real updater", func(t *testing.T) {
+		u, err := newSelfUpdater()
+		if err != nil {
+			t.Fatalf("newSelfUpdater: %v", err)
+		}
+		if u == nil {
+			t.Fatal("expected non-nil updater")
+		}
+	})
+
+	t.Run("newReleaseDetector returns real detector", func(t *testing.T) {
+		d, err := newReleaseDetector()
+		if err != nil {
+			t.Fatalf("newReleaseDetector: %v", err)
+		}
+		if d == nil {
+			t.Fatal("expected non-nil detector")
+		}
+	})
+}
+
 func TestRunUpdateErrors(t *testing.T) {
 	parseErr := runUpdateWithUpdater(io.Discard, updateOptions{CurrentVersion: "not-semver"}, &fakeBinaryUpdater{})
 	if parseErr == nil {
