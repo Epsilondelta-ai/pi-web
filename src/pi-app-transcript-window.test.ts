@@ -178,6 +178,40 @@ describe("pi-app transcript window", () => {
     expect(app.loadOlderSessionMessages).toHaveBeenCalledTimes(1);
   });
 
+  it("forces programmatic bottom scrolls to skip smooth behavior", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    app.term.style.scrollBehavior = "smooth";
+    let scrollTop = 0;
+    const scrollWrites = [];
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => {
+        scrollWrites.push({ behavior: app.term.style.scrollBehavior, value });
+        scrollTop = value;
+      },
+    });
+
+    app.scrollTerm({ force: true });
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollWrites).toEqual([
+      { behavior: "auto", value: 1000 },
+      { behavior: "auto", value: 1000 },
+    ]);
+    expect(app.term.style.scrollBehavior).toBe("smooth");
+  });
+
   it("stops following when the user scrolls up and resumes only from the bottom button", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
