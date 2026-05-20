@@ -21,3 +21,8 @@ I am an AI. Difficulty, time pressure, and MVP thinking are human limitations; I
 - When receiving a request, use the 'task-breakdown' skill.
 - When coding, use the 'coding-style', 'git-style', 'unit-test', and 'e2e-test' skills.
 - After modifying code or project files, always create a git commit before the final response unless the user explicitly says not to.
+
+## Completion gate
+
+After code changes, completion/commit is forbidden until all applicable skill rules pass.
+Unverified = failed. Fix or report blocker. Final: checks run, skill-rule result, commit.
