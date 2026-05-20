@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -38,6 +39,82 @@ func TestParsePiSessionFile(t *testing.T) {
 	}
 	if parsed.Session.ID != "s1" || parsed.Session.Title != "hello world" || len(parsed.Messages) != 2 {
 		t.Fatalf("unexpected parsed session: %#v", parsed)
+	}
+}
+
+func TestLoadPiSessionsAnnotatesNestedSubagentSessions(t *testing.T) {
+	dir := t.TempDir()
+	parentFile := writeTestSessionFile(t, dir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	parentBase := strings.TrimSuffix(filepath.Base(parentFile), filepath.Ext(parentFile))
+	childDir := filepath.Join(dir, parentBase, "run-1", "run-0")
+	if err := os.MkdirAll(childDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	writeTestSessionFile(t, childDir, "child", "2026-01-01T00:00:01.000Z", "/tmp/project")
+
+	sessions, err := LoadPiSessions(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := findParsedSession(t, sessions, "child")
+	if child.Session.ParentID != "parent" || child.Session.Kind != SessionKindSubagent {
+		t.Fatalf("unexpected child metadata: %#v", child.Session)
+	}
+}
+
+func TestLoadPiSessionsAnnotatesParentSessionHeader(t *testing.T) {
+	dir := t.TempDir()
+	parentFile := writeTestSessionFile(t, dir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	childFile := filepath.Join(dir, "child.jsonl")
+	data := fmt.Sprintf(
+		"{\"type\":\"session\",\"version\":3,\"id\":\"child\",\"timestamp\":\"2026-01-01T00:00:01.000Z\",\"cwd\":\"/tmp/project\",\"parentSession\":%q}\n",
+		parentFile,
+	)
+	if err := os.WriteFile(childFile, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	sessions, err := LoadPiSessions(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := findParsedSession(t, sessions, "child")
+	if child.Session.ParentID != "parent" || child.Session.Kind != SessionKindSubagent {
+		t.Fatalf("unexpected child metadata: %#v", child.Session)
+	}
+}
+
+func TestNewPiStoreAddsTeamChildSessions(t *testing.T) {
+	root := t.TempDir()
+	teamsRoot := t.TempDir()
+	t.Setenv("PI_TEAMS_ROOT_DIR", teamsRoot)
+	sessionDir := filepath.Join(root, "--tmp-project--")
+	if err := os.MkdirAll(sessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	writeTestSessionFile(t, sessionDir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	teamDir := filepath.Join(teamsRoot, "parent")
+	teamSessionDir := filepath.Join(teamDir, "sessions")
+	if err := os.MkdirAll(teamSessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	teamSessionFile := writeTestSessionFile(t, teamSessionDir, "team-child", "2026-01-01T00:00:01.000Z", "/tmp/project")
+	config := fmt.Sprintf(
+		`{"version":1,"teamId":"parent","taskListId":"parent","leadName":"team-lead","createdAt":"now","updatedAt":"now","members":[{"name":"alice","role":"worker","status":"online","addedAt":"now","sessionFile":%q}]}`,
+		teamSessionFile,
+	)
+	if err := os.WriteFile(filepath.Join(teamDir, "config.json"), []byte(config), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	store, err := NewPiStore(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaces := store.Workspaces()
+	child := findSession(t, workspaces[0].Sessions, "team-child")
+	if child.ParentID != "parent" || child.Kind != SessionKindTeam {
+		t.Fatalf("unexpected team child metadata: %#v", child)
 	}
 }
 
@@ -112,6 +189,28 @@ func TestNewPiStore(t *testing.T) {
 	if len(workspaces) != 1 || workspaces[0].ID != "project" || len(workspaces[0].Sessions) != 1 {
 		t.Fatalf("unexpected workspaces: %#v", workspaces)
 	}
+}
+
+func findParsedSession(t *testing.T, sessions []ParsedSession, id string) ParsedSession {
+	t.Helper()
+	for _, session := range sessions {
+		if session.Session.ID == id {
+			return session
+		}
+	}
+	t.Fatalf("missing session %s in %#v", id, sessions)
+	return ParsedSession{}
+}
+
+func findSession(t *testing.T, sessions []Session, id string) Session {
+	t.Helper()
+	for _, session := range sessions {
+		if session.ID == id {
+			return session
+		}
+	}
+	t.Fatalf("missing session %s in %#v", id, sessions)
+	return Session{}
 }
 
 func writeTestSessionFile(t *testing.T, dir, id, timestamp, cwd string) string {

@@ -171,26 +171,33 @@ func (s *Store) refreshWorkspaceSessionsLocked(workspaceIndex int, force bool) {
 		return
 	}
 	workspaceID := s.workspaces[workspaceIndex].ID
+	if s.refreshDisabledWorkspace[workspaceID] {
+		return
+	}
 	root := s.workspacePath[workspaceID]
 	if root == "" {
 		return
 	}
-	sessionDir := piSessionDirForCWD(root)
-	stat, err := os.Stat(sessionDir)
-	if err != nil {
+	sessionDir := s.workspaceSessionDir[workspaceID]
+	if sessionDir == "" {
+		sessionDir = piSessionDirForCWD(root)
+	}
+	sourcesModTime := sessionSourcesModTime(sessionDir, DefaultPiTeamsDir())
+	if sourcesModTime.IsZero() {
 		return
 	}
 	if s.sessionDirModTime == nil {
 		s.sessionDirModTime = map[string]time.Time{}
 	}
-	if !force && s.sessionDirModTime[workspaceID].Equal(stat.ModTime()) {
+	if !force && s.sessionDirModTime[workspaceID].Equal(sourcesModTime) {
 		return
 	}
 	parsed, err := LoadPiSessions(sessionDir)
 	if err != nil {
 		return
 	}
-	s.sessionDirModTime[workspaceID] = stat.ModTime()
+	parsed = withTeamChildSessions(parsed)
+	s.sessionDirModTime[workspaceID] = sourcesModTime
 	oldConversations := map[string][]Message{}
 	oldFiles := map[string]string{}
 	for _, session := range s.workspaces[workspaceIndex].Sessions {

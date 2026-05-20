@@ -24,6 +24,7 @@ func (s *Store) DeleteWorkspace(workspaceID string) error {
 		if workspace.ID == workspaceID {
 			s.workspaces = append(s.workspaces[:i], s.workspaces[i+1:]...)
 			delete(s.workspacePath, workspaceID)
+			delete(s.workspaceSessionDir, workspaceID)
 			delete(s.files, workspaceID)
 			s.saveWorkspaceRecentsLocked()
 			return nil

@@ -8,15 +8,17 @@ import (
 )
 
 type Store struct {
-	mu                sync.RWMutex
-	workspaces        []Workspace
-	files             map[string][]FileNode
-	conversations     map[string][]Message
-	workspacePath     map[string]string
-	sessionFiles      map[string]string
-	sessionCWD        map[string]string
-	sessionDirModTime map[string]time.Time
-	dbPath            string
+	mu                       sync.RWMutex
+	workspaces               []Workspace
+	files                    map[string][]FileNode
+	conversations            map[string][]Message
+	workspacePath            map[string]string
+	sessionFiles             map[string]string
+	sessionCWD               map[string]string
+	workspaceSessionDir      map[string]string
+	sessionDirModTime        map[string]time.Time
+	dbPath                   string
+	refreshDisabledWorkspace map[string]bool
 }
 
 func NewAutoStore() *Store {
@@ -34,14 +36,16 @@ func NewWebStore(dbPath string) *Store {
 }
 func emptyStore(dbPath string) *Store {
 	return &Store{
-		workspaces:        []Workspace{},
-		files:             map[string][]FileNode{},
-		conversations:     map[string][]Message{},
-		workspacePath:     map[string]string{},
-		sessionFiles:      map[string]string{},
-		sessionCWD:        map[string]string{},
-		sessionDirModTime: map[string]time.Time{},
-		dbPath:            dbPath,
+		workspaces:               []Workspace{},
+		files:                    map[string][]FileNode{},
+		conversations:            map[string][]Message{},
+		workspacePath:            map[string]string{},
+		sessionFiles:             map[string]string{},
+		sessionCWD:               map[string]string{},
+		workspaceSessionDir:      map[string]string{},
+		sessionDirModTime:        map[string]time.Time{},
+		refreshDisabledWorkspace: map[string]bool{},
+		dbPath:                   dbPath,
 	}
 }
 func NewPiStore(sessionDir string) (*Store, error) {
@@ -49,10 +53,12 @@ func NewPiStore(sessionDir string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	parsed = withTeamChildSessions(parsed)
 	byWorkspace := map[string]*Workspace{}
 	workspacePath := map[string]string{}
 	sessionFiles := map[string]string{}
 	sessionCWD := map[string]string{}
+	workspaceSessionDir := map[string]string{}
 	conversations := map[string][]Message{}
 	workspaceLastUsed := map[string]time.Time{}
 	for _, item := range parsed {
@@ -62,6 +68,7 @@ func NewPiStore(sessionDir string) (*Store, error) {
 			workspace = &Workspace{ID: id, Name: filepath.Base(item.Header.CWD), Path: item.Header.CWD, LastUsed: item.Session.LastUsed}
 			byWorkspace[id] = workspace
 			workspacePath[id] = item.Header.CWD
+			workspaceSessionDir[id] = parsedWorkspaceSessionDir(sessionDir, item.File)
 		}
 		if lastUsedAt, ok := workspaceLastUsed[id]; !ok || item.ModTime.After(lastUsedAt) {
 			workspaceLastUsed[id] = item.ModTime
@@ -81,13 +88,15 @@ func NewPiStore(sessionDir string) (*Store, error) {
 	}
 	sort.Slice(workspaces, func(i, j int) bool { return workspaces[i].Path < workspaces[j].Path })
 	return &Store{
-		workspaces:        workspaces,
-		files:             map[string][]FileNode{},
-		conversations:     conversations,
-		workspacePath:     workspacePath,
-		sessionFiles:      sessionFiles,
-		sessionCWD:        sessionCWD,
-		sessionDirModTime: map[string]time.Time{},
+		workspaces:               workspaces,
+		files:                    map[string][]FileNode{},
+		conversations:            conversations,
+		workspacePath:            workspacePath,
+		sessionFiles:             sessionFiles,
+		sessionCWD:               sessionCWD,
+		workspaceSessionDir:      workspaceSessionDir,
+		sessionDirModTime:        map[string]time.Time{},
+		refreshDisabledWorkspace: map[string]bool{},
 	}, nil
 }
 func (s *Store) saveWorkspaceRecentsLocked() {
@@ -120,6 +129,7 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 	workspace := Workspace{ID: id, Name: filepath.Base(clean), Path: clean, LastUsed: "now", Sessions: []Session{}}
 	parsed, err := LoadPiSessions(piSessionDirForCWD(clean))
 	if err == nil {
+		parsed = withTeamChildSessions(parsed)
 		var latestSessionModTime time.Time
 		for _, item := range parsed {
 			item.Session.Workspace = id
@@ -138,5 +148,6 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 	s.workspaces = append([]Workspace{workspace}, s.workspaces...)
 	s.files[id] = []FileNode{}
 	s.workspacePath[id] = clean
+	s.workspaceSessionDir[id] = piSessionDirForCWD(clean)
 	return workspace
 }

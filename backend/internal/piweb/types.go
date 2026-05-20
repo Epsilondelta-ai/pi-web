@@ -19,6 +19,8 @@ type Session struct {
 	Live      bool   `json:"live,omitempty"`
 	Active    bool   `json:"active,omitempty"`
 	Workspace string `json:"workspaceId,omitempty"`
+	ParentID  string `json:"parentId,omitempty"`
+	Kind      string `json:"kind,omitempty"`
 }
 
 type FileNode struct {

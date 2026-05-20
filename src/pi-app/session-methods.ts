@@ -5,6 +5,7 @@ import {
   renameSession as renameSessionRequest,
 } from "../api";
 import { escapeHtml } from "../renderers";
+import { decorateSessionRow, sessionKindLabel } from "./session-hierarchy";
 import { sessionMenuMethods } from "./session-menu-methods";
 import { clearStoredActiveSession, storeActiveSession } from "./session-storage";
 
@@ -13,6 +14,7 @@ export const sessionMethods = {
     const row = document.createElement("div");
     const menuId = `session-menu-${session.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
     row.className = "session-row";
+    decorateSessionRow(row, session);
     row.dataset.session = session.id;
     row.dataset.workspace = workspaceId;
     row.dataset.title = session.title;
@@ -31,7 +33,8 @@ export const sessionMethods = {
       ` data-session="${escapeHtml(session.id)}"`,
       ` data-workspace="${escapeHtml(workspaceId)}"`,
       ` data-title="${escapeHtml(session.title)}">`,
-      `<span class="title"></span><span class="meta"></span></button>`,
+      `<span class="session-title"><span class="title"></span>${this.sessionKindBadge(session)}</span>`,
+      `<span class="meta"></span></button>`,
       `<button type="button" class="session-menu-button" data-action="session-menu-toggle"`,
       ` aria-haspopup="true" aria-expanded="false" aria-controls="${menuId}"`,
       ` aria-label="session actions">…</button>`,
@@ -40,6 +43,11 @@ export const sessionMethods = {
       `<button type="button" role="menuitem" class="danger" data-action="delete-session">delete</button>`,
       `</div>`,
     ].join("");
+  },
+
+  sessionKindBadge(session) {
+    const label = sessionKindLabel(session);
+    return label ? `<span class="session-kind-badge">${label}</span>` : "";
   },
 
   updateSessionTitle(session) {

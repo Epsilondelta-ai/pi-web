@@ -1,4 +1,5 @@
 import { escapeHtml } from "../renderers";
+import { appendGroupedSessionRows } from "./session-hierarchy";
 
 export const workspaceRenderMethods = {
   renderWorkspaces(workspaces) {
@@ -97,7 +98,7 @@ export const workspaceRenderMethods = {
       !!workspace.live || this.workspaceHasActiveSession(workspace),
     );
     const sessions = group.querySelector(".sessions");
-    for (const session of workspace.sessions || []) sessions.append(this.createSessionRow(workspace.id, session));
+    appendGroupedSessionRows(sessions, workspace.id, workspace.sessions, this.createSessionRow.bind(this));
     if ((workspace.sessions || []).length > 0) sessions.append(this.createDeleteWorkspaceSessionsRow(workspace.id));
     sessions.append(this.createNewSessionRow(workspace.id));
   },
