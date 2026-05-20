@@ -154,14 +154,14 @@ export const transcriptWindowMethods = {
 
   removeTranscriptNode(node) {
     if (!node || !this.transcriptItems?.length) return;
-    this.transcriptItems = this.transcriptItems.filter((item) => !item.nodes.includes(node));
+    this.transcriptItems = this.transcriptItems.filter((item) => !item?.nodes?.includes(node));
     node.remove?.();
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom: false });
   },
 
   replaceTranscriptNode(oldNode, newNode) {
     const nodes = elementNodes(newNode);
-    const item = this.transcriptItems?.find((candidate) => candidate.nodes.includes(oldNode));
+    const item = this.transcriptItems?.find((candidate) => candidate?.nodes?.includes(oldNode));
     if (!item || !nodes.length) return false;
     item.nodes = nodes;
     item.height = DEFAULT_TRANSCRIPT_ITEM_HEIGHT;
