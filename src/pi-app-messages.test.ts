@@ -41,14 +41,14 @@ describe("pi-app messages", () => {
     expect(bodies).toEqual(["before", "after"]);
   });
 
-  it("shows loading again after a tool finishes while the session is still running", async () => {
+  it("keeps loading out of the transcript between tool calls", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
     app.setMode("running");
     app.appendMessage({ kind: "tool", tool: "read", status: "running" });
     expect(app.querySelector(".msg.loading")).toBeNull();
     app.finishTool({ kind: "tool", tool: "read", status: "ok" });
-    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+    expect(app.querySelector(".msg.loading")).toBeNull();
     app.setMode("idle");
     expect(app.querySelector(".msg.loading")).toBeNull();
   });

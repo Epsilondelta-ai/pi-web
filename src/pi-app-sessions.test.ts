@@ -61,7 +61,8 @@ describe("pi-app sessions", () => {
     expect(app.dataset.session).toBe("active");
     expect(sessionMain.hidden).toBe(false);
     expect(emptyMain.hidden).toBe(true);
-    expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(true);
+    expect(app.querySelector("[data-session='s1']").classList.contains("selected")).toBe(true);
+    expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(false);
   });
 
   it("deletes all sessions in a workspace and clears the active session", async () => {
@@ -139,13 +140,19 @@ describe("pi-app sessions", () => {
     app.dataset.activeSessionId = "s1";
     app.prompt.value = "hello";
 
+    app.append(app.createSessionRow("w1", { id: "s1", title: "demo", lastUsed: "now" }));
+
     await app.submitPrompt();
     expect(app.querySelector(".msg[data-kind='user']")).toBeNull();
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+    expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(true);
+    expect(app.querySelector("[data-session='s1'] .meta").textContent).toBe("waiting");
 
     app.applyEvent({ type: "session.message", payload: { kind: "user", text: "hello" } });
     expect(app.querySelectorAll(".msg[data-kind='user']")).toHaveLength(1);
     expect(app.querySelector(".msg.loading")).toBeNull();
+    app.applyEvent({ type: "session.status", payload: { status: "idle" } });
+    expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(false);
   });
 
   it("opens loaded sessions without replaying broker history", async () => {

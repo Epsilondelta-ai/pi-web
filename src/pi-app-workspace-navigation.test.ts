@@ -34,6 +34,7 @@ describe("pi-app workspace navigation", () => {
     ]);
 
     app.querySelector("[data-workspace='juun'].ws-row").click();
+    expect(app.loadWorkspaceMeta).not.toHaveBeenCalled();
     await app.newSession("juun");
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -43,21 +44,23 @@ describe("pi-app workspace navigation", () => {
     expect(app.dataset.activeWorkspaceId).toBe("juun");
     expect(activeWorkspace.textContent).toBe("juun-ai");
     expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-current")).toBe("true");
-    expect(app.querySelector("[data-session='s2']").classList.contains("active")).toBe(true);
+    expect(app.querySelector("[data-session='s2']").classList.contains("selected")).toBe(true);
+    expect(app.querySelector("[data-session='s2']").classList.contains("active")).toBe(false);
   });
 
-  it("marks workspaces that contain an active session", async () => {
+  it("marks workspaces that contain a waiting session", async () => {
     const app = await connectPiApp();
     app.dataset.activeSessionId = "s2";
 
     app.renderWorkspaces([
       { id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [{ id: "s1", title: "first" }] },
-      { id: "w2", name: "two", path: "/two", sessionCount: 1, sessions: [{ id: "s2", title: "second" }] },
+      { id: "w2", name: "two", path: "/two", sessionCount: 1, sessions: [{ id: "s2", title: "second", live: true }] },
     ]);
 
     const row = app.querySelector("[data-workspace='w2'].ws-row");
     expect(row.classList.contains("has-active-session")).toBe(true);
-    expect(row.querySelector(".ws-active-badge").hidden).toBe(false);
+    expect(row.querySelector(".ws-name .dot").classList.contains("live")).toBe(true);
+    expect(app.querySelector("[data-session='s2']").classList.contains("active")).toBe(true);
     expect(app.querySelector("[data-session='s2']").getAttribute("aria-current")).toBe("true");
   });
 });

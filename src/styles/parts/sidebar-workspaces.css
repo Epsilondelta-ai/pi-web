@@ -123,12 +123,6 @@
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
 }
-.ws-row .ws-active-badge {
-  color: var(--accent);
-  font-size: 9px;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-}
 .ws-row .ws-stack { min-width: 0; }
 .ws-row .dot,
 .session-row .dot {
@@ -175,6 +169,7 @@ button.session-row:not(.new-session-row) {
 }
 .session-row:last-child { border-bottom: 0; }
 .session-row:hover { background: var(--bg-3); }
+.session-row.selected { background: var(--bg-3); }
 .session-row.active { background: var(--bg-4); }
 .session-row.active::before {
   content: "";

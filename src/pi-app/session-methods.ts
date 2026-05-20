@@ -17,12 +17,10 @@ export const sessionMethods = {
     row.dataset.title = session.title;
     row.innerHTML = this.sessionRowTemplate(workspaceId, session, menuId);
     row.querySelector(".title").textContent = session.title;
+    row.dataset.lastUsed = session.lastUsed || "";
     row.querySelector(".meta").textContent = session.lastUsed;
-    row.querySelector(".meta").classList.toggle("live", !!session.live);
-    row.querySelector(".gutter .dot").classList.toggle("live", !!session.live);
-    const active = session.active || session.id === this.dataset.activeSessionId;
-    row.classList.toggle("active", active);
-    row.setAttribute("aria-current", active ? "true" : "false");
+    this.markSessionRunning(row, !!(session.active || session.live));
+    this.markSessionSelected(row, session.id === this.dataset.activeSessionId);
     return row;
   },
 
@@ -73,7 +71,7 @@ export const sessionMethods = {
 
   async pickSession(row) {
     this.dataset.activeSessionId = row.dataset.session;
-    this.markActiveSessionRow(row.dataset.session);
+    this.markSelectedSessionRow(row.dataset.session);
     this.activateWorkspaceForSession(row.dataset.workspace);
     const title = this.querySelector("[data-active-session-title]");
     if (title) {
@@ -88,12 +86,32 @@ export const sessionMethods = {
     this.scrollTerm();
   },
 
-  markActiveSessionRow(sessionId) {
+  markSelectedSessionRow(sessionId) {
     this.querySelectorAll(".session-row[data-session]").forEach((row) => {
-      const active = row.dataset.session === sessionId;
-      row.classList.toggle("active", active);
-      row.setAttribute("aria-current", active ? "true" : "false");
+      this.markSessionSelected(row, row.dataset.session === sessionId);
     });
+  },
+
+  markSessionSelected(row, selected) {
+    row.classList.toggle("selected", selected);
+    row.setAttribute("aria-current", selected ? "true" : "false");
+  },
+
+  markSessionRunning(row, running) {
+    row.classList.toggle("active", running);
+    row.querySelector(".meta")?.classList.toggle("live", running);
+    row.querySelector(".gutter .dot")?.classList.toggle("live", running);
+  },
+
+  syncCurrentSessionRunState(running) {
+    const sessionId = this.dataset.activeSessionId;
+    if (!sessionId) return;
+    const row = this.querySelector(`[data-session='${sessionId}']`);
+    if (!row) return;
+    this.markSessionRunning(row, running);
+    const meta = row.querySelector(".meta");
+    if (meta) meta.textContent = running ? "waiting" : row.dataset.lastUsed || "";
+    this.syncActiveWorkspaceRows?.();
   },
 
   async renameSession(sessionId) {
@@ -223,16 +241,16 @@ export const sessionMethods = {
 
   activateCreatedSession(workspaceId, session) {
     this.dataset.activeSessionId = session.id;
-    this.activateWorkspaceForSession(workspaceId);
+    this.activateWorkspaceForSession(workspaceId, { loadContext: true, forceLoadContext: true });
     this.resetActiveSessionState();
     storeActiveSession(workspaceId, session.id);
-    this.markActiveSessionRow(session.id);
+    this.markSelectedSessionRow(session.id);
     const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
     if (group && !group.querySelector(`[data-session='${session.id}']`)) {
       group.insertBefore(this.createSessionRow(workspaceId, session), group.querySelector(".new-session-row"));
     }
     this.refreshWorkspaceSessionControls(workspaceId);
-    this.markActiveSessionRow(session.id);
+    this.markSelectedSessionRow(session.id);
     this.syncActiveWorkspaceRows?.();
     const title = this.querySelector("[data-active-session-title]");
     if (title) {

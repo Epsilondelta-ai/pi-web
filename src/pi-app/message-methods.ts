@@ -119,8 +119,7 @@ export const messageMethods = {
   },
 
   removeLoadingMessage() {
-    const loading = this.termInner?.querySelector(".msg.loading");
-    if (loading) this.removeTranscriptNode(loading);
+    this.termInner?.querySelectorAll(".msg.loading").forEach((loading) => this.removeTranscriptNode(loading));
   },
 
   syncLoadingMessage() {

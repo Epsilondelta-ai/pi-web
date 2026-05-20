@@ -121,7 +121,7 @@ export const workspaceFolderMethods = {
   },
 
   async openWorkspace(workspaceId) {
-    this.activateWorkspaceForSession(workspaceId);
+    this.activateWorkspaceForSession(workspaceId, { loadContext: true, forceLoadContext: true });
     this.route("workspace");
   },
 };

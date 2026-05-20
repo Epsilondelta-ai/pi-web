@@ -103,7 +103,7 @@ describe("pi-app session method display states", () => {
     app.connectEvents = vi.fn();
     app.activateCreatedSession("w1", { id: "s1", title: "created", lastUsed: "now" });
     app.activateCreatedSession("w1", { id: "s1", title: "created", lastUsed: "now" });
-    expect(old.classList.contains("active")).toBe(false);
+    expect(old.classList.contains("selected")).toBe(false);
     expect(activeTitle.title).toBe("created · s1");
     expect(app.connectEvents).toHaveBeenCalledWith("s1");
 

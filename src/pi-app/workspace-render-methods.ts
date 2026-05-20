@@ -66,9 +66,7 @@ export const workspaceRenderMethods = {
   },
 
   workspaceHasActiveSession(workspace) {
-    return (workspace.sessions || []).some((session) => (
-      session.active || session.live || session.id === this.dataset.activeSessionId
-    ));
+    return (workspace.sessions || []).some((session) => session.active || session.live);
   },
 
   workspaceGroupTemplate(workspace, open) {
@@ -85,8 +83,7 @@ export const workspaceRenderMethods = {
       `<span class="caret">${open ? "▾" : "▸"}</span>`,
       "<span class=\"ws-stack\"><span class=\"ws-name\"><span class=\"dot\"></span>",
       "<span class=\"label\"></span></span><span class=\"ws-path\"></span></span>",
-      `<span class="ws-meta"><span class="ws-count">${workspace.sessionCount}</span>`,
-      `<span class="ws-active-badge"${hasActiveSession ? "" : " hidden"}>active</span></span></button>`,
+      `<span class="ws-meta"><span class="ws-count">${workspace.sessionCount}</span></span></button>`,
       `<button type="button" class="row-action danger" data-action="delete-workspace"`,
       ` data-workspace="${escapeHtml(workspace.id)}" title="remove workspace">×</button>`,
       `</div><div class="sessions"${open ? "" : " hidden"}></div>`,
@@ -96,7 +93,10 @@ export const workspaceRenderMethods = {
   fillWorkspaceGroup(group, workspace) {
     group.querySelector(".label").textContent = workspace.name;
     group.querySelector(".ws-path").textContent = workspace.path;
-    group.querySelector(".dot").classList.toggle("live", !!workspace.live);
+    group.querySelector(".ws-name .dot").classList.toggle(
+      "live",
+      !!workspace.live || this.workspaceHasActiveSession(workspace),
+    );
     const sessions = group.querySelector(".sessions");
     for (const session of workspace.sessions || []) sessions.append(this.createSessionRow(workspace.id, session));
     if ((workspace.sessions || []).length > 0) sessions.append(this.createDeleteWorkspaceSessionsRow(workspace.id));
@@ -142,19 +142,17 @@ export const workspaceRenderMethods = {
 
   syncActiveWorkspaceRows() {
     const activeWorkspaceId = this.dataset.activeWorkspaceId;
-    const activeSessionId = this.dataset.activeSessionId;
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
       const row = group.querySelector(".ws-row");
       const active = group.dataset.workspaceGroup === activeWorkspaceId;
-      const hasSelectedSession = activeSessionId && group.querySelector(`[data-session='${activeSessionId}']`);
-      const hasLiveSession = group.querySelector(".session-row .dot.live");
-      const hasActiveSession = active || !!hasSelectedSession || !!hasLiveSession;
+      const hasLiveSession = group.querySelector(".session-row.active, .session-row .dot.live");
+      const hasActiveSession = !!hasLiveSession;
       group.classList.toggle("active", active);
       group.classList.toggle("has-active-session", hasActiveSession);
       row?.classList.toggle("active", active);
       row?.classList.toggle("has-active-session", hasActiveSession);
       row?.setAttribute("aria-current", active ? "true" : "false");
-      row?.querySelector(".ws-active-badge")?.toggleAttribute("hidden", !hasActiveSession);
+      row?.querySelector(".ws-name .dot")?.classList.toggle("live", hasActiveSession);
     });
   },
 };

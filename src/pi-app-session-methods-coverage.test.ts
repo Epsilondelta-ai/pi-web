@@ -92,8 +92,8 @@ describe("pi-app session method mutations", () => {
     app.apiConnected = true;
 
     await app.pickSession(row);
-    expect(oldRow.classList.contains("active")).toBe(false);
-    expect(row.classList.contains("active")).toBe(true);
+    expect(oldRow.classList.contains("selected")).toBe(false);
+    expect(row.classList.contains("selected")).toBe(true);
     expect(activeTitle.textContent).toBe("one");
     expect(app.loadSession).toHaveBeenCalledWith("s1");
 

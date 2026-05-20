@@ -144,8 +144,8 @@ export const workspaceBootstrapMethods = {
     this.resetActiveSessionState?.();
     const workspaceId = session.workspaceId
       || this.findSessionRow(session.id)?.dataset.workspace;
-    if (workspaceId) this.activateWorkspaceForSession(workspaceId);
-    this.markActiveSessionRow?.(session.id);
+    if (workspaceId) this.activateWorkspaceForSession(workspaceId, { loadContext: true });
+    this.markSelectedSessionRow?.(session.id);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
     this.activateBootstrapSession(session);
     this.renderMessages(messages);
@@ -162,13 +162,17 @@ export const workspaceBootstrapMethods = {
       .find((group) => group.dataset.workspaceGroup === workspaceId);
   },
 
-  activateWorkspaceForSession(workspaceId) {
+  activateWorkspaceForSession(workspaceId, { loadContext = false, forceLoadContext = false } = {}) {
     const changed = this.dataset.activeWorkspaceId !== workspaceId;
     this.dataset.activeWorkspaceId = workspaceId;
     this.openActiveWorkspaceGroup(workspaceId);
     this.updateActiveWorkspaceLabel(workspaceId);
     this.syncActiveWorkspaceRows?.();
-    if (!changed || !this.apiConnected) return;
+    const shouldLoadContext = loadContext && (changed || forceLoadContext);
+    if (this.apiConnected && shouldLoadContext) this.loadWorkspaceContext(workspaceId);
+  },
+
+  loadWorkspaceContext(workspaceId) {
     void this.loadWorkspaceCommands(workspaceId);
     void this.loadRuntimeStatus(workspaceId);
     void this.loadWorkspaceMeta(workspaceId);
