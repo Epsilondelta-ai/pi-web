@@ -27,9 +27,19 @@ describe("pi-app controls", () => {
     prompt.dispatchEvent(new Event("input"));
     expect(localStorage.getItem(PROMPT_DRAFT_STORAGE_KEY)).toBe("new draft");
 
+    prompt.value = "";
+    prompt.dispatchEvent(new Event("input"));
+    expect(localStorage.getItem(PROMPT_DRAFT_STORAGE_KEY)).toBeNull();
+
+    prompt.value = "send me";
+    prompt.dispatchEvent(new Event("input"));
     app.apiConnected = false;
     app.sendButton.click();
     expect(localStorage.getItem(PROMPT_DRAFT_STORAGE_KEY)).toBeNull();
+
+    app.prompt = null;
+    expect(() => app.restorePromptDraft()).not.toThrow();
+    expect(() => app.savePromptDraft()).not.toThrow();
   });
 
   it("keeps send and stop as separate running controls", async () => {
