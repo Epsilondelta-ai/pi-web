@@ -17,10 +17,12 @@ describe("pi-app session switch UX", () => {
     }));
     const app = await connectPiApp();
     app.connectEvents = vi.fn();
+    app.scrollTerm = vi.fn();
     app.append(app.createSessionRow("w1", { id: "s1", title: "large session", lastUsed: "now" }));
 
     const loading = app.loadSession("s1");
 
+    expect(app.scrollTerm).not.toHaveBeenCalled();
     expect(app.querySelector(".session-switch-loading")).not.toBeNull();
     expect(app.querySelector(".session-switch-label").textContent).toBe("loading large session…");
 

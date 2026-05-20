@@ -31,7 +31,6 @@ export const layoutMethods = {
       this.querySelector('.picker-shell input[name="path"]')?.focus();
       if (this.apiConnected) void this.browseFolder();
     }
-    if (route === "workspace") this.scrollTerm();
   },
 
   toggleTree() {

@@ -41,7 +41,6 @@ class PiApp extends HTMLElement {
     this.restoreSidebar();
     this.updatePrompt();
     this.updatePromptMeta();
-    this.scrollTerm();
     this.startSpinners();
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();

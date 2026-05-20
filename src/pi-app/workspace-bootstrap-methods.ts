@@ -192,8 +192,7 @@ export const workspaceBootstrapMethods = {
     skeleton.className = "session-switch-skeleton";
     skeleton.setAttribute("aria-hidden", "true");
     row.querySelector(".body")?.replaceChildren(label, skeleton);
-    this.appendTranscriptNode?.(row, { stickToBottom: true });
-    this.scrollTerm?.({ force: true });
+    this.appendTranscriptNode?.(row, { stickToBottom: false });
   },
 
   applyLoadedSession(session, messages, status = "idle", page: any = {}) {
