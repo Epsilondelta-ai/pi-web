@@ -39,6 +39,32 @@ describe("pi-app session switch UX", () => {
     expect(app.querySelector(".msg .body").textContent).toBe("loaded");
   });
 
+  it("skips the background refresh render when cached session content is unchanged", async () => {
+    const page = {
+      session: { id: "s1", title: "demo", workspaceId: "w1" },
+      messages: [{ kind: "pi", text: "cached" }],
+      status: "idle",
+      cursor: "cursor",
+      hasMore: true,
+    };
+    const responses = [page, page].map((body) => Promise.resolve({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => body,
+    }));
+    globalThis.fetch = vi.fn(() => responses.shift());
+    const app = await connectPiApp();
+    app.connectEvents = vi.fn();
+
+    await app.loadSession("s1");
+    const renderMessages = vi.spyOn(app, "renderMessages");
+
+    await app.loadSession("s1");
+
+    expect(renderMessages).toHaveBeenCalledTimes(1);
+  });
+
   it("renders cached session messages immediately while refreshing in the background", async () => {
     const responses = [
       Promise.resolve({

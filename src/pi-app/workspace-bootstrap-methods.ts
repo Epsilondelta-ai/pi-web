@@ -11,6 +11,10 @@ import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 const SESSION_MESSAGE_PAGE_SIZE = 120;
 const SESSION_PAGE_CACHE_LIMIT = 8;
 
+function sessionPageSignature(page) {
+  return JSON.stringify([page?.session?.id, page?.status || "idle", page?.cursor || "", !!page?.hasMore, page?.messages || []]);
+}
+
 function findStoredSession(workspaces, stored) {
   if (!stored?.sessionId) return undefined;
   const preferred = workspaces.find((workspace) => workspace.id === stored.workspaceId);
@@ -141,6 +145,7 @@ export const workspaceBootstrapMethods = {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
       this.rememberSessionPage(loaded);
+      if (cachedPage && sessionPageSignature(cachedPage) === sessionPageSignature(loaded)) return;
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
@@ -158,11 +163,7 @@ export const workspaceBootstrapMethods = {
   rememberSessionPage(page) {
     if (!page?.session?.id) return;
     this.sessionPageCache ??= new Map();
-    this.sessionPageCache.set(page.session.id, {
-      ...page,
-      messages: page.messages || [],
-      status: page.status || "idle",
-    });
+    this.sessionPageCache.set(page.session.id, { ...page, messages: page.messages || [], status: page.status || "idle" });
     while (this.sessionPageCache.size > SESSION_PAGE_CACHE_LIMIT) {
       this.sessionPageCache.delete(this.sessionPageCache.keys().next().value);
     }
