@@ -80,7 +80,7 @@ export const sessionMethods = {
   async pickSession(row) {
     this.dataset.activeSessionId = row.dataset.session;
     this.markSelectedSessionRow(row.dataset.session);
-    this.activateWorkspaceForSession(row.dataset.workspace);
+    this.activateWorkspaceForSession(row.dataset.workspace, { loadContext: true, forceLoadContext: true });
     const title = this.querySelector("[data-active-session-title]");
     if (title) {
       title.textContent = row.dataset.title;

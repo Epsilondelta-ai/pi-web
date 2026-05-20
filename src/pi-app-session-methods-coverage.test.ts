@@ -91,9 +91,13 @@ describe("pi-app session method mutations", () => {
     app.append(oldRow, row);
     app.toggleDrawer = vi.fn();
     app.loadSession = vi.fn();
+    app.loadWorkspaceCommands = vi.fn();
+    app.loadRuntimeStatus = vi.fn();
+    app.loadWorkspaceMeta = vi.fn();
     app.apiConnected = true;
 
     await app.pickSession(row);
+    expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w1");
     expect(oldRow.classList.contains("selected")).toBe(false);
     expect(row.classList.contains("selected")).toBe(true);
     expect(activeTitle.textContent).toBe("one");
