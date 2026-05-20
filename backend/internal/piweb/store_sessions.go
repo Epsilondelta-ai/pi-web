@@ -71,8 +71,8 @@ func (s *Store) AutoNameSession(sessionID, prompt string) (Session, bool, error)
 	for workspaceIndex := range s.workspaces {
 		for sessionIndex := range s.workspaces[workspaceIndex].Sessions {
 			if s.workspaces[workspaceIndex].Sessions[sessionIndex].ID == sessionID {
-				current := strings.TrimSpace(s.workspaces[workspaceIndex].Sessions[sessionIndex].Title)
-				if current != "" && current != "new session" {
+				current := s.workspaces[workspaceIndex].Sessions[sessionIndex].Title
+				if !canAutoNameTitle(current) {
 					return s.workspaces[workspaceIndex].Sessions[sessionIndex], false, nil
 				}
 				s.workspaces[workspaceIndex].Sessions[sessionIndex].Title = title

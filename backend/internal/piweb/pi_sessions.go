@@ -17,6 +17,7 @@ import (
 const (
 	SessionKindSubagent = "subagent"
 	SessionKindTeam     = "team"
+	defaultSessionTitle = "new session"
 )
 
 type sessionHeader struct {
@@ -138,7 +139,13 @@ func CreatePiSessionFile(cwd string) (Session, string, error) {
 	if err := os.WriteFile(path, append(line, '\n'), 0o600); err != nil {
 		return Session{}, "", err
 	}
-	session := Session{ID: id, Title: "new session", LastUsed: "now", Workspace: workspaceIDFromPath(cwd), Active: true}
+	session := Session{
+		ID:        id,
+		Title:     defaultSessionTitle,
+		LastUsed:  "now",
+		Workspace: workspaceIDFromPath(cwd),
+		Active:    true,
+	}
 	return session, path, nil
 }
 func piSessionDirForCWD(cwd string) string {
@@ -150,8 +157,20 @@ func createSessionID() string {
 	if _, err := rand.Read(bytes[:]); err != nil {
 		return strings.ReplaceAll(time.Now().UTC().Format("20060102150405.000000000"), ".", "")
 	}
-	return fmt.Sprintf("%s-%s-%s-%s-%s", hex.EncodeToString(bytes[0:4]), hex.EncodeToString(bytes[4:6]), hex.EncodeToString(bytes[6:8]), hex.EncodeToString(bytes[8:10]), hex.EncodeToString(bytes[10:16]))
+	return fmt.Sprintf(
+		"%s-%s-%s-%s-%s",
+		hex.EncodeToString(bytes[0:4]),
+		hex.EncodeToString(bytes[4:6]),
+		hex.EncodeToString(bytes[6:8]),
+		hex.EncodeToString(bytes[8:10]),
+		hex.EncodeToString(bytes[10:16]),
+	)
 }
+func canAutoNameTitle(title string) bool {
+	title = strings.TrimSpace(title)
+	return title == "" || title == defaultSessionTitle
+}
+
 func ParsePiSessionFile(path string) (ParsedSession, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -195,8 +214,10 @@ func ParsePiSessionFile(path string) (ParsedSession, error) {
 			converted := convertAgentMessages(entry.Message)
 			for _, msg := range converted {
 				messages = append(messages, msg)
-				if title == "" && msg.Kind == "user" {
-					title = trimTitle(msg.Text)
+				if msg.Kind == "user" && canAutoNameTitle(title) {
+					if promptTitle := trimTitle(msg.Text); promptTitle != "" {
+						title = promptTitle
+					}
 				}
 			}
 		case "compaction":
@@ -211,7 +232,7 @@ func ParsePiSessionFile(path string) (ParsedSession, error) {
 		return ParsedSession{}, err
 	}
 	if title == "" {
-		title = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+		title = defaultSessionTitle
 	}
 	createdAt, _ := time.Parse(time.RFC3339Nano, header.Timestamp)
 	session := Session{ID: header.ID, Title: title, LastUsed: relTime(stat.ModTime()), Workspace: workspaceIDFromPath(header.CWD)}
