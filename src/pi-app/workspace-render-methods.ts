@@ -58,21 +58,35 @@ export const workspaceRenderMethods = {
     group.className = "workspace-group";
     group.dataset.workspaceGroup = workspace.id;
     const open = workspace.id === this.dataset.activeWorkspaceId;
+    group.classList.toggle("active", open);
+    group.classList.toggle("has-active-session", this.workspaceHasActiveSession(workspace));
     group.innerHTML = this.workspaceGroupTemplate(workspace, open);
     this.fillWorkspaceGroup(group, workspace);
     return group;
   },
 
+  workspaceHasActiveSession(workspace) {
+    return (workspace.sessions || []).some((session) => (
+      session.active || session.live || session.id === this.dataset.activeSessionId
+    ));
+  },
+
   workspaceGroupTemplate(workspace, open) {
+    const active = workspace.id === this.dataset.activeWorkspaceId;
+    const hasActiveSession = this.workspaceHasActiveSession(workspace);
+    const stateClasses = [open && "open", active && "active", hasActiveSession && "has-active-session"]
+      .filter(Boolean)
+      .join(" ");
     return [
       "<div class=\"workspace-shell\">",
-      `<button type="button" class="ws-row ${open ? "open" : ""}"`,
+      `<button type="button" class="ws-row ${stateClasses}"`,
       ` data-action="toggle-workspace" data-workspace="${escapeHtml(workspace.id)}"`,
-      ` aria-expanded="${open}">`,
+      ` aria-expanded="${open}" aria-current="${active ? "true" : "false"}">`,
       `<span class="caret">${open ? "▾" : "▸"}</span>`,
       "<span class=\"ws-stack\"><span class=\"ws-name\"><span class=\"dot\"></span>",
       "<span class=\"label\"></span></span><span class=\"ws-path\"></span></span>",
-      `<span class="ws-meta">${workspace.sessionCount}</span></button>`,
+      `<span class="ws-meta"><span class="ws-count">${workspace.sessionCount}</span>`,
+      `<span class="ws-active-badge"${hasActiveSession ? "" : " hidden"}>active</span></span></button>`,
       `<button type="button" class="row-action danger" data-action="delete-workspace"`,
       ` data-workspace="${escapeHtml(workspace.id)}" title="remove workspace">×</button>`,
       `</div><div class="sessions"${open ? "" : " hidden"}></div>`,
@@ -110,15 +124,37 @@ export const workspaceRenderMethods = {
   },
 
   toggleWorkspace(id) {
+    const targetSessions = this.findWorkspaceGroup?.(id)?.querySelector(".sessions");
+    const shouldOpen = !!targetSessions?.hidden;
+    this.activateWorkspaceForSession(id);
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
       const sessions = group.querySelector(".sessions");
       const row = group.querySelector(".ws-row");
-      const open = group.dataset.workspaceGroup === id && sessions?.hidden;
+      const open = group.dataset.workspaceGroup === id ? shouldOpen : false;
       if (sessions) sessions.hidden = !open;
       row?.classList.toggle("open", open);
       row?.setAttribute("aria-expanded", String(open));
       const caret = row?.querySelector(".caret");
       if (caret) caret.textContent = open ? "▾" : "▸";
+    });
+    this.syncActiveWorkspaceRows();
+  },
+
+  syncActiveWorkspaceRows() {
+    const activeWorkspaceId = this.dataset.activeWorkspaceId;
+    const activeSessionId = this.dataset.activeSessionId;
+    this.querySelectorAll("[data-workspace-group]").forEach((group) => {
+      const row = group.querySelector(".ws-row");
+      const active = group.dataset.workspaceGroup === activeWorkspaceId;
+      const hasSelectedSession = activeSessionId && group.querySelector(`[data-session='${activeSessionId}']`);
+      const hasLiveSession = group.querySelector(".session-row .dot.live");
+      const hasActiveSession = active || !!hasSelectedSession || !!hasLiveSession;
+      group.classList.toggle("active", active);
+      group.classList.toggle("has-active-session", hasActiveSession);
+      row?.classList.toggle("active", active);
+      row?.classList.toggle("has-active-session", hasActiveSession);
+      row?.setAttribute("aria-current", active ? "true" : "false");
+      row?.querySelector(".ws-active-badge")?.toggleAttribute("hidden", !hasActiveSession);
     });
   },
 };

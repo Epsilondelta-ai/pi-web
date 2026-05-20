@@ -105,12 +105,30 @@
 }
 .ws-row:hover { background: var(--bg-3); }
 .ws-row.open { background: var(--bg-3); }
+.ws-row.active {
+  background: var(--bg-4);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 .ws-row .caret { color: var(--fg-3); font-size: 10px; }
-.ws-row.open .caret { color: var(--accent); }
+.ws-row.open .caret,
+.ws-row.active .caret { color: var(--accent); }
 .ws-row .ws-name { color: var(--fg-0); display: flex; align-items: center; gap: 6px; min-width: 0; }
 .ws-row .ws-name .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-row .ws-path { color: var(--fg-3); font-size: var(--text-xs); display: block; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ws-row .ws-meta { color: var(--fg-3); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.ws-row .ws-meta {
+  color: var(--fg-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.ws-row .ws-active-badge {
+  color: var(--accent);
+  font-size: 9px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
 .ws-row .ws-stack { min-width: 0; }
 .ws-row .dot,
 .session-row .dot {

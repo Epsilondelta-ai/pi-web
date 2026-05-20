@@ -20,7 +20,9 @@ export const sessionMethods = {
     row.querySelector(".meta").textContent = session.lastUsed;
     row.querySelector(".meta").classList.toggle("live", !!session.live);
     row.querySelector(".gutter .dot").classList.toggle("live", !!session.live);
-    row.classList.toggle("active", session.active || session.id === this.dataset.activeSessionId);
+    const active = session.active || session.id === this.dataset.activeSessionId;
+    row.classList.toggle("active", active);
+    row.setAttribute("aria-current", active ? "true" : "false");
     return row;
   },
 
@@ -70,20 +72,28 @@ export const sessionMethods = {
   },
 
   async pickSession(row) {
-    this.querySelectorAll(".session-row.active").forEach((item) => item.classList.remove("active"));
-    row.classList.add("active");
+    this.dataset.activeSessionId = row.dataset.session;
+    this.markActiveSessionRow(row.dataset.session);
+    this.activateWorkspaceForSession(row.dataset.workspace);
     const title = this.querySelector("[data-active-session-title]");
     if (title) {
       title.textContent = row.dataset.title;
       title.title = `${row.dataset.title} · ${row.dataset.session}`;
     }
-    this.dataset.activeSessionId = row.dataset.session;
     this.resetActiveSessionState();
     this.showSessionMain();
     this.toggleDrawer?.(false);
     if (this.apiConnected) await this.loadSession(row.dataset.session);
     else storeActiveSession(row.dataset.workspace, row.dataset.session);
     this.scrollTerm();
+  },
+
+  markActiveSessionRow(sessionId) {
+    this.querySelectorAll(".session-row[data-session]").forEach((row) => {
+      const active = row.dataset.session === sessionId;
+      row.classList.toggle("active", active);
+      row.setAttribute("aria-current", active ? "true" : "false");
+    });
   },
 
   async renameSession(sessionId) {
@@ -168,8 +178,8 @@ export const sessionMethods = {
     if (!group) return;
     const sessions = group.querySelector(".sessions");
     const count = this.countWorkspaceSessions(workspaceId);
-    const meta = group.querySelector(".ws-meta");
-    if (meta) meta.textContent = String(count);
+    const countLabel = group.querySelector(".ws-count") || group.querySelector(".ws-meta");
+    if (countLabel) countLabel.textContent = String(count);
     sessions?.querySelector("[data-action='delete-workspace-sessions']")?.remove();
     const newSessionRow = sessions?.querySelector(".new-session-row");
     if (sessions && newSessionRow && count > 0) {
@@ -189,6 +199,7 @@ export const sessionMethods = {
 
   async newSession(workspace) {
     const workspaceId = workspace || this.dataset.activeWorkspaceId;
+    if (workspaceId) this.activateWorkspaceForSession(workspaceId);
     if (this.apiConnected && workspaceId) {
       try {
         const { session } = await createSession(workspaceId);
@@ -212,15 +223,17 @@ export const sessionMethods = {
 
   activateCreatedSession(workspaceId, session) {
     this.dataset.activeSessionId = session.id;
+    this.activateWorkspaceForSession(workspaceId);
     this.resetActiveSessionState();
     storeActiveSession(workspaceId, session.id);
-    this.querySelectorAll(".session-row.active").forEach((row) => row.classList.remove("active"));
+    this.markActiveSessionRow(session.id);
     const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
     if (group && !group.querySelector(`[data-session='${session.id}']`)) {
       group.insertBefore(this.createSessionRow(workspaceId, session), group.querySelector(".new-session-row"));
     }
     this.refreshWorkspaceSessionControls(workspaceId);
-    group?.querySelector(`[data-session='${session.id}']`)?.classList.add("active");
+    this.markActiveSessionRow(session.id);
+    this.syncActiveWorkspaceRows?.();
     const title = this.querySelector("[data-active-session-title]");
     if (title) {
       title.textContent = session.title;

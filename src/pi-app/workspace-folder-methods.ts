@@ -121,13 +121,7 @@ export const workspaceFolderMethods = {
   },
 
   async openWorkspace(workspaceId) {
-    this.dataset.activeWorkspaceId = workspaceId;
-    const workspaceName = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent || workspaceId;
-    const activeWorkspace = this.querySelector("[data-active-workspace]");
-    if (activeWorkspace) activeWorkspace.textContent = workspaceName;
-    void this.loadWorkspaceCommands(workspaceId);
-    void this.loadRuntimeStatus(workspaceId);
-    await this.loadWorkspaceMeta(workspaceId);
+    this.activateWorkspaceForSession(workspaceId);
     this.route("workspace");
   },
 };

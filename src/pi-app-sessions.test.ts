@@ -98,7 +98,7 @@ describe("pi-app sessions", () => {
     );
     const sessionRows = app.querySelectorAll("[data-workspace-group='w1'] > .sessions > .session-row[data-session]");
     expect(sessionRows).toHaveLength(0);
-    expect(app.querySelector("[data-workspace-group='w1'] .ws-meta").textContent).toBe("0");
+    expect(app.querySelector("[data-workspace-group='w1'] .ws-count").textContent).toBe("0");
     expect(app.dataset.activeSessionId).toBe("");
     expect(localStorage.getItem("pi.activeSession")).toBeNull();
   });
@@ -182,6 +182,7 @@ describe("pi-app sessions", () => {
     app.loadRuntimeStatus = vi.fn();
     app.loadWorkspaceMeta = vi.fn();
     app.connectEvents = vi.fn();
+    app.apiConnected = true;
     app.dataset.activeWorkspaceId = "w1";
     app.append(app.createWorkspaceGroup({ id: "w1", name: "one", path: "/one", sessions: [] }));
     app.append(app.createWorkspaceGroup({ id: "w2", name: "two", path: "/two", sessions: [] }));

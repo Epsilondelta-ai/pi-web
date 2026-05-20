@@ -58,6 +58,7 @@ export const workspaceBootstrapMethods = {
     this.dataset.activeWorkspaceId = workspace.id;
     const label = this.querySelector("[data-active-workspace]");
     if (label) label.textContent = workspace.name;
+    this.syncActiveWorkspaceRows?.();
   },
 
   activateBootstrapSession(session) {
@@ -144,6 +145,7 @@ export const workspaceBootstrapMethods = {
     const workspaceId = session.workspaceId
       || this.findSessionRow(session.id)?.dataset.workspace;
     if (workspaceId) this.activateWorkspaceForSession(workspaceId);
+    this.markActiveSessionRow?.(session.id);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
     this.activateBootstrapSession(session);
     this.renderMessages(messages);
@@ -165,7 +167,8 @@ export const workspaceBootstrapMethods = {
     this.dataset.activeWorkspaceId = workspaceId;
     this.openActiveWorkspaceGroup(workspaceId);
     this.updateActiveWorkspaceLabel(workspaceId);
-    if (!changed) return;
+    this.syncActiveWorkspaceRows?.();
+    if (!changed || !this.apiConnected) return;
     void this.loadWorkspaceCommands(workspaceId);
     void this.loadRuntimeStatus(workspaceId);
     void this.loadWorkspaceMeta(workspaceId);
