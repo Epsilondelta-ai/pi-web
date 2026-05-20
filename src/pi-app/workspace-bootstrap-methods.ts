@@ -186,8 +186,6 @@ export const workspaceBootstrapMethods = {
       if (sessions) sessions.hidden = !open;
       row?.classList.toggle("open", open);
       row?.setAttribute("aria-expanded", String(open));
-      const caret = row?.querySelector(".caret");
-      if (caret) caret.textContent = open ? "▾" : "▸";
     });
   },
 

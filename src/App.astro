@@ -143,7 +143,6 @@ const settingsFields = [
             return (
               <div class="workspace-group" data-workspace-group={workspace.id}>
                 <button type="button" class:list={["ws-row", isActiveWorkspace && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={isActiveWorkspace ? "true" : "false"}>
-                  <span class="caret">{isActiveWorkspace ? "▾" : "▸"}</span>
                   <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
                   <span class="ws-meta">{workspace.sessionCount}</span>
                 </button>
@@ -154,7 +153,6 @@ const settingsFields = [
                       isActiveWorkspace && session.id === activeSessionID && "selected",
                       (session.active || session.live) && "active",
                     ]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
-                      <span class="gutter"><span class:list={["dot", (session.active || session.live) && "live"]}></span></span>
                       <span class="title">{session.title}</span><span class:list={["meta", (session.active || session.live) && "live"]} hidden={!(session.active || session.live)}>{session.active || session.live ? "waiting" : ""}</span>
                     </button>
                   ))}

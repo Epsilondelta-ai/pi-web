@@ -30,7 +30,6 @@ export const sessionMethods = {
       ` data-session="${escapeHtml(session.id)}"`,
       ` data-workspace="${escapeHtml(workspaceId)}"`,
       ` data-title="${escapeHtml(session.title)}">`,
-      `<span class="gutter"><span class="dot"></span></span>`,
       `<span class="title"></span><span class="meta"></span></button>`,
       `<button type="button" class="session-menu-button" data-action="session-menu-toggle"`,
       ` aria-haspopup="true" aria-expanded="false" aria-controls="${menuId}"`,
@@ -100,7 +99,6 @@ export const sessionMethods = {
   markSessionRunning(row, running) {
     row.classList.toggle("active", running);
     row.querySelector(".meta")?.classList.toggle("live", running);
-    row.querySelector(".gutter .dot")?.classList.toggle("live", running);
   },
 
   updateSessionMeta(row, running) {
