@@ -39,6 +39,7 @@ class PiApp extends HTMLElement {
     this.runtimeStatus = {};
     this.restorePromptDraft();
     this.installViewportSizing();
+    this.installFilePreviewUnloadGuard();
     this.bindDomEvents();
     this.restoreSidebar();
     this.updatePrompt();
@@ -49,6 +50,7 @@ class PiApp extends HTMLElement {
     this.bootstrapAPI();
   }
   disconnectedCallback() {
+    this.destroyFilePreviewEditor?.();
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
     this.backgroundSessionWatches?.clear?.();
@@ -60,6 +62,7 @@ class PiApp extends HTMLElement {
     if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
     this.destroyTranscriptVirtualScroller?.();
     this.uninstallViewportSizing?.();
+    this.uninstallFilePreviewUnloadGuard?.();
   }
   installViewportSizing() {
     const applyViewportHeight = () => {
