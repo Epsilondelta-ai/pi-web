@@ -9,3 +9,4 @@ backend/cmd/pi-web-server/static/*
 .pi/sessions
 .pi/tasks/
 .pi/web-status.json
+piweb.out
