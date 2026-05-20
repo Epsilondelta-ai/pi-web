@@ -53,6 +53,7 @@ describe("pi-app session method mutations", () => {
     expect(safe.querySelector(".session-main").dataset.title).toBe("renamed");
     expect(safe.querySelector(".title").textContent).toBe("renamed");
     expect(safe.querySelector(".meta").classList.contains("live")).toBe(true);
+    expect(safe.querySelector(".gutter .dot").classList.contains("live")).toBe(true);
 
     app.dataset.activeSessionId = "s safe/1";
     app.updateSessionTitle({ id: "s safe/1", title: "active" });

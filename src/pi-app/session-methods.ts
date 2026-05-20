@@ -19,6 +19,7 @@ export const sessionMethods = {
     row.querySelector(".title").textContent = session.title;
     row.querySelector(".meta").textContent = session.lastUsed;
     row.querySelector(".meta").classList.toggle("live", !!session.live);
+    row.querySelector(".gutter .dot").classList.toggle("live", !!session.live);
     row.classList.toggle("active", session.active || session.id === this.dataset.activeSessionId);
     return row;
   },
@@ -29,7 +30,8 @@ export const sessionMethods = {
       ` data-session="${escapeHtml(session.id)}"`,
       ` data-workspace="${escapeHtml(workspaceId)}"`,
       ` data-title="${escapeHtml(session.title)}">`,
-      `<span class="gutter"></span><span class="title"></span><span class="meta"></span></button>`,
+      `<span class="gutter"><span class="dot"></span></span>`,
+      `<span class="title"></span><span class="meta"></span></button>`,
       `<button type="button" class="session-menu-button" data-action="session-menu-toggle"`,
       ` aria-haspopup="true" aria-expanded="false" aria-controls="${menuId}"`,
       ` aria-label="session actions">…</button>`,
