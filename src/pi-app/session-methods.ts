@@ -18,7 +18,7 @@ export const sessionMethods = {
     row.innerHTML = this.sessionRowTemplate(workspaceId, session, menuId);
     row.querySelector(".title").textContent = session.title;
     row.dataset.lastUsed = session.lastUsed || "";
-    row.querySelector(".meta").textContent = session.lastUsed;
+    this.updateSessionMeta(row, !!(session.active || session.live));
     this.markSessionRunning(row, !!(session.active || session.live));
     this.markSessionSelected(row, session.id === this.dataset.activeSessionId);
     return row;
@@ -103,14 +103,20 @@ export const sessionMethods = {
     row.querySelector(".gutter .dot")?.classList.toggle("live", running);
   },
 
+  updateSessionMeta(row, running) {
+    const meta = row.querySelector(".meta");
+    if (!meta) return;
+    meta.textContent = running ? "waiting" : "";
+    meta.toggleAttribute("hidden", !running);
+  },
+
   syncCurrentSessionRunState(running) {
     const sessionId = this.dataset.activeSessionId;
     if (!sessionId) return;
     const row = this.querySelector(`[data-session='${sessionId}']`);
     if (!row) return;
     this.markSessionRunning(row, running);
-    const meta = row.querySelector(".meta");
-    if (meta) meta.textContent = running ? "waiting" : row.dataset.lastUsed || "";
+    this.updateSessionMeta(row, running);
     this.syncActiveWorkspaceRows?.();
   },
 

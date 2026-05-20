@@ -46,6 +46,7 @@ describe("pi-app workspace navigation", () => {
     expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-current")).toBe("true");
     expect(app.querySelector("[data-session='s2']").classList.contains("selected")).toBe(true);
     expect(app.querySelector("[data-session='s2']").classList.contains("active")).toBe(false);
+    expect(app.querySelector("[data-session='s2'] .meta").hidden).toBe(true);
   });
 
   it("marks workspaces that contain a waiting session", async () => {
