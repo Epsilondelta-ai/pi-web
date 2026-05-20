@@ -48,7 +48,6 @@ class PiApp extends HTMLElement {
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();
   }
-
   disconnectedCallback() {
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
@@ -59,9 +58,9 @@ class PiApp extends HTMLElement {
     if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
     if (this.streamingRenderFrame) window.cancelAnimationFrame(this.streamingRenderFrame);
     if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
+    this.destroyTranscriptVirtualScroller?.();
     this.uninstallViewportSizing?.();
   }
-
   installViewportSizing() {
     const applyViewportHeight = () => {
       const viewport = window.visualViewport;

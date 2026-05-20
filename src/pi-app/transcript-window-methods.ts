@@ -1,12 +1,10 @@
-const TRANSCRIPT_WINDOW_SIZE = 30;
-const DEFAULT_TRANSCRIPT_ITEM_HEIGHT = 80;
-const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
+import {
+  DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
+  renderVirtualTranscriptItem,
+  updateTranscriptVirtualScroller,
+} from "./transcript-virtual-scroller";
 
-function elementNodes(node) {
-  if (!node) return [];
-  if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) return [...node.childNodes].filter(isElement);
-  return isElement(node) ? [node] : [];
-}
+const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 
 function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -17,10 +15,6 @@ function measuredHeight(nodes) {
   return heights.reduce((total, height) => total + height, 0);
 }
 
-function clampTranscriptStart(start, total) {
-  return Math.max(0, Math.min(start, Math.max(0, total - TRANSCRIPT_WINDOW_SIZE)));
-}
-
 export const transcriptWindowMethods = {
   initTranscriptWindow() {
     this.term = this.querySelector(".term");
@@ -28,13 +22,9 @@ export const transcriptWindowMethods = {
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
     this.transcriptFollowBottom = true;
+    this.transcriptNextItemId = 1;
+    this.transcriptResizeObservers = new Map();
     this.answeredChoiceIds = new Set();
-    this.transcriptTopSpacer = document.createElement("div");
-    this.transcriptBottomSpacer = document.createElement("div");
-    this.transcriptTopSpacer.className = "transcript-spacer transcript-spacer-top";
-    this.transcriptBottomSpacer.className = "transcript-spacer transcript-spacer-bottom";
-    this.transcriptTopSpacer.setAttribute("aria-hidden", "true");
-    this.transcriptBottomSpacer.setAttribute("aria-hidden", "true");
     this.transcriptScrollButton = this.ensureTranscriptScrollButton();
     this.installTranscriptScrollGuard();
     this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
@@ -96,7 +86,6 @@ export const transcriptWindowMethods = {
     this.transcriptFollowBottom = this.isTermPinnedToBottom();
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
-    this.scheduleTranscriptWindowRender();
   },
 
   shouldLoadOlderTranscriptMessages() {
@@ -122,33 +111,43 @@ export const transcriptWindowMethods = {
       (node) => !node.classList.contains("transcript-spacer"),
     );
     if (!existingNodes.length) return;
-    this.transcriptItems = existingNodes.map((node) => ({
-      nodes: [node],
-      height: measuredHeight([node]) || DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
-    }));
+    this.transcriptItems = existingNodes.map((node) => this.createTranscriptItem(undefined, { nodes: [node] }));
     this.renderTranscriptWindow({ stickToBottom: true });
   },
 
   resetTranscriptWindow() {
+    this.destroyTranscriptVirtualScroller();
     this.transcriptItems = [];
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
-    this.transcriptWindowFrame = undefined;
     this.transcriptFollowBottom = true;
     this.answeredChoiceIds = new Set();
-    this.transcriptTopSpacer?.remove();
-    this.transcriptBottomSpacer?.remove();
     this.updateTranscriptScrollButton();
   },
 
-  createTranscriptItem(message) {
-    return { message, height: DEFAULT_TRANSCRIPT_ITEM_HEIGHT };
+  destroyTranscriptVirtualScroller() {
+    if (this.transcriptVirtualScroller) {
+      if (this.transcriptVirtualScrollerStarted) this.transcriptVirtualScroller.stop?.();
+      this.transcriptVirtualScroller = undefined;
+      this.transcriptVirtualScrollerStarted = false;
+    }
+    this.transcriptResizeObservers?.forEach((observer) => observer.disconnect?.());
+    this.transcriptResizeObservers?.clear?.();
+  },
+
+  createTranscriptItem(message, options: any = {}) {
+    return {
+      id: this.transcriptNextItemId++,
+      message,
+      nodes: options.nodes,
+      height: measuredHeight(options.nodes || []) || DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
+    };
   },
 
   appendTranscriptNode(node, { stickToBottom = true } = {}) {
-    const nodes = elementNodes(node);
+    const nodes = this.transcriptElementNodes(node);
     if (!nodes.length) return;
-    this.transcriptItems.push({ nodes, height: DEFAULT_TRANSCRIPT_ITEM_HEIGHT });
+    this.transcriptItems.push(this.createTranscriptItem(undefined, { nodes }));
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom });
   },
 
@@ -160,40 +159,36 @@ export const transcriptWindowMethods = {
   },
 
   replaceTranscriptNode(oldNode, newNode) {
-    const nodes = elementNodes(newNode);
+    const nodes = this.transcriptElementNodes(newNode);
     const item = this.transcriptItems?.find((candidate) => candidate?.nodes?.includes(oldNode));
     if (!item || !nodes.length) return false;
     item.nodes = nodes;
-    item.height = DEFAULT_TRANSCRIPT_ITEM_HEIGHT;
+    item.message = undefined;
+    item.height = measuredHeight(nodes) || DEFAULT_TRANSCRIPT_ITEM_HEIGHT;
     oldNode.replaceWith?.(...nodes);
     this.renderTranscriptWindow({ stickToBottom: true });
     return true;
   },
 
+  transcriptElementNodes(node) {
+    if (!node) return [];
+    if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) return [...node.childNodes].filter(isElement);
+    return isElement(node) ? [node] : [];
+  },
+
   isTranscriptVirtualized() {
-    return (this.transcriptItems?.length || 0) > TRANSCRIPT_WINDOW_SIZE;
+    return !!this.transcriptVirtualScroller;
   },
 
   scheduleTranscriptWindowRender() {
-    if (!this.isTranscriptVirtualized() || this.transcriptWindowFrame) return;
-    this.transcriptWindowFrame = window.requestAnimationFrame(() => {
-      this.transcriptWindowFrame = undefined;
-      this.renderTranscriptWindow({ stickToBottom: false });
-    });
+    this.transcriptVirtualScroller?.virtualScroller?.updateLayout?.();
   },
 
-  renderTranscriptWindow({ stickToBottom = false } = {}) {
-    if (!this.termInner) return;
+  renderTranscriptWindow({ stickToBottom = false, preservePrepend = false } = {}) {
     const pinned = stickToBottom && this.shouldStickToBottom();
-    if (!this.isTranscriptVirtualized()) {
-      this.renderTranscriptRange(0, this.transcriptItems.length);
-      if (pinned) this.scrollTerm({ force: true });
-      this.updateTranscriptScrollButton();
-      return;
-    }
-    const range = pinned ? this.bottomTranscriptRange() : this.visibleTranscriptRange();
-    this.renderTranscriptRange(range.start, range.end);
+    updateTranscriptVirtualScroller(this, { preservePrepend, stickToBottom: pinned });
     if (pinned) this.scrollTerm({ force: true });
+    this.syncAnsweredChoices?.();
     this.updateTranscriptScrollButton();
   },
 
@@ -201,65 +196,25 @@ export const transcriptWindowMethods = {
     return this.transcriptFollowBottom !== false && this.isTermPinnedToBottom();
   },
 
-  bottomTranscriptRange() {
-    return {
-      start: Math.max(0, this.transcriptItems.length - TRANSCRIPT_WINDOW_SIZE),
-      end: this.transcriptItems.length,
-    };
+  renderVirtualTranscriptItem(item) {
+    return renderVirtualTranscriptItem(this, item);
   },
 
-  visibleTranscriptRange() {
-    const total = this.transcriptItems.length;
-    const viewportTop = Math.max(0, this.term?.scrollTop || 0);
-    let offset = 0;
-    let start = 0;
-
-    for (let index = 0; index < total; index += 1) {
-      const nextOffset = offset + this.transcriptItemHeight(index);
-      if (nextOffset >= viewportTop) {
-        start = index;
-        break;
-      }
-      offset = nextOffset;
-    }
-
-    start = clampTranscriptStart(start, total);
-    return { start, end: Math.min(total, start + TRANSCRIPT_WINDOW_SIZE) };
+  applyTranscriptVirtualState(state) {
+    this.transcriptVisibleStart = state.firstShownItemIndex || 0;
+    this.transcriptVisibleEnd = (state.lastShownItemIndex || 0) + 1;
   },
 
-  renderTranscriptRange(start, end) {
-    this.measureRenderedTranscriptItems();
-    this.transcriptVisibleStart = start;
-    this.transcriptVisibleEnd = end;
-    const fragment = document.createDocumentFragment();
-    const topHeight = this.transcriptRangeHeight(0, start);
-    const bottomHeight = this.transcriptRangeHeight(end, this.transcriptItems.length);
-
-    if (topHeight > 0) {
-      this.transcriptTopSpacer.style.height = `${topHeight}px`;
-      fragment.append(this.transcriptTopSpacer);
-    }
-    for (let index = start; index < end; index += 1) {
-      for (const node of this.transcriptItemNodes(index)) fragment.append(node);
-    }
-    if (bottomHeight > 0) {
-      this.transcriptBottomSpacer.style.height = `${bottomHeight}px`;
-      fragment.append(this.transcriptBottomSpacer);
-    }
-    this.termInner.replaceChildren(fragment);
-    this.measureRenderedTranscriptItems();
-    this.syncAnsweredChoices?.();
+  measureTranscriptItem(item, element) {
+    const height = measuredHeight([element]);
+    if (height > 0) item.height = height;
   },
 
   measureRenderedTranscriptItems() {
-    if (!this.transcriptItems) return;
-    const start = Math.max(0, this.transcriptVisibleStart || 0);
-    const end = Math.min(this.transcriptItems.length, this.transcriptVisibleEnd || 0);
-    for (let index = start; index < end; index += 1) {
-      const item = this.transcriptItems[index];
-      if (!item?.nodes) continue;
-      const height = measuredHeight(item.nodes);
-      if (height > 0) item.height = height;
+    for (const item of this.transcriptItems || []) {
+      if (!item) continue;
+      const element = this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
+      if (element) this.measureTranscriptItem(item, element);
     }
   },
 
@@ -272,7 +227,7 @@ export const transcriptWindowMethods = {
   transcriptItemNodes(index) {
     const item = this.transcriptItems[index];
     if (!item) return [];
-    if (!item.nodes && item.message) item.nodes = elementNodes(this.messageNode(item.message));
+    if (!item.nodes && item.message) item.nodes = this.transcriptElementNodes(this.messageNode(item.message));
     return item.nodes || [];
   },
 
