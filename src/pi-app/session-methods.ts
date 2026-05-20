@@ -125,6 +125,7 @@ export const sessionMethods = {
     this.markSessionRunning(row, running);
     this.updateSessionMeta(row, running);
     this.syncActiveWorkspaceRows?.();
+    this.syncBackgroundSessionWatches?.();
   },
 
   async renameSession(sessionId) {
@@ -277,11 +278,11 @@ export const sessionMethods = {
   resetActiveSessionState() {
     this.running = false;
     this.piDeltaBuffer = "";
+    this.syncBackgroundSessionWatches?.();
     this.removeLoadingMessage?.();
     this.stopButton?.setAttribute("hidden", "");
     this.updatePrompt?.();
   },
-
   showSessionMain() {
     this.dataset.session = "active";
     this.querySelector("[data-main='session']")?.removeAttribute("hidden");

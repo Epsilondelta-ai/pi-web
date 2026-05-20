@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
 
 const fallbackChoiceJson = [
@@ -71,5 +71,45 @@ describe("pi-app toast notifications", () => {
     app.querySelector(".toast-dismiss-all").click();
     expect(app.querySelector(".session-toast")).toBeNull();
     expect(app.querySelector(".toast-dismiss-all").hidden).toBe(true);
+  });
+
+  it("notifies when an inactive watched session completes", async () => {
+    const sources = [];
+    class FakeEventSource {
+      constructor(url) {
+        this.url = url;
+        this.listeners = {};
+        this.close = vi.fn();
+        sources.push(this);
+      }
+      addEventListener(type, callback) { this.listeners[type] = callback; }
+    }
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeSessionId = "active-session";
+    app.dataset.activeWorkspaceId = "active-workspace";
+
+    app.renderWorkspaces([
+      { id: "active-workspace", name: "active", sessionCount: 1, sessions: [{ id: "active-session", title: "now" }] },
+      { id: "other-workspace", name: "other", sessionCount: 1, sessions: [
+        { id: "background-session", title: "background", active: true },
+      ] },
+    ]);
+
+    expect(sources).toHaveLength(1);
+    sources[0].listeners["session.status"]({
+      data: JSON.stringify({
+        type: "session.status",
+        sessionId: "background-session",
+        payload: { status: "idle" },
+      }),
+    });
+
+    const toastText = app.querySelector(".session-toast.success").textContent;
+    expect(toastText).toContain("응답 완료");
+    expect(toastText).toContain("workspace: other (other-workspace)");
+    expect(toastText).toContain("session: background (background-session)");
+    expect(sources[0].close).toHaveBeenCalled();
   });
 });

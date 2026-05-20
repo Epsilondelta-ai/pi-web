@@ -1,3 +1,6 @@
+import { sessionEvents } from "../api";
+import { parseFallbackChoices } from "./fallback-choices";
+
 const TOAST_MESSAGES = {
   success: {
     title: "응답 완료",
@@ -53,12 +56,12 @@ export const toastMethods = {
     if (target.dataset.action === "dismiss-toast") this.dismissToast(target.closest(".session-toast"));
   },
 
-  showToast(kind, detail) {
+  showToast(kind, detail, context = this.currentToastContext()) {
     const region = this.ensureToastRegion();
     const list = region.querySelector("[data-toast-list]");
     if (!list) return undefined;
     const toast = document.createElement("button");
-    const message = toastText(kind, detail, this.currentToastContext());
+    const message = toastText(kind, detail, context);
     toast.type = "button";
     toast.className = `session-toast ${kind}`;
     toast.dataset.action = "dismiss-toast";
@@ -101,17 +104,90 @@ export const toastMethods = {
     return `workspace: ${workspace} / session: ${session}`;
   },
 
-  notifySessionCompleted() {
-    this.showToast("success");
+  notifySessionCompleted(context) {
+    this.showToast("success", undefined, context);
   },
 
-  notifyChoiceRequested() {
-    this.showToast("choice");
+  notifyChoiceRequested(context) {
+    this.showToast("choice", undefined, context);
   },
 
-  notifyResponseFailure(detail) {
-    if (this.responseFailureToastShown) return;
-    this.responseFailureToastShown = true;
-    this.showToast("error", detail);
+  notifyResponseFailure(detail, context) {
+    if (this.responseFailureToastShown && !context) return;
+    if (!context) this.responseFailureToastShown = true;
+    this.showToast("error", detail, context);
+  },
+
+  syncBackgroundSessionWatches() {
+    const watched = this.backgroundSessionWatches || new Map();
+    if (!this.apiConnected || typeof EventSource === "undefined") {
+      watched.forEach((watch) => watch.source?.close?.());
+      watched.clear();
+      this.backgroundSessionWatches = watched;
+      return;
+    }
+    const rows = this.backgroundWatchRows();
+    for (const [sessionId, watch] of watched) {
+      if (rows.has(sessionId)) continue;
+      watch.source?.close?.();
+      watched.delete(sessionId);
+    }
+    for (const [sessionId, row] of rows) {
+      if (!watched.has(sessionId)) watched.set(sessionId, this.watchBackgroundSession(row));
+    }
+    this.backgroundSessionWatches = watched;
+  },
+
+  backgroundWatchRows() {
+    const rows = new Map();
+    this.querySelectorAll(".session-row.active[data-session]").forEach((row) => {
+      if (row.dataset.session && row.dataset.session !== this.dataset.activeSessionId) rows.set(row.dataset.session, row);
+    });
+    return rows;
+  },
+
+  watchBackgroundSession(row) {
+    const sessionId = row.dataset.session;
+    const watch: any = { failed: false, row, wasRunning: true };
+    watch.source = sessionEvents(sessionId, {
+      replay: false,
+      onError: () => undefined,
+      onEvent: (event) => this.handleBackgroundSessionEvent(event, watch),
+    });
+    return watch;
+  },
+
+  handleBackgroundSessionEvent(event, watch) {
+    if (!event || event.type === "heartbeat") return;
+    const context = this.toastContextForSessionRow(watch.row);
+    if (event.type === "error") {
+      watch.failed = true;
+      this.notifyResponseFailure(event.payload?.error, context);
+      return;
+    }
+    if (event.type === "session.message" && parseFallbackChoices(event.payload?.text).length) {
+      this.notifyChoiceRequested(context);
+      return;
+    }
+    if (event.type !== "session.status") return;
+    const status = event.payload?.status;
+    if (status === "running" || status === "thinking") watch.wasRunning = true;
+    if (status !== "idle" && status !== "cancelled") return;
+    this.dismissBackgroundSessionWatch(event.sessionId, watch);
+    if (watch.wasRunning && status === "idle" && !watch.failed) this.notifySessionCompleted(context);
+  },
+
+  dismissBackgroundSessionWatch(sessionId, watch) {
+    watch.source?.close?.();
+    this.backgroundSessionWatches?.delete(sessionId);
+    this.markSessionRunning?.(watch.row, false);
+    this.updateSessionMeta?.(watch.row, false);
+    this.syncActiveWorkspaceRows?.();
+  },
+
+  toastContextForSessionRow(row) {
+    const workspaceId = row?.dataset.workspace;
+    const workspaceName = this.querySelector(`[data-workspace-group='${workspaceId}'] .label`)?.textContent;
+    return `workspace: ${displayName(workspaceName, workspaceId)} / session: ${displayName(row?.dataset.title, row?.dataset.session)}`;
   },
 };

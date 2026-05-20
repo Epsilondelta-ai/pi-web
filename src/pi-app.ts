@@ -49,6 +49,8 @@ class PiApp extends HTMLElement {
 
   disconnectedCallback() {
     this.eventSource?.close();
+    this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
+    this.backgroundSessionWatches?.clear?.();
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
