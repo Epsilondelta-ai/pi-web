@@ -13,12 +13,19 @@ const TOAST_MESSAGES = {
   },
 };
 
-function toastText(kind, detail) {
+function toastText(kind, detail, context) {
   const message = TOAST_MESSAGES[kind] || TOAST_MESSAGES.success;
   return {
     title: message.title,
-    detail: detail || message.detail,
+    detail: [detail || message.detail, context].filter(Boolean).join(" · "),
   };
+}
+
+function displayName(name, id) {
+  const label = String(name || "").trim();
+  const value = String(id || "").trim();
+  if (label && value && label !== value) return `${label} (${value})`;
+  return label || value || "알 수 없음";
 }
 
 export const toastMethods = {
@@ -51,7 +58,7 @@ export const toastMethods = {
     const list = region.querySelector("[data-toast-list]");
     if (!list) return undefined;
     const toast = document.createElement("button");
-    const message = toastText(kind, detail);
+    const message = toastText(kind, detail, this.currentToastContext());
     toast.type = "button";
     toast.className = `session-toast ${kind}`;
     toast.dataset.action = "dismiss-toast";
@@ -80,6 +87,18 @@ export const toastMethods = {
     const toasts = this.toastRegion?.querySelectorAll(".session-toast") ?? [];
     const dismissAll = this.toastRegion?.querySelector(".toast-dismiss-all");
     dismissAll?.toggleAttribute("hidden", toasts.length < 2);
+  },
+
+  currentToastContext() {
+    const workspace = displayName(
+      this.querySelector("[data-active-workspace]")?.textContent,
+      this.dataset.activeWorkspaceId,
+    );
+    const session = displayName(
+      this.querySelector("[data-active-session-title]")?.textContent,
+      this.dataset.activeSessionId,
+    );
+    return `workspace: ${workspace} / session: ${session}`;
   },
 
   notifySessionCompleted() {
