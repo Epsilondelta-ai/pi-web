@@ -129,6 +129,22 @@
 
 .term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; }
 .transcript-spacer { width: 100%; flex: 0 0 auto; }
+.scroll-bottom-btn {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-full);
+  background: var(--bg-2);
+  color: var(--accent);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.32);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+}
+.scroll-bottom-btn:hover { background: var(--bg-3); }
 
 .msg { display: flex; gap: var(--space-2); margin-bottom: 14px; }
 .msg .prefix {
@@ -201,83 +217,6 @@
 }
 .msg.loading .body { color: var(--fg-3); font-style: italic; }
 .msg.loading .body::after { content: ""; display: inline-block; width: 1ch; animation: blink 1s steps(1) infinite; }
-
-.tool-card {
-  border: 1px solid var(--border);
-  margin: 8px 0;
-  background: var(--bg-1);
-  font-size: var(--text-sm);
-}
-.tool-card .tc-head {
-  display: grid;
-  grid-template-columns: 18px auto 1fr auto;
-  align-items: center;
-  gap: 8px;
-  padding: 6px var(--space-2);
-  background: var(--bg-2);
-  cursor: pointer;
-  user-select: none;
-  border-bottom: 1px solid var(--border-dim);
-}
-.tool-card.collapsed .tc-head { border-bottom: 0; }
-.tool-card .tc-head:hover { background: var(--bg-3); }
-.tool-card .tc-glyph { color: var(--tool-call); font-size: 12px; text-align: center; }
-.tool-card .tc-name { color: var(--tool-call); font-weight: 500; }
-.tool-card .tc-args {
-  color: var(--fg-1);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: var(--text-sm);
-  min-width: 0;
-}
-.tool-card .tc-meta {
-  color: var(--fg-3);
-  font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.tool-card .tc-meta .ok { color: var(--accent); }
-.tool-card .tc-meta .err { color: var(--danger); }
-.tool-card .tc-body {
-  padding: var(--space-2) var(--space-3) var(--space-2) 32px;
-  color: var(--fg-1);
-  font-size: var(--text-sm);
-  background: var(--bg-1);
-  border-left: 2px solid var(--border-dim);
-  margin-left: 14px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.tool-card .tc-body .ansi-green { color: var(--accent); }
-.tool-card .tc-body .ansi-red { color: var(--danger); }
-.tool-card .tc-body .ansi-yellow { color: var(--warn); }
-.tool-card .tc-body .ansi-cyan { color: var(--info); }
-.tool-card .tc-body .ansi-dim { color: var(--fg-3); }
-.tool-card .tc-body .added { color: var(--accent); }
-.tool-card .tc-body .removed { color: var(--danger); }
-.tool-card .tc-body-notice {
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-1);
-  color: var(--fg-3);
-  margin: 8px 0;
-  padding: 6px 8px;
-}
-.tool-card .tc-body-notice button {
-  color: var(--accent);
-  margin-left: 6px;
-  text-decoration: underline;
-}
-.tool-card .tc-caret { color: var(--fg-3); font-size: 10px; padding-right: 4px; }
-
-.inline-out {
-  padding: 4px 0 4px 16px;
-  border-left: 1px solid var(--border-dim);
-  color: var(--fg-1);
-  font-size: var(--text-sm);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
 
 .thinking-block {
   border: 1px dashed var(--border);

@@ -4,15 +4,16 @@ import { renderToolBody, storeFullToolBody } from "./tool-output-rendering";
 export const toolMessageMethods = {
   toolCard(message) {
     const card = document.createElement("div");
-    card.className = `tool-card ${message.collapsedByDefault ? "collapsed" : ""}`.trim();
+    const collapsed = message.collapsedByDefault !== false;
+    card.className = `tool-card ${collapsed ? "collapsed" : ""}`.trim();
     card.dataset.tool = message.tool || "tool";
     card.dataset.status = message.status || "";
     this.latestToolCards = { ...(this.latestToolCards || {}), [card.dataset.tool]: card };
-    const collapsed = !!message.collapsedByDefault;
     card.innerHTML = this.toolCardTemplate(collapsed, !!message.body);
     card.querySelector(".tc-name").textContent = message.tool || "tool";
     card.querySelector(".tc-args").textContent = message.args || "";
     card.querySelector(".tc-meta").innerHTML = this.toolStatus(message);
+    card.querySelector(".tc-caret").textContent = collapsed ? "▸" : "▾";
     if (message.body) {
       const body = card.querySelector(".tc-body");
       body.innerHTML = renderToolBody(message.body, { collapsed });
@@ -60,7 +61,6 @@ export const toolMessageMethods = {
     const card = visibleCard || this.latestToolCards?.[payload?.tool];
     const body = card?.querySelector(".tc-body");
     if (!body) return;
-    body.hidden = false;
     body.__pendingToolOutput = body.__pendingToolOutput || [];
     body.__pendingToolOutput.push(payload.chunk || "");
     this.scheduleToolOutputFlush(body);
@@ -87,7 +87,8 @@ export const toolMessageMethods = {
       this.appendMessage(message);
       return;
     }
-    const next = this.toolCard(message);
+    const body = card.querySelector(".tc-body");
+    const next = this.toolCard({ ...message, collapsedByDefault: body?.hidden !== false });
     if (!this.replaceTranscriptNode(card, next)) card.replaceWith(next);
     this.syncLoadingMessage();
   },
