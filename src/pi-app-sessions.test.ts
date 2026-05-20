@@ -35,6 +35,35 @@ describe("pi-app sessions", () => {
     expect(rows.at(-1).classList.contains("new-session-row")).toBe(true);
   });
 
+  it("opens a backend-created session immediately", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      statusText: "Created",
+      json: async () => ({ session: { id: "s1", title: "new session", lastUsed: "now" } }),
+    }));
+    const app = await connectPiApp();
+    const sessionMain = app.querySelector("main");
+    const emptyMain = document.createElement("main");
+    sessionMain.dataset.main = "session";
+    sessionMain.hidden = true;
+    emptyMain.dataset.main = "empty";
+    app.append(emptyMain);
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.connectEvents = vi.fn();
+    app.append(app.createWorkspaceGroup({ id: "w1", name: "demo", path: "/demo", sessions: [] }));
+
+    await app.newSession("w1");
+
+    expect(app.dataset.activeSessionId).toBe("s1");
+    expect(app.dataset.session).toBe("active");
+    expect(sessionMain.hidden).toBe(false);
+    expect(emptyMain.hidden).toBe(true);
+    expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(true);
+  });
+
   it("deletes all sessions in a workspace and clears the active session", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
