@@ -103,6 +103,39 @@ describe("pi-app transcript window", () => {
     expect(body.hidden).toBe(false);
   });
 
+  it("covers transcript guard fallback paths", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    const term = app.term;
+    app.term = null;
+    app.scrollTerm({ force: true });
+    frames.splice(0).forEach((callback) => callback(0));
+    expect(app.isTermPinnedToBottom()).toBe(true);
+    app.term = term;
+
+    app.transcriptItems = null;
+    app.measureRenderedTranscriptItems();
+    app.transcriptItems = [undefined, { nodes: [document.createElement("div")], height: 0 }];
+    app.transcriptVisibleStart = 0;
+    app.transcriptVisibleEnd = 2;
+    app.measureRenderedTranscriptItems();
+    expect(app.transcriptItemHeight(9)).toBe(80);
+  });
+
+  it("covers tool card default and expanded paths", async () => {
+    const app = await connectPiApp();
+    const card = app.toolCard({ status: "ok", collapsedByDefault: false, body: "body" });
+
+    expect(card.dataset.tool).toBe("tool");
+    expect(card.querySelector(".tc-body").hidden).toBe(false);
+    expect(card.querySelector(".tc-caret").textContent).toBe("▾");
+  });
+
   it("binds an existing scroll-bottom button", async () => {
     const app = await connectPiApp();
     const existingButton = document.createElement("button");
