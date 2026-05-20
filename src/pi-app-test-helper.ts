@@ -53,7 +53,7 @@ export function installPiAppFixture() {
             <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
           </div>
         </div>
-        <main><div class="term"><div class="term-inner"></div></div></main>
+        <main data-main="session"><div class="term"><div class="term-inner"></div></div></main>
         <aside class="tree"></aside>
         <div class="scrim" data-action="close-drawer"></div>
       </section>
