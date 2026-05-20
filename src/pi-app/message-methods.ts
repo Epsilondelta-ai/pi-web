@@ -7,9 +7,8 @@ import {
 } from "./fallback-choices";
 
 export const messageMethods = {
-  renderMessages(messages, { preserveScroll = false } = {}) {
+  renderMessages(messages, { preserveScroll = false, deferScroll = false } = {}) {
     if (!this.termInner) return;
-    const scrollTop = this.term?.scrollTop || 0;
     const followBottom = this.transcriptFollowBottom;
     if (this.scrollFrame) {
       window.cancelAnimationFrame?.(this.scrollFrame);
@@ -22,9 +21,12 @@ export const messageMethods = {
     this.deferTranscriptRender = false;
     this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
     this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
-    this.renderTranscriptWindow({ stickToBottom: !preserveScroll, immediate: !preserveScroll });
+    this.renderTranscriptWindow({
+      stickToBottom: !preserveScroll,
+      immediate: !preserveScroll,
+      scroll: !deferScroll,
+    });
     if (preserveScroll) this.transcriptFollowBottom = followBottom;
-    if (preserveScroll && this.term) this.term.scrollTop = scrollTop;
   },
 
   answeredChoiceIdsFrom(messages) {
@@ -126,14 +128,14 @@ export const messageMethods = {
       `<div class="thinking-block"><span class="label">thinking</span><span data-stream-text></span></div>`;
   },
 
-  appendLoadingMessage() {
+  appendLoadingMessage({ stickToBottom = true } = {}) {
     if (!this.termInner || this.termInner.querySelector(".msg.loading")) return;
     const row = this.simpleMessage("pi loading", "pi >", "");
     row.querySelector(".body").innerHTML = `<span class="spinner">⠋</span><span>waiting for response…</span>`;
     row.classList.add("loading");
     row.dataset.kind = "loading";
-    this.appendTranscriptNode(row, { stickToBottom: true });
-    this.scrollTerm();
+    this.appendTranscriptNode(row, { stickToBottom });
+    if (stickToBottom) this.scrollTerm();
   },
 
   removeLoadingMessage() {
@@ -149,7 +151,7 @@ export const messageMethods = {
       this.removeLoadingMessage();
       return;
     }
-    this.appendLoadingMessage();
+    this.appendLoadingMessage({ stickToBottom: !this.suppressLoadingMessageScroll });
   },
 
   hasActiveTranscriptItem() {

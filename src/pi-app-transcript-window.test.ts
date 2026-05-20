@@ -29,8 +29,10 @@ describe("pi-app transcript window", () => {
       `<div class="msg" data-kind="pi"><div class="prefix pi">pi &gt;</div><div class="body">existing</div></div>`,
     ].join("");
 
+    app.scrollTerm = vi.fn();
     app.adoptRenderedTranscript();
 
+    expect(app.scrollTerm).not.toHaveBeenCalled();
     expect(app.transcriptItems).toHaveLength(1);
     expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
   });

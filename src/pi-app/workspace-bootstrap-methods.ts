@@ -12,7 +12,7 @@ const SESSION_MESSAGE_PAGE_SIZE = 120;
 const SESSION_PAGE_CACHE_LIMIT = 8;
 
 function sessionPageSignature(page) {
-  return JSON.stringify([page?.session?.id, page?.status || "idle", page?.cursor || "", !!page?.hasMore, page?.messages || []]);
+  return JSON.stringify([page?.session?.id, page?.status ?? "idle", page?.cursor, !!page?.hasMore, page?.messages||[]]);
 }
 
 function findStoredSession(workspaces, stored) {
@@ -138,7 +138,7 @@ export const workspaceBootstrapMethods = {
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
     const cachedPage = this.cachedSessionPage(sessionId);
-    if (cachedPage) this.applyLoadedSession(cachedPage.session, cachedPage.messages || [], cachedPage.status, cachedPage);
+    if (cachedPage) this.applyLoadedSession(cachedPage.session, cachedPage.messages, cachedPage.status, cachedPage);
     else this.showSessionSwitchLoading(sessionId);
 
     try {
@@ -164,17 +164,18 @@ export const workspaceBootstrapMethods = {
   rememberSessionPage(page) {
     if (!page?.session?.id) return;
     this.sessionPageCache ??= new Map();
-    this.sessionPageCache.set(page.session.id, { ...page, messages: page.messages || [], status: page.status || "idle" });
+    const cached = { ...page, messages: page.messages || [], status: page.status || "idle" };
+    this.sessionPageCache.set(page.session.id, cached);
     while (this.sessionPageCache.size > SESSION_PAGE_CACHE_LIMIT) {
       this.sessionPageCache.delete(this.sessionPageCache.keys().next().value);
     }
   },
 
   showSessionSwitchLoading(sessionId) {
+    if (this.scrollFrame) { window.cancelAnimationFrame?.(this.scrollFrame); this.scrollFrame = undefined; }
     this.resetActiveSessionState?.();
     this.sessionHistoryCursor = "";
-    this.sessionHistoryHasMore = false;
-    this.sessionHistoryLoading = false;
+    this.sessionHistoryHasMore = false; this.sessionHistoryLoading = false;
     this.renderSessionSwitchLoading(sessionId);
   },
 
@@ -198,8 +199,7 @@ export const workspaceBootstrapMethods = {
   applyLoadedSession(session, messages, status = "idle", page: any = {}) {
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState?.();
-    const workspaceId = session.workspaceId
-      || this.findSessionRow(session.id)?.dataset.workspace;
+    const workspaceId = session.workspaceId || this.findSessionRow(session.id)?.dataset.workspace;
     if (workspaceId) this.activateWorkspaceForSession(workspaceId, { loadContext: true });
     this.markSelectedSessionRow?.(session.id);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
@@ -207,8 +207,9 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryCursor = page.cursor || "";
     this.sessionHistoryHasMore = !!page.hasMore;
     this.sessionHistoryLoading = false;
-    this.renderMessages(messages, { preserveScroll: page.preserveScroll });
-    this.setMode(status || "idle");
+    this.renderMessages(messages, { preserveScroll: page.preserveScroll, deferScroll: !page.preserveScroll });
+    this.suppressLoadingMessageScroll = true; this.setMode(status || "idle"); this.suppressLoadingMessageScroll = false;
+    if (!page.preserveScroll) this.scrollTermToBottomImmediately?.();
     this.connectEvents(session.id, { replay: false });
   },
 

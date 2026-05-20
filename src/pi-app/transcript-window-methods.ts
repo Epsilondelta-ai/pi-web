@@ -127,7 +127,7 @@ export const transcriptWindowMethods = {
       nodes: [node],
       height: measuredHeight([node]) || DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
     }));
-    this.renderTranscriptWindow({ stickToBottom: true });
+    this.renderTranscriptWindow({ stickToBottom: false });
   },
 
   resetTranscriptWindow() {
@@ -183,18 +183,18 @@ export const transcriptWindowMethods = {
     });
   },
 
-  renderTranscriptWindow({ stickToBottom = false, immediate = false } = {}) {
+  renderTranscriptWindow({ stickToBottom = false, immediate = false, scroll = true } = {}) {
     if (!this.termInner) return;
     const pinned = stickToBottom && this.shouldStickToBottom();
     if (!this.isTranscriptVirtualized()) {
       this.renderTranscriptRange(0, this.transcriptItems.length);
-      if (pinned) immediate ? this.scrollTermToBottomImmediately() : this.scrollTerm({ force: true });
+      if (pinned && scroll) immediate ? this.scrollTermToBottomImmediately() : this.scrollTerm({ force: true });
       this.updateTranscriptScrollButton();
       return;
     }
     const range = pinned ? this.bottomTranscriptRange() : this.visibleTranscriptRange();
     this.renderTranscriptRange(range.start, range.end);
-    if (pinned) immediate ? this.scrollTermToBottomImmediately() : this.scrollTerm({ force: true });
+    if (pinned && scroll) immediate ? this.scrollTermToBottomImmediately() : this.scrollTerm({ force: true });
     this.updateTranscriptScrollButton();
   },
 

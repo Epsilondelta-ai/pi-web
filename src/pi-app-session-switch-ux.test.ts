@@ -18,10 +18,14 @@ describe("pi-app session switch UX", () => {
     const app = await connectPiApp();
     app.connectEvents = vi.fn();
     app.scrollTerm = vi.fn();
+    app.scrollFrame = 321;
+    const cancelFrame = vi.spyOn(window, "cancelAnimationFrame");
     app.append(app.createSessionRow("w1", { id: "s1", title: "large session", lastUsed: "now" }));
 
     const loading = app.loadSession("s1");
 
+    expect(cancelFrame).toHaveBeenCalledWith(321);
+    expect(app.scrollFrame).toBeUndefined();
     expect(app.scrollTerm).not.toHaveBeenCalled();
     expect(app.querySelector(".session-switch-loading")).not.toBeNull();
     expect(app.querySelector(".session-switch-label").textContent).toBe("loading large session…");
@@ -39,6 +43,39 @@ describe("pi-app session switch UX", () => {
 
     expect(app.querySelector(".session-switch-loading")).toBeNull();
     expect(app.querySelector(".msg .body").textContent).toBe("loaded");
+  });
+
+  it("loads running sessions with one final scroll after the loading row is present", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        session: { id: "s1", title: "running", workspaceId: "w1" },
+        messages: [{ kind: "user", text: "work" }],
+        status: "running",
+      }),
+    }));
+    const app = await connectPiApp();
+    app.connectEvents = vi.fn();
+    app.isTermPinnedToBottom = () => true;
+    const scrollWrites = [];
+    let scrollTop = 0;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => {
+        scrollWrites.push(value);
+        scrollTop = value;
+      },
+    });
+
+    await app.loadSession("s1");
+
+    expect(app.querySelector(".msg.loading")).not.toBeNull();
+    expect(scrollWrites).toEqual([900]);
   });
 
   it("skips the background refresh render when cached session content is unchanged", async () => {
@@ -94,7 +131,16 @@ describe("pi-app session switch UX", () => {
 
     expect(app.querySelector(".session-switch-loading")).toBeNull();
     expect(app.querySelector(".msg .body").textContent).toBe("cached");
-    app.term.scrollTop = 42;
+    const scrollWrites = [];
+    let scrollTop = 42;
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => {
+        scrollWrites.push(value);
+        scrollTop = value;
+      },
+    });
     app.transcriptFollowBottom = false;
     app.scrollTerm = vi.fn();
 
@@ -111,6 +157,7 @@ describe("pi-app session switch UX", () => {
 
     expect(app.querySelector(".msg .body").textContent).toBe("fresh");
     expect(app.term.scrollTop).toBe(42);
+    expect(scrollWrites).toEqual([]);
     expect(app.transcriptFollowBottom).toBe(false);
     expect(app.scrollTerm).not.toHaveBeenCalled();
   });
