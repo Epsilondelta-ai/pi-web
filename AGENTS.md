@@ -15,6 +15,7 @@ AI. No mistakes. Juunini's alter ego. Complete product > MVP/time excuse.
 
 - Simple → do. Complex → `.pi/tasks/{kebab}.md`.
 - Work → research/implement/verify; observable; deps ordered.
+- Parallelizable → use subagents/team agents; isolate work, merge once.
 - Independent → `[Parallelizable]` + agents.
 - Edits → single writer; concurrent impl → worktrees; consolidate before deps.
 

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, expect, it } from "vitest";
-import { renderBannerBody, renderPiBody, renderTree } from "./renderers";
+import { renderBannerBody, renderPiBody } from "./renderers";
 
 describe("safe markdown rendering", () => {
   it("escapes untrusted pi message html before restoring allowed tokens", () => {
@@ -30,13 +30,5 @@ describe("safe markdown rendering", () => {
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
     expect(html).toContain('<span class="accent">ready</span>');
     expect(html).not.toContain("<script>");
-  });
-
-  it("renders file tree dirs closed with a single disclosure glyph", () => {
-    const html = renderTree([{ type: "dir", name: "src", depth: 0, children: [{ type: "file", name: "main.js", depth: 1 }] }]);
-    expect(html).toContain('aria-expanded="false"');
-    expect(html).toContain("data-tree-children hidden");
-    expect(html).toContain('<span class="glyph">▸</span>');
-    expect(html).not.toContain('class="caret"');
   });
 });

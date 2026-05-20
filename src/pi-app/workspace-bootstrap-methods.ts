@@ -5,7 +5,6 @@ import {
   getWorkspaceFiles,
   getWorkspaces,
 } from "../api";
-import { renderTree } from "../renderers";
 import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 
 const SESSION_MESSAGE_PAGE_SIZE = 120;
@@ -75,16 +74,19 @@ export const workspaceBootstrapMethods = {
   async loadWorkspaceMeta(workspaceId) {
     try {
       const [{ files }, git] = await Promise.all([getWorkspaceFiles(workspaceId), getGitStatus(workspaceId)]);
-      this.renderWorkspaceTree(files);
+      this.renderWorkspaceTree(files, git?.files || {});
       this.renderGitStatus(git);
     } catch {}
   },
 
-  renderWorkspaceTree(files) {
-    const list = this.querySelector(".tree-list");
-    if (!list || !files) return;
-    const tip = "<div style=\"padding:8px 16px;color:var(--fg-4);font-size:11px;font-style:italic\">";
-    list.innerHTML = `${renderTree(files)}${tip}tip: pi watches the tree · changes appear here.</div>`;
+  renderWorkspaceTree(files, statusMap = {}) {
+    if (!files) return;
+    this.workspaceFiles = files;
+    this.workspaceFileStatuses = statusMap;
+    const selectedPath = this.filePreview?.file?.path || "";
+    window.dispatchEvent(new CustomEvent("pi-workspace-tree:update", {
+      detail: { files, statusMap, selectedPath },
+    }));
   },
 
   renderGitStatus(git) {

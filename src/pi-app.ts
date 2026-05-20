@@ -122,6 +122,7 @@ class PiApp extends HTMLElement {
     window.addEventListener("keydown", (event) => this.shortcut(event));
     window.addEventListener("click", (event) => {
       if (!event.target.closest?.(".session-menu, .session-menu-button")) this.closeSessionMenus();
+      this.closeTreeFromOutside?.(event);
     });
     window.addEventListener("message", (event) => {
       if (event.data?.type === "__activate_edit_mode") this.querySelector("[data-tweaks]")?.removeAttribute("hidden");

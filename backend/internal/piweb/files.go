@@ -140,7 +140,7 @@ func RealGitStatus(root string) (GitStatus, error) {
 	if err != nil {
 		return GitStatus{}, err
 	}
-	statusBytes, err := exec.Command("git", "-C", root, "status", "--porcelain").Output()
+	statusBytes, err := exec.Command("git", "-C", root, "status", "--porcelain=v1", "-z").Output()
 	if err != nil {
 		return GitStatus{}, err
 	}
@@ -148,13 +148,55 @@ func RealGitStatus(root string) (GitStatus, error) {
 	if branch == "" {
 		branch = "HEAD"
 	}
-	dirty := 0
-	for _, line := range strings.Split(strings.TrimSpace(string(statusBytes)), "\n") {
-		if strings.TrimSpace(line) != "" {
-			dirty++
+	files := ParseGitStatusPorcelain(statusBytes)
+	return GitStatus{Branch: branch, Dirty: len(files), Files: files}, nil
+}
+
+func ParseGitStatusPorcelain(output []byte) map[string]string {
+	files := map[string]string{}
+	fields := strings.Split(string(output), "\x00")
+	for index := 0; index < len(fields); index++ {
+		entry := fields[index]
+		if len(entry) < 4 {
+			continue
+		}
+		code := entry[:2]
+		path := filepath.ToSlash(strings.TrimSpace(entry[3:]))
+		if path == "" {
+			continue
+		}
+		status := gitStatusKind(code)
+		files[path] = status
+		if code[0] == 'R' || code[1] == 'R' || code[0] == 'C' || code[1] == 'C' {
+			if index+1 < len(fields) && fields[index+1] != "" {
+				oldPath := filepath.ToSlash(strings.TrimSpace(fields[index+1]))
+				if oldPath != "" {
+					files[oldPath] = "deleted"
+				}
+				index++
+			}
 		}
 	}
-	return GitStatus{Branch: branch, Dirty: dirty}, nil
+	return files
+}
+
+func gitStatusKind(code string) string {
+	if code == "??" {
+		return "untracked"
+	}
+	if strings.ContainsAny(code, "R") || strings.ContainsAny(code, "C") {
+		return "renamed"
+	}
+	if strings.ContainsAny(code, "D") {
+		return "deleted"
+	}
+	if strings.ContainsAny(code, "A") {
+		return "added"
+	}
+	if strings.ContainsAny(code, "MUT") {
+		return "modified"
+	}
+	return "modified"
 }
 
 func SessionShortID(id string) string {

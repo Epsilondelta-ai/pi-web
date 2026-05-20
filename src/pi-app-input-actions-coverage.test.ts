@@ -22,7 +22,7 @@ describe("pi-app input actions coverage", () => {
     const calls = [];
     [
       "route", "refreshWorkspaces", "browseFolder", "loadFolder", "openWorkspacePath", "toggleTree", "refreshTree",
-      "toggleTreeNode", "openFile", "closeFilePreview", "toggleFilePreviewMode", "saveFilePreview", "collapseSidebar",
+      "openFile", "closeFilePreview", "toggleFilePreviewMode", "saveFilePreview", "collapseSidebar",
       "toggleDrawer", "toggleTool", "showFullToolOutput", "toggleWorkspace", "deleteWorkspace", "deleteWorkspaceSessions",
       "newSession", "toggleSessionMenu", "renameSession", "deleteSession", "submitFallbackChoice", "showUpdateTip", "openSettingsModal",
       "closeSettingsModal", "saveSettingsForm", "pickSession", "openWorkspace", "fillPrompt", "pickSlash",
@@ -31,7 +31,7 @@ describe("pi-app input actions coverage", () => {
     app.currentFolderParent = "/";
     const actions = [
       "route-picker", "route-workspace", "refresh-workspaces", "browse-folder", "folder-enter", "folder-up",
-      "folder-open-current", "toggle-tree", "refresh-tree", "toggle-tree-node", "open-file", "close-file-preview",
+      "folder-open-current", "toggle-tree", "refresh-tree", "open-file", "close-file-preview",
       "toggle-file-preview-mode", "save-file-preview", "collapse-sidebar", "expand-sidebar", "open-drawer", "close-drawer",
       "toggle-tool", "show-full-tool-output", "toggle-workspace", "delete-workspace", "delete-workspace-sessions", "new-session",
       "session-menu-toggle", "rename-session", "delete-session", "show-update-tip", "open-settings", "close-settings", "save-settings",

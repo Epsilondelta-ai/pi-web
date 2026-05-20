@@ -9,6 +9,9 @@ export const filePreviewMethods = {
     try {
       this.querySelectorAll(".tree-node.selected").forEach((node) => node.classList.remove("selected"));
       button.classList.add("selected");
+      window.dispatchEvent(new CustomEvent("pi-workspace-tree:update", {
+        detail: { files: this.workspaceFiles || [], statusMap: this.workspaceFileStatuses || {}, selectedPath: path },
+      }));
       this.renderFilePreview({ path, previewKind: "loading" });
       const file = await getWorkspaceFile(workspaceId, path);
       this.renderFilePreview(file);

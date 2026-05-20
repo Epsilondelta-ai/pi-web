@@ -94,5 +94,5 @@ func (s *Store) GitStatus(workspaceID string) (GitStatus, error) {
 			return status, nil
 		}
 	}
-	return GitStatus{Branch: "main", Dirty: 3}, nil
+	return GitStatus{Branch: "main", Dirty: 3, Files: map[string]string{}}, nil
 }
