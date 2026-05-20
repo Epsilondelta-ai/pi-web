@@ -12,7 +12,7 @@ const SESSION_MESSAGE_PAGE_SIZE = 120;
 const SESSION_PAGE_CACHE_LIMIT = 8;
 
 function sessionPageSignature(page) {
-  return JSON.stringify([page?.session?.id, page?.status ?? "idle", page?.cursor, !!page?.hasMore, page?.messages||[]]);
+  return JSON.stringify([page?.session?.id, page?.status || "idle", page?.cursor || "", !!page?.hasMore, page?.messages||[]]);
 }
 
 function findStoredSession(workspaces, stored) {
@@ -145,8 +145,7 @@ export const workspaceBootstrapMethods = {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
       this.rememberSessionPage(loaded);
-      if (cachedPage && sessionPageSignature(cachedPage) === sessionPageSignature(loaded)) return;
-      if (cachedPage) loaded.preserveScroll = true;
+      if (cachedPage) return;
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
@@ -209,7 +208,7 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryLoading = false;
     this.renderMessages(messages, { preserveScroll: page.preserveScroll, deferScroll: !page.preserveScroll });
     this.suppressLoadingMessageScroll = true; this.setMode(status || "idle"); this.suppressLoadingMessageScroll = false;
-    if (!page.preserveScroll) this.scrollTermToBottomImmediately?.();
+    if (!page.preserveScroll) this.scrollTermToBottomImmediately?.("applyLoadedSession final");
     this.connectEvents(session.id, { replay: false });
   },
 
