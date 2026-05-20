@@ -136,6 +136,13 @@ describe("pi-app transcript window", () => {
     app.transcriptVisibleStart = 0;
     app.transcriptVisibleEnd = 2;
     app.measureRenderedTranscriptItems();
+
+    const loading = document.createElement("div");
+    const replacement = document.createElement("div");
+    app.transcriptItems = [{ message: { kind: "pi", text: "not materialized" } }, { nodes: [loading] }];
+    expect(() => app.removeTranscriptNode(loading)).not.toThrow();
+    app.transcriptItems = [{ message: { kind: "pi", text: "not materialized" } }, { nodes: [loading] }];
+    expect(app.replaceTranscriptNode(loading, replacement)).toBe(true);
     expect(app.transcriptItemHeight(9)).toBe(80);
   });
 

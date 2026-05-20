@@ -132,6 +132,7 @@ export const workspaceBootstrapMethods = {
   async loadSession(sessionId) {
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
+    this.showSessionSwitchLoading(sessionId);
     try {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
@@ -139,6 +140,24 @@ export const workspaceBootstrapMethods = {
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
     }
+  },
+
+  showSessionSwitchLoading(sessionId) {
+    if (!this.termInner) return;
+    this.resetActiveSessionState?.();
+    this.termInner.replaceChildren();
+    this.resetTranscriptWindow?.();
+    const row = this.simpleMessage("session loading", "pi >", "");
+    row.classList.add("session-switch-loading");
+    row.dataset.kind = "loading";
+    const label = document.createElement("span");
+    label.className = "session-switch-label";
+    label.textContent = `loading ${this.findSessionRow(sessionId)?.dataset.title || "session"}…`;
+    const skeleton = document.createElement("span");
+    skeleton.className = "session-switch-skeleton";
+    skeleton.setAttribute("aria-hidden", "true");
+    row.querySelector(".body")?.replaceChildren(label, skeleton);
+    this.appendTranscriptNode?.(row, { stickToBottom: false });
   },
 
   applyLoadedSession(session, messages, status = "idle", page: any = {}) {

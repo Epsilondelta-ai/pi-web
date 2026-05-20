@@ -9,6 +9,7 @@ description: Standards for readable, small code, naming, function extraction, fi
 - Keep case style consistent.
 - For source code only, keep lines ≤120 characters; wrap at semantic boundaries like arguments, properties, or chains.
 - Do not reflow prose, Markdown docs, prompts, or comments just to satisfy the code line-length rule.
+
 ## Boy Scout Rule
 
 - Leave touched code cleaner through small, safe, behavior-preserving improvements.
