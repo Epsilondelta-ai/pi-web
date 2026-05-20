@@ -217,6 +217,26 @@
 }
 .msg.loading .body { color: var(--fg-3); font-style: italic; }
 .msg.loading .body::after { content: ""; display: inline-block; width: 1ch; animation: blink 1s steps(1) infinite; }
+.session-switch-loading .body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--fg-3);
+  font-style: italic;
+}
+.session-switch-skeleton {
+  display: block;
+  width: min(520px, 100%);
+  height: 54px;
+  border-radius: var(--radius-2);
+  background: linear-gradient(90deg, var(--bg-2), var(--bg-3), var(--bg-2));
+  background-size: 200% 100%;
+  animation: session-loading-shimmer 1s linear infinite;
+}
+@keyframes session-loading-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
 
 .thinking-block {
   border: 1px dashed var(--border);

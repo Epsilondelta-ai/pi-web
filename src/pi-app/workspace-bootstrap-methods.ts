@@ -9,6 +9,7 @@ import { renderTree } from "../renderers";
 import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 
 const SESSION_MESSAGE_PAGE_SIZE = 120;
+const SESSION_PAGE_CACHE_LIMIT = 8;
 
 function findStoredSession(workspaces, stored) {
   if (!stored?.sessionId) return undefined;
@@ -132,13 +133,65 @@ export const workspaceBootstrapMethods = {
   async loadSession(sessionId) {
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
+    const cachedPage = this.cachedSessionPage(sessionId);
+    if (cachedPage) this.applyLoadedSession(cachedPage.session, cachedPage.messages || [], cachedPage.status, cachedPage);
+    else this.showSessionSwitchLoading(sessionId);
+
     try {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
+      this.rememberSessionPage(loaded);
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
     }
+  },
+
+  cachedSessionPage(sessionId) {
+    const page = this.sessionPageCache?.get(sessionId);
+    if (!page) return undefined;
+    this.sessionPageCache.delete(sessionId);
+    this.sessionPageCache.set(sessionId, page);
+    return page;
+  },
+
+  rememberSessionPage(page) {
+    if (!page?.session?.id) return;
+    this.sessionPageCache ??= new Map();
+    this.sessionPageCache.set(page.session.id, {
+      ...page,
+      messages: page.messages || [],
+      status: page.status || "idle",
+    });
+    while (this.sessionPageCache.size > SESSION_PAGE_CACHE_LIMIT) {
+      this.sessionPageCache.delete(this.sessionPageCache.keys().next().value);
+    }
+  },
+
+  showSessionSwitchLoading(sessionId) {
+    this.resetActiveSessionState?.();
+    this.sessionHistoryCursor = "";
+    this.sessionHistoryHasMore = false;
+    this.sessionHistoryLoading = false;
+    this.renderSessionSwitchLoading(sessionId);
+  },
+
+  renderSessionSwitchLoading(sessionId) {
+    if (!this.termInner) return;
+    this.termInner.replaceChildren();
+    this.resetTranscriptWindow?.();
+    const row = this.simpleMessage("session loading", "pi >", "");
+    row.classList.add("session-switch-loading");
+    row.dataset.kind = "loading";
+    const label = document.createElement("span");
+    label.className = "session-switch-label";
+    label.textContent = `loading ${this.findSessionRow(sessionId)?.dataset.title || "session"}…`;
+    const skeleton = document.createElement("span");
+    skeleton.className = "session-switch-skeleton";
+    skeleton.setAttribute("aria-hidden", "true");
+    row.querySelector(".body")?.replaceChildren(label, skeleton);
+    this.appendTranscriptNode?.(row, { stickToBottom: true });
+    this.scrollTerm?.({ force: true });
   },
 
   applyLoadedSession(session, messages, status = "idle", page: any = {}) {
