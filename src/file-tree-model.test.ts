@@ -1,0 +1,48 @@
+import { describe, expect, it } from "vitest";
+import { decorateFileTree } from "./file-tree-model";
+
+const tree = [
+  {
+    type: "dir",
+    name: "src",
+    path: "src",
+    children: [
+      { type: "file", name: "main.ts", path: "src/main.ts" },
+      { type: "file", name: "new.ts", path: "src/new.ts" },
+      { type: "file", name: "gone.ts", path: "src/gone.ts" },
+      { type: "file", name: "renamed.ts", path: "src/renamed.ts" },
+      { type: "file", name: "clean.ts", path: "src/clean.ts" },
+    ],
+  },
+  { type: "file", name: "README.md", path: "README.md" },
+];
+
+describe("decorateFileTree", () => {
+  it("adds git status, selected state, and dirty folder ancestors", () => {
+    const [src, readme] = decorateFileTree(tree, {
+      "src/main.ts": "modified",
+      "src/new.ts": "untracked",
+      "src/gone.ts": "deleted",
+      "src/renamed.ts": "renamed",
+      "README.md": "added",
+    }, "src/main.ts", new Set(["src"]));
+
+    expect(src.kind).toBe("dir");
+    expect(src.expanded).toBe(true);
+    expect(src.dirtyDescendants).toBe(true);
+    expect(src.children?.map((child) => [child.path, child.gitStatus, child.selected])).toEqual([
+      ["src/main.ts", "modified", true],
+      ["src/new.ts", "untracked", false],
+      ["src/gone.ts", "deleted", false],
+      ["src/renamed.ts", "renamed", false],
+      ["src/clean.ts", "clean", false],
+    ]);
+    expect(readme.gitStatus).toBe("added");
+  });
+
+  it("treats unknown statuses as clean", () => {
+    const [node] = decorateFileTree([{ type: "file", name: "x", path: "x" }], { x: "ignored" });
+    expect(node.gitStatus).toBe("clean");
+    expect(node.dirtyDescendants).toBe(false);
+  });
+});

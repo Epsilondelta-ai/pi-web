@@ -6,5 +6,5 @@
     "strict": false,
     "noEmit": true
   },
-  "include": [".storybook/**/*.ts", "src/**/*.astro", "src/**/*.ts", "astro.config.ts", "vitest.config.ts", "vitest.setup.ts"]
+  "include": [".storybook/**/*.ts", "src/**/*.astro", "src/**/*.ts", "src/**/*.tsx", "astro.config.ts", "vitest.config.ts", "vitest.setup.ts"]
 }

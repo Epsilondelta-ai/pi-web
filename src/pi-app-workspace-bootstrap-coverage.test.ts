@@ -144,7 +144,7 @@ describe("workspace bootstrap coverage", () => {
     expect(app.apiConnected).toBe(true);
     expect(activeLabel.textContent).toBe("one");
     expect(activeTitle.textContent).toBe("first");
-    expect(tree.innerHTML).toContain("a.ts");
+    expect(app.workspaceFiles?.[0]?.name).toBe("a.ts");
     expect(git.textContent).toBe("dev · 1 ✱");
     expect(app.renderSlashCommands).toHaveBeenCalledWith([{ command: "/x" }]);
     const row = document.createElement("button");

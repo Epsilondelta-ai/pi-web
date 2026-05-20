@@ -48,8 +48,9 @@ type Message struct {
 }
 
 type GitStatus struct {
-	Branch string `json:"branch"`
-	Dirty  int    `json:"dirty"`
+	Branch string            `json:"branch"`
+	Dirty  int               `json:"dirty"`
+	Files  map[string]string `json:"files,omitempty"`
 }
 
 type Event struct {
