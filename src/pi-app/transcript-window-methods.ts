@@ -34,6 +34,7 @@ export const transcriptWindowMethods = {
     this.transcriptTopSpacer.setAttribute("aria-hidden", "true");
     this.transcriptBottomSpacer.setAttribute("aria-hidden", "true");
     this.transcriptScrollButton = this.ensureTranscriptScrollButton();
+    this.installTranscriptScrollGuard();
     this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
     this.adoptRenderedTranscript();
     this.updateTranscriptScrollButton();
@@ -41,7 +42,10 @@ export const transcriptWindowMethods = {
 
   ensureTranscriptScrollButton() {
     const existingButton = this.querySelector("[data-action='scroll-bottom']");
-    if (existingButton) return existingButton;
+    if (existingButton) {
+      existingButton.addEventListener("click", () => this.scrollTranscriptToBottom());
+      return existingButton;
+    }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "scroll-bottom-btn";
@@ -50,8 +54,32 @@ export const transcriptWindowMethods = {
     button.title = "scroll to bottom";
     button.textContent = "↓";
     button.hidden = true;
+    button.addEventListener("click", () => this.scrollTranscriptToBottom());
     this.term?.parentElement?.append(button);
     return button;
+  },
+
+  installTranscriptScrollGuard() {
+    if (this.transcriptScrollGuardInstalled) return;
+    this.transcriptScrollGuardInstalled = true;
+    this.scrollTerm = ({ force = false } = {}) => {
+      if (!force && this.transcriptFollowBottom === false) return;
+      if (this.scrollFrame) {
+        if (!force) return;
+        window.cancelAnimationFrame?.(this.scrollFrame);
+        this.scrollFrame = undefined;
+      }
+      const scroll = () => {
+        if (!this.term) return;
+        this.term.scrollTop = this.term.scrollHeight;
+        this.updateTranscriptScrollButton();
+      };
+      this.scrollFrame = window.requestAnimationFrame(() => {
+        this.scrollFrame = undefined;
+        scroll();
+        window.requestAnimationFrame(scroll);
+      });
+    };
   },
 
   handleTranscriptScroll() {

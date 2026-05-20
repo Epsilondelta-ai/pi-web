@@ -1,6 +1,7 @@
 @import "./styles/parts/foundation-layout.css";
 @import "./styles/parts/sidebar-workspaces.css";
 @import "./styles/parts/terminal-messages.css";
+@import "./styles/parts/tool-cards.css";
 @import "./styles/parts/tree-preview-status.css";
 @import "./styles/parts/prompt-composer.css";
 @import "./styles/parts/workspace-picker.css";

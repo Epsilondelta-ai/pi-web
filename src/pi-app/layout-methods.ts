@@ -133,18 +133,11 @@ export const layoutMethods = {
     body.dataset.largeToolBody = "rendered";
   },
 
-  scrollTerm({ force = false } = {}) {
-    if (!force && this.transcriptFollowBottom === false) return;
-    if (this.scrollFrame) {
-      if (!force) return;
-      window.cancelAnimationFrame?.(this.scrollFrame);
-      this.scrollFrame = undefined;
-    }
+  scrollTerm() {
+    if (this.scrollFrame) return;
     const scroll = () => {
       const term = this.querySelector(".term");
-      if (!term) return;
-      term.scrollTop = term.scrollHeight;
-      this.updateTranscriptScrollButton?.();
+      if (term) term.scrollTop = term.scrollHeight;
     };
     this.scrollFrame = window.requestAnimationFrame(() => {
       this.scrollFrame = undefined;

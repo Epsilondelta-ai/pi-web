@@ -22,6 +22,66 @@ describe("pi-app transcript window", () => {
     expect(renderedMessages.at(-1).textContent).toContain("message 34");
   });
 
+  it("adopts server-rendered transcript nodes on connect", async () => {
+    const app = await connectPiApp();
+    app.termInner.innerHTML = [
+      `<div class="transcript-spacer"></div>`,
+      `<div class="msg" data-kind="pi"><div class="prefix pi">pi &gt;</div><div class="body">existing</div></div>`,
+    ].join("");
+
+    app.adoptRenderedTranscript();
+
+    expect(app.transcriptItems).toHaveLength(1);
+    expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
+  });
+
+  it("renders error tools and appends finished tools that were not visible", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "tool", tool: "bash", status: "err", resultMeta: "failed" });
+    expect(app.querySelector(".tool-card .tc-meta").textContent).toContain("failed");
+
+    app.renderMessages([]);
+    app.finishTool({ kind: "tool", tool: "missing", status: "ok", body: "done" });
+    expect(app.querySelector(".tool-card[data-tool='missing'] .tc-body").textContent).toContain("done");
+  });
+
+  it("keeps tool output flushing guarded and replaces cards when window replacement misses", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    frames.length = 0;
+    app.appendToolOutput({ tool: "missing", chunk: "ignored" });
+
+    const busyBody = document.createElement("div");
+    busyBody.__toolOutputFrame = 1;
+    app.scheduleToolOutputFlush(busyBody);
+    expect(frames).toHaveLength(0);
+
+    const emptyBody = document.createElement("div");
+    app.scheduleToolOutputFlush(emptyBody);
+    frames.splice(0).forEach((callback) => callback(0));
+    expect(emptyBody.textContent).toBe("");
+
+    const bodyWithContent = document.createElement("div");
+    bodyWithContent.textContent = "old";
+    bodyWithContent.__pendingToolOutput = ["new"];
+    app.scheduleToolOutputFlush(bodyWithContent);
+    frames.splice(0).forEach((callback) => callback(0));
+    expect(bodyWithContent.textContent).toBe("old\nnew");
+
+    app.appendMessage({ kind: "tool", tool: "bash", status: "running" });
+    vi.spyOn(app, "replaceTranscriptNode").mockReturnValue(false);
+    app.finishTool({ kind: "tool", tool: "bash", status: "ok", body: "finished" });
+    expect(app.querySelector(".tool-card[data-tool='bash'] .tc-body").textContent).toContain("finished");
+  });
+
   it("keeps live tool output collapsed until the user opens it", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
@@ -41,6 +101,16 @@ describe("pi-app transcript window", () => {
 
     app.toggleTool(app.querySelector(".tc-head"));
     expect(body.hidden).toBe(false);
+  });
+
+  it("binds an existing scroll-bottom button", async () => {
+    const app = await connectPiApp();
+    const existingButton = document.createElement("button");
+    existingButton.dataset.action = "scroll-bottom";
+    app.transcriptScrollButton.remove();
+    app.append(existingButton);
+
+    expect(app.ensureTranscriptScrollButton()).toBe(existingButton);
   });
 
   it("stops following when the user scrolls up and resumes only from the bottom button", async () => {
@@ -65,7 +135,7 @@ describe("pi-app transcript window", () => {
     expect(app.term.scrollTop).toBe(100);
     expect(app.transcriptScrollButton.hidden).toBe(false);
 
-    app.scrollTranscriptToBottom();
+    app.transcriptScrollButton.click();
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
