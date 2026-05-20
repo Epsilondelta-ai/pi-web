@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -49,17 +50,89 @@ func (s *Store) Sessions(workspaceID string) ([]Session, error) {
 }
 
 func (s *Store) Session(sessionID string) (Session, []Message, error) {
+	session, file, err := s.sessionMeta(sessionID)
+	if err != nil {
+		return Session{}, nil, err
+	}
+	if messages, ok := s.cachedConversation(sessionID); ok {
+		return session, messages, nil
+	}
+	if file == "" {
+		return session, []Message{}, nil
+	}
+	parsed, err := ParsePiSessionFile(file)
+	if err != nil {
+		return Session{}, nil, err
+	}
+	s.cacheConversation(sessionID, parsed.Messages)
+	return session, append([]Message(nil), parsed.Messages...), nil
+}
+
+func (s *Store) SessionPage(sessionID string, limit int, before string) (Session, SessionMessagePage, error) {
+	session, file, err := s.sessionMeta(sessionID)
+	if err != nil {
+		return Session{}, SessionMessagePage{}, err
+	}
+	if file == "" {
+		return session, cachedMessagePage(s.cachedConversationOrEmpty(sessionID), limit, before), nil
+	}
+	page, err := ParsePiSessionMessagePage(file, limit, before)
+	if err != nil {
+		return Session{}, SessionMessagePage{}, err
+	}
+	return session, page, nil
+}
+
+func (s *Store) sessionMeta(sessionID string) (Session, string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.refreshAllWorkspaceSessionsLocked()
 	for _, workspace := range s.workspaces {
 		for _, session := range workspace.Sessions {
 			if session.ID == sessionID {
-				return session, append([]Message(nil), s.conversations[sessionID]...), nil
+				return session, s.sessionFiles[sessionID], nil
 			}
 		}
 	}
-	return Session{}, nil, ErrNotFound
+	return Session{}, "", ErrNotFound
+}
+
+func (s *Store) cachedConversation(sessionID string) ([]Message, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	messages, ok := s.conversations[sessionID]
+	return append([]Message(nil), messages...), ok
+}
+
+func (s *Store) cachedConversationOrEmpty(sessionID string) []Message {
+	messages, _ := s.cachedConversation(sessionID)
+	return messages
+}
+
+func cachedMessagePage(messages []Message, limit int, before string) SessionMessagePage {
+	limit = normalizeSessionMessageLimit(limit)
+	end := len(messages)
+	if before != "" {
+		if parsed, err := strconv.Atoi(before); err == nil && parsed >= 0 && parsed < end {
+			end = parsed
+		}
+	}
+	start := end - limit
+	if start < 0 {
+		start = 0
+	}
+	return SessionMessagePage{
+		Messages: append([]Message(nil), messages[start:end]...),
+		Cursor:   strconv.Itoa(start),
+		HasMore:  start > 0,
+		Limit:    limit,
+	}
+}
+
+func (s *Store) cacheConversation(sessionID string, messages []Message) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.conversations[sessionID] = append([]Message(nil), messages...)
 }
 func (s *Store) AutoNameSession(sessionID, prompt string) (Session, bool, error) {
 	title := trimTitle(prompt)
@@ -192,7 +265,7 @@ func (s *Store) refreshWorkspaceSessionsLocked(workspaceIndex int, force bool) {
 	if !force && s.sessionDirModTime[workspaceID].Equal(sourcesModTime) {
 		return
 	}
-	parsed, err := LoadPiSessions(sessionDir)
+	parsed, err := LoadPiSessionSummaries(sessionDir)
 	if err != nil {
 		return
 	}
@@ -214,7 +287,9 @@ func (s *Store) refreshWorkspaceSessionsLocked(workspaceIndex int, force bool) {
 		session.ID = item.Header.ID
 		session.Workspace = workspaceID
 		s.workspaces[workspaceIndex].Sessions = append(s.workspaces[workspaceIndex].Sessions, session)
-		s.conversations[item.Header.ID] = refreshedMessages(item, oldConversations, oldFiles)
+		if messages, ok := refreshedMessages(item, oldConversations, oldFiles); ok {
+			s.conversations[item.Header.ID] = messages
+		}
 		s.sessionFiles[item.Header.ID] = item.File
 		s.sessionCWD[item.Header.ID] = item.Header.CWD
 		if item.ModTime.After(latestMod) {
@@ -225,12 +300,15 @@ func (s *Store) refreshWorkspaceSessionsLocked(workspaceIndex int, force bool) {
 	s.workspaces[workspaceIndex].SessionCount = len(s.workspaces[workspaceIndex].Sessions)
 }
 
-func refreshedMessages(item ParsedSession, oldConversations map[string][]Message, oldFiles map[string]string) []Message {
-	oldMessages := oldConversations[item.Header.ID]
-	if oldFiles[item.Header.ID] == item.File && len(oldMessages) > len(item.Messages) {
-		return oldMessages
+func refreshedMessages(item ParsedSession, oldConversations map[string][]Message, oldFiles map[string]string) ([]Message, bool) {
+	oldMessages, ok := oldConversations[item.Header.ID]
+	if oldFiles[item.Header.ID] == item.File && ok {
+		return oldMessages, true
 	}
-	return item.Messages
+	if item.Messages != nil {
+		return item.Messages, true
+	}
+	return nil, false
 }
 
 func appendSessionInfo(path, title string) error {

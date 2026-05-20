@@ -99,7 +99,7 @@ describe("pi-app session isolation", () => {
   it("keeps the latest session load when older requests finish later", async () => {
     let resolveFirst;
     globalThis.fetch = vi.fn((url) => {
-      if (String(url).endsWith("/api/sessions/s1")) {
+      if (String(url).includes("/api/sessions/s1?")) {
         return new Promise((resolve) => {
           resolveFirst = resolve;
         });
@@ -134,6 +134,30 @@ describe("pi-app session isolation", () => {
     expect(app.querySelector(".msg .body").textContent).toBe("second session");
     expect(app.connectEvents).toHaveBeenCalledTimes(1);
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: false });
+  });
+
+  it("ignores stale older-page responses after a session switch", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    let resolveOlder;
+    globalThis.fetch = vi.fn(() => new Promise((resolve) => {
+      resolveOlder = resolve;
+    }));
+    const app = await connectedApp();
+    app.dataset.activeSessionId = "s1";
+    app.sessionHistoryCursor = "cursor";
+    app.sessionHistoryHasMore = true;
+
+    const olderLoad = app.loadOlderSessionMessages();
+    app.dataset.activeSessionId = "s2";
+    resolveOlder({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ messages: [{ kind: "pi", text: "stale" }], cursor: "old", hasMore: false }),
+    });
+    await olderLoad;
+
+    expect(app.transcriptItems || []).toHaveLength(0);
   });
 
   it("resets transient running state when loading another session", async () => {

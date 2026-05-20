@@ -1,5 +1,6 @@
 const TRANSCRIPT_WINDOW_SIZE = 30;
 const DEFAULT_TRANSCRIPT_ITEM_HEIGHT = 80;
+const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 
 function elementNodes(node) {
   if (!node) return [];
@@ -86,7 +87,14 @@ export const transcriptWindowMethods = {
   handleTranscriptScroll() {
     this.transcriptFollowBottom = this.isTermPinnedToBottom();
     this.updateTranscriptScrollButton();
+    if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
     this.scheduleTranscriptWindowRender();
+  },
+
+  shouldLoadOlderTranscriptMessages() {
+    return !!this.sessionHistoryHasMore
+      && !this.sessionHistoryLoading
+      && (this.term?.scrollTop || 0) <= OLDER_MESSAGE_LOAD_THRESHOLD;
   },
 
   scrollTranscriptToBottom() {

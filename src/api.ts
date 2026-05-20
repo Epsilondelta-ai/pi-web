@@ -126,8 +126,12 @@ export function runShellCommand(workspaceId, command) {
   });
 }
 
-export function getSession(sessionId) {
-  return request(`/api/sessions/${encodeURIComponent(sessionId)}`);
+export function getSession(sessionId, options: { limit?: number; before?: string } = {}) {
+  const params = new URLSearchParams();
+  if (options.limit) params.set("limit", String(options.limit));
+  if (options.before) params.set("before", options.before);
+  const query = params.toString() ? `?${params}` : "";
+  return request(`/api/sessions/${encodeURIComponent(sessionId)}${query}`);
 }
 
 export function renameSession(sessionId, title) {
