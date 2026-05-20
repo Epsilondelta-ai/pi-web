@@ -1,0 +1,81 @@
+.toast-region {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  width: min(360px, calc(100% - var(--space-8)));
+  pointer-events: none;
+}
+.toast-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  width: 100%;
+}
+.toast-dismiss-all,
+.session-toast {
+  pointer-events: auto;
+  border: 1px solid var(--border-hi);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  color: var(--fg-1);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 0.42);
+  font-family: var(--font-mono);
+}
+.toast-dismiss-all {
+  border-radius: var(--radius-1);
+  padding: 5px 8px;
+  font-size: var(--text-xs);
+}
+.toast-dismiss-all:hover { color: var(--fg-0); border-color: var(--fg-3); }
+.session-toast {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 12px;
+  border-radius: var(--radius-2);
+  text-align: left;
+  cursor: pointer;
+  animation: toast-enter var(--dur-base) var(--ease-out);
+}
+.session-toast:hover { transform: translateY(-1px); }
+.session-toast:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.toast-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+}
+.toast-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.toast-copy strong {
+  color: var(--fg-0);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.toast-copy small {
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+.session-toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 64%, var(--border)); }
+.session-toast.choice { color: var(--ansi-blue); border-color: color-mix(in srgb, var(--ansi-blue) 64%, var(--border)); }
+.session-toast.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 64%, var(--border)); }
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -8,6 +8,7 @@ import { messageMethods } from "./pi-app/message-methods";
 import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
 import { sessionMethods } from "./pi-app/session-methods";
 import { settingsMethods } from "./pi-app/settings-methods";
+import { toastMethods } from "./pi-app/toast-methods";
 import { toolMessageMethods } from "./pi-app/tool-message-methods";
 import { transcriptWindowMethods } from "./pi-app/transcript-window-methods";
 import { versionMethods } from "./pi-app/version-methods";
@@ -152,6 +153,10 @@ class PiApp extends HTMLElement {
   applyEvent(event) {
     if (!this.isCurrentSessionEvent(event)) return;
     if (event.type === "heartbeat") return;
+    if (event.type === "error") {
+      this.notifyResponseFailure?.(event.payload?.error);
+      return;
+    }
     if (event.type === "session.status") {
       const mode = event.payload?.status || "auto-accept";
       this.setMode(mode);
@@ -198,9 +203,13 @@ class PiApp extends HTMLElement {
   }
 
   setMode(mode) {
+    const wasRunning = this.running;
+    const willRun = ["running", "thinking"].includes(mode);
+    if (!wasRunning && willRun) this.responseFailureToastShown = false;
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
-    this.running = ["running", "thinking"].includes(mode);
+    this.running = willRun;
+    if (wasRunning && mode === "idle" && !this.responseFailureToastShown) this.notifySessionCompleted?.();
     this.syncCurrentSessionRunState?.(this.running);
     this.stopButton?.toggleAttribute("hidden", !this.running);
     if (this.sendButton) this.updatePrompt();
@@ -245,6 +254,7 @@ Object.assign(
   attachmentMethods,
   filePreviewMethods,
   layoutMethods,
+  toastMethods,
   runtimeStatusMethods,
   settingsMethods,
   versionMethods,

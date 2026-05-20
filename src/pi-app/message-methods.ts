@@ -33,6 +33,9 @@ export const messageMethods = {
     if (streamingRow) this.removeTranscriptNode(streamingRow);
     if (message.kind === "pi") this.flushStreamingRender();
     this.appendTranscriptNode(this.messageNode(message), { stickToBottom: true });
+    if (message.kind === "pi" && !this.deferTranscriptRender && parseFallbackChoices(message.text).length) {
+      this.notifyChoiceRequested?.();
+    }
     if (message.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(message.text));
     if (message.kind !== "user") this.syncLoadingMessage();
     this.scrollTerm();
