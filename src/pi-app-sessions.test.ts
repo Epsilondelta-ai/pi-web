@@ -35,6 +35,29 @@ describe("pi-app sessions", () => {
     expect(rows.at(-1).classList.contains("new-session-row")).toBe(true);
   });
 
+  it("groups child agent sessions below their parent with kind markers", async () => {
+    const app = await connectPiApp();
+    app.append(app.createWorkspaceGroup({
+      id: "w1",
+      name: "demo",
+      path: "/demo",
+      sessions: [
+        { id: "p1", title: "parent" },
+        { id: "s2", title: "standalone" },
+        { id: "c1", title: "reviewer", parentId: "p1", kind: "subagent" },
+        { id: "t1", title: "alice", parentId: "p1", kind: "team" },
+      ],
+    }));
+
+    const rows = [...app.querySelectorAll("[data-workspace-group='w1'] .session-row[data-session]")];
+    expect(rows.map((row) => row.dataset.session)).toEqual(["p1", "c1", "t1", "s2"]);
+    expect(rows[1].classList.contains("child-session")).toBe(true);
+    expect(rows[1].classList.contains("session-kind-subagent")).toBe(true);
+    expect(rows[1].querySelector(".session-kind-badge").textContent).toBe("sub");
+    expect(rows[2].classList.contains("session-kind-team")).toBe(true);
+    expect(rows[2].querySelector(".session-kind-badge").textContent).toBe("team");
+  });
+
   it("opens a backend-created session immediately", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({

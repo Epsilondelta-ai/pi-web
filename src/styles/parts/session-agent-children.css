@@ -1,0 +1,52 @@
+.session-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.session-title .title {
+  min-width: 0;
+}
+
+.child-session {
+  --session-kind-color: var(--accent);
+  background: color-mix(in srgb, var(--session-kind-color) 5%, transparent);
+}
+
+.child-session .session-main {
+  padding-left: calc(var(--space-3) + 16px);
+}
+
+.child-session::after {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: var(--radius-full);
+  background: var(--session-kind-color);
+  opacity: 0.8;
+}
+
+.session-kind-subagent {
+  --session-kind-color: #7dd3fc;
+}
+
+.session-kind-team {
+  --session-kind-color: #f59e0b;
+}
+
+.session-kind-badge {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--session-kind-color) 60%, transparent);
+  border-radius: var(--radius-full);
+  color: var(--session-kind-color);
+  background: color-mix(in srgb, var(--session-kind-color) 10%, transparent);
+  font-size: 9px;
+  line-height: 1.3;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}

@@ -14,12 +14,18 @@ import (
 	"time"
 )
 
+const (
+	SessionKindSubagent = "subagent"
+	SessionKindTeam     = "team"
+)
+
 type sessionHeader struct {
-	Type      string `json:"type"`
-	Version   int    `json:"version"`
-	ID        string `json:"id"`
-	Timestamp string `json:"timestamp"`
-	CWD       string `json:"cwd"`
+	Type          string `json:"type"`
+	Version       int    `json:"version"`
+	ID            string `json:"id"`
+	Timestamp     string `json:"timestamp"`
+	CWD           string `json:"cwd"`
+	ParentSession string `json:"parentSession"`
 }
 
 type sessionEntry struct {
@@ -102,6 +108,7 @@ func LoadPiSessions(sessionDir string) ([]ParsedSession, error) {
 			sessions = append(sessions, parsed)
 		}
 	}
+	annotateSubagentSessions(sessionDir, sessions)
 	sort.Slice(sessions, func(i, j int) bool { return sessionCreatedAfter(sessions[i], sessions[j]) })
 	return sessions, nil
 }
@@ -112,6 +119,7 @@ func sessionCreatedAfter(left, right ParsedSession) bool {
 	}
 	return left.File > right.File
 }
+
 func CreatePiSessionFile(cwd string) (Session, string, error) {
 	cwd = filepath.Clean(cwd)
 	id := createSessionID()
