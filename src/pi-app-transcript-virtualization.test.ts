@@ -20,7 +20,8 @@ describe("pi-app transcript virtualization", () => {
     expect(app.transcriptItems).toHaveLength(250);
     expect(messageNode).toHaveBeenCalledTimes(30);
     expect(renderedMessages.length).toBeLessThan(250);
-    expect(app.querySelector(".transcript-spacer-top")).not.toBeNull();
+    expect(app.querySelectorAll(".term-inner .transcript-item")).toHaveLength(30);
+    expect(app.termInner.style.paddingTop).not.toBe("0px");
     expect(renderedMessages.at(-1).textContent).toContain("message 249");
   });
 

@@ -128,6 +128,7 @@
 }
 
 .term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; }
+.transcript-item { display: flow-root; }
 .transcript-spacer { width: 100%; flex: 0 0 auto; }
 .scroll-bottom-btn {
   position: absolute;
@@ -159,7 +160,14 @@
 .msg .prefix.pi { color: var(--accent); }
 .msg .prefix.think { color: var(--thinking); }
 .msg .prefix.sys { color: var(--fg-3); }
-.msg .body { color: var(--fg-1); min-width: 0; flex: 1; display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg .body {
+  color: var(--fg-1);
+  min-width: 0;
+  flex: 1;
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .msg .body.markdown-body { white-space: normal; }
 .msg .body.markdown-body > :first-child { margin-top: 0; }
 .msg .body.markdown-body > :last-child { margin-bottom: 0; }

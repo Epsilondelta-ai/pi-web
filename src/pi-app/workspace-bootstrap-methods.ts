@@ -182,14 +182,12 @@ export const workspaceBootstrapMethods = {
     if (!sessionId || !this.sessionHistoryHasMore || this.sessionHistoryLoading) return;
     this.sessionHistoryLoading = true;
     const cursor = this.sessionHistoryCursor;
-    const previousScrollHeight = this.term?.scrollHeight || 0;
     try {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE, before: cursor });
       if (this.dataset.activeSessionId !== sessionId || this.sessionHistoryCursor !== cursor) return;
       this.prependLoadedMessages(loaded.messages || []);
       this.sessionHistoryCursor = loaded.cursor || "";
       this.sessionHistoryHasMore = !!loaded.hasMore;
-      this.restoreTranscriptScrollOffset(previousScrollHeight);
     } catch {
       this.setConnection("err");
     } finally {
@@ -207,14 +205,7 @@ export const workspaceBootstrapMethods = {
       ...messages.map((message) => this.createTranscriptItem(message)),
       ...(this.transcriptItems || []),
     ];
-    this.renderTranscriptWindow({ stickToBottom: false });
-  },
-
-  restoreTranscriptScrollOffset(previousScrollHeight) {
-    window.requestAnimationFrame(() => {
-      if (!this.term) return;
-      this.term.scrollTop += Math.max(0, this.term.scrollHeight - previousScrollHeight);
-    });
+    this.renderTranscriptWindow({ stickToBottom: false, preservePrepend: true });
   },
 
   findSessionRow(sessionId) {
