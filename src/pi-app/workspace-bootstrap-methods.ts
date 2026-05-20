@@ -8,6 +8,8 @@ import {
 import { renderTree } from "../renderers";
 import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 
+const SESSION_MESSAGE_PAGE_SIZE = 120;
+
 function findStoredSession(workspaces, stored) {
   if (!stored?.sessionId) return undefined;
   const preferred = workspaces.find((workspace) => workspace.id === stored.workspaceId);
@@ -131,15 +133,15 @@ export const workspaceBootstrapMethods = {
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
     try {
-      const { session, messages, status } = await getSession(sessionId);
+      const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
-      this.applyLoadedSession(session, messages || [], status);
+      this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
     }
   },
 
-  applyLoadedSession(session, messages, status = "idle") {
+  applyLoadedSession(session, messages, status = "idle", page: any = {}) {
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState?.();
     const workspaceId = session.workspaceId
@@ -148,9 +150,52 @@ export const workspaceBootstrapMethods = {
     this.markSelectedSessionRow?.(session.id);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
     this.activateBootstrapSession(session);
+    this.sessionHistoryCursor = page.cursor || "";
+    this.sessionHistoryHasMore = !!page.hasMore;
+    this.sessionHistoryLoading = false;
     this.renderMessages(messages);
     this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });
+  },
+
+  async loadOlderSessionMessages() {
+    const sessionId = this.dataset.activeSessionId;
+    if (!sessionId || !this.sessionHistoryHasMore || this.sessionHistoryLoading) return;
+    this.sessionHistoryLoading = true;
+    const cursor = this.sessionHistoryCursor;
+    const previousScrollHeight = this.term?.scrollHeight || 0;
+    try {
+      const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE, before: cursor });
+      if (this.dataset.activeSessionId !== sessionId || this.sessionHistoryCursor !== cursor) return;
+      this.prependLoadedMessages(loaded.messages || []);
+      this.sessionHistoryCursor = loaded.cursor || "";
+      this.sessionHistoryHasMore = !!loaded.hasMore;
+      this.restoreTranscriptScrollOffset(previousScrollHeight);
+    } catch {
+      this.setConnection("err");
+    } finally {
+      if (this.dataset.activeSessionId === sessionId) this.sessionHistoryLoading = false;
+    }
+  },
+
+  prependLoadedMessages(messages) {
+    if (!messages.length) return;
+    this.answeredChoiceIds = new Set([
+      ...(this.answeredChoiceIds || []),
+      ...this.answeredChoiceIdsFrom(messages),
+    ]);
+    this.transcriptItems = [
+      ...messages.map((message) => this.createTranscriptItem(message)),
+      ...(this.transcriptItems || []),
+    ];
+    this.renderTranscriptWindow({ stickToBottom: false });
+  },
+
+  restoreTranscriptScrollOffset(previousScrollHeight) {
+    window.requestAnimationFrame(() => {
+      if (!this.term) return;
+      this.term.scrollTop += Math.max(0, this.term.scrollHeight - previousScrollHeight);
+    });
   },
 
   findSessionRow(sessionId) {

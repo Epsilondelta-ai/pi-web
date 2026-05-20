@@ -90,16 +90,8 @@ func LoadPiSessions(sessionDir string) ([]ParsedSession, error) {
 	if sessionDir == "" {
 		return nil, errors.New("session dir is empty")
 	}
-	var files []string
-	if err := filepath.WalkDir(sessionDir, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if entry.Type().IsRegular() && strings.HasSuffix(entry.Name(), ".jsonl") {
-			files = append(files, path)
-		}
-		return nil
-	}); err != nil {
+	files, err := piSessionFiles(sessionDir)
+	if err != nil {
 		return nil, err
 	}
 	var sessions []ParsedSession

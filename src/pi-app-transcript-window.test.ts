@@ -163,6 +163,21 @@ describe("pi-app transcript window", () => {
     expect(app.ensureTranscriptScrollButton()).toBe(existingButton);
   });
 
+  it("loads older messages when the user scrolls near the top", async () => {
+    const app = await connectPiApp();
+    app.sessionHistoryHasMore = true;
+    app.sessionHistoryLoading = false;
+    app.loadOlderSessionMessages = vi.fn(() => {
+      app.sessionHistoryLoading = true;
+    });
+
+    app.term.scrollTop = 0;
+    app.handleTranscriptScroll();
+    app.handleTranscriptScroll();
+
+    expect(app.loadOlderSessionMessages).toHaveBeenCalledTimes(1);
+  });
+
   it("stops following when the user scrolls up and resumes only from the bottom button", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {

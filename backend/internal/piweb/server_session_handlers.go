@@ -9,14 +9,18 @@ import (
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("sessionID")
-	session, messages, err := s.store.Session(sessionID)
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	session, page, err := s.store.SessionPage(sessionID, limit, r.URL.Query().Get("before"))
 	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"session":  session,
-		"messages": messages,
+		"messages": page.Messages,
+		"cursor":   page.Cursor,
+		"hasMore":  page.HasMore,
+		"limit":    page.Limit,
 		"status":   s.sessionStatus(sessionID),
 	})
 }

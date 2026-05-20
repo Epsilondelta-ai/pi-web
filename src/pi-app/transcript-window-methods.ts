@@ -1,5 +1,6 @@
 const TRANSCRIPT_WINDOW_SIZE = 30;
 const DEFAULT_TRANSCRIPT_ITEM_HEIGHT = 80;
+const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 
 function elementNodes(node) {
   if (!node) return [];
@@ -27,6 +28,7 @@ export const transcriptWindowMethods = {
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
     this.transcriptFollowBottom = true;
+    this.answeredChoiceIds = new Set();
     this.transcriptTopSpacer = document.createElement("div");
     this.transcriptBottomSpacer = document.createElement("div");
     this.transcriptTopSpacer.className = "transcript-spacer transcript-spacer-top";
@@ -85,7 +87,14 @@ export const transcriptWindowMethods = {
   handleTranscriptScroll() {
     this.transcriptFollowBottom = this.isTermPinnedToBottom();
     this.updateTranscriptScrollButton();
+    if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
     this.scheduleTranscriptWindowRender();
+  },
+
+  shouldLoadOlderTranscriptMessages() {
+    return !!this.sessionHistoryHasMore
+      && !this.sessionHistoryLoading
+      && (this.term?.scrollTop || 0) <= OLDER_MESSAGE_LOAD_THRESHOLD;
   },
 
   scrollTranscriptToBottom() {
@@ -118,9 +127,14 @@ export const transcriptWindowMethods = {
     this.transcriptVisibleEnd = 0;
     this.transcriptWindowFrame = undefined;
     this.transcriptFollowBottom = true;
+    this.answeredChoiceIds = new Set();
     this.transcriptTopSpacer?.remove();
     this.transcriptBottomSpacer?.remove();
     this.updateTranscriptScrollButton();
+  },
+
+  createTranscriptItem(message) {
+    return { message, height: DEFAULT_TRANSCRIPT_ITEM_HEIGHT };
   },
 
   appendTranscriptNode(node, { stickToBottom = true } = {}) {
@@ -218,7 +232,7 @@ export const transcriptWindowMethods = {
       fragment.append(this.transcriptTopSpacer);
     }
     for (let index = start; index < end; index += 1) {
-      for (const node of this.transcriptItems[index].nodes) fragment.append(node);
+      for (const node of this.transcriptItemNodes(index)) fragment.append(node);
     }
     if (bottomHeight > 0) {
       this.transcriptBottomSpacer.style.height = `${bottomHeight}px`;
@@ -226,6 +240,7 @@ export const transcriptWindowMethods = {
     }
     this.termInner.replaceChildren(fragment);
     this.measureRenderedTranscriptItems();
+    this.syncAnsweredChoices?.();
   },
 
   measureRenderedTranscriptItems() {
@@ -234,7 +249,7 @@ export const transcriptWindowMethods = {
     const end = Math.min(this.transcriptItems.length, this.transcriptVisibleEnd || 0);
     for (let index = start; index < end; index += 1) {
       const item = this.transcriptItems[index];
-      if (!item) continue;
+      if (!item?.nodes) continue;
       const height = measuredHeight(item.nodes);
       if (height > 0) item.height = height;
     }
@@ -244,6 +259,13 @@ export const transcriptWindowMethods = {
     let height = 0;
     for (let index = start; index < end; index += 1) height += this.transcriptItemHeight(index);
     return height;
+  },
+
+  transcriptItemNodes(index) {
+    const item = this.transcriptItems[index];
+    if (!item) return [];
+    if (!item.nodes && item.message) item.nodes = elementNodes(this.messageNode(item.message));
+    return item.nodes || [];
   },
 
   transcriptItemHeight(index) {

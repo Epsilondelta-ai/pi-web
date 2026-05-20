@@ -10,16 +10,24 @@ export const messageMethods = {
   renderMessages(messages) {
     if (!this.termInner) return;
     this.piDeltaBuffer = "";
+    this.streamingRows = {};
     this.termInner.replaceChildren();
     this.resetTranscriptWindow();
-    this.deferTranscriptRender = true;
-    for (const message of messages) this.appendMessage(message);
     this.deferTranscriptRender = false;
+    this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
+    this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
     this.renderTranscriptWindow({ stickToBottom: true });
-    for (const message of messages) {
-      if (message.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(message.text));
-    }
     this.scrollTerm();
+  },
+
+  answeredChoiceIdsFrom(messages) {
+    const choiceIds = new Set();
+    for (const message of messages) {
+      if (message.kind !== "user") continue;
+      const choiceId = parseFallbackChoiceAnswer(message.text);
+      if (choiceId) choiceIds.add(choiceId);
+    }
+    return choiceIds;
   },
 
   appendMessage(message) {
@@ -249,6 +257,16 @@ export const messageMethods = {
 
   disableAnsweredChoice(choiceId) {
     if (!choiceId) return;
+    this.answeredChoiceIds ??= new Set();
+    this.answeredChoiceIds.add(choiceId);
+    this.disableRenderedChoice(choiceId);
+  },
+
+  syncAnsweredChoices() {
+    for (const choiceId of this.answeredChoiceIds || []) this.disableRenderedChoice(choiceId);
+  },
+
+  disableRenderedChoice(choiceId) {
     const panels = [...this.termInner?.querySelectorAll(".fallback-choice-list") ?? []];
     const panel = panels.find((item) => item.dataset.choiceId === choiceId);
     panel?.classList.add("answered");

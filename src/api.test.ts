@@ -58,9 +58,9 @@ describe("api adapter", () => {
     expect(result.url).toBe("/api/workspaces");
   });
 
-  it("escapes session ids in paths", async () => {
-    const result = await getSession("a/b");
-    expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb");
+  it("escapes session ids in paths and supports message paging", async () => {
+    const result = await getSession("a/b", { limit: 25, before: "123" });
+    expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb?limit=25&before=123");
   });
 
   it("lists folders from the backend browser", async () => {

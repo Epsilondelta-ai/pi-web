@@ -193,6 +193,7 @@ describe("pi-app sessions", () => {
     };
 
     await app.loadSession("s1");
+    expect(globalThis.fetch.mock.calls.at(-1)[0]).toBe("http://backend.test/api/sessions/s1?limit=120");
     expect(connected).toEqual({ sessionId: "s1", options: { replay: false } });
   });
 
@@ -204,6 +205,33 @@ describe("pi-app sessions", () => {
     expect(button.hidden).toBe(false);
     button.click();
     expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
+  });
+
+  it("loads older session messages from the stored cursor", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        messages: [{ kind: "pi", text: "older" }],
+        cursor: "old-cursor",
+        hasMore: false,
+      }),
+    }));
+    const app = await connectPiApp();
+    app.dataset.activeSessionId = "s1";
+    app.renderMessages([{ kind: "pi", text: "newer" }]);
+    app.sessionHistoryCursor = "cursor";
+    app.sessionHistoryHasMore = true;
+
+    await app.loadOlderSessionMessages();
+
+    expect(globalThis.fetch.mock.calls.at(-1)[0]).toBe("http://backend.test/api/sessions/s1?limit=120&before=cursor");
+    expect(app.transcriptItems).toHaveLength(2);
+    expect(app.transcriptItems[0].message.text).toBe("older");
+    expect(app.sessionHistoryCursor).toBe("old-cursor");
+    expect(app.sessionHistoryHasMore).toBe(false);
   });
 
   it("switches workspace metadata to the loaded session workspace", async () => {

@@ -127,7 +127,7 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 		id = uniqueID(baseID, used)
 	}
 	workspace := Workspace{ID: id, Name: filepath.Base(clean), Path: clean, LastUsed: "now", Sessions: []Session{}}
-	parsed, err := LoadPiSessions(piSessionDirForCWD(clean))
+	parsed, err := LoadPiSessionSummaries(piSessionDirForCWD(clean))
 	if err == nil {
 		parsed = withTeamChildSessions(parsed)
 		var latestSessionModTime time.Time
@@ -135,7 +135,6 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 			item.Session.Workspace = id
 			item.Session.ID = item.Header.ID
 			workspace.Sessions = append(workspace.Sessions, item.Session)
-			s.conversations[item.Header.ID] = item.Messages
 			s.sessionFiles[item.Header.ID] = item.File
 			s.sessionCWD[item.Header.ID] = item.Header.CWD
 			if item.ModTime.After(latestSessionModTime) {

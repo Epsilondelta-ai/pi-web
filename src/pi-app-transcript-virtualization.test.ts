@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
 
 describe("pi-app transcript virtualization", () => {
@@ -12,11 +12,13 @@ describe("pi-app transcript virtualization", () => {
       kind: "pi",
       text: `message ${index}`,
     }));
+    const messageNode = vi.spyOn(app, "messageNode");
 
     app.renderMessages(messages);
 
     const renderedMessages = [...app.querySelectorAll(".term-inner .msg")];
     expect(app.transcriptItems).toHaveLength(250);
+    expect(messageNode).toHaveBeenCalledTimes(30);
     expect(renderedMessages.length).toBeLessThan(250);
     expect(app.querySelector(".transcript-spacer-top")).not.toBeNull();
     expect(renderedMessages.at(-1).textContent).toContain("message 249");
