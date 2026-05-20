@@ -146,6 +146,7 @@ export const workspaceBootstrapMethods = {
       if (this.sessionLoadToken !== loadToken) return;
       this.rememberSessionPage(loaded);
       if (cachedPage && sessionPageSignature(cachedPage) === sessionPageSignature(loaded)) return;
+      if (cachedPage) loaded.preserveScroll = true;
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
@@ -207,7 +208,7 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryCursor = page.cursor || "";
     this.sessionHistoryHasMore = !!page.hasMore;
     this.sessionHistoryLoading = false;
-    this.renderMessages(messages);
+    this.renderMessages(messages, { preserveScroll: page.preserveScroll });
     this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });
   },

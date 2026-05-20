@@ -7,8 +7,9 @@ import {
 } from "./fallback-choices";
 
 export const messageMethods = {
-  renderMessages(messages) {
+  renderMessages(messages, { preserveScroll = false } = {}) {
     if (!this.termInner) return;
+    const scrollTop = this.term?.scrollTop || 0;
     this.piDeltaBuffer = "";
     this.streamingRows = {};
     this.termInner.replaceChildren();
@@ -16,8 +17,9 @@ export const messageMethods = {
     this.deferTranscriptRender = false;
     this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
     this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
-    this.renderTranscriptWindow({ stickToBottom: true });
-    this.scrollTerm();
+    this.renderTranscriptWindow({ stickToBottom: !preserveScroll });
+    if (preserveScroll && this.term) this.term.scrollTop = scrollTop;
+    else this.scrollTerm();
   },
 
   answeredChoiceIdsFrom(messages) {

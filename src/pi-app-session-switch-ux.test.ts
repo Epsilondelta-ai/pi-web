@@ -92,6 +92,8 @@ describe("pi-app session switch UX", () => {
 
     expect(app.querySelector(".session-switch-loading")).toBeNull();
     expect(app.querySelector(".msg .body").textContent).toBe("cached");
+    app.term.scrollTop = 42;
+    app.scrollTerm = vi.fn();
 
     resolveRefresh({
       ok: true,
@@ -105,5 +107,7 @@ describe("pi-app session switch UX", () => {
     await refreshing;
 
     expect(app.querySelector(".msg .body").textContent).toBe("fresh");
+    expect(app.term.scrollTop).toBe(42);
+    expect(app.scrollTerm).not.toHaveBeenCalled();
   });
 });
