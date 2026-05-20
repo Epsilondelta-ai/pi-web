@@ -78,9 +78,6 @@ export const transcriptWindowMethods = {
       this.scrollFrame = window.requestAnimationFrame(() => {
         this.scrollFrame = undefined;
         scroll();
-        window.requestAnimationFrame(() => {
-          if (!this.isTermPinnedToBottom()) scroll();
-        });
       });
     };
   },

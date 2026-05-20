@@ -211,8 +211,8 @@ describe("pi-app transcript window", () => {
 
     app.scrollTerm({ force: true });
     frames.splice(0).forEach((callback) => callback(0));
-    frames.splice(0).forEach((callback) => callback(0));
 
+    expect(frames).toHaveLength(0);
     expect(scrollWrites).toEqual([{ behavior: "auto", value: 900 }]);
     expect(app.term.style.scrollBehavior).toBe("smooth");
   });

@@ -135,14 +135,14 @@ export const layoutMethods = {
 
   scrollTerm() {
     if (this.scrollFrame) return;
-    const scroll = () => {
-      const term = this.querySelector(".term");
-      if (term) term.scrollTop = term.scrollHeight;
-    };
     this.scrollFrame = window.requestAnimationFrame(() => {
       this.scrollFrame = undefined;
-      scroll();
-      window.requestAnimationFrame(scroll);
+      if (this.scrollTermToBottomImmediately) {
+        this.scrollTermToBottomImmediately();
+        return;
+      }
+      const term = this.querySelector(".term");
+      if (term) term.scrollTop = term.scrollHeight;
     });
   },
 };
