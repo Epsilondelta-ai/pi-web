@@ -128,7 +128,7 @@ describe("pi-app core events", () => {
     listeners["session.message"]({ data: JSON.stringify({ type: "heartbeat", sessionId: "s1" }) });
     listeners.error({ data: "{" });
     expect(app.setConnection).toHaveBeenCalledWith("ok");
-    expect(app.setConnection).toHaveBeenCalledWith("err");
+    expect(app.setConnection).toHaveBeenCalledWith("reconnecting");
 
     app.applyEvent = Object.getPrototypeOf(app).applyEvent.bind(app);
     app.appendMessage = vi.fn();
