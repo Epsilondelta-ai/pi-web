@@ -44,6 +44,10 @@ function toolStatus(msg) {
   return `<span class="ok">✓</span>${msg.durationMs ? `${msg.durationMs} ms` : ""}${msg.resultMeta ? ` · ${escapeHtml(msg.resultMeta)}` : ""}`;
 }
 
+function isToolCollapsed(msg) {
+  return msg.collapsedByDefault !== false;
+}
+
 const settingsFields = [
   { path: "defaultProvider", label: "Default provider", type: "text", hint: "provider id" },
   { path: "defaultModel", label: "Default model", type: "text", hint: "model id or provider/model" },
@@ -184,16 +188,17 @@ const settingsFields = [
             msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body">{msg.text}</div></div> :
             msg.kind === "think" ? <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{msg.text}</div></div></div> :
             msg.kind === "pi" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(msg.text)}></div></div> :
-            msg.kind === "tool" ? <div class:list={["tool-card", msg.collapsedByDefault && "collapsed"]} data-tool={msg.tool}>
-              <button type="button" class="tc-head" aria-expanded={msg.collapsedByDefault ? "false" : "true"} data-action="toggle-tool">
-                <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={`${toolStatus(msg)}<span class="tc-caret">${msg.collapsedByDefault ? "▸" : "▾"}</span>`}></span>
+            msg.kind === "tool" ? <div class:list={["tool-card", isToolCollapsed(msg) && "collapsed"]} data-tool={msg.tool}>
+              <button type="button" class="tc-head" aria-expanded={isToolCollapsed(msg) ? "false" : "true"} data-action="toggle-tool">
+                <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={`${toolStatus(msg)}<span class="tc-caret">${isToolCollapsed(msg) ? "▸" : "▾"}</span>`}></span>
               </button>
-              {msg.body && <div class="tc-body" hidden={msg.collapsedByDefault} set:html={renderAnsiBody(msg.body)}></div>}
+              {msg.body && <div class="tc-body" hidden={isToolCollapsed(msg)} set:html={renderAnsiBody(msg.body)}></div>}
             </div> : null
           ))}
           <div class="compaction" hidden={compactionHidden}><span class="lbl">⚠ context summarized</span><span>older messages summarized · /undo to revert</span></div>
         </div>
       </div>
+      <button type="button" class="scroll-bottom-btn" data-action="scroll-bottom" aria-label="scroll to bottom" title="scroll to bottom" hidden>↓</button>
     </main>
 
     <main class="main" data-main="empty" hidden={emptyHidden}> 

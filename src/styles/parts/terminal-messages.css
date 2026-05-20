@@ -129,6 +129,22 @@
 
 .term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; }
 .transcript-spacer { width: 100%; flex: 0 0 auto; }
+.scroll-bottom-btn {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-full);
+  background: var(--bg-2);
+  color: var(--accent);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.32);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+}
+.scroll-bottom-btn:hover { background: var(--bg-3); }
 
 .msg { display: flex; gap: var(--space-2); margin-bottom: 14px; }
 .msg .prefix {

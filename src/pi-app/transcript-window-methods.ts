@@ -1,5 +1,4 @@
-const TRANSCRIPT_VIRTUALIZE_THRESHOLD = 160;
-const TRANSCRIPT_OVERSCAN_PX = 900;
+const TRANSCRIPT_WINDOW_SIZE = 30;
 const DEFAULT_TRANSCRIPT_ITEM_HEIGHT = 80;
 
 function elementNodes(node) {
@@ -17,20 +16,60 @@ function measuredHeight(nodes) {
   return heights.reduce((total, height) => total + height, 0);
 }
 
+function clampTranscriptStart(start, total) {
+  return Math.max(0, Math.min(start, Math.max(0, total - TRANSCRIPT_WINDOW_SIZE)));
+}
+
 export const transcriptWindowMethods = {
   initTranscriptWindow() {
     this.term = this.querySelector(".term");
     this.transcriptItems = [];
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
+    this.transcriptFollowBottom = true;
     this.transcriptTopSpacer = document.createElement("div");
     this.transcriptBottomSpacer = document.createElement("div");
     this.transcriptTopSpacer.className = "transcript-spacer transcript-spacer-top";
     this.transcriptBottomSpacer.className = "transcript-spacer transcript-spacer-bottom";
     this.transcriptTopSpacer.setAttribute("aria-hidden", "true");
     this.transcriptBottomSpacer.setAttribute("aria-hidden", "true");
-    this.term?.addEventListener("scroll", () => this.scheduleTranscriptWindowRender());
+    this.transcriptScrollButton = this.ensureTranscriptScrollButton();
+    this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
     this.adoptRenderedTranscript();
+    this.updateTranscriptScrollButton();
+  },
+
+  ensureTranscriptScrollButton() {
+    const existingButton = this.querySelector("[data-action='scroll-bottom']");
+    if (existingButton) return existingButton;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "scroll-bottom-btn";
+    button.dataset.action = "scroll-bottom";
+    button.setAttribute("aria-label", "scroll to bottom");
+    button.title = "scroll to bottom";
+    button.textContent = "↓";
+    button.hidden = true;
+    this.term?.parentElement?.append(button);
+    return button;
+  },
+
+  handleTranscriptScroll() {
+    this.transcriptFollowBottom = this.isTermPinnedToBottom();
+    this.updateTranscriptScrollButton();
+    this.scheduleTranscriptWindowRender();
+  },
+
+  scrollTranscriptToBottom() {
+    this.transcriptFollowBottom = true;
+    this.renderTranscriptWindow({ stickToBottom: true });
+    this.scrollTerm({ force: true });
+    this.updateTranscriptScrollButton();
+  },
+
+  updateTranscriptScrollButton() {
+    if (!this.transcriptScrollButton) return;
+    this.transcriptScrollButton.hidden = this.isTermPinnedToBottom();
   },
 
   adoptRenderedTranscript() {
@@ -50,8 +89,10 @@ export const transcriptWindowMethods = {
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
     this.transcriptWindowFrame = undefined;
+    this.transcriptFollowBottom = true;
     this.transcriptTopSpacer?.remove();
     this.transcriptBottomSpacer?.remove();
+    this.updateTranscriptScrollButton();
   },
 
   appendTranscriptNode(node, { stickToBottom = true } = {}) {
@@ -80,7 +121,7 @@ export const transcriptWindowMethods = {
   },
 
   isTranscriptVirtualized() {
-    return (this.transcriptItems?.length || 0) > TRANSCRIPT_VIRTUALIZE_THRESHOLD;
+    return (this.transcriptItems?.length || 0) > TRANSCRIPT_WINDOW_SIZE;
   },
 
   scheduleTranscriptWindowRender() {
@@ -93,37 +134,37 @@ export const transcriptWindowMethods = {
 
   renderTranscriptWindow({ stickToBottom = false } = {}) {
     if (!this.termInner) return;
-    const pinned = stickToBottom && this.isTermPinnedToBottom();
+    const pinned = stickToBottom && this.shouldStickToBottom();
     if (!this.isTranscriptVirtualized()) {
       this.renderTranscriptRange(0, this.transcriptItems.length);
-      if (pinned) this.scrollTerm();
+      if (pinned) this.scrollTerm({ force: true });
+      this.updateTranscriptScrollButton();
       return;
     }
     const range = pinned ? this.bottomTranscriptRange() : this.visibleTranscriptRange();
     this.renderTranscriptRange(range.start, range.end);
-    if (pinned) this.scrollTerm();
+    if (pinned) this.scrollTerm({ force: true });
+    this.updateTranscriptScrollButton();
+  },
+
+  shouldStickToBottom() {
+    return this.transcriptFollowBottom !== false && this.isTermPinnedToBottom();
   },
 
   bottomTranscriptRange() {
-    const viewportHeight = (this.term?.clientHeight || 0) + TRANSCRIPT_OVERSCAN_PX;
-    let height = 0;
-    let start = this.transcriptItems.length;
-    for (let index = this.transcriptItems.length - 1; index >= 0; index -= 1) {
-      height += this.transcriptItemHeight(index);
-      start = index;
-      if (height >= viewportHeight) break;
-    }
-    return { start, end: this.transcriptItems.length };
+    return {
+      start: Math.max(0, this.transcriptItems.length - TRANSCRIPT_WINDOW_SIZE),
+      end: this.transcriptItems.length,
+    };
   },
 
   visibleTranscriptRange() {
-    const viewportTop = Math.max(0, (this.term?.scrollTop || 0) - TRANSCRIPT_OVERSCAN_PX);
-    const viewportBottom = (this.term?.scrollTop || 0) + (this.term?.clientHeight || 0) + TRANSCRIPT_OVERSCAN_PX;
+    const total = this.transcriptItems.length;
+    const viewportTop = Math.max(0, this.term?.scrollTop || 0);
     let offset = 0;
     let start = 0;
-    let end = this.transcriptItems.length;
 
-    for (let index = 0; index < this.transcriptItems.length; index += 1) {
+    for (let index = 0; index < total; index += 1) {
       const nextOffset = offset + this.transcriptItemHeight(index);
       if (nextOffset >= viewportTop) {
         start = index;
@@ -132,15 +173,8 @@ export const transcriptWindowMethods = {
       offset = nextOffset;
     }
 
-    for (let index = start; index < this.transcriptItems.length; index += 1) {
-      offset += this.transcriptItemHeight(index);
-      if (offset >= viewportBottom) {
-        end = Math.min(this.transcriptItems.length, index + 1);
-        break;
-      }
-    }
-
-    return { start, end };
+    start = clampTranscriptStart(start, total);
+    return { start, end: Math.min(total, start + TRANSCRIPT_WINDOW_SIZE) };
   },
 
   renderTranscriptRange(start, end) {

@@ -75,7 +75,7 @@ export const inputMethods = {
       tool: "shell",
       args: `$ ${command}`,
       status: "running",
-      collapsedByDefault: false,
+      collapsedByDefault: true,
     });
     try {
       const result = await runShellCommand(workspaceId, command);
@@ -150,6 +150,7 @@ export const inputMethods = {
     if (action === "open-drawer") this.toggleDrawer();
     if (action === "close-drawer") this.toggleDrawer(false);
     if (action === "toggle-tool") this.toggleTool(button);
+    if (action === "scroll-bottom") this.scrollTranscriptToBottom();
     if (action === "show-full-tool-output") this.showFullToolOutput(actionTarget);
     if (action !== "session-menu-toggle") this.closeSessionMenus(actionTarget?.closest(".session-row"));
     if (action === "toggle-workspace") this.toggleWorkspace(button.dataset.workspace);
