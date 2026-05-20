@@ -64,6 +64,37 @@ describe("pi-app sessions", () => {
     expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(true);
   });
 
+  it("uses the selected workspace when starting a new empty session", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 201,
+      statusText: "Created",
+      json: async () => ({ session: { id: "s2", title: "new session", lastUsed: "now" } }),
+    }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.connectEvents = vi.fn();
+    const activeWorkspace = document.createElement("span");
+    activeWorkspace.dataset.activeWorkspace = "";
+    app.append(activeWorkspace);
+    app.append(app.createWorkspaceGroup({ id: "w1", name: "hahn-monorepo", path: "/hahn", sessions: [] }));
+    app.append(app.createWorkspaceGroup({ id: "w2", name: "juun-ai", path: "/juun", sessions: [] }));
+
+    app.toggleWorkspace("w2");
+    await app.newSession();
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://backend.test/api/workspaces/w2/sessions",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(app.dataset.activeWorkspaceId).toBe("w2");
+    expect(activeWorkspace.textContent).toBe("juun-ai");
+    expect(app.querySelector("[data-workspace-group='w1'] .sessions").hidden).toBe(true);
+    expect(app.querySelector("[data-workspace-group='w2'] .sessions").hidden).toBe(false);
+  });
+
   it("deletes all sessions in a workspace and clears the active session", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({

@@ -189,6 +189,7 @@ export const sessionMethods = {
 
   async newSession(workspace) {
     const workspaceId = workspace || this.dataset.activeWorkspaceId;
+    this.activateWorkspaceSelection?.(workspaceId);
     if (this.apiConnected && workspaceId) {
       try {
         const { session } = await createSession(workspaceId);
@@ -211,6 +212,7 @@ export const sessionMethods = {
   },
 
   activateCreatedSession(workspaceId, session) {
+    this.activateWorkspaceSelection?.(workspaceId);
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState();
     storeActiveSession(workspaceId, session.id);

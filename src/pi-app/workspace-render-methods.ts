@@ -109,16 +109,33 @@ export const workspaceRenderMethods = {
     return row;
   },
 
-  toggleWorkspace(id) {
+  activateWorkspaceSelection(workspaceId) {
+    if (!workspaceId) return;
+    this.dataset.activeWorkspaceId = workspaceId;
+    const workspaceName = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent || workspaceId;
+    const activeWorkspace = this.querySelector("[data-active-workspace]");
+    if (activeWorkspace) activeWorkspace.textContent = workspaceName;
+    this.setOpenWorkspace(workspaceId);
+  },
+
+  setOpenWorkspace(workspaceId) {
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
-      const sessions = group.querySelector(".sessions");
-      const row = group.querySelector(".ws-row");
-      const open = group.dataset.workspaceGroup === id && sessions?.hidden;
-      if (sessions) sessions.hidden = !open;
-      row?.classList.toggle("open", open);
-      row?.setAttribute("aria-expanded", String(open));
-      const caret = row?.querySelector(".caret");
-      if (caret) caret.textContent = open ? "▾" : "▸";
+      const open = group.dataset.workspaceGroup === workspaceId;
+      this.setWorkspaceGroupOpen(group, open);
     });
+  },
+
+  setWorkspaceGroupOpen(group, open) {
+    const sessions = group.querySelector(".sessions");
+    const row = group.querySelector(".ws-row");
+    if (sessions) sessions.hidden = !open;
+    row?.classList.toggle("open", open);
+    row?.setAttribute("aria-expanded", String(open));
+    const caret = row?.querySelector(".caret");
+    if (caret) caret.textContent = open ? "▾" : "▸";
+  },
+
+  toggleWorkspace(id) {
+    this.activateWorkspaceSelection(id);
   },
 };
