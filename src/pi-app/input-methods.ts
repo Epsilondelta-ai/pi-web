@@ -5,6 +5,7 @@ export const inputMethods = {
   async submitPrompt() {
     const text = this.prompt?.value.trim() || "";
     if (!text && !this.attachments?.children.length) return;
+    this.clearPromptDraft?.();
     if (this.running) {
       await this.submitSteeringPrompt(text);
       return;
@@ -212,6 +213,7 @@ export const inputMethods = {
   updatePrompt() {
     if (!this.prompt || !this.sendButton) return;
     const value = this.prompt.value;
+    this.savePromptDraft?.();
     const hasAttachments = !!this.attachments?.children.length;
     this.sendButton.disabled = !value.trim() && !hasAttachments;
     this.slashPopover?.toggleAttribute("hidden", !(value.startsWith("/") && !value.includes("\n")));

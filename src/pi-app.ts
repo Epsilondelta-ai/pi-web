@@ -1,6 +1,6 @@
 import { sessionEvents } from "./api";
 import { attachmentMethods } from "./pi-app/attachment-methods";
-import { SPINNER_FRAMES } from "./pi-app/constants";
+import { PROMPT_DRAFT_STORAGE_KEY, SPINNER_FRAMES } from "./pi-app/constants";
 import { filePreviewMethods } from "./pi-app/file-preview-methods";
 import { inputMethods } from "./pi-app/input-methods";
 import { layoutMethods } from "./pi-app/layout-methods";
@@ -36,6 +36,7 @@ class PiApp extends HTMLElement {
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
     this.runtimeStatus = {};
+    this.restorePromptDraft();
     this.installViewportSizing();
     this.bindDomEvents();
     this.restoreSidebar();
@@ -93,6 +94,29 @@ class PiApp extends HTMLElement {
     this.querySelectorAll(".spinner").forEach((spinner) => {
       spinner.textContent = SPINNER_FRAMES[this.spinnerIndex];
     });
+  }
+
+  restorePromptDraft() {
+    if (!this.prompt) return;
+    try {
+      const draft = localStorage.getItem(PROMPT_DRAFT_STORAGE_KEY);
+      if (draft !== null) this.prompt.value = draft;
+    } catch {}
+  }
+
+  savePromptDraft() {
+    if (!this.prompt) return;
+    try {
+      const draft = this.prompt.value;
+      if (draft) localStorage.setItem(PROMPT_DRAFT_STORAGE_KEY, draft);
+      else localStorage.removeItem(PROMPT_DRAFT_STORAGE_KEY);
+    } catch {}
+  }
+
+  clearPromptDraft() {
+    try {
+      localStorage.removeItem(PROMPT_DRAFT_STORAGE_KEY);
+    } catch {}
   }
 
   bindDomEvents() {

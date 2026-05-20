@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PROMPT_DRAFT_STORAGE_KEY } from "./pi-app/constants";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
 
 describe("pi-app controls", () => {
@@ -13,6 +14,22 @@ describe("pi-app controls", () => {
     prompt.dispatchEvent(new Event("input"));
     expect(app.querySelector(".send-btn").disabled).toBe(false);
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
+  });
+
+  it("restores unsent prompt text and clears the draft on send", async () => {
+    const app = await connectPiApp();
+    const prompt = app.querySelector(".prompt-textarea");
+    localStorage.setItem(PROMPT_DRAFT_STORAGE_KEY, "saved draft");
+    app.restorePromptDraft();
+    expect(prompt.value).toBe("saved draft");
+
+    prompt.value = "new draft";
+    prompt.dispatchEvent(new Event("input"));
+    expect(localStorage.getItem(PROMPT_DRAFT_STORAGE_KEY)).toBe("new draft");
+
+    app.apiConnected = false;
+    app.sendButton.click();
+    expect(localStorage.getItem(PROMPT_DRAFT_STORAGE_KEY)).toBeNull();
   });
 
   it("keeps send and stop as separate running controls", async () => {
