@@ -191,6 +191,22 @@ describe("pi-app controls", () => {
     expect(app.querySelector('[data-view="workspace"]').hidden).toBe(false);
   });
 
+  it("closes the file tree when clicking outside it", async () => {
+    const app = await connectPiApp();
+    const body = app.querySelector(".app-body");
+    const tree = app.querySelector(".tree");
+    const main = app.querySelector("main");
+
+    app.toggleTree(true);
+    tree.click();
+    expect(app.dataset.tree).toBe("on");
+
+    main.click();
+    expect(app.dataset.tree).toBe("off");
+    expect(body.classList.contains("tree-open")).toBe(false);
+    expect(tree.hidden).toBe(true);
+  });
+
   it("refreshes workspaces from the sidebar refresh button", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({

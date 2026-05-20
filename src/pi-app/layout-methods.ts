@@ -34,16 +34,23 @@ export const layoutMethods = {
     if (route === "workspace") this.scrollTerm();
   },
 
-  toggleTree() {
+  toggleTree(forceOpen) {
     const body = this.querySelector(".app-body");
     const tree = this.querySelector(".tree");
-    const treeEnabled = this.dataset.tree !== "on";
+    const treeEnabled = forceOpen ?? this.dataset.tree !== "on";
     this.dataset.tree = treeEnabled ? "on" : "off";
     body?.classList.toggle("with-tree", treeEnabled);
     body?.classList.toggle("tree-open", treeEnabled);
     this.querySelector('[data-action="toggle-tree"]')?.classList.toggle("on", treeEnabled);
     tree?.toggleAttribute("hidden", !treeEnabled);
     this.applyGrid();
+  },
+
+  closeTreeFromOutside(event) {
+    if (this.dataset.tree !== "on") return;
+    const target = event.target;
+    if (target?.closest?.(".tree, [data-action='toggle-tree']")) return;
+    this.toggleTree(false);
   },
 
   toggleTreeNode(button) {
