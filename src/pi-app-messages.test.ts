@@ -244,9 +244,13 @@ describe("pi-app messages", () => {
     Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
     Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
     app.isTermPinnedToBottom = () => true;
+    app.scrollFrame = 123;
+    const cancelFrame = vi.spyOn(window, "cancelAnimationFrame");
 
     app.renderMessages([{ kind: "pi", text: "loaded" }]);
 
+    expect(cancelFrame).toHaveBeenCalledWith(123);
+    expect(app.scrollFrame).toBeUndefined();
     expect(app.term.scrollTop).toBe(900);
     expect(frames).toHaveLength(0);
   });

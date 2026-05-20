@@ -11,6 +11,10 @@ export const messageMethods = {
     if (!this.termInner) return;
     const scrollTop = this.term?.scrollTop || 0;
     const followBottom = this.transcriptFollowBottom;
+    if (this.scrollFrame) {
+      window.cancelAnimationFrame?.(this.scrollFrame);
+      this.scrollFrame = undefined;
+    }
     this.piDeltaBuffer = "";
     this.streamingRows = {};
     this.termInner.replaceChildren();
