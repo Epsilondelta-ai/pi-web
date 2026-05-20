@@ -78,6 +78,7 @@ export const transcriptWindowMethods = {
       this.scrollFrame = window.requestAnimationFrame(() => {
         this.scrollFrame = undefined;
         scroll();
+        window.requestAnimationFrame(scroll);
       });
     };
   },
@@ -85,11 +86,9 @@ export const transcriptWindowMethods = {
   scrollTermToBottomImmediately() {
     const term = this.term;
     if (!term) return;
-    const target = Math.max(0, term.scrollHeight - term.clientHeight);
-    if (Math.abs(term.scrollTop - target) < 1) return;
     const previousScrollBehavior = term.style.scrollBehavior;
     term.style.scrollBehavior = "auto";
-    term.scrollTop = target;
+    term.scrollTop = term.scrollHeight;
     term.style.scrollBehavior = previousScrollBehavior;
   },
 
@@ -127,7 +126,7 @@ export const transcriptWindowMethods = {
       nodes: [node],
       height: measuredHeight([node]) || DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
     }));
-    this.renderTranscriptWindow({ stickToBottom: false });
+    this.renderTranscriptWindow({ stickToBottom: true });
   },
 
   resetTranscriptWindow() {
@@ -155,14 +154,14 @@ export const transcriptWindowMethods = {
 
   removeTranscriptNode(node) {
     if (!node || !this.transcriptItems?.length) return;
-    this.transcriptItems = this.transcriptItems.filter((item) => !item?.nodes?.includes(node));
+    this.transcriptItems = this.transcriptItems.filter((item) => !item.nodes.includes(node));
     node.remove?.();
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom: false });
   },
 
   replaceTranscriptNode(oldNode, newNode) {
     const nodes = elementNodes(newNode);
-    const item = this.transcriptItems?.find((candidate) => candidate?.nodes?.includes(oldNode));
+    const item = this.transcriptItems?.find((candidate) => candidate.nodes.includes(oldNode));
     if (!item || !nodes.length) return false;
     item.nodes = nodes;
     item.height = DEFAULT_TRANSCRIPT_ITEM_HEIGHT;
@@ -183,18 +182,18 @@ export const transcriptWindowMethods = {
     });
   },
 
-  renderTranscriptWindow({ stickToBottom = false, immediate = false, scroll = true } = {}) {
+  renderTranscriptWindow({ stickToBottom = false } = {}) {
     if (!this.termInner) return;
     const pinned = stickToBottom && this.shouldStickToBottom();
     if (!this.isTranscriptVirtualized()) {
       this.renderTranscriptRange(0, this.transcriptItems.length);
-      if (pinned && scroll) immediate ? this.scrollTermToBottomImmediately() : this.scrollTerm({ force: true });
+      if (pinned) this.scrollTerm({ force: true });
       this.updateTranscriptScrollButton();
       return;
     }
     const range = pinned ? this.bottomTranscriptRange() : this.visibleTranscriptRange();
     this.renderTranscriptRange(range.start, range.end);
-    if (pinned && scroll) immediate ? this.scrollTermToBottomImmediately() : this.scrollTerm({ force: true });
+    if (pinned) this.scrollTerm({ force: true });
     this.updateTranscriptScrollButton();
   },
 

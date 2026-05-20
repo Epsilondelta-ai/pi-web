@@ -126,11 +126,9 @@ describe("pi-app session method display states", () => {
     app.stopButton.remove();
     app.resetActiveSessionState();
 
-    app.scrollTerm = vi.fn();
     app.showSessionMain();
     expect(sessionMain.hidden).toBe(false);
     expect(emptyMain.hidden).toBe(true);
-    expect(app.scrollTerm).not.toHaveBeenCalled();
     app.showEmptyMain();
     expect(sessionMain.hidden).toBe(true);
     expect(emptyMain.hidden).toBe(false);

@@ -31,6 +31,7 @@ export const layoutMethods = {
       this.querySelector('.picker-shell input[name="path"]')?.focus();
       if (this.apiConnected) void this.browseFolder();
     }
+    if (route === "workspace") this.scrollTerm();
   },
 
   toggleTree() {
@@ -134,14 +135,14 @@ export const layoutMethods = {
 
   scrollTerm() {
     if (this.scrollFrame) return;
-    this.scrollFrame = window.requestAnimationFrame(() => {
-      this.scrollFrame = undefined;
-      if (this.scrollTermToBottomImmediately) {
-        this.scrollTermToBottomImmediately();
-        return;
-      }
+    const scroll = () => {
       const term = this.querySelector(".term");
       if (term) term.scrollTop = term.scrollHeight;
+    };
+    this.scrollFrame = window.requestAnimationFrame(() => {
+      this.scrollFrame = undefined;
+      scroll();
+      window.requestAnimationFrame(scroll);
     });
   },
 };

@@ -41,6 +41,7 @@ class PiApp extends HTMLElement {
     this.restoreSidebar();
     this.updatePrompt();
     this.updatePromptMeta();
+    this.scrollTerm();
     this.startSpinners();
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();
@@ -53,22 +54,16 @@ class PiApp extends HTMLElement {
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
-    if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
     if (this.streamingRenderFrame) window.cancelAnimationFrame(this.streamingRenderFrame);
     if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
     this.uninstallViewportSizing?.();
   }
 
   installViewportSizing() {
-    let currentHeight = "";
     const applyViewportHeight = () => {
       const viewport = window.visualViewport;
-      const height = Math.round(viewport?.height || window.innerHeight);
-      if (height <= 0) return;
-      const nextHeight = `${height}px`;
-      if (nextHeight === currentHeight) return;
-      currentHeight = nextHeight;
-      this.style.setProperty("--app-viewport-height", nextHeight);
+      const height = viewport?.height || window.innerHeight;
+      if (height > 0) this.style.setProperty("--app-viewport-height", `${height}px`);
     };
     const viewport = window.visualViewport;
     applyViewportHeight();
@@ -142,15 +137,13 @@ class PiApp extends HTMLElement {
     this.eventSource = sessionEvents(sessionId, {
       replay: options.replay,
       onOpen: () => {
-        if (this.isActiveEventStream(eventStreamId, sessionId)) this.confirmConnection();
+        if (this.isActiveEventStream(eventStreamId, sessionId)) this.setConnection("ok");
       },
       onError: () => {
-        if (this.isActiveEventStream(eventStreamId, sessionId)) this.deferEventStreamError();
+        if (this.isActiveEventStream(eventStreamId, sessionId)) this.setConnection("err");
       },
       onEvent: (event) => {
-        if (!this.isActiveEventStream(eventStreamId, sessionId)) return;
-        this.confirmConnection();
-        this.applyEvent(event);
+        if (this.isActiveEventStream(eventStreamId, sessionId)) this.applyEvent(event);
       },
     });
   }
@@ -198,34 +191,11 @@ class PiApp extends HTMLElement {
     if (event.type === "tool.finished") this.finishTool(event.payload);
   }
 
-  confirmConnection() {
-    if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
-    this.connectionErrorTimer = undefined;
-    this.setConnection("ok");
-  }
-
-  deferEventStreamError() {
-    const source = this.eventSource;
-    const closedState = globalThis.EventSource?.CLOSED ?? 2;
-    if (source?.readyState === closedState) {
-      this.setConnection("err");
-      return;
-    }
-    this.setConnection("reconnecting");
-    if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
-    this.connectionErrorTimer = window.setTimeout(() => {
-      if (this.eventSource === source) this.setConnection("err");
-    }, 20000);
-  }
-
   setConnection(status) {
     const indicator = this.querySelector(".statusbtn");
-    if (status === "ok") this.apiConnected = true;
     if (!indicator) return;
-    const styles = { ok: ["var(--accent)", "connected"], reconnecting: ["var(--fg-3)", "reconnecting to event stream"], err: ["var(--danger)", "backend disconnected"] };
-    const [color, title] = styles[status] || styles.err;
-    indicator.style.color = color;
-    indicator.title = title;
+    indicator.style.color = status === "ok" ? "var(--accent)" : "var(--danger)";
+    indicator.title = status === "ok" ? "connected" : "backend disconnected";
   }
 
   isCurrentSessionEvent(event) {

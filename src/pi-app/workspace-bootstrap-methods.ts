@@ -9,11 +9,6 @@ import { renderTree } from "../renderers";
 import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 
 const SESSION_MESSAGE_PAGE_SIZE = 120;
-const SESSION_PAGE_CACHE_LIMIT = 8;
-
-function sessionPageSignature(page) {
-  return JSON.stringify([page?.session?.id, page?.status || "idle", page?.cursor || "", !!page?.hasMore, page?.messages||[]]);
-}
 
 function findStoredSession(workspaces, stored) {
   if (!stored?.sessionId) return undefined;
@@ -137,50 +132,19 @@ export const workspaceBootstrapMethods = {
   async loadSession(sessionId) {
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
-    const cachedPage = this.cachedSessionPage(sessionId);
-    if (cachedPage) this.applyLoadedSession(cachedPage.session, cachedPage.messages, cachedPage.status, cachedPage);
-    else this.showSessionSwitchLoading(sessionId);
-
+    this.showSessionSwitchLoading(sessionId);
     try {
       const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
-      this.rememberSessionPage(loaded);
-      if (cachedPage && sessionPageSignature(cachedPage) === sessionPageSignature(loaded)) return;
-      if (cachedPage) loaded.preserveScroll = true;
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
       if (this.sessionLoadToken === loadToken) this.setConnection("err");
     }
   },
 
-  cachedSessionPage(sessionId) {
-    const page = this.sessionPageCache?.get(sessionId);
-    if (!page) return undefined;
-    this.sessionPageCache.delete(sessionId);
-    this.sessionPageCache.set(sessionId, page);
-    return page;
-  },
-
-  rememberSessionPage(page) {
-    if (!page?.session?.id) return;
-    this.sessionPageCache ??= new Map();
-    const cached = { ...page, messages: page.messages || [], status: page.status || "idle" };
-    this.sessionPageCache.set(page.session.id, cached);
-    while (this.sessionPageCache.size > SESSION_PAGE_CACHE_LIMIT) {
-      this.sessionPageCache.delete(this.sessionPageCache.keys().next().value);
-    }
-  },
-
   showSessionSwitchLoading(sessionId) {
-    if (this.scrollFrame) { window.cancelAnimationFrame?.(this.scrollFrame); this.scrollFrame = undefined; }
-    this.resetActiveSessionState?.();
-    this.sessionHistoryCursor = "";
-    this.sessionHistoryHasMore = false; this.sessionHistoryLoading = false;
-    this.renderSessionSwitchLoading(sessionId);
-  },
-
-  renderSessionSwitchLoading(sessionId) {
     if (!this.termInner) return;
+    this.resetActiveSessionState?.();
     this.termInner.replaceChildren();
     this.resetTranscriptWindow?.();
     const row = this.simpleMessage("session loading", "pi >", "");
@@ -199,7 +163,8 @@ export const workspaceBootstrapMethods = {
   applyLoadedSession(session, messages, status = "idle", page: any = {}) {
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState?.();
-    const workspaceId = session.workspaceId || this.findSessionRow(session.id)?.dataset.workspace;
+    const workspaceId = session.workspaceId
+      || this.findSessionRow(session.id)?.dataset.workspace;
     if (workspaceId) this.activateWorkspaceForSession(workspaceId, { loadContext: true });
     this.markSelectedSessionRow?.(session.id);
     storeActiveSession(workspaceId || this.dataset.activeWorkspaceId, session.id);
@@ -207,9 +172,8 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryCursor = page.cursor || "";
     this.sessionHistoryHasMore = !!page.hasMore;
     this.sessionHistoryLoading = false;
-    this.renderMessages(messages, { preserveScroll: page.preserveScroll, deferScroll: !page.preserveScroll });
-    this.suppressLoadingMessageScroll = true; this.setMode(status || "idle"); this.suppressLoadingMessageScroll = false;
-    if (!page.preserveScroll) this.scrollTermToBottomImmediately?.("applyLoadedSession final");
+    this.renderMessages(messages);
+    this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });
   },
 

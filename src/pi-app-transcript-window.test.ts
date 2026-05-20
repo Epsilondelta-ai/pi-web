@@ -29,10 +29,8 @@ describe("pi-app transcript window", () => {
       `<div class="msg" data-kind="pi"><div class="prefix pi">pi &gt;</div><div class="body">existing</div></div>`,
     ].join("");
 
-    app.scrollTerm = vi.fn();
     app.adoptRenderedTranscript();
 
-    expect(app.scrollTerm).not.toHaveBeenCalled();
     expect(app.transcriptItems).toHaveLength(1);
     expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
   });
@@ -138,13 +136,6 @@ describe("pi-app transcript window", () => {
     app.transcriptVisibleStart = 0;
     app.transcriptVisibleEnd = 2;
     app.measureRenderedTranscriptItems();
-
-    const loading = document.createElement("div");
-    const replacement = document.createElement("div");
-    app.transcriptItems = [{ message: { kind: "pi", text: "not materialized" } }, { nodes: [loading] }];
-    expect(() => app.removeTranscriptNode(loading)).not.toThrow();
-    app.transcriptItems = [{ message: { kind: "pi", text: "not materialized" } }, { nodes: [loading] }];
-    expect(app.replaceTranscriptNode(loading, replacement)).toBe(true);
     expect(app.transcriptItemHeight(9)).toBe(80);
   });
 
@@ -200,7 +191,6 @@ describe("pi-app transcript window", () => {
     app.term.style.scrollBehavior = "smooth";
     let scrollTop = 0;
     const scrollWrites = [];
-    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
     Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
     Object.defineProperty(app.term, "scrollTop", {
       configurable: true,
@@ -213,9 +203,12 @@ describe("pi-app transcript window", () => {
 
     app.scrollTerm({ force: true });
     frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
 
-    expect(frames).toHaveLength(0);
-    expect(scrollWrites).toEqual([{ behavior: "auto", value: 900 }]);
+    expect(scrollWrites).toEqual([
+      { behavior: "auto", value: 1000 },
+      { behavior: "auto", value: 1000 },
+    ]);
     expect(app.term.style.scrollBehavior).toBe("smooth");
   });
 
@@ -245,7 +238,7 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(app.term.scrollTop).toBe(900);
+    expect(app.term.scrollTop).toBe(1000);
     expect(app.transcriptFollowBottom).toBe(true);
   });
 });

@@ -117,24 +117,17 @@ describe("pi-app controls", () => {
 
   it("sets app height from the visual viewport for mobile browser chrome", async () => {
     document.body.innerHTML = "";
-    const viewportListeners = {};
-    const viewport = {
-      height: 567,
-      addEventListener: vi.fn((type, listener) => {
-        viewportListeners[type] = listener;
-      }),
-      removeEventListener: vi.fn(),
-    };
-    Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: {
+        height: 567,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    });
     installPiAppFixture();
     const app = await connectPiApp();
-
     expect(app.style.getPropertyValue("--app-viewport-height")).toBe("567px");
-    viewportListeners.scroll();
-    expect(app.style.getPropertyValue("--app-viewport-height")).toBe("567px");
-    viewport.height = 568;
-    viewportListeners.resize();
-    expect(app.style.getPropertyValue("--app-viewport-height")).toBe("568px");
   });
 
   it("toggles the mobile sidebar drawer from the hamburger button", async () => {

@@ -233,28 +233,6 @@ describe("pi-app messages", () => {
     expect(body.innerHTML).toContain("<strong>bold</strong>");
   });
 
-  it("renders loaded transcripts at bottom without a delayed scroll frame", async () => {
-    const frames = [];
-    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-      frames.push(callback);
-      return frames.length;
-    });
-    const app = await connectPiApp();
-    frames.length = 0;
-    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
-    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
-    app.isTermPinnedToBottom = () => true;
-    app.scrollFrame = 123;
-    const cancelFrame = vi.spyOn(window, "cancelAnimationFrame");
-
-    app.renderMessages([{ kind: "pi", text: "loaded" }]);
-
-    expect(cancelFrame).toHaveBeenCalledWith(123);
-    expect(app.scrollFrame).toBeUndefined();
-    expect(app.term.scrollTop).toBe(900);
-    expect(frames).toHaveLength(0);
-  });
-
   it("coalesces repeated terminal scroll requests into one animation frame", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {

@@ -7,13 +7,8 @@ import {
 } from "./fallback-choices";
 
 export const messageMethods = {
-  renderMessages(messages, { preserveScroll = false, deferScroll = false } = {}) {
+  renderMessages(messages) {
     if (!this.termInner) return;
-    const followBottom = this.transcriptFollowBottom;
-    if (this.scrollFrame) {
-      window.cancelAnimationFrame?.(this.scrollFrame);
-      this.scrollFrame = undefined;
-    }
     this.piDeltaBuffer = "";
     this.streamingRows = {};
     this.termInner.replaceChildren();
@@ -21,12 +16,8 @@ export const messageMethods = {
     this.deferTranscriptRender = false;
     this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
     this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
-    this.renderTranscriptWindow({
-      stickToBottom: !preserveScroll,
-      immediate: !preserveScroll,
-      scroll: !deferScroll,
-    });
-    if (preserveScroll) this.transcriptFollowBottom = followBottom;
+    this.renderTranscriptWindow({ stickToBottom: true });
+    this.scrollTerm();
   },
 
   answeredChoiceIdsFrom(messages) {
@@ -128,14 +119,14 @@ export const messageMethods = {
       `<div class="thinking-block"><span class="label">thinking</span><span data-stream-text></span></div>`;
   },
 
-  appendLoadingMessage({ stickToBottom = true } = {}) {
+  appendLoadingMessage() {
     if (!this.termInner || this.termInner.querySelector(".msg.loading")) return;
     const row = this.simpleMessage("pi loading", "pi >", "");
     row.querySelector(".body").innerHTML = `<span class="spinner">⠋</span><span>waiting for response…</span>`;
     row.classList.add("loading");
     row.dataset.kind = "loading";
-    this.appendTranscriptNode(row, { stickToBottom });
-    if (stickToBottom) this.scrollTerm();
+    this.appendTranscriptNode(row, { stickToBottom: true });
+    this.scrollTerm();
   },
 
   removeLoadingMessage() {
@@ -151,7 +142,7 @@ export const messageMethods = {
       this.removeLoadingMessage();
       return;
     }
-    this.appendLoadingMessage({ stickToBottom: !this.suppressLoadingMessageScroll });
+    this.appendLoadingMessage();
   },
 
   hasActiveTranscriptItem() {

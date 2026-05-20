@@ -72,43 +72,6 @@ describe("pi-app core events coverage", () => {
     expect(app.finishTool).toHaveBeenCalled();
   });
 
-  it("keeps transient event stream errors from disabling the API", async () => {
-    const app = await connectPiApp();
-    const indicator = document.createElement("span");
-    indicator.className = "statusbtn";
-    app.append(indicator);
-    app.apiConnected = false;
-    app.eventSource = { readyState: 0, close: vi.fn() };
-
-    app.confirmConnection();
-    expect(app.apiConnected).toBe(true);
-    expect(indicator.title).toBe("connected");
-
-    app.deferEventStreamError();
-    expect(indicator.title).toBe("reconnecting to event stream");
-    expect(indicator.style.color).toBe("var(--fg-3)");
-    expect(app.apiConnected).toBe(true);
-
-    app.confirmConnection();
-    expect(indicator.title).toBe("connected");
-  });
-
-  it("marks the backend disconnected when the event stream stays down", async () => {
-    let timeoutCallback;
-    vi.spyOn(window, "setTimeout").mockImplementation((callback) => {
-      timeoutCallback = callback;
-      return 1;
-    });
-    const app = await connectPiApp();
-    const indicator = document.createElement("span");
-    indicator.className = "statusbtn";
-    app.append(indicator);
-    app.eventSource = { readyState: 0, close: vi.fn() };
-    app.deferEventStreamError();
-    timeoutCallback();
-    expect(indicator.title).toBe("backend disconnected");
-  });
-
   it("connects events, checks stream identity, mode, connection, and quota labels", async () => {
     const app = await connectPiApp();
     const source = { close: vi.fn() };
