@@ -57,6 +57,21 @@ describe("pi-app toast notifications", () => {
     expect(document.querySelector(".session-toast.success")).toBeNull();
   });
 
+  it("shows a backend connection toast instead of response failure for disconnects", async () => {
+    const app = await connectPiApp();
+    setActiveToastContext(app);
+    app.setConnection = vi.fn();
+
+    app.applyEvent({ type: "session.status", payload: { status: "running" } });
+    app.notifyResponseFailure("TypeError: Failed to fetch");
+    app.applyEvent({ type: "session.status", payload: { status: "idle" } });
+
+    expect(document.querySelector(".session-toast.connection").textContent).toContain("백엔드 연결 끊김");
+    expect(document.querySelector(".session-toast.error")).toBeNull();
+    expect(document.querySelector(".session-toast.success")).toBeNull();
+    expect(app.setConnection).toHaveBeenCalledWith("err");
+  });
+
   it("shows a blue choice toast and can dismiss all visible toasts", async () => {
     const app = await connectPiApp();
     setActiveToastContext(app);
