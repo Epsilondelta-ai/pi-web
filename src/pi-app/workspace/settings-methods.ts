@@ -1,4 +1,4 @@
-import { getWorkspaceSettings, saveWorkspaceSettings } from "../../lib/api";
+import { getAuthProviders, getWorkspaceSettings, logoutProvider, saveAPIKey, saveWorkspaceSettings } from "../../lib/api";
 import { SETTINGS_FIELDS, parseSettingsPatch, parseWorkspaceSettings, settingsScopeSchema } from "./settings-schema";
 
 function valueAt(settings, path) {
@@ -39,9 +39,11 @@ export const settingsMethods = {
     }
     this.setSettingsStatus("loading settings…");
     try {
-      const { settings } = await getWorkspaceSettings(workspaceId);
+      const [{ settings }, auth] = await Promise.all([getWorkspaceSettings(workspaceId), getAuthProviders()]);
       this.settingsState = parseWorkspaceSettings(settings);
+      this.authState = auth;
       this.fillSettingsForm();
+      this.fillAuthForm();
       this.setSettingsStatus("blank fields inherit from effective settings");
     } catch (error) {
       this.setSettingsStatus(error instanceof Error ? error.message : String(error), true);
@@ -83,6 +85,72 @@ export const settingsMethods = {
       return;
     }
     control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
+  },
+
+  fillAuthForm() {
+    const providerSelect = this.querySelector("[data-auth-provider]");
+    const status = this.querySelector("[data-auth-status]");
+    if (!providerSelect || !this.authState?.providers) return;
+    const previousValue = providerSelect.value;
+    const providerOptions = this.authState.providers.map((provider) => {
+      const option = document.createElement("option");
+      option.value = provider.id;
+      option.textContent = provider.configured ? `${provider.name} ✓` : provider.name;
+      return option;
+    });
+    providerSelect.replaceChildren(...providerOptions);
+    if (previousValue && this.authState.providers.some((provider) => provider.id === previousValue)) {
+      providerSelect.value = previousValue;
+    }
+    this.setAuthStatus(status?.textContent || "API key is stored in ~/.pi/agent/auth.json");
+  },
+
+  async saveAuthForm(event) {
+    event?.preventDefault();
+    const form = this.querySelector("[data-auth-form]");
+    if (!form || !this.apiConnected) return;
+    const apiKeyControl = form.querySelector("[data-auth-api-key]");
+    const provider = form.querySelector("[data-auth-provider]")?.value;
+    const apiKey = apiKeyControl?.value?.trim();
+    if (!provider || !apiKey) {
+      this.setAuthStatus("provider and API key are required", true);
+      return;
+    }
+    this.setAuthStatus("saving API key…");
+    try {
+      await saveAPIKey(provider, apiKey);
+      apiKeyControl.value = "";
+      this.authState = await getAuthProviders();
+      this.fillAuthForm();
+      this.setAuthStatus("API key saved");
+      void this.loadRuntimeStatus?.(this.dataset.activeWorkspaceId);
+    } catch (error) {
+      this.setAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setConnection("err");
+    }
+  },
+
+  async logoutAuthProvider() {
+    const provider = this.querySelector("[data-auth-provider]")?.value;
+    if (!provider || !this.apiConnected) return;
+    this.setAuthStatus("removing credential…");
+    try {
+      await logoutProvider(provider);
+      this.authState = await getAuthProviders();
+      this.fillAuthForm();
+      this.setAuthStatus("credential removed");
+      void this.loadRuntimeStatus?.(this.dataset.activeWorkspaceId);
+    } catch (error) {
+      this.setAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setConnection("err");
+    }
+  },
+
+  setAuthStatus(message, error = false) {
+    const status = this.querySelector("[data-auth-status]");
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle("err", error);
   },
 
   async saveSettingsForm(event) {

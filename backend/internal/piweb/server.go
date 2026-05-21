@@ -60,6 +60,9 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
 	s.mux.HandleFunc("GET /api/version", s.versionStatus)
+	s.mux.HandleFunc("GET /api/auth/providers", s.authProviders)
+	s.mux.HandleFunc("POST /api/auth/api-key", s.saveAPIKey)
+	s.mux.HandleFunc("DELETE /api/auth/{provider}", s.logoutProvider)
 	s.mux.HandleFunc("GET /api/system/folders", s.listFolders)
 	s.mux.HandleFunc("GET /api/workspaces", s.workspaces)
 	s.mux.HandleFunc("POST /api/workspaces/open", s.openWorkspace)
@@ -113,6 +116,38 @@ func (s *Server) withLogging(next http.Handler) http.Handler {
 		slog.Info("request", "method", r.Method, "path", r.URL.Path, "duration", time.Since(start).String())
 	})
 }
+func (s *Server) authProviders(w http.ResponseWriter, _ *http.Request) {
+	providers, err := AuthProviders()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, providers)
+}
+
+func (s *Server) saveAPIKey(w http.ResponseWriter, r *http.Request) {
+	var req SaveAPIKeyRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	provider, err := SaveAPIKey(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"provider": provider})
+}
+
+func (s *Server) logoutProvider(w http.ResponseWriter, r *http.Request) {
+	provider := r.PathValue("provider")
+	if err := LogoutProvider(provider); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"provider": provider, "configured": false})
+}
+
 func readJSON(r *http.Request, v any) error {
 	defer r.Body.Close()
 	return json.NewDecoder(r.Body).Decode(v)

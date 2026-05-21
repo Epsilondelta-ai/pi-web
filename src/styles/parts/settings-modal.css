@@ -89,6 +89,30 @@
   white-space: nowrap;
   font-family: var(--font-mono);
 }
+.auth-login {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(220px, 2fr) auto auto;
+  gap: var(--space-2);
+  align-items: end;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-1);
+}
+.auth-login label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+.auth-login [data-auth-status] {
+  grid-column: 1 / -1;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
+.auth-login [data-auth-status].err { color: var(--danger); }
 .settings-grid {
   min-height: 0;
   overflow-y: auto;
@@ -157,4 +181,5 @@
 @media (max-width: 680px) {
   .settings-grid { grid-template-columns: 1fr; }
   .settings-toolbar { grid-template-columns: 1fr; }
+  .auth-login { grid-template-columns: 1fr; }
 }

@@ -258,6 +258,19 @@ function isToolCollapsed(msg) {
         </label>
         <span data-settings-path>—</span>
       </div>
+      <div class="auth-login" data-auth-form>
+        <label>provider
+          <select data-auth-provider>
+            <option value="">loading providers…</option>
+          </select>
+        </label>
+        <label>API key
+          <input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" />
+        </label>
+        <button type="button" data-action="save-auth-provider">save key</button>
+        <button type="button" data-action="logout-auth-provider">logout</button>
+        <span data-auth-status>API key is stored in ~/.pi/agent/auth.json</span>
+      </div>
       <div class="settings-grid">
         {settingsFields.map((field) => (
           <label class="settings-field">
