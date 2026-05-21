@@ -4,7 +4,7 @@ import {
   getWorkspaces,
   listFolders,
   openWorkspace as openWorkspaceRequest,
-} from "../api";
+} from "../lib/api";
 
 export const workspaceFolderMethods = {
   async browseFolder() {

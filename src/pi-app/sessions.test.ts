@@ -5,7 +5,7 @@ import {
   connectPiApp,
   installEmptySessionFixture,
   installPiAppFixture,
-} from "./pi-app-test-helper";
+} from "./test-helper";
 
 describe("pi-app sessions", () => {
   beforeEach(installPiAppFixture);

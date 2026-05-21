@@ -1,4 +1,4 @@
-import { escapeHtml } from "../renderers";
+import { escapeHtml } from "../lib/renderers";
 
 const SHIKI_THEME = "github-dark";
 

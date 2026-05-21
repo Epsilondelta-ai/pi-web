@@ -1,4 +1,4 @@
-import { getWorkspaceSettings, saveWorkspaceSettings } from "../api";
+import { getWorkspaceSettings, saveWorkspaceSettings } from "../lib/api";
 
 const SETTINGS_FIELDS = [
   { path: "defaultProvider", type: "text" },

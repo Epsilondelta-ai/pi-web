@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { vi } from "vitest";
-import "./pi-app";
+import "./index";
 
 const nativeFetch = globalThis.fetch;
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PROMPT_DRAFT_STORAGE_KEY } from "./pi-app/constants";
-import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
+import { PROMPT_DRAFT_STORAGE_KEY } from "./constants";
+import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./test-helper";
 
 describe("pi-app controls", () => {
   beforeEach(installPiAppFixture);

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
+import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./test-helper";
 
 describe("pi-app core events coverage", () => {
   beforeEach(() => {
@@ -131,7 +131,7 @@ describe("pi-app core events coverage", () => {
     app.eventSource = source;
     let handlers;
     globalThis.EventSource = undefined;
-    const api = await import("./api");
+    const api = await import("../lib/api");
     vi.spyOn(api, "sessionEvents").mockImplementation((sessionId, options) => {
       handlers = options;
       return { close: vi.fn(), sessionId };
@@ -168,6 +168,6 @@ describe("pi-app core events coverage", () => {
     expect(app.quotaLabel("5h", -1)).toBe("5h 🪫(0%)");
     expect(app.quotaLabel("5h", Number.NaN)).toBeUndefined();
     vi.resetModules();
-    await import("./pi-app");
+    await import("./index");
   });
 });

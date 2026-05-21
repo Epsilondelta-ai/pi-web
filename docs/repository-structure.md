@@ -15,8 +15,9 @@ This repository keeps the root focused on entry points, tool configuration, and 
 ├── src/                        # Astro/React frontend source
 │   ├── components/             # shared UI components
 │   ├── design-system/          # design tokens/components
+│   ├── lib/                    # frontend API, rendering, pure data helpers
 │   ├── pages/                  # Astro pages
-│   └── pi-app/                 # custom element/runtime feature modules
+│   └── pi-app/                 # custom element/runtime feature modules and tests
 ├── .github/                    # GitHub workflows
 ├── .storybook/                 # Storybook configuration
 └── package.json                # top-level build/test/dev commands
@@ -55,6 +56,12 @@ bun run build
 bun run build-storybook
 bun run embed:assets
 ```
+
+## Internal cleanup rules
+
+- Keep `src/lib` for pure helpers and browser API clients that are not custom-element methods.
+- Keep `src/pi-app` for the `<pi-app>` element, feature method modules, and their colocated tests.
+- Keep backend package maps in `backend/README.md` and `backend/internal/piweb/README.md` current when moving files.
 
 ## Future migration option
 

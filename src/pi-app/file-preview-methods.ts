@@ -1,4 +1,4 @@
-import { getWorkspaceFile, saveWorkspaceFile } from "../api";
+import { getWorkspaceFile, saveWorkspaceFile } from "../lib/api";
 import { CodeMirrorFileEditor, codeMirrorLanguageName, editableFileState, isTextFile } from "./file-editor";
 
 export const filePreviewMethods = {

@@ -4,7 +4,7 @@ import {
   getWorkspaceCommands,
   getWorkspaceFiles,
   getWorkspaces,
-} from "../api";
+} from "../lib/api";
 import { readStoredActiveSession, storeActiveSession } from "./session-storage";
 
 const SESSION_MESSAGE_PAGE_SIZE = 120;

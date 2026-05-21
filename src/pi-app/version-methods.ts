@@ -1,4 +1,4 @@
-import { getVersionStatus } from "../api";
+import { getVersionStatus } from "../lib/api";
 
 export const versionMethods = {
   async loadVersionStatus() {

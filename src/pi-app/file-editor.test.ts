@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codeMirrorLanguageName, editableFileState } from "./pi-app/file-editor";
+import { codeMirrorLanguageName, editableFileState } from "./file-editor";
 
 describe("editableFileState", () => {
   it("allows normal text and svg text editing", () => {

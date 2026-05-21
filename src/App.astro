@@ -1,6 +1,6 @@
 ---
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./renderers";
+import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./lib/renderers";
 
 const {
   initialRoute = "workspace",
@@ -296,5 +296,5 @@ const settingsFields = [
 </pi-app>
 
 <script>
-  import "./pi-app";
+  import "./pi-app/index";
 </script>

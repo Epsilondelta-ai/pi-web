@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { languageForFile, renderHighlightedCode } from "./pi-app/file-highlight";
+import { languageForFile, renderHighlightedCode } from "./file-highlight";
 import { codeToHtml } from "shiki";
 
 vi.mock("shiki", () => ({

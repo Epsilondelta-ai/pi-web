@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
+import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./test-helper";
 
 const fallbackChoicePayload = JSON.stringify({
   type: "piweb_choice",

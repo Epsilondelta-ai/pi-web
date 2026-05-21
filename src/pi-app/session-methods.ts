@@ -3,8 +3,8 @@ import {
   deleteSession as deleteSessionRequest,
   deleteWorkspaceSessions as deleteWorkspaceSessionsRequest,
   renameSession as renameSessionRequest,
-} from "../api";
-import { escapeHtml } from "../renderers";
+} from "../lib/api";
+import { escapeHtml } from "../lib/renderers";
 import { decorateSessionRow, sessionKindLabel } from "./session-hierarchy";
 import { sessionMenuMethods } from "./session-menu-methods";
 import { clearStoredActiveSession, storeActiveSession } from "./session-storage";

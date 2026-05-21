@@ -1,4 +1,4 @@
-import { escapeHtml, renderBannerBody, renderPiBody } from "../renderers";
+import { escapeHtml, renderBannerBody, renderPiBody } from "../lib/renderers";
 import {
   parseFallbackChoiceAnswer,
   parseFallbackChoices,

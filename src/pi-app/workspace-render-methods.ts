@@ -1,4 +1,4 @@
-import { escapeHtml } from "../renderers";
+import { escapeHtml } from "../lib/renderers";
 import { appendGroupedSessionRows } from "./session-hierarchy";
 
 export const workspaceRenderMethods = {

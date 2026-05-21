@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
+import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./test-helper";
 
 function okJson(body) {
   return { ok: true, status: 200, statusText: "OK", json: async () => body };

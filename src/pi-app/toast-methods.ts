@@ -1,4 +1,4 @@
-import { sessionEvents } from "../api";
+import { sessionEvents } from "../lib/api";
 import { parseFallbackChoices } from "./fallback-choices";
 
 const TOAST_MESSAGES = {

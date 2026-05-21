@@ -1,4 +1,4 @@
-import { escapeHtml } from "../renderers";
+import { escapeHtml } from "../lib/renderers";
 import { renderToolBody, storeFullToolBody } from "./tool-output-rendering";
 
 export const toolMessageMethods = {

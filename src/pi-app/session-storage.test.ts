@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { clearStoredActiveSession, readStoredActiveSession, storeActiveSession } from "./pi-app/session-storage";
+import { clearStoredActiveSession, readStoredActiveSession, storeActiveSession } from "./session-storage";
 
 function storage(initial = {}) {
   const data = new Map(Object.entries(initial));

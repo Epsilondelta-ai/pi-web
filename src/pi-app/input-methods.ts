@@ -1,4 +1,4 @@
-import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../api";
+import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../lib/api";
 import { fallbackChoicePrompt } from "./fallback-choices";
 
 export const inputMethods = {

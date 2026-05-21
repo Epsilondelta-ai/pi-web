@@ -1,19 +1,19 @@
-import { sessionEvents } from "./api";
-import { attachmentMethods } from "./pi-app/attachment-methods";
-import { SPINNER_FRAMES } from "./pi-app/constants";
-import { filePreviewMethods } from "./pi-app/file-preview-methods";
-import { inputMethods } from "./pi-app/input-methods";
-import { layoutMethods } from "./pi-app/layout-methods";
-import { messageMethods } from "./pi-app/message-methods";
-import { promptDraftMethods } from "./pi-app/prompt-draft-methods";
-import { runtimeStatusMethods } from "./pi-app/runtime-status-methods";
-import { sessionMethods } from "./pi-app/session-methods";
-import { settingsMethods } from "./pi-app/settings-methods";
-import { toastMethods } from "./pi-app/toast-methods";
-import { toolMessageMethods } from "./pi-app/tool-message-methods";
-import { transcriptWindowMethods } from "./pi-app/transcript-window-methods";
-import { versionMethods } from "./pi-app/version-methods";
-import { workspaceMethods } from "./pi-app/workspace-methods";
+import { sessionEvents } from "../lib/api";
+import { attachmentMethods } from "./attachment-methods";
+import { SPINNER_FRAMES } from "./constants";
+import { filePreviewMethods } from "./file-preview-methods";
+import { inputMethods } from "./input-methods";
+import { layoutMethods } from "./layout-methods";
+import { messageMethods } from "./message-methods";
+import { promptDraftMethods } from "./prompt-draft-methods";
+import { runtimeStatusMethods } from "./runtime-status-methods";
+import { sessionMethods } from "./session-methods";
+import { settingsMethods } from "./settings-methods";
+import { toastMethods } from "./toast-methods";
+import { toolMessageMethods } from "./tool-message-methods";
+import { transcriptWindowMethods } from "./transcript-window-methods";
+import { versionMethods } from "./version-methods";
+import { workspaceMethods } from "./workspace-methods";
 
 class PiApp extends HTMLElement {
   connectedCallback() {

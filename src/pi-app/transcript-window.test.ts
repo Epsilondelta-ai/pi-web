@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
+import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./test-helper";
 
 describe("pi-app transcript window", () => {
   beforeEach(installPiAppFixture);
