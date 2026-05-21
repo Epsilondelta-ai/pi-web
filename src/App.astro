@@ -249,49 +249,58 @@ function isToolCollapsed(msg) {
         <div><strong>pi settings</strong><small>same files used by <code>/settings</code></small></div>
         <button type="button" data-action="close-settings" aria-label="close settings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       </div>
-      <div class="settings-toolbar">
-        <label>scope
-          <select name="scope" data-settings-scope>
-            <option value="project">project</option>
-            <option value="global">global</option>
-          </select>
-        </label>
-        <span data-settings-path>—</span>
-      </div>
-      <div class="auth-login" data-auth-form>
-        <label>provider
-          <select data-auth-provider>
-            <option value="">loading providers…</option>
-          </select>
-        </label>
-        <label>API key
-          <input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" />
-        </label>
-        <button type="button" data-action="save-auth-provider">save key</button>
-        <button type="button" data-action="logout-auth-provider">logout</button>
-        <span data-auth-status>API key is stored in ~/.pi/agent/auth.json</span>
-      </div>
-      <div class="settings-grid">
-        {settingsFields.map((field) => (
-          <label class="settings-field">
-            <span>{field.label}</span>
-            {field.type === "text" ? (
-              <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
-            ) : field.type === "boolean" ? (
-              <select data-setting={field.path}>
-                <option value="inherit">inherit</option>
-                <option value="true">on</option>
-                <option value="false">off</option>
-              </select>
-            ) : (
-              <select data-setting={field.path}>
-                <option value="inherit">inherit</option>
-                {field.values.map((value) => <option value={value}>{value}</option>)}
-              </select>
-            )}
-            <small>effective: not set</small>
+      <div class="settings-body">
+        <div class="settings-toolbar">
+          <label>scope
+            <select name="scope" data-settings-scope>
+              <option value="project">project</option>
+              <option value="global">global</option>
+            </select>
           </label>
-        ))}
+          <span data-settings-path>—</span>
+        </div>
+        <details class="auth-login" data-auth-form>
+          <summary>
+            <span class="auth-login-title">Authentication <em>API key login</em></span>
+            <small data-auth-status>API key is stored in ~/.pi/agent/auth.json</small>
+          </summary>
+          <div class="auth-login-fields">
+            <label>provider
+              <select data-auth-provider>
+                <option value="">loading providers…</option>
+              </select>
+            </label>
+            <label>API key
+              <input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" />
+            </label>
+            <div class="auth-login-actions">
+              <button type="button" data-action="save-auth-provider">save key</button>
+              <button type="button" data-action="logout-auth-provider">logout</button>
+            </div>
+          </div>
+        </details>
+        <div class="settings-grid">
+          {settingsFields.map((field) => (
+            <label class="settings-field">
+              <span>{field.label}</span>
+              {field.type === "text" ? (
+                <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
+              ) : field.type === "boolean" ? (
+                <select data-setting={field.path}>
+                  <option value="inherit">inherit</option>
+                  <option value="true">on</option>
+                  <option value="false">off</option>
+                </select>
+              ) : (
+                <select data-setting={field.path}>
+                  <option value="inherit">inherit</option>
+                  {field.values.map((value) => <option value={value}>{value}</option>)}
+                </select>
+              )}
+              <small>effective: not set</small>
+            </label>
+          ))}
+        </div>
       </div>
       <div class="settings-foot">
         <span data-settings-status>blank fields inherit from effective settings</span>
