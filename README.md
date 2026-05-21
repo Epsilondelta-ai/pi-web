@@ -22,6 +22,14 @@ Install from npm:
 npm i -g @epsilondelta-ai/pi-web
 ```
 
+Update an npm install:
+
+```bash
+npm update -g @epsilondelta-ai/pi-web
+```
+
+`pi-web update` is reserved for standalone GitHub release installs and will point npm installs back to npm.
+
 Run after installation:
 
 ```bash

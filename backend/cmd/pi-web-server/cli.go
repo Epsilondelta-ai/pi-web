@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -26,6 +27,7 @@ type serverOptions struct {
 type updateOptions struct {
 	CurrentVersion string
 	RepositorySlug string
+	Installer      string
 }
 
 func newRootCommand(deps rootDependencies) *cobra.Command {
@@ -58,12 +60,13 @@ func newRootCommand(deps rootDependencies) *cobra.Command {
 func newUpdateCommand(update func(io.Writer, updateOptions) error) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update",
-		Short: "Update pi-web to the latest GitHub release",
+		Short: "Update pi-web to the latest version",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return update(cmd.OutOrStdout(), updateOptions{
 				CurrentVersion: version,
 				RepositorySlug: githubRepositorySlug,
+				Installer:      os.Getenv("PI_WEB_INSTALLER"),
 			})
 		},
 	}

@@ -60,10 +60,11 @@ func TestRootCommandRunsServerWithFlags(t *testing.T) {
 	}
 }
 
-func TestUpdateCommandUsesCurrentVersionAndRepository(t *testing.T) {
+func TestUpdateCommandUsesCurrentVersionRepositoryAndInstaller(t *testing.T) {
 	previousVersion := version
 	version = "1.2.3"
 	t.Cleanup(func() { version = previousVersion })
+	t.Setenv("PI_WEB_INSTALLER", "npm")
 
 	var got updateOptions
 	cmd := newRootCommand(rootDependencies{
@@ -84,7 +85,7 @@ func TestUpdateCommandUsesCurrentVersionAndRepository(t *testing.T) {
 		t.Fatalf("execute update command: %v", err)
 	}
 
-	if got.CurrentVersion != "1.2.3" || got.RepositorySlug != githubRepositorySlug {
+	if got.CurrentVersion != "1.2.3" || got.RepositorySlug != githubRepositorySlug || got.Installer != "npm" {
 		t.Fatalf("unexpected update options: %+v", got)
 	}
 }
@@ -101,6 +102,28 @@ func TestRunUpdateRejectsDevelopmentVersion(t *testing.T) {
 	}
 	if fake.called {
 		t.Fatal("updater should not run for development version")
+	}
+}
+
+func TestRunUpdateReportsNpmUpdateCommand(t *testing.T) {
+	fake := &fakeBinaryUpdater{}
+	var out bytes.Buffer
+
+	if err := runUpdateWithUpdater(&out, updateOptions{
+		CurrentVersion: "v1.2.3",
+		RepositorySlug: "owner/repo",
+		Installer:      "npm",
+	}, fake); err != nil {
+		t.Fatalf("run update: %v", err)
+	}
+
+	if fake.called {
+		t.Fatal("npm-installed binary should not self-update")
+	}
+	want := "pi-web was installed with npm; update it with:\n" +
+		"  npm update -g @epsilondelta-ai/pi-web\n"
+	if got := out.String(); got != want {
+		t.Fatalf("unexpected output: %q", got)
 	}
 }
 
