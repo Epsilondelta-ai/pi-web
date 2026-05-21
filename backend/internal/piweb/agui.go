@@ -208,7 +208,7 @@ func (s *aguiStreamState) emitThinkingDelta(delta string, stream *aguiEventStrea
 	if !s.thinkingOpen {
 		s.thinkingID = aguievents.GenerateMessageID()
 		stream.write(aguievents.NewReasoningStartEvent(s.thinkingID))
-		stream.write(aguievents.NewReasoningMessageStartEvent(s.thinkingID, "assistant"))
+		stream.write(aguievents.NewReasoningMessageStartEvent(s.thinkingID, "reasoning"))
 		s.thinkingOpen = true
 	}
 	stream.write(aguievents.NewReasoningMessageContentEvent(s.thinkingID, delta))
