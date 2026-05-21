@@ -58,6 +58,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "4.1.6",
     "jsdom": "29.1.1",
     "storybook": "10.4.0",
     "typescript": "6.0.3",
