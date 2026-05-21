@@ -37,11 +37,10 @@ describe("pi-app toast notifications", () => {
     app.applyEvent({ type: "session.status", payload: { status: "running" } });
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
 
-    expect(app.querySelector(".session-toast.success").textContent).toContain("응답 완료");
-    expect(app.querySelector(".session-toast.success").textContent).toContain("workspace: demo (w1)");
-    expect(app.querySelector(".session-toast.success").textContent).toContain("session: chat (s1)");
-    app.querySelector(".session-toast.success").click();
-    expect(app.querySelector(".session-toast")).toBeNull();
+    expect(document.querySelector(".session-toast.success").textContent).toContain("응답 완료");
+    expect(document.querySelector(".session-toast.success").textContent).toContain("workspace: demo (w1)");
+    expect(document.querySelector(".session-toast.success").textContent).toContain("session: chat (s1)");
+    expect(document.querySelector(".session-toast.success")).toBeTruthy();
   });
 
   it("shows a red failure toast and suppresses completion after a response error", async () => {
@@ -52,10 +51,10 @@ describe("pi-app toast notifications", () => {
     app.applyEvent({ type: "error", payload: { error: "boom" } });
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
 
-    expect(app.querySelector(".session-toast.error").textContent).toContain("응답 실패");
-    expect(app.querySelector(".session-toast.error").textContent).toContain("boom");
-    expect(app.querySelector(".session-toast.error").textContent).toContain("workspace: demo (w1)");
-    expect(app.querySelector(".session-toast.success")).toBeNull();
+    expect(document.querySelector(".session-toast.error").textContent).toContain("응답 실패");
+    expect(document.querySelector(".session-toast.error").textContent).toContain("boom");
+    expect(document.querySelector(".session-toast.error").textContent).toContain("workspace: demo (w1)");
+    expect(document.querySelector(".session-toast.success")).toBeNull();
   });
 
   it("shows a blue choice toast and can dismiss all visible toasts", async () => {
@@ -66,11 +65,9 @@ describe("pi-app toast notifications", () => {
     app.appendMessage({ kind: "pi", text: fallbackChoiceJson });
     app.notifySessionCompleted();
 
-    expect(app.querySelector(".session-toast.choice").textContent).toContain("선택지 요청");
-    expect(app.querySelector(".toast-dismiss-all").hidden).toBe(false);
-    app.querySelector(".toast-dismiss-all").click();
-    expect(app.querySelector(".session-toast")).toBeNull();
-    expect(app.querySelector(".toast-dismiss-all").hidden).toBe(true);
+    expect(document.querySelector(".session-toast.choice").textContent).toContain("선택지 요청");
+    app.dismissAllToasts();
+    expect(document.querySelectorAll(".notyf__toast--disappear")).toHaveLength(2);
   });
 
   it("notifies when an inactive watched session completes", async () => {
@@ -106,10 +103,16 @@ describe("pi-app toast notifications", () => {
       }),
     });
 
-    const toastText = app.querySelector(".session-toast.success").textContent;
+    const toast = document.querySelector(".session-toast.success");
+    const toastText = toast.textContent;
     expect(toastText).toContain("응답 완료");
     expect(toastText).toContain("workspace: other (other-workspace)");
     expect(toastText).toContain("session: background (background-session)");
     expect(sources[0].close).toHaveBeenCalled();
+
+    app.loadSession = vi.fn();
+    toast.click();
+    expect(app.dataset.activeSessionId).toBe("background-session");
+    expect(app.loadSession).toHaveBeenCalledWith("background-session");
   });
 });
