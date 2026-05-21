@@ -169,7 +169,7 @@ class PiApp extends HTMLElement {
       },
       onTextDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;
-        if (!this.running) this.setMode("running");
+        this.setMode("running");
         this.appendDelta({ kind: "pi", delta });
       },
       onTextEnd: (text) => {
@@ -178,17 +178,17 @@ class PiApp extends HTMLElement {
       },
       onThinkingDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;
-        if (!this.running) this.setMode("running");
+        this.setMode("running");
         this.appendDelta({ kind: "think", delta });
       },
       onToolStart: ({ name }) => {
         if (this.dataset.activeSessionId !== sessionId) return;
-        if (!this.running) this.setMode("running");
+        this.setMode("running");
         this.appendMessage({ kind: "tool", tool: name, status: "running", collapsedByDefault: true });
       },
       onToolArgs: ({ name, chunk }) => {
         if (this.dataset.activeSessionId !== sessionId || !chunk) return;
-        if (!this.running) this.setMode("running");
+        this.setMode("running");
         this.appendToolOutput({ tool: name, chunk });
       },
       onToolResult: ({ name, content }) => {
