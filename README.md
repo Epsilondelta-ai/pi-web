@@ -42,3 +42,8 @@ It bundles an Astro-based frontend and a Go backend into a single executable, so
 - **File browsing and preview**: Browse the workspace file tree, read files, edit them, and save changes from the UI.
 - **Local command execution**: Run shell commands in the selected workspace.
 - **Single executable**: Distribute the Astro static build embedded in a Go binary.
+
+## Development
+
+- Repository layout: [`docs/repository-structure.md`](docs/repository-structure.md)
+- Maintenance tasks: [`docs/tasks.md`](docs/tasks.md)

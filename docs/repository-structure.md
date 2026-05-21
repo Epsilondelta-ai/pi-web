@@ -1,0 +1,70 @@
+# Repository structure
+
+This repository keeps the root focused on entry points, tool configuration, and project metadata.
+
+## Current layout
+
+```text
+.
+├── backend/                    # Go server and single-binary entrypoint
+│   ├── cmd/pi-web-server/       # executable package and embedded static placeholder
+│   └── internal/piweb/          # server, sessions, workspace, runner, store code
+├── docs/                       # durable documentation and screenshots
+├── public/                     # Astro static assets
+├── scripts/                    # install/release/dev helper scripts
+├── src/                        # Astro/React frontend source
+│   ├── components/             # shared UI components
+│   ├── design-system/          # design tokens/components
+│   ├── pages/                  # Astro pages
+│   └── pi-app/                 # custom element/runtime feature modules
+├── .github/                    # GitHub workflows
+├── .storybook/                 # Storybook configuration
+└── package.json                # top-level build/test/dev commands
+```
+
+## Root directory rule
+
+Keep only files that are expected at repository root:
+
+- project metadata: `README.md`, `LICENSE`, `AGENTS.md`
+- package/module manifests and lockfiles: `package.json`, `bun.lock`, `go.mod`, `go.sum`
+- tool configuration: `astro.config.ts`, `tsconfig.json`, `vitest.config.ts`, `vitest.setup.ts`
+- VCS/editor configuration: `.gitignore`, `.github/`, `.storybook/`
+
+Everything else should live under a purpose-specific directory:
+
+- durable docs and screenshots -> `docs/`
+- helper scripts -> `scripts/`
+- generated output -> ignored build directories
+- temporary task notes -> `.pi/tasks/` unless they should become documentation
+
+## Generated output
+
+These paths are generated locally and intentionally ignored:
+
+- `.astro/`
+- `dist/`
+- `storybook-static/`
+- `storybook-server/`
+- `backend/cmd/pi-web-server/static/*` except `README.txt`
+
+Regenerate them with:
+
+```bash
+bun run build
+bun run build-storybook
+bun run embed:assets
+```
+
+## Future migration option
+
+If this grows beyond one web UI and one server, migrate incrementally toward the common monorepo shape:
+
+```text
+apps/web/       # Astro/React app
+apps/server/    # Go server/binary
+packages/ui/    # reusable UI/design-system code
+packages/client/# shared API/types/client helpers
+```
+
+Do this only after the conservative cleanup is stable and tests are green.
