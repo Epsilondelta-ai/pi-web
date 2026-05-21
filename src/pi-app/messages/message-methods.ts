@@ -150,7 +150,7 @@ export const messageMethods = {
       ? this.termInner.lastElementChild.lastElementChild
       : this.termInner?.lastElementChild;
     const hasRunningTool = !!this.termInner?.querySelector(".tool-card[data-status='running']");
-    const hasAssistantOutput = !!last?.matches?.(".msg[data-kind='pi']");
+    const hasAssistantOutput = !!last?.matches?.(".msg[data-kind='pi'], .fallback-choice-list");
     return !!last?.matches?.(".msg.streaming") || hasRunningTool || hasAssistantOutput;
   },
 

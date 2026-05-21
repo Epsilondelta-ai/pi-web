@@ -24,8 +24,9 @@ export const inputMethods = {
     this.showSessionMain();
     this.finalizeStreamingMessages();
     const waitForServerEcho = this.apiConnected && sessionId;
+    const useAguiPrompt = waitForServerEcho && typeof EventSource !== "undefined";
     if (text) {
-      if (!waitForServerEcho) this.appendMessage({ kind: "user", text });
+      if (!waitForServerEcho || useAguiPrompt) this.appendMessage({ kind: "user", text });
       this.appendLoadingMessage();
       this.autonameActiveSession(text);
     }
