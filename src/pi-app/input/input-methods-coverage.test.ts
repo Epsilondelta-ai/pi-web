@@ -10,6 +10,22 @@ function err(message = "boom") {
   return { ok: false, status: 500, statusText: "ERR", json: async () => ({ error: message }) };
 }
 
+function aguiResponse() {
+  const events = [
+    { type: "RUN_STARTED", threadId: "s1", runId: "r1" },
+    { type: "TEXT_MESSAGE_START", messageId: "m1", role: "assistant" },
+    { type: "TEXT_MESSAGE_CONTENT", messageId: "m1", delta: "ok" },
+    { type: "TEXT_MESSAGE_END", messageId: "m1" },
+    { type: "RUN_FINISHED", threadId: "s1", runId: "r1" },
+  ].map((event) => `data: ${JSON.stringify(event)}\n\n`).join("");
+  return new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(events));
+      controller.close();
+    },
+  }), { status: 200, headers: { "Content-Type": "text/event-stream" } });
+}
+
 describe("pi-app input methods coverage", () => {
   beforeEach(() => {
     installPiAppFixture();
@@ -157,6 +173,30 @@ describe("pi-app input methods coverage", () => {
     app.prompt.value = "bad";
     await app.submitSteeringPrompt("bad");
     expect(app.setConnection).toHaveBeenCalledWith("err");
+  });
+
+  it("cleans up completed AG-UI prompt and fallback choice streams", async () => {
+    const app = await connectPiApp();
+    globalThis.EventSource = class {};
+    globalThis.fetch = vi.fn(async () => aguiResponse());
+    app.apiConnected = true;
+    app.dataset.activeSessionId = "s1";
+    app.connectEvents = vi.fn();
+    app.prompt.value = "agui prompt";
+
+    await app.submitPrompt();
+
+    expect(String(globalThis.fetch.mock.calls[0][0])).toContain("/api/sessions/s1/ag-ui");
+    expect(app.running).toBe(false);
+    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: false });
+
+    const panel = document.createElement("div");
+    panel.innerHTML = `<button></button><input>`;
+    globalThis.fetch = vi.fn(async () => aguiResponse());
+    await app.submitFallbackChoice("choice-1", "A", panel);
+    expect(app.running).toBe(false);
+    expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
   it("runs shell commands through success, nonzero, and failure paths", async () => {

@@ -29,6 +29,7 @@
     "check": "bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
   },
   "dependencies": {
+    "@ag-ui/client": "^0.0.53",
     "@astrojs/react": "^5.0.5",
     "@codemirror/commands": "^6.10.3",
     "@codemirror/lang-css": "^6.3.1",

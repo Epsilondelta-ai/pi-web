@@ -22,8 +22,18 @@ describe("pi-app transcript window", () => {
     expect(renderedMessages.at(-1).textContent).toContain("message 34");
   });
 
-  it("adopts server-rendered transcript nodes on connect", async () => {
+  it("adopts server-rendered transcript nodes with their collapsed margin height", async () => {
     const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? 35.6953125 : 21.6953125;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
+    vi.spyOn(window, "getComputedStyle").mockImplementation((node) => ({
+      marginTop: "0px",
+      marginBottom: node.classList?.contains("msg") ? "14px" : "0px",
+    }));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     app.termInner.innerHTML = [
       `<div class="transcript-spacer"></div>`,
       `<div class="msg" data-kind="pi"><div class="prefix pi">pi &gt;</div><div class="body">existing</div></div>`,
@@ -32,7 +42,10 @@ describe("pi-app transcript window", () => {
     app.adoptRenderedTranscript();
 
     expect(app.transcriptItems).toHaveLength(1);
+    expect(app.transcriptItems[0].height).toBe(35.6953125);
     expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
+    expect(warn.mock.calls.some((call) => call.some((part) => String(part).includes("height changed unexpectedly"))))
+      .toBe(false);
   });
 
   it("covers tool fallback metadata and output chunks", async () => {
@@ -101,18 +114,88 @@ describe("pi-app transcript window", () => {
       return frames.length;
     });
 
+    let itemHeight = 80;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? itemHeight : 0;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
     const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
     app.renderMessages([]);
     app.appendMessage({ kind: "tool", tool: "bash", status: "running", collapsedByDefault: true });
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
     app.appendToolOutput({ tool: "bash", chunk: "streaming output" });
     frames.splice(0).forEach((callback) => callback(0));
 
     const body = app.querySelector(".tool-card .tc-body");
     expect(body.hidden).toBe(true);
     expect(body.textContent).toContain("streaming output");
+    expect(heightChanged).not.toHaveBeenCalled();
 
+    itemHeight = 120;
     app.toggleTool(app.querySelector(".tc-head"));
     expect(body.hidden).toBe(false);
+    expect(heightChanged).toHaveBeenCalled();
+  });
+
+  it("notifies the virtual scroller after streamed assistant markup changes height", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    let itemHeight = 80;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? itemHeight : 0;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
+    const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    app.renderMessages([]);
+    app.appendDelta({ kind: "pi", delta: "start" });
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
+
+    itemHeight = 120;
+    app.appendDelta({ kind: "pi", delta: "\nsecond line" });
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(app.querySelector(".msg.streaming .markdown-body").innerHTML).toContain("<br>");
+    expect(heightChanged).toHaveBeenCalled();
+  });
+
+  it("syncs rendered item heights before updating virtual-scroller items", async () => {
+    let itemHeight = 80;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? itemHeight : 0;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
+    const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    app.renderMessages(Array.from({ length: 35 }, (_, index) => ({ kind: "pi", text: `message ${index}` })));
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
+
+    itemHeight = 120;
+    app.appendMessage({ kind: "pi", text: "new tail" });
+
+    expect(heightChanged).toHaveBeenCalled();
+  });
+
+  it("skips virtual-scroller notifications for unrendered transcript items", async () => {
+    const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    app.renderMessages(Array.from({ length: 35 }, (_, index) => ({ kind: "pi", text: `message ${index}` })));
+    app.transcriptVisibleStart = 5;
+    app.transcriptVisibleEnd = 35;
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
+    const staleElement = document.createElement("div");
+    staleElement.className = "transcript-item";
+    staleElement.dataset.transcriptItem = String(app.transcriptItems[0].id);
+    app.termInner.append(staleElement);
+
+    app.notifyTranscriptItemHeightDidChange(app.transcriptItems[0], staleElement);
+
+    expect(heightChanged).not.toHaveBeenCalled();
   });
 
   it("covers transcript guard fallback paths", async () => {

@@ -1,4 +1,4 @@
-import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../../lib/api";
+import { cancelSession, createSession, runAguiSessionPrompt, runShellCommand, steerSession } from "../../lib/api";
 import { fallbackChoicePrompt } from "./fallback-choices";
 
 export const inputMethods = {
@@ -24,8 +24,9 @@ export const inputMethods = {
     this.showSessionMain();
     this.finalizeStreamingMessages();
     const waitForServerEcho = this.apiConnected && sessionId;
+    const useAguiPrompt = waitForServerEcho && typeof EventSource !== "undefined";
     if (text) {
-      if (!waitForServerEcho) this.appendMessage({ kind: "user", text });
+      if (!waitForServerEcho || useAguiPrompt) this.appendMessage({ kind: "user", text });
       this.appendLoadingMessage();
       this.autonameActiveSession(text);
     }
@@ -36,13 +37,24 @@ export const inputMethods = {
     if (this.attachments) this.attachments.hidden = true;
     this.updatePrompt();
     if (waitForServerEcho) {
+      this.eventSource?.close();
+      this.eventSource = null;
       this.setMode("running");
       try {
-        await postPrompt(sessionId, text, attachments);
+        const completedInAguiStream = await runAguiSessionPrompt(sessionId, text, attachments, this.aguiSubscriber(sessionId));
+        if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
+          this.setMode("idle");
+          this.finalizeStreamingMessages();
+          this.removeLoadingMessage();
+        }
       } catch {
         this.setMode("idle");
         this.removeLoadingMessage();
         this.setConnection("err");
+      } finally {
+        if (this.dataset.activeSessionId === sessionId && typeof EventSource !== "undefined") {
+          this.connectEvents(sessionId, { replay: false });
+        }
       }
     }
   },
@@ -201,11 +213,23 @@ export const inputMethods = {
     this.appendLoadingMessage();
     this.setMode("running");
     try {
-      await postPrompt(this.dataset.activeSessionId, prompt, []);
+      this.eventSource?.close();
+      this.eventSource = null;
+      const sessionId = this.dataset.activeSessionId;
+      const completedInAguiStream = await runAguiSessionPrompt(sessionId, prompt, [], this.aguiSubscriber(sessionId));
+      if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
+        this.setMode("idle");
+        this.finalizeStreamingMessages();
+        this.removeLoadingMessage();
+      }
     } catch {
       this.setMode("idle");
       this.removeLoadingMessage();
       this.setConnection("err");
+    } finally {
+      if (this.dataset.activeSessionId && typeof EventSource !== "undefined") {
+        this.connectEvents(this.dataset.activeSessionId, { replay: false });
+      }
     }
   },
 

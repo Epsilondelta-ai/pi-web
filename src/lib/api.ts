@@ -1,3 +1,5 @@
+import { HttpAgent } from "@ag-ui/client";
+
 const DEV_API_BASE = "http://127.0.0.1:8732";
 const DEV_PORTS = new Set(["4321", "6006"]);
 
@@ -154,6 +156,77 @@ export function postPrompt(sessionId, text, attachments = []) {
     method: "POST",
     body: JSON.stringify({ text, attachments }),
   });
+}
+
+export async function runAguiSessionPrompt(sessionId, text, attachments = [], subscriber: any = {}) {
+  if (typeof EventSource === "undefined") {
+    await postPrompt(sessionId, text, attachments);
+    return false;
+  }
+  const agent = new HttpAgent({
+    url: `${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/ag-ui`,
+    threadId: sessionId,
+    initialMessages: [
+      {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: text,
+      },
+    ],
+  });
+  const toolBodies = new Map<string, string>();
+  const toolNames = new Map<string, string>();
+  try {
+    await agent.runAgent(
+      {
+        runId: `run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        forwardedProps: { text, attachments },
+      },
+      {
+        onRunStartedEvent: () => subscriber.onRunStarted?.(),
+        onTextMessageContentEvent: ({ event }: any) => subscriber.onTextDelta?.(event.delta || ""),
+        onTextMessageEndEvent: ({ textMessageBuffer }: any) => subscriber.onTextEnd?.(textMessageBuffer || ""),
+        onReasoningMessageContentEvent: ({ event }: any) => subscriber.onThinkingDelta?.(event.delta || ""),
+        onToolCallStartEvent: ({ event }: any) => {
+          const name = event.toolCallName || "tool";
+          toolNames.set(event.toolCallId, name);
+          toolBodies.set(event.toolCallId, "");
+          subscriber.onToolStart?.({ id: event.toolCallId, name });
+        },
+        onToolCallArgsEvent: ({ event, toolCallName }: any) => {
+          const name = toolCallName || toolNames.get(event.toolCallId) || "tool";
+          const chunk = event.delta || "";
+          toolBodies.set(event.toolCallId, `${toolBodies.get(event.toolCallId) || ""}${chunk}`);
+          subscriber.onToolArgs?.({ id: event.toolCallId, name, chunk });
+        },
+        onToolCallResultEvent: ({ event }: any) => {
+          const name = toolNames.get(event.toolCallId) || "tool";
+          const content = event.content || "";
+          toolBodies.set(event.toolCallId, content || toolBodies.get(event.toolCallId) || "");
+          subscriber.onToolResult?.({ id: event.toolCallId, name, content });
+        },
+        onToolCallEndEvent: ({ event, toolCallName, toolCallArgs }: any) => {
+          const name = toolCallName || toolNames.get(event.toolCallId) || "tool";
+          subscriber.onToolEnd?.({
+            id: event.toolCallId,
+            name,
+            args: typeof toolCallArgs === "string" ? toolCallArgs : JSON.stringify(toolCallArgs || {}),
+            body: toolBodies.get(event.toolCallId) || "",
+          });
+        },
+        onRunErrorEvent: ({ event }: any) => subscriber.onRunError?.(event.message || "AG-UI run failed"),
+        onRunFinishedEvent: () => subscriber.onRunFinished?.(),
+        onRunFailed: ({ error }: any) => subscriber.onRunError?.(error?.message || String(error)),
+      },
+    );
+    return true;
+  } catch (error) {
+    if (String(error).includes("Failed to getReader")) {
+      await postPrompt(sessionId, text, attachments);
+      return false;
+    }
+    throw error;
+  }
 }
 
 export function steerSession(sessionId, text, attachments = []) {

@@ -32,7 +32,10 @@ export const messageMethods = {
 
   appendMessage(message) {
     if (!this.termInner || !message) return;
-    if (this.isDuplicateMessage(message)) return;
+    if (this.isDuplicateMessage(message)) {
+      if (message.kind !== "user") this.removeLoadingMessage();
+      return;
+    }
     this.removeLoadingMessage();
     if (message.kind === "pi" || message.kind === "think") this.finishRunningTools();
     if (message.kind === "pi") this.piDeltaBuffer = "";
@@ -84,6 +87,7 @@ export const messageMethods = {
       this.scheduleStreamingRender(messageRow);
     } else if (body) {
       body.textContent += delta;
+      this.notifyTranscriptNodeHeightDidChange(messageRow);
     }
     this.scrollTerm();
   },
@@ -95,7 +99,10 @@ export const messageMethods = {
     }
     const row = this.pendingStreamingRow;
     const body = row?.querySelector("[data-stream-text]") || row?.querySelector(".body");
-    if (body && row?.dataset.streamText !== undefined) body.innerHTML = renderPiBody(row.dataset.streamText);
+    if (body && row?.dataset.streamText !== undefined) {
+      body.innerHTML = renderPiBody(row.dataset.streamText);
+      this.notifyTranscriptNodeHeightDidChange(row);
+    }
     this.pendingStreamingRow = undefined;
   },
 
@@ -150,7 +157,7 @@ export const messageMethods = {
       ? this.termInner.lastElementChild.lastElementChild
       : this.termInner?.lastElementChild;
     const hasRunningTool = !!this.termInner?.querySelector(".tool-card[data-status='running']");
-    const hasAssistantOutput = !!last?.matches?.(".msg[data-kind='pi']");
+    const hasAssistantOutput = !!last?.matches?.(".msg[data-kind='pi'], .fallback-choice-list");
     return !!last?.matches?.(".msg.streaming") || hasRunningTool || hasAssistantOutput;
   },
 
@@ -167,6 +174,7 @@ export const messageMethods = {
       card.dataset.status = status;
       const meta = card.querySelector(".tc-meta");
       if (meta) meta.innerHTML = this.toolStatus({ status, resultMeta });
+      this.notifyTranscriptNodeHeightDidChange(card);
     });
   },
 

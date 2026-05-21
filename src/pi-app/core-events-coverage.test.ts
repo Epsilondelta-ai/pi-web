@@ -72,6 +72,70 @@ describe("pi-app core events coverage", () => {
     expect(app.finishTool).toHaveBeenCalled();
   });
 
+  it("maps AG-UI subscriber callbacks into existing UI events", async () => {
+    const app = await connectPiApp();
+    app.dataset.activeSessionId = "s1";
+    app.confirmConnection = vi.fn();
+    app.setMode = vi.fn((mode) => { app.running = mode === "running" || mode === "thinking"; });
+    app.appendDelta = vi.fn();
+    app.appendMessage = vi.fn();
+    app.appendToolOutput = vi.fn();
+    app.finishTool = vi.fn();
+    app.notifyResponseFailure = vi.fn();
+    app.finalizeStreamingMessages = vi.fn();
+
+    const subscriber = app.aguiSubscriber("s1");
+    subscriber.onRunStarted();
+    app.running = false;
+    subscriber.onTextDelta("hello");
+    app.running = true;
+    subscriber.onTextDelta("hello again");
+    subscriber.onTextEnd("done");
+    app.running = false;
+    subscriber.onThinkingDelta("think");
+    app.running = true;
+    subscriber.onThinkingDelta("think again");
+    app.running = false;
+    subscriber.onToolStart({ name: "bash" });
+    app.running = true;
+    subscriber.onToolStart({ name: "bash" });
+    app.running = false;
+    subscriber.onToolArgs({ name: "bash", chunk: "args" });
+    app.running = true;
+    subscriber.onToolArgs({ name: "bash", chunk: "args again" });
+    subscriber.onToolResult({ name: "bash", content: "result" });
+    subscriber.onToolEnd({ name: "bash", args: "{}", body: "body" });
+    subscriber.onRunError("boom");
+    subscriber.onRunFinished();
+
+    expect(app.confirmConnection).toHaveBeenCalled();
+    expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: "hello" });
+    expect(app.appendDelta).toHaveBeenCalledWith({ kind: "think", delta: "think" });
+    expect(app.appendMessage).toHaveBeenCalledWith({ kind: "pi", text: "done" });
+    expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "args" });
+    expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "result" });
+    expect(app.finishTool).toHaveBeenCalledWith({ kind: "tool", tool: "bash", args: "{}", status: "ok", resultMeta: "done", body: "body" });
+    expect(app.notifyResponseFailure).toHaveBeenCalledWith("boom");
+
+    app.dataset.activeSessionId = "other";
+    subscriber.onRunStarted();
+    subscriber.onTextDelta("skip");
+    subscriber.onTextEnd("skip");
+    subscriber.onThinkingDelta("skip");
+    subscriber.onToolStart({ name: "skip" });
+    subscriber.onToolArgs({ name: "skip", chunk: "skip" });
+    subscriber.onToolResult({ name: "skip", content: "skip" });
+    subscriber.onToolEnd({ name: "skip", args: "", body: "" });
+    subscriber.onRunError("skip");
+    subscriber.onRunFinished();
+    subscriber.onTextDelta("");
+    subscriber.onTextEnd("");
+    subscriber.onThinkingDelta("");
+    subscriber.onToolArgs({ name: "skip", chunk: "" });
+    subscriber.onToolResult({ name: "skip", content: "" });
+    expect(app.appendMessage).not.toHaveBeenCalledWith({ kind: "pi", text: "skip" });
+  });
+
   it("keeps transient event stream errors from disabling the API", async () => {
     const app = await connectPiApp();
     const indicator = document.createElement("span");

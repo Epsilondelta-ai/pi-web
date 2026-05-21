@@ -120,6 +120,7 @@ export const layoutMethods = {
     body.hidden = !body.hidden;
     button.setAttribute("aria-expanded", String(!body.hidden));
     button.querySelector(".tc-caret").textContent = body.hidden ? "▸" : "▾";
+    this.notifyTranscriptNodeHeightDidChange(card);
   },
 
   showFullToolOutput(button) {
@@ -128,6 +129,7 @@ export const layoutMethods = {
     if (!body || !fullBody) return;
     body.textContent = fullBody;
     body.dataset.largeToolBody = "rendered";
+    this.notifyTranscriptNodeHeightDidChange(body);
   },
 
   scrollTerm() {

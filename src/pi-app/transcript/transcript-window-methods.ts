@@ -10,9 +10,17 @@ function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
 }
 
+function numericPixelValue(value) {
+  const parsed = Number.parseFloat(value || "0");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function measuredHeight(nodes) {
-  const heights = nodes.map((node) => node.getBoundingClientRect?.().height || node.offsetHeight || 0);
-  return heights.reduce((total, height) => total + height, 0);
+  return nodes.reduce((total, node) => {
+    const height = node.getBoundingClientRect?.().height || node.offsetHeight || 0;
+    const style = globalThis.getComputedStyle?.(node);
+    return total + height + numericPixelValue(style?.marginTop) + numericPixelValue(style?.marginBottom);
+  }, 0);
 }
 
 export const transcriptWindowMethods = {
@@ -206,11 +214,41 @@ export const transcriptWindowMethods = {
   applyTranscriptVirtualState(state) {
     this.transcriptVisibleStart = state.firstShownItemIndex || 0;
     this.transcriptVisibleEnd = (state.lastShownItemIndex || 0) + 1;
+    state.itemHeights?.forEach((height, index) => {
+      if (height > 0 && this.transcriptItems?.[index]) this.transcriptItems[index].height = height;
+    });
   },
 
   measureTranscriptItem(item, element) {
     const height = measuredHeight([element]);
+    const previousHeight = item?.height;
     if (height > 0) item.height = height;
+    return height > 0 && previousHeight !== height;
+  },
+
+  notifyTranscriptNodeHeightDidChange(node) {
+    const itemElement = node?.closest?.(".transcript-item");
+    const itemId = itemElement?.dataset?.transcriptItem;
+    const item = itemId
+      ? this.transcriptItems?.find((candidate) => String(candidate?.id) === itemId)
+      : this.transcriptItems?.find((candidate) => candidate?.nodes?.some((root) => root === node || root.contains?.(node)));
+    this.notifyTranscriptItemHeightDidChange(item, itemElement);
+  },
+
+  notifyTranscriptItemHeightDidChange(item, element) {
+    if (!item) return;
+    const itemElement = element || this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
+    if (!itemElement?.isConnected || !this.termInner?.contains?.(itemElement)) return;
+    const changed = this.measureTranscriptItem(item, itemElement);
+    if (changed && this.transcriptVirtualScrollerStarted && this.isTranscriptItemVisible(item)) {
+      this.transcriptVirtualScroller?.onItemHeightDidChange(item);
+    }
+    if (this.transcriptFollowBottom !== false && this.isTermPinnedToBottom()) this.scrollTerm({ force: true });
+  },
+
+  isTranscriptItemVisible(item) {
+    const index = this.transcriptItems?.indexOf(item) ?? -1;
+    return index >= this.transcriptVisibleStart && index < this.transcriptVisibleEnd;
   },
 
   measureRenderedTranscriptItems() {
@@ -219,6 +257,14 @@ export const transcriptWindowMethods = {
       const element = this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
       if (element) this.measureTranscriptItem(item, element);
     }
+  },
+
+  syncRenderedTranscriptItemHeights() {
+    this.termInner?.querySelectorAll(".transcript-item[data-transcript-item]").forEach((element) => {
+      const itemId = element.dataset.transcriptItem;
+      const item = this.transcriptItems?.find((candidate) => String(candidate?.id) === itemId);
+      this.notifyTranscriptItemHeightDidChange(item, element);
+    });
   },
 
   transcriptRangeHeight(start, end) {

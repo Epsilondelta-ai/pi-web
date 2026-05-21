@@ -76,6 +76,7 @@ export const toolMessageMethods = {
       const prefix = body.__hasToolOutput || body.childNodes.length ? "\n" : "";
       body.append(document.createTextNode(`${prefix}${chunks.join("\n")}`));
       body.__hasToolOutput = true;
+      if (!body.hidden) this.notifyTranscriptNodeHeightDidChange(body);
     });
   },
 

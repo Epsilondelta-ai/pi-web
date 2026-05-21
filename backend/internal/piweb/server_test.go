@@ -157,6 +157,28 @@ func TestWorkspaceCommandsEndpointUsesMockCommandsWhenPiDisabled(t *testing.T) {
 	}
 }
 
+func TestWorkspaceCommandsEndpointFallsBackWhenPiCommandsFail(t *testing.T) {
+	root := t.TempDir()
+	writeFakePi(t, root, "#!/bin/sh\nexit 0\n")
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{EnablePiExecution: true}, store, NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspace.ID+"/commands", nil)
+	res := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200 fallback, got %d: %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"command":"/review"`) || !strings.Contains(res.Body.String(), `"error"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
 func TestWorkspaceRuntimeStatusEndpointUsesMockStatusWhenPiDisabled(t *testing.T) {
 	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
 	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-status", nil)

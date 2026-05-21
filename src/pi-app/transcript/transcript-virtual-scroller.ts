@@ -27,11 +27,10 @@ function initialTranscriptState(items) {
   const firstShownItemIndex = Math.max(0, items.length - TRANSCRIPT_OVERSCAN_ITEM_COUNT);
   const lastShownItemIndex = Math.max(0, items.length - 1);
   const beforeItemsHeight = transcriptRangeHeight(items, 0, firstShownItemIndex);
-  const itemHeights = items.map(transcriptItemHeight);
 
   return {
     items,
-    itemHeights,
+    itemHeights: new Array(items.length),
     itemStates: new Array(items.length),
     firstShownItemIndex,
     lastShownItemIndex,
@@ -44,11 +43,7 @@ function initialTranscriptState(items) {
 
 function observeTranscriptItem(owner, item, element) {
   if (!globalThis.ResizeObserver) return;
-  const observer = new ResizeObserver(() => {
-    owner.measureTranscriptItem(item, element);
-    owner.transcriptVirtualScroller?.onItemHeightDidChange(item);
-    if (owner.transcriptFollowBottom !== false && owner.isTermPinnedToBottom()) owner.scrollTerm({ force: true });
-  });
+  const observer = new ResizeObserver(() => owner.notifyTranscriptItemHeightDidChange(item, element));
   observer.observe(element);
   owner.transcriptResizeObservers?.set(element, observer);
 }
@@ -110,6 +105,7 @@ export function updateTranscriptVirtualScroller(owner, { preservePrepend = false
       owner.transcriptVirtualScroller.start();
       owner.transcriptVirtualScrollerStarted = true;
     }
+    owner.syncRenderedTranscriptItemHeights?.();
     owner.transcriptVirtualScroller.setItems(owner.transcriptItems, {
       preserveScrollPositionOnPrependItems: preservePrepend,
     });
