@@ -5,6 +5,7 @@ import {
   stripFallbackChoices,
   streamVisibleChoiceText,
 } from "../input/fallback-choices";
+import { TERMINAL_SPINNER_HTML } from "../constants";
 
 export const messageMethods = {
   renderMessages(messages) {
@@ -129,7 +130,7 @@ export const messageMethods = {
   appendLoadingMessage() {
     if (!this.termInner || this.termInner.querySelector(".msg.loading")) return;
     const row = this.simpleMessage("pi loading", "pi >", "");
-    row.querySelector(".body").innerHTML = `<span class="spinner">⠋</span><span>waiting for response…</span>`;
+    row.querySelector(".body").innerHTML = `${TERMINAL_SPINNER_HTML}<span>waiting for response…</span>`;
     row.classList.add("loading");
     row.dataset.kind = "loading";
     this.appendTranscriptNode(row, { stickToBottom: true });

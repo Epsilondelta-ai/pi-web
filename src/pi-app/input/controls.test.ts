@@ -175,14 +175,14 @@ describe("pi-app controls", () => {
     expect(hamburger.getAttribute("aria-label")).toBe("open sidebar");
   });
 
-  it("animates spinner frames by swapping glyphs", async () => {
+  it("renders a terminal dot spinner and advances its frame", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
     app.appendLoadingMessage();
     const spinner = app.querySelector(".spinner");
-    const first = spinner.textContent;
+    expect(spinner.children).toHaveLength(4);
     app.tickSpinners();
-    expect(spinner.textContent).not.toBe(first);
+    expect(spinner.dataset.frame).toBe("1");
   });
 
   it("switches between picker and workspace routes", async () => {

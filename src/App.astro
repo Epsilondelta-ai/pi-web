@@ -21,6 +21,7 @@ import {
 } from "@lucide/astro";
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./lib/renderers";
+import { TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import { SETTINGS_FIELDS as settingsFields } from "./pi-app/workspace/settings-schema";
 
 const {
@@ -61,7 +62,7 @@ const statusColor = showDisconnect ? "var(--danger)" : "var(--fg-3)";
 const statusTitle = showDisconnect ? "disconnected" : "connecting";
 
 function toolStatus(msg) {
-  if (msg.status === "running") return `<span class="spinner">⠋</span><span style="color:var(--accent)">running</span>`;
+  if (msg.status === "running") return `${TERMINAL_SPINNER_HTML}<span style="color:var(--accent)">running</span>`;
   if (msg.status === "err") return `<span class="err">✗</span>${escapeHtml(msg.resultMeta || "failed")}`;
   return `<span class="ok">✓</span>${msg.durationMs ? `${msg.durationMs} ms` : ""}${msg.resultMeta ? ` · ${escapeHtml(msg.resultMeta)}` : ""}`;
 }

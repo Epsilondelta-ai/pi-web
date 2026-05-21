@@ -34,7 +34,7 @@ describe("pi-app core events", () => {
     spinner.className = "spinner";
     app.append(spinner);
     app.tickSpinners();
-    expect(spinner.textContent).not.toBe("");
+    expect(spinner.dataset.frame).toBe("1");
 
     const backgroundSource = { close: vi.fn() };
     app.eventSource = { close: vi.fn() };
