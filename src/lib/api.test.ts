@@ -13,6 +13,7 @@ import {
   getWorkspaceCommands,
   getWorkspaceFile,
   getWorkspaceFiles,
+  getWorkspaceModels,
   getWorkspaceRuntimeModel,
   getWorkspaceRuntimeQuota,
   getWorkspaceRuntimeStatus,
@@ -106,6 +107,8 @@ describe("api adapter", () => {
     expect(JSON.parse(opened.options.body)).toEqual({ path: "/repo" });
     const commands = await getWorkspaceCommands("w1");
     expect(commands.url).toBe("http://backend.test/api/workspaces/w1/commands");
+    const models = await getWorkspaceModels("w1");
+    expect(models.url).toBe("http://backend.test/api/workspaces/w1/models");
     const files = await getWorkspaceFiles("w/1");
     expect(files.url).toBe("http://backend.test/api/workspaces/w%2F1/files");
     const git = await getGitStatus("w/1");

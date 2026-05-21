@@ -295,8 +295,15 @@ function isToolCollapsed(msg) {
           {settingsFields.map((field) => (
             <label class="settings-field">
               <span>{field.label}</span>
-              {field.type === "text" ? (
+                {field.type === "text" ? (
                 <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
+              ) : field.type === "providerSelect" || field.type === "modelSelect" ? (
+                <>
+                  <select data-setting={field.path} disabled>
+                    <option value="inherit">loading models…</option>
+                  </select>
+                  <input data-custom-setting={field.path} autocomplete="off" placeholder={`custom ${field.label}`} hidden />
+                </>
               ) : field.type === "boolean" ? (
                 <select data-setting={field.path}>
                   <option value="inherit">inherit</option>

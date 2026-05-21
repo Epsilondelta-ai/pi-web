@@ -110,6 +110,9 @@ describe("pi-app controls", () => {
         if (String(url).endsWith("/auth/oauth/providers")) {
           return { providers: [{ id: "openai-codex", name: "ChatGPT Plus/Pro", configured: false }] };
         }
+        if (String(url).endsWith("/models")) {
+          return { providers: [{ id: "zai", models: [{ id: "gpt-5.5", provider: "zai" }] }] };
+        }
         if (String(url).endsWith("/auth/oauth/start")) {
           return { session: { id: "oauth-1", provider: "openai-codex", status: "waiting", authUrl: "https://login.test", progress: [] } };
         }
@@ -168,13 +171,16 @@ describe("pi-app controls", () => {
     expect(JSON.parse(authCall[1].body)).toEqual({ provider: "anthropic", apiKey: "sk-test" });
     expect(app.querySelector("[data-auth-api-key]").value).toBe("");
 
+    app.querySelector("[data-setting='defaultModel']").value = "custom";
+    app.querySelector("[data-setting='defaultModel']").dispatchEvent(new Event("change"));
+    app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='transport']").value = "sse";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({
       scope: "project",
-      settings: { transport: "sse", compaction: { enabled: false } },
+      settings: { defaultModel: "my-model", transport: "sse", compaction: { enabled: false } },
     });
   });
 

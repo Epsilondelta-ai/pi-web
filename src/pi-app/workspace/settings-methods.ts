@@ -1,4 +1,12 @@
-import { getAuthProviders, getOAuthProviders, getWorkspaceSettings, logoutProvider, saveAPIKey, saveWorkspaceSettings } from "../../lib/api";
+import {
+  getAuthProviders,
+  getOAuthProviders,
+  getWorkspaceModels,
+  getWorkspaceSettings,
+  logoutProvider,
+  saveAPIKey,
+  saveWorkspaceSettings,
+} from "../../lib/api";
 import { SETTINGS_FIELDS, parseSettingsPatch, parseWorkspaceSettings, settingsScopeSchema } from "./settings-schema";
 
 function valueAt(settings, path) {
@@ -25,6 +33,10 @@ function describeEffective(value) {
   return String(value);
 }
 
+function customInputFor(control) {
+  return control.closest(".settings-field")?.querySelector(`[data-custom-setting='${control.dataset.setting}']`);
+}
+
 export const settingsMethods = {
   async openSettingsModal() {
     const workspaceId = this.dataset.activeWorkspaceId;
@@ -38,15 +50,19 @@ export const settingsMethods = {
       return;
     }
     this.setSettingsStatus("loading settings…");
+    this.setModelControlsLoading("loading models…");
     try {
-      const [{ settings }, auth, oauth] = await Promise.all([
+      const [{ settings }, auth, oauth, models] = await Promise.all([
         getWorkspaceSettings(workspaceId),
         getAuthProviders(),
         getOAuthProviders(),
+        getWorkspaceModels(workspaceId),
       ]);
       this.settingsState = parseWorkspaceSettings(settings);
       this.authState = auth;
       this.oauthState = oauth;
+      this.modelState = models;
+      this.fillModelControls();
       this.fillSettingsForm();
       this.fillAuthForm();
       this.fillOAuthForm();
@@ -59,6 +75,58 @@ export const settingsMethods = {
 
   closeSettingsModal() {
     this.settingsModal?.setAttribute("hidden", "");
+  },
+
+  setModelControlsLoading(message = "loading models…") {
+    for (const control of this.querySelectorAll("[data-setting='defaultProvider'], [data-setting='defaultModel']")) {
+      const option = document.createElement("option");
+      option.value = "inherit";
+      option.textContent = message;
+      control.replaceChildren(option);
+      control.value = "inherit";
+      control.disabled = true;
+      const customInput = customInputFor(control);
+      if (customInput) {
+        customInput.value = "";
+        customInput.hidden = true;
+      }
+    }
+  },
+
+  fillModelControls() {
+    const providerControl = this.querySelector("[data-setting='defaultProvider']");
+    const modelControl = this.querySelector("[data-setting='defaultModel']");
+    if (!providerControl || !modelControl || !this.modelState?.providers) return;
+    const providers = this.modelState.providers;
+    this.replaceSelectOptions(providerControl, providers.map((provider) => provider.id));
+    const selectedProvider = providerControl.value && providerControl.value !== "inherit" && providerControl.value !== "custom"
+      ? providerControl.value
+      : providers[0]?.id;
+    const providerModels = providers.find((provider) => provider.id === selectedProvider)?.models;
+    const models = providerModels || providers.flatMap((provider) => provider.models || []);
+    this.replaceSelectOptions(modelControl, models.map((model) => model.id));
+  },
+
+  replaceSelectOptions(control, values) {
+    const previousValue = control.value;
+    const options = ["inherit", ...values, "custom"];
+    control.replaceChildren(...options.map((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value === "custom" ? "custom…" : value;
+      return option;
+    }));
+    control.disabled = false;
+    control.value = options.includes(previousValue) ? previousValue : "inherit";
+    this.syncCustomSettingInput(control);
+  },
+
+  syncCustomSettingInput(control) {
+    const customInput = customInputFor(control);
+    if (!customInput) return;
+    const custom = control.value === "custom";
+    customInput.hidden = !custom;
+    if (custom) customInput.focus?.();
   },
 
   fillSettingsForm() {
@@ -76,11 +144,25 @@ export const settingsMethods = {
       const hint = control.closest(".settings-field")?.querySelector("small");
       hint?.replaceChildren(`effective: ${describeEffective(effectiveValue)}`);
       this.fillSettingsControl(control, field, explicitValue, effectiveValue);
+      if (field.path === "defaultProvider") this.fillModelControls();
     }
   },
 
   fillSettingsControl(control, field, explicitValue, effectiveValue) {
     control.dataset.settingType = field.type;
+    if (field.type === "providerSelect" || field.type === "modelSelect") {
+      const value = explicitValue === undefined ? "inherit" : String(explicitValue);
+      const customInput = customInputFor(control);
+      if ([...control.options].some((option) => option.value === value)) {
+        control.value = value;
+        if (customInput) customInput.value = "";
+      } else {
+        control.value = "custom";
+        if (customInput) customInput.value = value;
+      }
+      this.syncCustomSettingInput(control);
+      return;
+    }
     if (field.type === "text") {
       control.value = explicitValue === undefined ? "" : String(explicitValue);
       control.placeholder = describeEffective(effectiveValue);
@@ -194,6 +276,14 @@ export const settingsMethods = {
     if (field.type === "text") {
       const value = control.value.trim();
       return value ? value : null;
+    }
+    if (field.type === "providerSelect" || field.type === "modelSelect") {
+      if (control.value === "inherit") return null;
+      if (control.value === "custom") {
+        const value = customInputFor(control)?.value?.trim();
+        return value ? value : null;
+      }
+      return control.value;
     }
     if (control.value === "inherit") return null;
     if (field.type === "boolean") return control.value === "true";

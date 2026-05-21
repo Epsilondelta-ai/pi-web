@@ -179,6 +179,26 @@ func TestWorkspaceCommandsEndpointFallsBackWhenPiCommandsFail(t *testing.T) {
 	}
 }
 
+func TestWorkspaceModelsEndpointUsesMockModelsWhenPiDisabled(t *testing.T) {
+	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/models", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"id":"zai"`) || !strings.Contains(res.Body.String(), `"id":"gpt-5.5"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
+func TestParseListModelsOutput(t *testing.T) {
+	models := parseListModelsOutput("provider  model  context  max-out  thinking  images\nzai gpt-5.5 1M 64K yes no\nanthropic claude 200K 8K yes yes\n")
+	if len(models.Providers) != 2 || models.Providers[0].ID != "anthropic" || models.Providers[1].Models[0].ID != "gpt-5.5" {
+		t.Fatalf("unexpected models: %+v", models)
+	}
+}
+
 func TestWorkspaceRuntimeStatusEndpointUsesMockStatusWhenPiDisabled(t *testing.T) {
 	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
 	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-status", nil)

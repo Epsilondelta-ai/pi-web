@@ -61,7 +61,7 @@ describe("pi-app core events", () => {
   it("binds DOM and window events to current methods", async () => {
     const app = await connectPiApp();
     const calls = [];
-    ["submitWorkspacePath", "submitCloneWorkspace", "submitShellCommand", "saveSettingsForm", "fillSettingsForm",
+    ["submitWorkspacePath", "submitCloneWorkspace", "submitShellCommand", "saveSettingsForm", "fillSettingsForm", "fillModelControls", "syncCustomSettingInput", "setModelControlsLoading",
       "submitPrompt", "cancelActiveSession", "handlePromptPaste", "navigateList", "pickSlash", "addFiles", "startResize",
       "shortcut", "closeSessionMenus"].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
     app.slashPopover.hidden = false;
@@ -82,6 +82,8 @@ describe("pi-app core events", () => {
     shellForm.dispatchEvent(new Event("submit"));
     app.querySelector("[data-settings-form]").dispatchEvent(new Event("submit"));
     app.querySelector("[data-settings-scope]").dispatchEvent(new Event("change"));
+    app.querySelector("[data-setting='defaultProvider']").dispatchEvent(new Event("change"));
+    app.querySelector("[data-setting='defaultModel']").dispatchEvent(new Event("change"));
     app.sendButton.click();
     app.stopButton.click();
     app.prompt.dispatchEvent(new Event("input"));
