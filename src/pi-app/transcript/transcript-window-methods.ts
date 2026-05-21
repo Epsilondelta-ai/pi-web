@@ -10,9 +10,17 @@ function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
 }
 
+function numericPixelValue(value) {
+  const parsed = Number.parseFloat(value || "0");
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function measuredHeight(nodes) {
-  const heights = nodes.map((node) => node.getBoundingClientRect?.().height || node.offsetHeight || 0);
-  return heights.reduce((total, height) => total + height, 0);
+  return nodes.reduce((total, node) => {
+    const height = node.getBoundingClientRect?.().height || node.offsetHeight || 0;
+    const style = globalThis.getComputedStyle?.(node);
+    return total + height + numericPixelValue(style?.marginTop) + numericPixelValue(style?.marginBottom);
+  }, 0);
 }
 
 export const transcriptWindowMethods = {

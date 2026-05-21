@@ -22,13 +22,17 @@ describe("pi-app transcript window", () => {
     expect(renderedMessages.at(-1).textContent).toContain("message 34");
   });
 
-  it("adopts server-rendered transcript nodes on connect", async () => {
+  it("adopts server-rendered transcript nodes with their collapsed margin height", async () => {
     const app = await connectPiApp();
     Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
       const height = this.classList?.contains("transcript-item") ? 35.6953125 : 21.6953125;
       return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
     });
+    vi.spyOn(window, "getComputedStyle").mockImplementation((node) => ({
+      marginTop: "0px",
+      marginBottom: node.classList?.contains("msg") ? "14px" : "0px",
+    }));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     app.termInner.innerHTML = [
       `<div class="transcript-spacer"></div>`,
@@ -38,6 +42,7 @@ describe("pi-app transcript window", () => {
     app.adoptRenderedTranscript();
 
     expect(app.transcriptItems).toHaveLength(1);
+    expect(app.transcriptItems[0].height).toBe(35.6953125);
     expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
     expect(warn.mock.calls.some((call) => call.some((part) => String(part).includes("height changed unexpectedly"))))
       .toBe(false);
