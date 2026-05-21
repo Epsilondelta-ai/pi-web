@@ -173,10 +173,18 @@
   border: 0;
   color: var(--fg-3);
   cursor: pointer;
-  font-size: 14px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
-  padding: 0 2px;
+  padding: 0;
   margin-left: 2px;
+}
+.attach-chip .ac-remove svg {
+  display: block;
+  flex: 0 0 auto;
 }
 .attach-chip .ac-remove:hover { color: var(--danger); }
 .prompt-prefix {
@@ -222,6 +230,15 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
   height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.send-btn svg,
+.stop-btn svg {
+  display: block;
+  flex: 0 0 auto;
 }
 .send-btn {
   background: var(--accent);

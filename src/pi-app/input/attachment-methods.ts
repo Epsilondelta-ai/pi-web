@@ -1,4 +1,5 @@
 const INLINE_LIMIT = 256 * 1024;
+const LUCIDE_X_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;
 
 export const attachmentMethods = {
   async handlePromptPaste(event) {
@@ -82,7 +83,7 @@ export const attachmentMethods = {
       this.attachmentPreviewMarkup(file, previewUrl),
       `<span class="ac-name"></span>`,
       `<span class="ac-size">${this.formatBytes(size)}</span>`,
-      `<button class="ac-remove" type="button" data-remove-attachment aria-label="remove">×</button>`,
+      `<button class="ac-remove" type="button" data-remove-attachment aria-label="remove">${LUCIDE_X_ICON}</button>`,
     ].join("");
     chip.querySelector(".ac-name").textContent = name;
     this.attachments.append(chip);

@@ -132,6 +132,23 @@ button.tc-head {
   gap: var(--space-1);
   margin-left: auto;
 }
+.topbar .iconbtn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg-2);
+  border-radius: var(--radius-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+.topbar .iconbtn svg {
+  display: block;
+  flex: 0 0 auto;
+}
 .topbar .iconbtn.statusbtn {
   min-width: 32px;
   padding: 0;
