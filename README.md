@@ -10,9 +10,25 @@
 
 ## Installation
 
+Install the latest GitHub release binary:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
+
+Install with npm from GitHub source:
+
+```bash
+npm i -g github:Epsilondelta-ai/pi-web
+```
+
+After npm registry publishing, install the scoped package:
+
+```bash
+npm i -g @epsilondelta-ai/pi-web
+```
+
+> npm source installs require Bun and Go because the package builds the single binary during install.
 
 Run after installation:
 
