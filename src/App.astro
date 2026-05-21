@@ -1,4 +1,24 @@
 ---
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CornerDownLeft,
+  Folder,
+  GitBranch,
+  Menu,
+  Paperclip,
+  Play,
+  Plus,
+  RefreshCw,
+  SendHorizontal,
+  Settings,
+  Square,
+  Trash2,
+  X,
+} from "@lucide/astro";
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./lib/renderers";
 import { SETTINGS_FIELDS as settingsFields } from "./pi-app/workspace/settings-schema";
@@ -54,8 +74,8 @@ function isToolCollapsed(msg) {
 
 <pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-sidebar={sidebarCollapsed ? "collapsed" : "open"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
   <header class="topbar">
-    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style={sidebarCollapsed ? "display:inline-flex" : "display:none"}>›</button>
-    <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar">≡</button>
+    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style={sidebarCollapsed ? "display:inline-flex" : "display:none"}><ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" /></button>
+    <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar"><Menu size={16} strokeWidth={1.75} aria-hidden="true" /></button>
     <span class="brand" aria-label="pi.dev / web">
       <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
     </span>
@@ -65,7 +85,7 @@ function isToolCollapsed(msg) {
     </span>
     <div class="actions">
       <button class:list={["iconbtn", treeOpen && "on"]} type="button" data-action="toggle-tree" aria-label="toggle file tree" title="files" hidden={workspaceHidden}>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 3.5h5l1.2 1.5h6.8v8.5h-13z" stroke-linejoin="round"></path></svg>
+        <Folder size={14} strokeWidth={1.5} aria-hidden="true" />
       </button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
     </div>
@@ -81,11 +101,11 @@ function isToolCollapsed(msg) {
         <div class="card-head"><span class="left">open a folder</span></div>
         <form class="input-row" data-path-form>
           <input name="path" placeholder="~/code/my-project   or   /Users/me/Code/project" autocomplete="off" />
-          <button class="open-btn" type="submit" aria-label="open typed path">open ↵</button>
+          <button class="open-btn" type="submit" aria-label="open typed path">open <CornerDownLeft size={12} strokeWidth={1.75} aria-hidden="true" /></button>
         </form>
         <div style="padding:0 16px 12px;font-size:11px;color:var(--fg-3)">paste a path, pick from <code>~</code>, or drop a folder onto the window.</div>
         <div class="folder-browser" data-folder-browser>
-          <div class="folder-browser-head"><button type="button" data-action="folder-up">↑ up</button><span data-folder-path>~</span><button type="button" data-action="folder-open-current">open this folder</button></div>
+          <div class="folder-browser-head"><button type="button" data-action="folder-up"><ArrowUp size={12} strokeWidth={1.75} aria-hidden="true" /> up</button><span data-folder-path>~</span><button type="button" data-action="folder-open-current">open this folder</button></div>
           <div class="folder-list" data-folder-list></div>
         </div>
         <form class="clone-row" data-clone-form>
@@ -98,10 +118,10 @@ function isToolCollapsed(msg) {
         <div class="card-head"><span class="left">recent workspaces</span><span class="right" data-workspace-count>{workspaces.length} known</span></div>
         {workspaces.slice(0, 4).map((workspace) => (
           <button class="recent-row" type="button" data-workspace={workspace.id} aria-label={`open ${workspace.name}`}>
-            <span class="glyph">▸</span>
+            <span class="glyph"><ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" /></span>
             <span class="ws-info"><span class="name">{workspace.name}</span><span class="path">{workspace.path}</span></span>
             <span class="ws-stat">{workspace.live ? <><span class="live">● live</span><span class="lbl">{workspace.sessionCount} sessions</span></> : <><span>{workspace.lastUsed}</span><span class="lbl">{workspace.sessionCount} sessions</span></>}</span>
-            <span class="open-cta">open ↵</span>
+            <span class="open-cta">open <CornerDownLeft size={12} strokeWidth={1.75} aria-hidden="true" /></span>
           </button>
         ))}
       </div>
@@ -112,7 +132,7 @@ function isToolCollapsed(msg) {
     <div class="sidebar-wrap" hidden={sidebarCollapsed}>
       <aside class="sidebar" aria-label="workspaces and sessions">
         <div class="sb-section" style="flex:1;overflow-y:auto;min-height:0">
-          <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker">+ open</button><button class="refresh" type="button" data-action="refresh-workspaces" title="refresh workspaces" aria-label="refresh workspaces">↻</button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar">‹</button></span></div>
+          <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /> open</button><button class="refresh" type="button" data-action="refresh-workspaces" title="refresh workspaces" aria-label="refresh workspaces"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar"><ChevronLeft size={14} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
           {workspaces.map((workspace) => {
             const isActiveWorkspace = workspace.id === activeWorkspaceID;
             return (
@@ -132,7 +152,8 @@ function isToolCollapsed(msg) {
                     </button>
                   ))}
                   {(workspace.sessions || []).length === 0 && <div style="padding:12px 16px;color:var(--fg-3);font-size:12px;font-style:italic">no sessions yet · press N to start one</div>}
-                  <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="title">+ new session</span></button>
+                  {(workspace.sessions || []).length > 0 && <button type="button" class="session-row clear-sessions-row" data-action="delete-workspace-sessions" data-workspace={workspace.id}><span class="title"><Trash2 size={12} strokeWidth={1.75} aria-hidden="true" /> delete all sessions</span></button>}
+                  <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="title"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /> new session</span></button>
                 </div>
               </div>
             );
@@ -143,7 +164,7 @@ function isToolCollapsed(msg) {
           <span class="update-tip" data-update-tip hidden={!showUpdateTip}>Run <code>pi-web update</code>, then restart pi-web.</span>
           <div class="sb-footer-status">
             <span class="status-dot"></span><span>connecting</span>
-            <button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings">⚙</button>
+            <button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings"><Settings size={14} strokeWidth={1.75} aria-hidden="true" /></button>
           </div>
         </div>
       </aside>
@@ -155,7 +176,7 @@ function isToolCollapsed(msg) {
       <form class="shell-row" data-shell-form>
         <span class="shell-prefix">$</span>
         <input name="command" placeholder="run shell command in workspace" autocomplete="off" />
-        <button type="submit">run</button>
+        <button type="submit" aria-label="run shell command" title="run shell command"><Play size={14} strokeWidth={2} aria-hidden="true" /></button>
       </form>
       <div class:list={["term", scanlines && "scanlines"]}>
         <div class="term-inner">
@@ -168,7 +189,7 @@ function isToolCollapsed(msg) {
             msg.kind === "pi" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(msg.text)}></div></div> :
             msg.kind === "tool" ? <div class:list={["tool-card", isToolCollapsed(msg) && "collapsed"]} data-tool={msg.tool}>
               <button type="button" class="tc-head" aria-expanded={isToolCollapsed(msg) ? "false" : "true"} data-action="toggle-tool">
-                <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={`${toolStatus(msg)}<span class="tc-caret">${isToolCollapsed(msg) ? "▸" : "▾"}</span>`}></span>
+                <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={toolStatus(msg)}></span><span class="tc-caret">{isToolCollapsed(msg) ? <ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={1.75} aria-hidden="true" />}</span>
               </button>
               {msg.body && <div class="tc-body" hidden={isToolCollapsed(msg)} set:html={renderAnsiBody(msg.body)}></div>}
             </div> : null
@@ -176,7 +197,7 @@ function isToolCollapsed(msg) {
           <div class="compaction" hidden={compactionHidden}><span class="lbl">⚠ context summarized</span><span>older messages summarized · /undo to revert</span></div>
         </div>
       </div>
-      <button type="button" class="scroll-bottom-btn" data-action="scroll-bottom" aria-label="scroll to bottom" title="scroll to bottom" hidden>↓</button>
+      <button type="button" class="scroll-bottom-btn" data-action="scroll-bottom" aria-label="scroll to bottom" title="scroll to bottom" hidden><ArrowDown size={14} strokeWidth={1.75} aria-hidden="true" /></button>
     </main>
 
     <main class="main" data-main="empty" hidden={emptyHidden}> 
@@ -184,7 +205,7 @@ function isToolCollapsed(msg) {
     </main>
 
     <aside class="tree" aria-label="file tree" hidden={treeHidden}> 
-      <div class="tree-head"><span>files</span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="refresh-tree" aria-label="refresh file tree" title="refresh file tree">↻</button></span></div>
+      <div class="tree-head"><span>files</span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="refresh-tree" aria-label="refresh file tree" title="refresh file tree"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
       <div class="tree-list">
         <WorkspaceFileTree client:load initialFiles={fileTree} />
       </div>
@@ -193,7 +214,7 @@ function isToolCollapsed(msg) {
       <div class="fp-dialog" role="dialog" aria-modal="true" aria-labelledby="file-preview-title">
         <div class="fp-head">
           <div><strong id="file-preview-title" class="fp-path">file</strong><small></small></div>
-          <div class="fp-actions"><button type="button" data-action="save-file-preview" hidden>save</button><button type="button" data-action="toggle-file-preview-mode" hidden>text</button><button type="button" data-action="close-file-preview" aria-label="close file preview">×</button></div>
+          <div class="fp-actions"><button type="button" data-action="save-file-preview" hidden>save</button><button type="button" data-action="toggle-file-preview-mode" hidden>text</button><button type="button" data-action="close-file-preview" aria-label="close file preview"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button></div>
         </div>
         <div class="fp-body"></div>
       </div>
@@ -207,13 +228,13 @@ function isToolCollapsed(msg) {
       })}</div>
     </div>
     <div class="prompt-bar">
-      <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5 6 10a2 2 0 1 0 2.8 2.8l5.7-5.7a3.5 3.5 0 0 0-5-5L3.7 7.9a5 5 0 1 0 7 7l4.8-4.8"></path></svg></button>
+      <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><Paperclip size={14} strokeWidth={1.5} aria-hidden="true" /></button>
       <input type="file" multiple hidden data-file-input />
       <div class="prompt-input-col"><div class="attach-chips" hidden></div><textarea class="prompt-textarea" placeholder="ask pi to do something…" rows="1"></textarea></div>
-      <div class="prompt-actions"><button class="stop-btn" type="button" hidden>stop</button><button class="send-btn" type="button" disabled>send</button></div>
+      <div class="prompt-actions"><button class="stop-btn" type="button" aria-label="stop" title="stop" hidden><Square size={13} strokeWidth={2} aria-hidden="true" /></button><button class="send-btn" type="button" aria-label="send" title="send" disabled><SendHorizontal size={14} strokeWidth={2} aria-hidden="true" /></button></div>
       <div class="drop-overlay" hidden><span>drop to attach</span></div>
     </div>
-    <div class="prompt-meta" data-prompt-meta>— |  —</div>
+    <div class="prompt-meta" data-prompt-meta>— | <span class="prompt-meta-item prompt-meta-branch"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /><span>—</span></span></div>
   </div>
 
     <div class="scrim" data-action="close-drawer"></div>
@@ -225,7 +246,7 @@ function isToolCollapsed(msg) {
     <form class="settings-dialog" data-settings-form>
       <div class="settings-head">
         <div><strong>pi settings</strong><small>same files used by <code>/settings</code></small></div>
-        <button type="button" data-action="close-settings" aria-label="close settings">×</button>
+        <button type="button" data-action="close-settings" aria-label="close settings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       </div>
       <div class="settings-toolbar">
         <label>scope
@@ -266,7 +287,7 @@ function isToolCollapsed(msg) {
     </form>
   </div>
 
-  <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks">×</button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
+  <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
 </pi-app>
 
 <script>

@@ -1,4 +1,5 @@
 import { sessionEvents } from "../lib/api";
+import { escapeHtml } from "../lib/renderers";
 import { SPINNER_FRAMES } from "./constants";
 import { filePreviewMethods } from "./editor/file-preview-methods";
 import { attachmentMethods } from "./input/attachment-methods";
@@ -317,19 +318,34 @@ class PiApp extends HTMLElement {
     };
     const model = this.runtimeStatus.model || "—";
     const currentBranch = this.runtimeStatus.currentBranch || "—";
-    const parts = [model];
+    const parts = [escapeHtml(model)];
     const fiveHour = this.quotaLabel("5h", this.runtimeStatus.fiveHourQuota);
     const weekly = this.quotaLabel("Week", this.runtimeStatus.weeklyQuota);
     if (fiveHour) parts.push(fiveHour);
     if (weekly) parts.push(weekly);
-    parts.push(` ${currentBranch}`);
-    meta.textContent = parts.join(" | ");
+    parts.push(this.branchLabel(currentBranch));
+    meta.innerHTML = parts.join(" | ");
+  }
+
+  branchLabel(branch) {
+    return `<span class="prompt-meta-item prompt-meta-branch">${this.promptMetaIcon("git-branch")}<span>${escapeHtml(branch)}</span></span>`;
   }
 
   quotaLabel(label, quota) {
     if (!Number.isFinite(quota)) return undefined;
     const percent = Math.max(0, Math.min(100, Math.round(quota)));
-    return `${label} ${percent > 20 ? "🔋" : "🪫"}(${percent}%)`;
+    const level = percent >= 70 ? "full" : percent >= 30 ? "medium" : "low";
+    return `<span class="prompt-meta-item prompt-meta-battery prompt-meta-battery-${level}">${escapeHtml(label)} ${this.promptMetaIcon(`battery-${level}`)}(${percent}%)</span>`;
+  }
+
+  promptMetaIcon(name) {
+    const icons = {
+      "battery-full": `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect x="2" y="6" width="16" height="12" rx="2"></rect></svg>`,
+      "battery-medium": `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14v-4"></path><path d="M22 14v-4"></path><path d="M6 14v-4"></path><rect x="2" y="6" width="16" height="12" rx="2"></rect></svg>`,
+      "battery-low": `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 14v-4"></path><path d="M6 14v-4"></path><rect x="2" y="6" width="16" height="12" rx="2"></rect></svg>`,
+      "git-branch": `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6a9 9 0 0 0-9 9V3"></path><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle></svg>`,
+    };
+    return icons[name] || "";
   }
 }
 

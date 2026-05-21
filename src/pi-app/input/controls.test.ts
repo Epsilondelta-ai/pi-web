@@ -74,7 +74,7 @@ describe("pi-app controls", () => {
 
   it("renders the compact prompt status line from runtime status", async () => {
     const app = await connectPiApp();
-    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("— |  —");
+    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("— | —");
     app.updatePromptMeta({
       model: "GPT-5.5",
       fiveHourQuota: 84,
@@ -82,15 +82,19 @@ describe("pi-app controls", () => {
       currentBranch: "feature/ui",
     });
     expect(app.querySelector("[data-prompt-meta]").textContent).toBe(
-      "GPT-5.5 | 5h 🔋(84%) | Week 🪫(14%) |  feature/ui",
+      "GPT-5.5 | 5h (84%) | Week (14%) | feature/ui",
     );
+    expect(app.querySelector(".prompt-meta-battery-full svg")).not.toBeNull();
+    expect(app.querySelector(".prompt-meta-battery-low svg")).not.toBeNull();
+    expect(app.querySelector(".prompt-meta-branch svg")).not.toBeNull();
     app.updatePromptMeta({ fiveHourQuota: 20, weeklyQuota: 21 });
     expect(app.querySelector("[data-prompt-meta]").textContent).toBe(
-      "GPT-5.5 | 5h 🪫(20%) | Week 🔋(21%) |  feature/ui",
+      "GPT-5.5 | 5h (20%) | Week (21%) | feature/ui",
     );
+    expect(app.querySelector(".prompt-meta-battery-low svg")).not.toBeNull();
     app.runtimeStatus = {};
     app.updatePromptMeta({ model: "Claude", currentBranch: "main" });
-    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("Claude |  main");
+    expect(app.querySelector("[data-prompt-meta]").textContent).toBe("Claude | main");
   });
 
   it("opens and saves workspace settings from the settings modal", async () => {

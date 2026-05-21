@@ -18,6 +18,7 @@
         "@codemirror/search": "^6.7.0",
         "@codemirror/state": "^6.6.0",
         "@codemirror/view": "^6.43.0",
+        "@lucide/astro": "^1.16.0",
         "astro": "6.3.3",
         "markdown-it": "^14.1.1",
         "notyf": "^3.10.0",
@@ -286,6 +287,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@lucide/astro": ["@lucide/astro@1.16.0", "", {}, "sha512-RWT+9Y1UAMnz/oiJMssnQTSeBM0AbwzK1SsOeY2zQungN7PQxm4Pp4bNxIVp/Wu77TBXkpPoaIyxYqagZVjWGQ=="],
 
     "@lezer/common": ["@lezer/common@1.5.2", "", {}, "sha512-sxQE460fPZyU3sdc8lafxiPwJHBzZRy/udNFynGQky1SePYBdhkBl1kOagA9uT3pxR8K09bOrmTUqA9wb/PjSQ=="],
 
