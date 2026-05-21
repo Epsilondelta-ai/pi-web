@@ -90,7 +90,7 @@ class PiApp extends HTMLElement {
 
   startSpinners() {
     if (this.spinnerTimer) return;
-    this.spinnerTimer = setInterval(() => this.tickSpinners(), 100);
+    this.spinnerTimer = setInterval(() => this.tickSpinners(), 150);
   }
 
   tickSpinners() {
