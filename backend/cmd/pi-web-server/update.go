@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -39,6 +40,12 @@ var (
 		return newGitHubSelfUpdater()
 	}
 	newSelfupdateUpdater = selfupdate.NewUpdater
+	runBrewUpgrade      = func(out io.Writer) error {
+		cmd := exec.Command("brew", "upgrade", "pi-web")
+		cmd.Stdout = out
+		cmd.Stderr = out
+		return cmd.Run()
+	}
 )
 
 func runUpdate(out io.Writer, options updateOptions) error {
@@ -134,6 +141,13 @@ func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUp
 	if options.Installer == "npm" {
 		fmt.Fprintln(out, "pi-web was installed with npm; update it with:")
 		fmt.Fprintln(out, "  npm update -g @epsilondelta-ai/pi-web")
+		return nil
+	}
+	if options.Installer == "brew" {
+		fmt.Fprintln(out, "Updating pi-web with Homebrew...")
+		if err := runBrewUpgrade(out); err != nil {
+			return fmt.Errorf("brew upgrade pi-web failed: %w", err)
+		}
 		return nil
 	}
 

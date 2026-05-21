@@ -16,6 +16,20 @@ Install the latest GitHub release binary:
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
+Install from Homebrew:
+
+```bash
+brew tap Epsilondelta-ai/tap
+brew install pi-web
+```
+
+Update a Homebrew install:
+
+```bash
+pi-web update
+# or: brew upgrade pi-web
+```
+
 Install from npm:
 
 ```bash

@@ -78,7 +78,68 @@ jobs:
             tar -C release -czf "release/pi-web_${version}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" pi-web
           fi
 
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: release/pi-web_*
+          if-no-files-found: error
+
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           files: release/pi-web_*
+
+  homebrew:
+    name: Update Homebrew tap
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+
+      - name: Generate Homebrew formula
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          darwin_arm64="release/pi-web_${version}_darwin_arm64.tar.gz"
+          darwin_amd64="release/pi-web_${version}_darwin_amd64.tar.gz"
+          export PI_WEB_VERSION="$version"
+          export PI_WEB_REPO="$GITHUB_REPOSITORY"
+          export PI_WEB_HOMEBREW_FORMULA="$RUNNER_TEMP/pi-web.rb"
+          export PI_WEB_DARWIN_ARM64_SHA256="$(sha256sum "$darwin_arm64" | cut -d ' ' -f 1)"
+          export PI_WEB_DARWIN_AMD64_SHA256="$(sha256sum "$darwin_amd64" | cut -d ' ' -f 1)"
+          node scripts/generate-homebrew-formula.js
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v5
+        with:
+          repository: Epsilondelta-ai/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Commit Homebrew formula
+        run: |
+          mkdir -p homebrew-tap/Formula
+          cp "$RUNNER_TEMP/pi-web.rb" homebrew-tap/Formula/pi-web.rb
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/pi-web.rb
+          if git diff --cached --quiet; then
+            echo "Homebrew formula is already up to date"
+            exit 0
+          fi
+          git commit -m "Update pi-web to ${GITHUB_REF_NAME}"
+          git push

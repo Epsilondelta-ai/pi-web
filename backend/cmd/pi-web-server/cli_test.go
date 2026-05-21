@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/blang/semver"
@@ -124,6 +126,56 @@ func TestRunUpdateReportsNpmUpdateCommand(t *testing.T) {
 		"  npm update -g @epsilondelta-ai/pi-web\n"
 	if got := out.String(); got != want {
 		t.Fatalf("unexpected output: %q", got)
+	}
+}
+
+func TestRunUpdateRunsBrewUpgrade(t *testing.T) {
+	previousBrewUpgrade := runBrewUpgrade
+	t.Cleanup(func() { runBrewUpgrade = previousBrewUpgrade })
+
+	fake := &fakeBinaryUpdater{}
+	var out bytes.Buffer
+	var called bool
+	runBrewUpgrade = func(writer io.Writer) error {
+		called = true
+		fmt.Fprintln(writer, "brew output")
+		return nil
+	}
+
+	if err := runUpdateWithUpdater(&out, updateOptions{
+		CurrentVersion: "v1.2.3",
+		RepositorySlug: "owner/repo",
+		Installer:      "brew",
+	}, fake); err != nil {
+		t.Fatalf("run update: %v", err)
+	}
+
+	if fake.called {
+		t.Fatal("brew-installed binary should not self-update")
+	}
+	if !called {
+		t.Fatal("expected brew upgrade to run")
+	}
+	want := "Updating pi-web with Homebrew...\n" +
+		"brew output\n"
+	if got := out.String(); got != want {
+		t.Fatalf("unexpected output: %q", got)
+	}
+}
+
+func TestRunUpdateReportsBrewUpgradeError(t *testing.T) {
+	previousBrewUpgrade := runBrewUpgrade
+	t.Cleanup(func() { runBrewUpgrade = previousBrewUpgrade })
+
+	runBrewUpgrade = func(io.Writer) error { return os.ErrNotExist }
+	err := runUpdateWithUpdater(io.Discard, updateOptions{
+		CurrentVersion: "v1.2.3",
+		RepositorySlug: "owner/repo",
+		Installer:      "brew",
+	}, &fakeBinaryUpdater{})
+
+	if err == nil || !strings.Contains(err.Error(), "brew upgrade pi-web failed") {
+		t.Fatalf("expected brew upgrade error, got %v", err)
 	}
 }
 
