@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![pi.dev web](./docs/pi-web.png)
+![pi.dev web](./docs/assets/pi-web.png)
 <br /><br />
-![Workspace session UI](docs/screenshot.png)
+![Workspace session UI](docs/assets/screenshot.png)
 
 </div>
 
@@ -46,5 +46,6 @@ It bundles an Astro-based frontend and a Go backend into a single executable, so
 ## Development
 
 - Repository layout: [`docs/repository-structure.md`](docs/repository-structure.md)
+- Repository audit: [`docs/repository-audit.md`](docs/repository-audit.md)
 - Maintenance tasks: [`docs/tasks.md`](docs/tasks.md)
 - Durable implementation plans: [`docs/plans/`](docs/plans/)

@@ -9,7 +9,7 @@ This repository keeps the root focused on entry points, tool configuration, and 
 ├── backend/                    # Go server and single-binary entrypoint
 │   ├── cmd/pi-web-server/       # executable package and embedded static placeholder
 │   └── internal/piweb/          # server, sessions, workspace, runner, store code
-├── docs/                       # durable documentation and screenshots
+├── docs/                       # durable documentation, plans, and screenshots
 ├── public/                     # Astro static assets
 ├── scripts/                    # install/release/dev helper scripts
 ├── src/                        # Astro/React frontend source
@@ -59,6 +59,7 @@ bun run embed:assets
 
 ## Internal cleanup rules
 
+- Keep `docs/assets` for README/documentation images and `docs/plans` for durable implementation plans.
 - Keep `src/lib` for pure helpers and browser API clients that are not custom-element methods.
 - Keep `src/pi-app` for the `<pi-app>` element, feature folders, and their colocated tests.
 - Keep backend package maps in `backend/README.md` and `backend/internal/piweb/README.md` current when moving files.
