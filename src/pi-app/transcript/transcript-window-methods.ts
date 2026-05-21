@@ -236,9 +236,17 @@ export const transcriptWindowMethods = {
   notifyTranscriptItemHeightDidChange(item, element) {
     if (!item) return;
     const itemElement = element || this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
-    if (itemElement) this.measureTranscriptItem(item, itemElement);
-    if (this.transcriptVirtualScrollerStarted) this.transcriptVirtualScroller?.onItemHeightDidChange(item);
+    if (!itemElement?.isConnected || !this.termInner?.contains?.(itemElement)) return;
+    this.measureTranscriptItem(item, itemElement);
+    if (this.transcriptVirtualScrollerStarted && this.isTranscriptItemVisible(item)) {
+      this.transcriptVirtualScroller?.onItemHeightDidChange(item);
+    }
     if (this.transcriptFollowBottom !== false && this.isTermPinnedToBottom()) this.scrollTerm({ force: true });
+  },
+
+  isTranscriptItemVisible(item) {
+    const index = this.transcriptItems?.indexOf(item) ?? -1;
+    return index >= this.transcriptVisibleStart && index < this.transcriptVisibleEnd;
   },
 
   measureRenderedTranscriptItems() {

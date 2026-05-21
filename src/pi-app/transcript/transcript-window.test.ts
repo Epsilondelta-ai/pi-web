@@ -152,6 +152,23 @@ describe("pi-app transcript window", () => {
     expect(heightChanged).toHaveBeenCalled();
   });
 
+  it("skips virtual-scroller notifications for unrendered transcript items", async () => {
+    const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    app.renderMessages(Array.from({ length: 35 }, (_, index) => ({ kind: "pi", text: `message ${index}` })));
+    app.transcriptVisibleStart = 5;
+    app.transcriptVisibleEnd = 35;
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
+    const staleElement = document.createElement("div");
+    staleElement.className = "transcript-item";
+    staleElement.dataset.transcriptItem = String(app.transcriptItems[0].id);
+    app.termInner.append(staleElement);
+
+    app.notifyTranscriptItemHeightDidChange(app.transcriptItems[0], staleElement);
+
+    expect(heightChanged).not.toHaveBeenCalled();
+  });
+
   it("covers transcript guard fallback paths", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
