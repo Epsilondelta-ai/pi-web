@@ -5,6 +5,7 @@ import {
 } from "./transcript-virtual-scroller";
 
 const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
+const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
 
 function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -223,7 +224,8 @@ export const transcriptWindowMethods = {
     const height = measuredHeight([element]);
     const previousHeight = item?.height;
     if (height > 0) item.height = height;
-    return height > 0 && previousHeight !== height;
+    return height > 0
+      && (previousHeight === undefined || Math.abs(previousHeight - height) > TRANSCRIPT_HEIGHT_CHANGE_EPSILON);
   },
 
   notifyTranscriptNodeHeightDidChange(node) {
@@ -240,7 +242,7 @@ export const transcriptWindowMethods = {
     const itemElement = element || this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
     if (!itemElement?.isConnected || !this.termInner?.contains?.(itemElement)) return;
     const changed = this.measureTranscriptItem(item, itemElement);
-    if (changed && this.transcriptVirtualScrollerStarted && this.isTranscriptItemVisible(item)) {
+    if (changed && this.transcriptVirtualScrollerStarted && this.isTranscriptItemVisibleInScroller(item)) {
       this.transcriptVirtualScroller?.onItemHeightDidChange(item);
     }
     if (this.transcriptFollowBottom !== false && this.isTermPinnedToBottom()) this.scrollTerm({ force: true });
@@ -249,6 +251,14 @@ export const transcriptWindowMethods = {
   isTranscriptItemVisible(item) {
     const index = this.transcriptItems?.indexOf(item) ?? -1;
     return index >= this.transcriptVisibleStart && index < this.transcriptVisibleEnd;
+  },
+
+  isTranscriptItemVisibleInScroller(item) {
+    const index = this.transcriptItems?.indexOf(item) ?? -1;
+    if (index < 0) return false;
+    const state = this.transcriptVirtualScroller?.getState?.();
+    if (!state) return this.isTranscriptItemVisible(item);
+    return index >= (state.firstShownItemIndex || 0) && index <= (state.lastShownItemIndex || 0);
   },
 
   measureRenderedTranscriptItems() {

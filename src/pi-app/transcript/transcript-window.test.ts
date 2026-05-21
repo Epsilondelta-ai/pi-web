@@ -181,6 +181,24 @@ describe("pi-app transcript window", () => {
     expect(heightChanged).toHaveBeenCalled();
   });
 
+  it("ignores sub-pixel transcript height jitter", async () => {
+    let itemHeight = 35.6953125;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? itemHeight : 0;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
+    const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    app.renderMessages([{ kind: "pi", text: "message" }]);
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
+
+    itemHeight = 35.6875;
+    app.notifyTranscriptItemHeightDidChange(app.transcriptItems[0]);
+
+    expect(app.transcriptItems[0].height).toBe(35.6875);
+    expect(heightChanged).not.toHaveBeenCalled();
+  });
+
   it("skips virtual-scroller notifications for unrendered transcript items", async () => {
     const app = await connectPiApp();
     Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
