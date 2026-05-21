@@ -1,32 +1,5 @@
 import { getWorkspaceSettings, saveWorkspaceSettings } from "../../lib/api";
-
-const SETTINGS_FIELDS = [
-  { path: "defaultProvider", type: "text" },
-  { path: "defaultModel", type: "text" },
-  { path: "defaultThinkingLevel", type: "select" },
-  { path: "theme", type: "text" },
-  { path: "compaction.enabled", type: "boolean" },
-  { path: "terminal.showImages", type: "boolean" },
-  { path: "terminal.imageWidthCells", type: "numberSelect" },
-  { path: "images.autoResize", type: "boolean" },
-  { path: "images.blockImages", type: "boolean" },
-  { path: "enableSkillCommands", type: "boolean" },
-  { path: "showHardwareCursor", type: "boolean" },
-  { path: "editorPaddingX", type: "numberSelect" },
-  { path: "autocompleteMaxVisible", type: "numberSelect" },
-  { path: "terminal.clearOnShrink", type: "boolean" },
-  { path: "terminal.showTerminalProgress", type: "boolean" },
-  { path: "steeringMode", type: "select" },
-  { path: "followUpMode", type: "select" },
-  { path: "transport", type: "select" },
-  { path: "hideThinkingBlock", type: "boolean" },
-  { path: "collapseChangelog", type: "boolean" },
-  { path: "quietStartup", type: "boolean" },
-  { path: "enableInstallTelemetry", type: "boolean" },
-  { path: "doubleEscapeAction", type: "select" },
-  { path: "treeFilterMode", type: "select" },
-  { path: "warnings.anthropicExtraUsage", type: "boolean" },
-];
+import { SETTINGS_FIELDS, parseSettingsPatch, parseWorkspaceSettings, settingsScopeSchema } from "./settings-schema";
 
 function valueAt(settings, path) {
   return path.split(".").reduce((value, part) => value?.[part], settings);
@@ -67,7 +40,7 @@ export const settingsMethods = {
     this.setSettingsStatus("loading settings…");
     try {
       const { settings } = await getWorkspaceSettings(workspaceId);
-      this.settingsState = settings;
+      this.settingsState = parseWorkspaceSettings(settings);
       this.fillSettingsForm();
       this.setSettingsStatus("blank fields inherit from effective settings");
     } catch (error) {
@@ -117,12 +90,13 @@ export const settingsMethods = {
     const form = this.querySelector("[data-settings-form]");
     const workspaceId = this.dataset.activeWorkspaceId;
     if (!form || !workspaceId || !this.apiConnected) return;
-    const scope = form.querySelector("[name='scope']")?.value || "project";
-    const patch = this.settingsPatchFromForm(form);
+    const scopeValue = form.querySelector("[name='scope']")?.value || "project";
     this.setSettingsStatus("saving…");
     try {
+      const scope = settingsScopeSchema.parse(scopeValue);
+      const patch = parseSettingsPatch(this.settingsPatchFromForm(form));
       const { settings } = await saveWorkspaceSettings(workspaceId, scope, patch);
-      this.settingsState = settings;
+      this.settingsState = parseWorkspaceSettings(settings);
       this.fillSettingsForm();
       this.setSettingsStatus("saved");
       void this.loadRuntimeStatus?.(workspaceId);

@@ -25,6 +25,7 @@
         "react-dom": "^19.2.6",
         "shiki": "4.0.2",
         "virtual-scroller": "^1.16.4",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@storybook-astro/framework": "1.2.0",
