@@ -21,7 +21,7 @@ import {
 } from "@lucide/astro";
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./lib/renderers";
-import { TERMINAL_SPINNER_HTML } from "./pi-app/constants";
+import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import { SETTINGS_FIELDS as settingsFields } from "./pi-app/workspace/settings-schema";
 
 const {
@@ -182,7 +182,7 @@ function isToolCollapsed(msg) {
       <div class:list={["term", scanlines && "scanlines"]}>
         <div class="term-inner">
           {conversation.length === 0 ? (
-            <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body">connecting to local backend…</div></div>
+            <pre class="ascii-banner welcome-banner" data-welcome-banner set:html={renderBannerBody(PI_WEB_WELCOME_TEXT)}></pre>
           ) : conversation.map((msg) => (
             msg.kind === "banner" ? <pre class="ascii-banner" set:html={renderBannerBody(msg.text)}></pre> :
             msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body">{msg.text}</div></div> :
