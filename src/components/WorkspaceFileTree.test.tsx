@@ -44,7 +44,7 @@ describe("WorkspaceFileTree", () => {
 
     const click = vi.fn();
     host.addEventListener("click", click);
-    file?.click();
+    await act(async () => file?.click());
     expect(click).toHaveBeenCalled();
 
     await act(async () => {

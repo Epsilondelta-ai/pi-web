@@ -21,7 +21,9 @@
     "backend": "go run ./backend/cmd/pi-web-server",
     "backend:mock": "go run ./backend/cmd/pi-web-server --mock",
     "backend:test": "go test ./...",
+    "backend:test:coverage": "go test ./... -coverprofile=/tmp/piweb-cover.out -covermode=count >/tmp/piweb-go-test.log && go tool cover -func=/tmp/piweb-cover.out | tail -1 | grep '100.0%'",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
@@ -56,6 +58,7 @@
     "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "4.1.6",
     "jsdom": "29.1.1",
     "storybook": "10.4.0",
     "typescript": "6.0.3",

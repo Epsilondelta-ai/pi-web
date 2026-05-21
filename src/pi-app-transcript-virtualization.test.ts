@@ -2,8 +2,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./pi-app-test-helper";
 
+function installVirtualizedTranscriptFixture() {
+  installPiAppFixture();
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+    const height = this.classList?.contains("transcript-item") ? 80 : 0;
+    return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+  });
+}
+
 describe("pi-app transcript virtualization", () => {
-  beforeEach(installPiAppFixture);
+  beforeEach(installVirtualizedTranscriptFixture);
   afterEach(cleanupPiAppFixture);
 
   it("virtualizes long transcripts to the visible message window", async () => {

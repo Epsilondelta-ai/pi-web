@@ -7,16 +7,20 @@ import {
   deleteSession,
   deleteWorkspace,
   deleteWorkspaceSessions,
+  getGitStatus,
   getSession,
   getVersionStatus,
   getWorkspaceCommands,
   getWorkspaceFile,
+  getWorkspaceFiles,
   getWorkspaceRuntimeModel,
   getWorkspaceRuntimeQuota,
   getWorkspaceRuntimeStatus,
   getWorkspaceSettings,
   getWorkspaces,
+  health,
   listFolders,
+  openWorkspace,
   postPrompt,
   renameSession,
   steerSession,
@@ -58,6 +62,16 @@ describe("api adapter", () => {
     expect(result.url).toBe("/api/workspaces");
   });
 
+  it("uses the development backend for known dev ports", async () => {
+    delete globalThis.PI_WEB_API_BASE;
+    const original = globalThis.location;
+    Object.defineProperty(globalThis, "location", { value: { port: "4321" }, configurable: true });
+    expect((await health()).url).toBe("http://127.0.0.1:8732/api/health");
+    Object.defineProperty(globalThis, "location", { value: { port: "6006" }, configurable: true });
+    expect((await health()).url).toBe("http://127.0.0.1:8732/api/health");
+    Object.defineProperty(globalThis, "location", { value: original, configurable: true });
+  });
+
   it("escapes session ids in paths and supports message paging", async () => {
     const result = await getSession("a/b", { limit: 25, before: "123" });
     expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb?limit=25&before=123");
@@ -87,14 +101,23 @@ describe("api adapter", () => {
   });
 
   it("fetches workspace slash commands and runtime status", async () => {
+    const opened = await openWorkspace("/repo");
+    expect(opened.url).toBe("http://backend.test/api/workspaces/open");
+    expect(JSON.parse(opened.options.body)).toEqual({ path: "/repo" });
     const commands = await getWorkspaceCommands("w1");
     expect(commands.url).toBe("http://backend.test/api/workspaces/w1/commands");
+    const files = await getWorkspaceFiles("w/1");
+    expect(files.url).toBe("http://backend.test/api/workspaces/w%2F1/files");
+    const git = await getGitStatus("w/1");
+    expect(git.url).toBe("http://backend.test/api/workspaces/w%2F1/git/status");
     const status = await getWorkspaceRuntimeStatus("w1");
     expect(status.url).toBe("http://backend.test/api/workspaces/w1/runtime-status");
     const model = await getWorkspaceRuntimeModel("w1");
     expect(model.url).toBe("http://backend.test/api/workspaces/w1/runtime-model");
     const quota = await getWorkspaceRuntimeQuota("w1", "GPT-5.5");
     expect(quota.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota?model=GPT-5.5");
+    const quotaDefault = await getWorkspaceRuntimeQuota("w1");
+    expect(quotaDefault.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota");
   });
 
   it("reads and saves workspace settings and files", async () => {
@@ -135,8 +158,30 @@ describe("api adapter", () => {
     expect(JSON.parse(shell.options.body)).toEqual({ command: "pwd" });
   });
 
+  it("surfaces backend errors", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: false,
+      status: 418,
+      statusText: "Teapot",
+      json: async () => ({ error: "short and stout" }),
+    }));
+    await expect(getWorkspaces()).rejects.toThrow("short and stout");
+    globalThis.fetch = vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      statusText: "Server Error",
+      json: async () => {
+        throw new Error("bad json");
+      },
+    }));
+    await expect(getWorkspaces()).rejects.toThrow("500 Server Error");
+  });
+
   it("creates EventSource connections for session streams", () => {
     const sources = [];
+    const onEvent = vi.fn();
+    const onOpen = vi.fn();
+    const onError = vi.fn();
     globalThis.EventSource = class {
       constructor(url) {
         this.url = url;
@@ -148,9 +193,16 @@ describe("api adapter", () => {
       }
       close() {}
     };
-    const source = sessionEvents("s1");
+    const source = sessionEvents("s1", { onEvent, onOpen, onError });
     expect(source.url).toBe("http://backend.test/api/sessions/s1/events");
     expect(sources[0].listeners["session.message"]).toBeTypeOf("function");
+    source.onopen();
+    source.onerror("err");
+    sources[0].listeners["session.message"]({ data: JSON.stringify({ type: "session.message" }) });
+    sources[0].listeners.heartbeat({ data: "not-json" });
+    expect(onOpen).toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(2);
+    expect(onEvent).toHaveBeenCalledWith({ type: "session.message" });
 
     const noReplay = sessionEvents("s1", { replay: false });
     expect(noReplay.url).toBe("http://backend.test/api/sessions/s1/events?replay=false");

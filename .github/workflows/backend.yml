@@ -23,5 +23,5 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Test
-        run: go test ./...
+      - name: Test coverage
+        run: go test ./... -coverprofile=/tmp/piweb-cover.out -covermode=count >/tmp/piweb-go-test.log && go tool cover -func=/tmp/piweb-cover.out | tail -1 | grep '100.0%'
