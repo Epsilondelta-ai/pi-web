@@ -106,7 +106,6 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-clone-form]")?.addEventListener("submit", (event) => this.submitCloneWorkspace(event));
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
     this.querySelector("[data-settings-form]")?.addEventListener("submit", (event) => this.saveSettingsForm(event));
-    this.querySelector("[data-auth-form]")?.addEventListener("submit", (event) => this.saveAuthForm(event));
     this.querySelector("[data-settings-scope]")?.addEventListener("change", () => this.fillSettingsForm());
     this.sendButton?.addEventListener("click", () => this.submitPrompt());
     this.stopButton?.addEventListener("click", () => this.cancelActiveSession());
