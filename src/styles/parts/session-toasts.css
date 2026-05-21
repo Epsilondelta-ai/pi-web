@@ -79,4 +79,5 @@
 }
 .session-toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 64%, var(--border)); }
 .session-toast.choice { color: var(--ansi-blue); border-color: color-mix(in srgb, var(--ansi-blue) 64%, var(--border)); }
+.session-toast.connection { color: var(--fg-3); border-color: color-mix(in srgb, var(--fg-3) 64%, var(--border)); }
 .session-toast.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 64%, var(--border)); }

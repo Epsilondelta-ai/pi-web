@@ -16,7 +16,29 @@ const TOAST_MESSAGES = {
     title: "응답 실패",
     detail: "답변을 받는데 실패했습니다.",
   },
+  connection: {
+    title: "백엔드 연결 끊김",
+    detail: "프론트엔드와 백엔드 연결이 끊겼습니다. 재연결 중입니다.",
+  },
 };
+
+const BACKEND_CONNECTION_ERROR_PATTERNS = [
+  /failed to fetch/i,
+  /fetch failed/i,
+  /load failed/i,
+  /network\s*error/i,
+  /err_connection/i,
+  /connection\s*(refused|reset|closed|aborted)/i,
+  /backend\s*disconnected/i,
+  /event\s*stream/i,
+  /body\s*stream/i,
+  /terminated/i,
+];
+
+function isBackendConnectionError(detail) {
+  const message = typeof detail === "string" ? detail : detail?.message || String(detail || "");
+  return BACKEND_CONNECTION_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
 
 function toastText(kind, detail, context) {
   const message = TOAST_MESSAGES[kind] || TOAST_MESSAGES.success;
@@ -64,6 +86,7 @@ export const toastMethods = {
           { type: "success", icon: false, className: "session-toast success" },
           { type: "choice", icon: false, className: "session-toast choice" },
           { type: "error", icon: false, className: "session-toast error" },
+          { type: "connection", icon: false, className: "session-toast connection" },
         ],
       });
     }
@@ -130,6 +153,11 @@ export const toastMethods = {
   notifyResponseFailure(detail, context) {
     if (this.responseFailureToastShown && !context) return;
     if (!context) this.responseFailureToastShown = true;
+    if (isBackendConnectionError(detail)) {
+      this.setConnection?.("err");
+      this.showToast("connection", undefined, context);
+      return;
+    }
     this.showToast("error", detail, context);
   },
 
