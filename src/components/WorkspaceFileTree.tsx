@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Tree } from "react-arborist";
-import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../file-tree-model";
+import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../lib/file-tree-model";
 
 type WorkspaceTreeUpdate = {
   files?: RawFileNode[];

@@ -1,6 +1,5 @@
-import "../src/design-system/colors_and_type.css";
+import "../src/design-system/tokens.css";
 import "../src/styles.css";
-import "../src/extras.css";
 
 const preview = {
   parameters: {

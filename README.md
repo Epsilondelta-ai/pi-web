@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![pi.dev web](./docs/pi-web.png)
+![pi.dev web](./docs/assets/pi-web.png)
 <br /><br />
-![Workspace session UI](docs/screenshot.png)
+![Workspace session UI](docs/assets/screenshot.png)
 
 </div>
 
@@ -42,3 +42,10 @@ It bundles an Astro-based frontend and a Go backend into a single executable, so
 - **File browsing and preview**: Browse the workspace file tree, read files, edit them, and save changes from the UI.
 - **Local command execution**: Run shell commands in the selected workspace.
 - **Single executable**: Distribute the Astro static build embedded in a Go binary.
+
+## Development
+
+- Repository layout: [`docs/repository-structure.md`](docs/repository-structure.md)
+- Repository audit: [`docs/repository-audit.md`](docs/repository-audit.md)
+- Maintenance tasks: [`docs/tasks.md`](docs/tasks.md)
+- Durable implementation plans: [`docs/plans/`](docs/plans/)
