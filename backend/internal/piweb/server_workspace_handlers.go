@@ -145,14 +145,19 @@ func (s *Server) workspaceCommands(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	commands := MockSlashCommands()
+	var commandError string
 	if s.config.EnablePiExecution {
 		commands, err = ListPiCommands(r.Context(), root)
 		if err != nil {
-			writeError(w, http.StatusBadGateway, err)
-			return
+			commands = MockSlashCommands()
+			commandError = err.Error()
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"commands": commands})
+	body := map[string]any{"commands": commands}
+	if commandError != "" {
+		body["error"] = commandError
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 func (s *Server) workspaceRuntimeStatus(w http.ResponseWriter, r *http.Request) {
 	root, err := s.store.WorkspacePath(r.PathValue("workspaceID"))
