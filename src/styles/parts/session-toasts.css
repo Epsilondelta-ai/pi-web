@@ -2,9 +2,13 @@
   position: fixed;
   top: var(--space-4);
   right: var(--space-4);
+  bottom: auto;
+  left: auto;
   z-index: var(--z-toast);
   align-items: flex-end;
   width: min(360px, calc(100% - var(--space-8)));
+  height: auto;
+  padding: 0;
   pointer-events: none;
 }
 .notyf__toast.session-toast {
