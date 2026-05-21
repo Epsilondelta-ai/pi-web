@@ -163,6 +163,17 @@
   font-size: var(--text-sm);
   padding: 0 12px;
 }
+.shell-row button {
+  width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.shell-row button svg {
+  display: block;
+  flex: 0 0 auto;
+}
 .clone-row button:hover,
 .shell-row button:hover { border-color: var(--accent); background: var(--bg-4); }
 

@@ -225,7 +225,8 @@
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 600;
-  padding: 8px 14px;
+  width: 38px;
+  padding: 0;
   border-radius: var(--radius-1);
   letter-spacing: 0.02em;
   white-space: nowrap;
