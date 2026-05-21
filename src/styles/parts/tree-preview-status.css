@@ -108,10 +108,73 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 }
 .spinner {
   color: var(--accent);
-  display: inline-block;
-  min-width: 1ch;
-  font-style: normal;
-  font-variant-numeric: tabular-nums;
+  display: inline-grid;
+  grid-template-columns: repeat(2, 0.42ch);
+  grid-template-rows: repeat(3, 0.3em);
+  gap: 0;
+  width: 0.84ch;
+  height: 0.9em;
+  margin-right: 0.35ch;
+  vertical-align: text-bottom;
+}
+.spinner span {
+  color: #000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.42ch;
+  height: 0.3em;
+  font-size: 0.9em;
+  line-height: 1;
+}
+.spinner span::before { content: "."; }
+.spinner span:nth-child(1) { grid-column: 1; grid-row: 1; }
+.spinner span:nth-child(2) { grid-column: 2; grid-row: 1; }
+.spinner span:nth-child(3) { grid-column: 2; grid-row: 2; }
+.spinner span:nth-child(4) { grid-column: 2; grid-row: 3; }
+.spinner span:nth-child(5) { grid-column: 1; grid-row: 3; }
+.spinner span:nth-child(6) { grid-column: 1; grid-row: 2; }
+.spinner[data-frame="0"] span:nth-child(1),
+.spinner[data-frame="1"] span:nth-child(2),
+.spinner[data-frame="2"] span:nth-child(3),
+.spinner[data-frame="3"] span:nth-child(4),
+.spinner[data-frame="4"] span:nth-child(5),
+.spinner[data-frame="5"] span:nth-child(6) {
+  color: currentColor;
+  opacity: 1;
+}
+.spinner[data-frame="0"] span:nth-child(6),
+.spinner[data-frame="1"] span:nth-child(1),
+.spinner[data-frame="2"] span:nth-child(2),
+.spinner[data-frame="3"] span:nth-child(3),
+.spinner[data-frame="4"] span:nth-child(4),
+.spinner[data-frame="5"] span:nth-child(5) {
+  color: currentColor;
+  opacity: 0.68;
+}
+.spinner[data-frame="0"] span:nth-child(5),
+.spinner[data-frame="1"] span:nth-child(6),
+.spinner[data-frame="2"] span:nth-child(1),
+.spinner[data-frame="3"] span:nth-child(2),
+.spinner[data-frame="4"] span:nth-child(3),
+.spinner[data-frame="5"] span:nth-child(4) {
+  color: currentColor;
+  opacity: 0.42;
+}
+.spinner[data-frame="0"] span:nth-child(4),
+.spinner[data-frame="1"] span:nth-child(5),
+.spinner[data-frame="2"] span:nth-child(6),
+.spinner[data-frame="3"] span:nth-child(1),
+.spinner[data-frame="4"] span:nth-child(2),
+.spinner[data-frame="5"] span:nth-child(3) {
+  color: currentColor;
+  opacity: 0.24;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner span:first-child { color: currentColor; opacity: 1; }
+  .spinner span:nth-child(2) { color: currentColor; opacity: 0.68; }
+  .spinner span:nth-child(3) { color: currentColor; opacity: 0.42; }
+  .spinner span:nth-child(4) { color: currentColor; opacity: 0.24; }
 }
 
 .tree {

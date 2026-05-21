@@ -1,4 +1,5 @@
 import { escapeHtml } from "../../lib/renderers";
+import { TERMINAL_SPINNER_HTML } from "../constants";
 import { renderToolBody, storeFullToolBody } from "./tool-output-rendering";
 
 export const toolMessageMethods = {
@@ -39,7 +40,7 @@ export const toolMessageMethods = {
 
   runningToolStatus() {
     return [
-      `<span class="spinner">⠋</span><span style="color:var(--accent)">running</span>`,
+      `${TERMINAL_SPINNER_HTML}<span style="color:var(--accent)">running</span>`,
       `<span class="tc-caret">▾</span>`,
     ].join("");
   },

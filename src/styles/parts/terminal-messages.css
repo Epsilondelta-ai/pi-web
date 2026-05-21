@@ -223,7 +223,12 @@
   border-radius: var(--radius-2);
   background: var(--bg-1);
 }
-.msg.loading .body { color: var(--fg-3); font-style: italic; }
+.msg.loading .body {
+  color: var(--fg-3);
+  display: flex;
+  align-items: center;
+  font-style: italic;
+}
 .msg.loading .body::after { content: ""; display: inline-block; width: 1ch; animation: blink 1s steps(1) infinite; }
 .session-switch-loading .body {
   display: flex;

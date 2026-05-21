@@ -1,6 +1,6 @@
 import { sessionEvents } from "../lib/api";
 import { escapeHtml } from "../lib/renderers";
-import { SPINNER_FRAMES } from "./constants";
+import { SPINNER_FRAME_COUNT } from "./constants";
 import { filePreviewMethods } from "./editor/file-preview-methods";
 import { attachmentMethods } from "./input/attachment-methods";
 import { inputMethods } from "./input/input-methods";
@@ -90,13 +90,13 @@ class PiApp extends HTMLElement {
 
   startSpinners() {
     if (this.spinnerTimer) return;
-    this.spinnerTimer = setInterval(() => this.tickSpinners(), 100);
+    this.spinnerTimer = setInterval(() => this.tickSpinners(), 150);
   }
 
   tickSpinners() {
-    this.spinnerIndex = (this.spinnerIndex + 1) % SPINNER_FRAMES.length;
+    this.spinnerIndex = (this.spinnerIndex + 1) % SPINNER_FRAME_COUNT;
     this.querySelectorAll(".spinner").forEach((spinner) => {
-      spinner.textContent = SPINNER_FRAMES[this.spinnerIndex];
+      spinner.dataset.frame = String(this.spinnerIndex);
     });
   }
 
