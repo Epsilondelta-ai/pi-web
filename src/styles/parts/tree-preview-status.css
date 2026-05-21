@@ -115,6 +115,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   width: 0.84ch;
   height: 0.9em;
   margin-right: 0.35ch;
+  transform: translateY(-2px);
   vertical-align: text-bottom;
 }
 .spinner span {

@@ -65,6 +65,7 @@ export const inputMethods = {
     const attachments = this.attachmentContents.filter(Boolean);
     try {
       await steerSession(sessionId, text, attachments);
+      this.appendMessage({ kind: "user", text, attachments });
       if (this.prompt) this.prompt.value = "";
       this.attachmentContents = [];
       this.attachments?.replaceChildren();
@@ -124,10 +125,13 @@ export const inputMethods = {
   async cancelActiveSession() {
     const sessionId = this.dataset.activeSessionId;
     if (!sessionId || !this.apiConnected) return;
+    this.markSessionCancellationPending(sessionId);
     try {
-      await cancelSession(sessionId);
-      this.setMode("cancelled");
+      const result = await cancelSession(sessionId);
+      if (result?.cancelled) this.setMode("cancelled");
+      else this.clearSessionCancellationPending(sessionId);
     } catch {
+      this.clearSessionCancellationPending(sessionId);
       this.setConnection("err");
     }
   },

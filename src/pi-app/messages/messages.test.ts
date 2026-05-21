@@ -248,4 +248,18 @@ describe("pi-app messages", () => {
 
     expect(frames).toHaveLength(1);
   });
+
+  it("removes virtualized loading messages from transcript state", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    app.appendLoadingMessage();
+    app.termInner.replaceChildren();
+
+    app.appendLoadingMessage();
+    expect(app.transcriptItems.filter((item) => item.nodes?.some((node) => node.matches?.(".msg.loading")))).toHaveLength(1);
+
+    app.removeLoadingMessage();
+    expect(app.transcriptItems.some((item) => item.nodes?.some((node) => node.matches?.(".msg.loading")))).toBe(false);
+    expect(app.querySelector(".msg.loading")).toBeNull();
+  });
 });
