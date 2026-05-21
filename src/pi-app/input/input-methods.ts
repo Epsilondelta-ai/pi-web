@@ -1,4 +1,4 @@
-import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../../lib/api";
+import { cancelSession, createSession, runAguiSessionPrompt, runShellCommand, steerSession } from "../../lib/api";
 import { fallbackChoicePrompt } from "./fallback-choices";
 
 export const inputMethods = {
@@ -36,13 +36,19 @@ export const inputMethods = {
     if (this.attachments) this.attachments.hidden = true;
     this.updatePrompt();
     if (waitForServerEcho) {
+      this.eventSource?.close();
+      this.eventSource = null;
       this.setMode("running");
       try {
-        await postPrompt(sessionId, text, attachments);
+        await runAguiSessionPrompt(sessionId, text, attachments, this.aguiSubscriber(sessionId));
       } catch {
         this.setMode("idle");
         this.removeLoadingMessage();
         this.setConnection("err");
+      } finally {
+        if (this.dataset.activeSessionId === sessionId && typeof EventSource !== "undefined") {
+          this.connectEvents(sessionId, { replay: false });
+        }
       }
     }
   },
@@ -201,11 +207,17 @@ export const inputMethods = {
     this.appendLoadingMessage();
     this.setMode("running");
     try {
-      await postPrompt(this.dataset.activeSessionId, prompt, []);
+      this.eventSource?.close();
+      this.eventSource = null;
+      await runAguiSessionPrompt(this.dataset.activeSessionId, prompt, [], this.aguiSubscriber(this.dataset.activeSessionId));
     } catch {
       this.setMode("idle");
       this.removeLoadingMessage();
       this.setConnection("err");
+    } finally {
+      if (this.dataset.activeSessionId && typeof EventSource !== "undefined") {
+        this.connectEvents(this.dataset.activeSessionId, { replay: false });
+      }
     }
   },
 

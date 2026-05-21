@@ -160,6 +160,55 @@ class PiApp extends HTMLElement {
     return this.eventStreamId === eventStreamId && this.dataset.activeSessionId === sessionId;
   }
 
+  aguiSubscriber(sessionId) {
+    return {
+      onRunStarted: () => {
+        if (this.dataset.activeSessionId !== sessionId) return;
+        this.confirmConnection();
+        this.setMode("running");
+      },
+      onTextDelta: (delta) => {
+        if (this.dataset.activeSessionId !== sessionId || !delta) return;
+        if (!this.running) this.setMode("running");
+        this.appendDelta({ kind: "pi", delta });
+      },
+      onThinkingDelta: (delta) => {
+        if (this.dataset.activeSessionId !== sessionId || !delta) return;
+        if (!this.running) this.setMode("running");
+        this.appendDelta({ kind: "think", delta });
+      },
+      onToolStart: ({ name }) => {
+        if (this.dataset.activeSessionId !== sessionId) return;
+        if (!this.running) this.setMode("running");
+        this.appendMessage({ kind: "tool", tool: name, status: "running", collapsedByDefault: true });
+      },
+      onToolArgs: ({ name, chunk }) => {
+        if (this.dataset.activeSessionId !== sessionId || !chunk) return;
+        if (!this.running) this.setMode("running");
+        this.appendToolOutput({ tool: name, chunk });
+      },
+      onToolResult: ({ name, content }) => {
+        if (this.dataset.activeSessionId !== sessionId || !content) return;
+        this.appendToolOutput({ tool: name, chunk: content });
+      },
+      onToolEnd: ({ name, args, body }) => {
+        if (this.dataset.activeSessionId !== sessionId) return;
+        this.finishTool({ kind: "tool", tool: name, args, status: "ok", resultMeta: "done", body });
+      },
+      onRunError: (message) => {
+        if (this.dataset.activeSessionId !== sessionId) return;
+        this.notifyResponseFailure?.(message);
+        this.setMode("idle");
+        this.finalizeStreamingMessages();
+      },
+      onRunFinished: () => {
+        if (this.dataset.activeSessionId !== sessionId) return;
+        this.setMode("idle");
+        this.finalizeStreamingMessages();
+      },
+    };
+  }
+
   applyEvent(event) {
     if (!this.isCurrentSessionEvent(event)) return;
     if (event.type === "heartbeat") return;
