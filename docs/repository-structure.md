@@ -17,7 +17,7 @@ This repository keeps the root focused on entry points, tool configuration, and 
 │   ├── design-system/          # design tokens/components
 │   ├── lib/                    # frontend API, rendering, pure data helpers
 │   ├── pages/                  # Astro pages
-│   └── pi-app/                 # custom element/runtime feature modules and tests
+│   └── pi-app/                 # custom element shell plus feature folders and tests
 ├── .github/                    # GitHub workflows
 ├── .storybook/                 # Storybook configuration
 └── package.json                # top-level build/test/dev commands
@@ -37,7 +37,7 @@ Everything else should live under a purpose-specific directory:
 - durable docs and screenshots -> `docs/`
 - helper scripts -> `scripts/`
 - generated output -> ignored build directories
-- temporary task notes -> `.pi/tasks/` unless they should become documentation
+- temporary task notes -> `.pi/tasks/`; durable plans -> `docs/plans/`
 
 ## Generated output
 
@@ -60,7 +60,7 @@ bun run embed:assets
 ## Internal cleanup rules
 
 - Keep `src/lib` for pure helpers and browser API clients that are not custom-element methods.
-- Keep `src/pi-app` for the `<pi-app>` element, feature method modules, and their colocated tests.
+- Keep `src/pi-app` for the `<pi-app>` element, feature folders, and their colocated tests.
 - Keep backend package maps in `backend/README.md` and `backend/internal/piweb/README.md` current when moving files.
 
 ## Future migration option

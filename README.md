@@ -47,3 +47,4 @@ It bundles an Astro-based frontend and a Go backend into a single executable, so
 
 - Repository layout: [`docs/repository-structure.md`](docs/repository-structure.md)
 - Maintenance tasks: [`docs/tasks.md`](docs/tasks.md)
+- Durable implementation plans: [`docs/plans/`](docs/plans/)
