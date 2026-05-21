@@ -180,7 +180,7 @@ describe("pi-app controls", () => {
     app.renderMessages([]);
     app.appendLoadingMessage();
     const spinner = app.querySelector(".spinner");
-    expect(spinner.children).toHaveLength(4);
+    expect(spinner.children).toHaveLength(6);
     app.tickSpinners();
     expect(spinner.dataset.frame).toBe("1");
   });

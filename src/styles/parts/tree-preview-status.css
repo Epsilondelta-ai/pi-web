@@ -109,29 +109,34 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .spinner {
   color: var(--accent);
   display: inline-grid;
-  grid-template-columns: repeat(2, 0.26em);
-  grid-template-rows: repeat(2, 0.26em);
-  gap: 0.1em;
-  width: 0.62em;
-  height: 0.62em;
+  grid-template-columns: repeat(2, 0.28em);
+  grid-template-rows: repeat(3, 0.28em);
+  gap: 0;
+  width: 0.56em;
+  height: 0.84em;
   margin-right: 0.08em;
-  vertical-align: -0.2em;
+  vertical-align: -0.16em;
 }
 .spinner span {
-  width: 0.26em;
-  height: 0.26em;
-  border-radius: 50%;
-  background: currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.28em;
+  height: 0.28em;
+  line-height: 1;
   opacity: 0.25;
-  animation: terminal-dot-spin 0.8s linear infinite;
+  animation: terminal-dot-spin 1s linear infinite;
 }
+.spinner span::before { content: "."; }
 .spinner span:nth-child(1) { animation-delay: 0s; }
-.spinner span:nth-child(2) { animation-delay: 0.2s; }
-.spinner span:nth-child(3) { animation-delay: 0.6s; }
-.spinner span:nth-child(4) { animation-delay: 0.4s; }
+.spinner span:nth-child(2) { animation-delay: 0.16s; }
+.spinner span:nth-child(3) { animation-delay: 0.32s; }
+.spinner span:nth-child(4) { animation-delay: 0.48s; }
+.spinner span:nth-child(5) { animation-delay: 0.64s; }
+.spinner span:nth-child(6) { animation-delay: 0.8s; }
 @keyframes terminal-dot-spin {
   0%, 100% { opacity: 1; }
-  25%, 75% { opacity: 0.35; }
+  33%, 66% { opacity: 0.35; }
 }
 @media (prefers-reduced-motion: reduce) {
   .spinner span { animation: none; }
