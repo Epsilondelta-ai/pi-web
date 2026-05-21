@@ -172,6 +172,10 @@ class PiApp extends HTMLElement {
         if (!this.running) this.setMode("running");
         this.appendDelta({ kind: "pi", delta });
       },
+      onTextEnd: (text) => {
+        if (this.dataset.activeSessionId !== sessionId || !text) return;
+        this.appendMessage({ kind: "pi", text });
+      },
       onThinkingDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;
         if (!this.running) this.setMode("running");
