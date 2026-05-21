@@ -278,6 +278,18 @@ function isToolCollapsed(msg) {
               <button type="button" data-action="logout-auth-provider">logout</button>
             </div>
           </div>
+          <div class="oauth-login-fields">
+            <label>OAuth provider
+              <select data-oauth-provider>
+                <option value="">loading OAuth providers…</option>
+              </select>
+            </label>
+            <button type="button" data-action="start-oauth-login">login with OAuth</button>
+            <a data-oauth-link href="#" target="_blank" rel="noreferrer" hidden>open login page</a>
+            <input data-oauth-input autocomplete="off" placeholder="prompt input or redirect URL" hidden />
+            <button type="button" data-action="send-oauth-input" hidden>send</button>
+            <small data-oauth-status>OAuth supports Claude, Codex, and Copilot subscriptions.</small>
+          </div>
         </details>
         <div class="settings-grid">
           {settingsFields.map((field) => (

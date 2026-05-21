@@ -51,6 +51,28 @@ export function saveAPIKey(provider, apiKey) {
   });
 }
 
+export function getOAuthProviders() {
+  return request("/api/auth/oauth/providers");
+}
+
+export function startOAuthLogin(provider) {
+  return request("/api/auth/oauth/start", {
+    method: "POST",
+    body: JSON.stringify({ provider }),
+  });
+}
+
+export function getOAuthLoginSession(sessionId) {
+  return request(`/api/auth/oauth/sessions/${encodeURIComponent(sessionId)}`);
+}
+
+export function sendOAuthLoginInput(sessionId, value) {
+  return request(`/api/auth/oauth/sessions/${encodeURIComponent(sessionId)}/input`, {
+    method: "POST",
+    body: JSON.stringify({ value }),
+  });
+}
+
 export function logoutProvider(provider) {
   return request(`/api/auth/${encodeURIComponent(provider)}`, { method: "DELETE" });
 }

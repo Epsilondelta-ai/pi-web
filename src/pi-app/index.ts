@@ -13,6 +13,7 @@ import { runtimeStatusMethods } from "./status/runtime-status-methods";
 import { toastMethods } from "./status/toast-methods";
 import { versionMethods } from "./status/version-methods";
 import { transcriptWindowMethods } from "./transcript/transcript-window-methods";
+import { oauthMethods } from "./workspace/oauth-methods";
 import { settingsMethods } from "./workspace/settings-methods";
 import { workspaceMethods } from "./workspace/workspace-methods";
 
@@ -381,6 +382,7 @@ Object.assign(
   toastMethods,
   runtimeStatusMethods,
   settingsMethods,
+  oauthMethods,
   versionMethods,
 );
 

@@ -28,6 +28,7 @@ export default defineConfig({
         "src/pi-app/messages/message-methods.ts",
         "src/pi-app/status/runtime-status-methods.ts",
         "src/pi-app/workspace/settings-methods.ts",
+        "src/pi-app/workspace/oauth-methods.ts",
         "src/pi-app/status/toast-methods.ts",
         "src/pi-app/messages/tool-output-rendering.ts",
         "src/pi-app/transcript/transcript-virtual-scroller.ts",

@@ -61,6 +61,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
 	s.mux.HandleFunc("GET /api/version", s.versionStatus)
 	s.mux.HandleFunc("GET /api/auth/providers", s.authProviders)
+	s.mux.HandleFunc("GET /api/auth/oauth/providers", s.oauthProviders)
+	s.mux.HandleFunc("POST /api/auth/oauth/start", s.startOAuthLogin)
+	s.mux.HandleFunc("GET /api/auth/oauth/sessions/{sessionID}", s.oauthLoginSession)
+	s.mux.HandleFunc("POST /api/auth/oauth/sessions/{sessionID}/input", s.oauthLoginInput)
 	s.mux.HandleFunc("POST /api/auth/api-key", s.saveAPIKey)
 	s.mux.HandleFunc("DELETE /api/auth/{provider}", s.logoutProvider)
 	s.mux.HandleFunc("GET /api/system/folders", s.listFolders)
@@ -123,6 +127,52 @@ func (s *Server) authProviders(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, providers)
+}
+
+func (s *Server) oauthProviders(w http.ResponseWriter, _ *http.Request) {
+	providers, err := OAuthProviders()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, providers)
+}
+
+func (s *Server) startOAuthLogin(w http.ResponseWriter, r *http.Request) {
+	var req StartOAuthRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	session, err := StartOAuthLogin(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"session": session})
+}
+
+func (s *Server) oauthLoginSession(w http.ResponseWriter, r *http.Request) {
+	session, err := OAuthLoginSession(r.PathValue("sessionID"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"session": session})
+}
+
+func (s *Server) oauthLoginInput(w http.ResponseWriter, r *http.Request) {
+	var req OAuthInputRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	session, err := SendOAuthLoginInput(r.PathValue("sessionID"), req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"session": session})
 }
 
 func (s *Server) saveAPIKey(w http.ResponseWriter, r *http.Request) {
