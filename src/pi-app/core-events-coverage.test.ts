@@ -136,6 +136,20 @@ describe("pi-app core events coverage", () => {
     expect(app.appendMessage).not.toHaveBeenCalledWith({ kind: "pi", text: "skip" });
   });
 
+  it("suppresses completion notifications after user cancellation", async () => {
+    const app = await connectPiApp();
+    app.dataset.activeSessionId = "s1";
+    app.running = true;
+    app.notifySessionCompleted = vi.fn();
+    app.markSessionCancellationPending("s1");
+
+    app.aguiSubscriber("s1").onRunFinished();
+
+    expect(app.running).toBe(false);
+    expect(app.notifySessionCompleted).not.toHaveBeenCalled();
+    expect(app.isSessionCancellationPending("s1")).toBe(false);
+  });
+
   it("keeps transient event stream errors from disabling the API", async () => {
     const app = await connectPiApp();
     const indicator = document.createElement("span");

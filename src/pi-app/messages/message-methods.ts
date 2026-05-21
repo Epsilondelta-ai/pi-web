@@ -128,7 +128,7 @@ export const messageMethods = {
   },
 
   appendLoadingMessage() {
-    if (!this.termInner || this.termInner.querySelector(".msg.loading")) return;
+    if (!this.termInner || this.hasLoadingMessage()) return;
     const row = this.simpleMessage("pi loading", "pi >", "");
     row.querySelector(".body").innerHTML = `${TERMINAL_SPINNER_HTML}<span>waiting for response…</span>`;
     row.classList.add("loading");
@@ -137,8 +137,29 @@ export const messageMethods = {
     this.scrollTerm();
   },
 
+  hasLoadingMessage() {
+    return !!this.loadingMessageNodes().length;
+  },
+
+  loadingMessageNodes() {
+    const nodes = new Set(this.termInner?.querySelectorAll(".msg.loading") || []);
+    for (const item of this.transcriptItems || []) {
+      for (const node of item?.nodes || []) {
+        if (node?.matches?.(".msg.loading")) nodes.add(node);
+      }
+    }
+    return [...nodes];
+  },
+
   removeLoadingMessage() {
-    this.termInner?.querySelectorAll(".msg.loading").forEach((loading) => this.removeTranscriptNode(loading));
+    const loadingNodes = this.loadingMessageNodes();
+    if (!loadingNodes.length) return;
+    const loadingSet = new Set(loadingNodes);
+    this.transcriptItems = (this.transcriptItems || []).filter(
+      (item) => !(item?.nodes || []).some((node) => loadingSet.has(node)),
+    );
+    loadingNodes.forEach((loading) => loading.remove?.());
+    if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom: false });
   },
 
   syncLoadingMessage() {

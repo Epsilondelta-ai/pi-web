@@ -166,6 +166,7 @@ describe("pi-app input methods coverage", () => {
     app.attachments.append(document.createElement("span"));
     await app.submitPrompt();
     expect(String(globalThis.fetch.mock.calls.at(-1)[0])).toContain("/steer");
+    expect([...app.querySelectorAll(".msg[data-kind='user'] .body")].at(-1).textContent).toBe("more");
     expect(app.prompt.value).toBe("");
 
     globalThis.fetch = vi.fn(async () => err("steer fail"));

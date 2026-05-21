@@ -208,7 +208,7 @@ class PiApp extends HTMLElement {
       },
       onRunFinished: () => {
         if (this.dataset.activeSessionId !== sessionId) return;
-        this.setMode("idle");
+        this.setMode(this.isSessionCancellationPending(sessionId) ? "cancelled" : "idle");
         this.finalizeStreamingMessages();
       },
     };
@@ -294,6 +294,8 @@ class PiApp extends HTMLElement {
   }
 
   setMode(mode) {
+    const sessionId = this.dataset.activeSessionId;
+    if (mode === "idle" && this.isSessionCancellationPending(sessionId)) mode = "cancelled";
     const wasRunning = this.running;
     const willRun = ["running", "thinking"].includes(mode);
     if (!wasRunning && willRun) this.responseFailureToastShown = false;
@@ -301,11 +303,26 @@ class PiApp extends HTMLElement {
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = willRun;
     if (wasRunning && mode === "idle" && !this.responseFailureToastShown) this.notifySessionCompleted?.();
+    if (!willRun && mode === "cancelled") this.clearSessionCancellationPending(sessionId);
     this.syncCurrentSessionRunState?.(this.running);
     this.stopButton?.toggleAttribute("hidden", !this.running);
     if (this.sendButton) this.updatePrompt();
     this.syncLoadingMessage?.();
     if (!this.running) void this.loadRuntimeStatus?.();
+  }
+
+  markSessionCancellationPending(sessionId) {
+    if (!sessionId) return;
+    this.cancelledSessionIds ??= new Set();
+    this.cancelledSessionIds.add(sessionId);
+  }
+
+  isSessionCancellationPending(sessionId) {
+    return !!sessionId && !!this.cancelledSessionIds?.has(sessionId);
+  }
+
+  clearSessionCancellationPending(sessionId) {
+    if (sessionId) this.cancelledSessionIds?.delete(sessionId);
   }
 
   updatePromptMeta(status: any = {}) {
