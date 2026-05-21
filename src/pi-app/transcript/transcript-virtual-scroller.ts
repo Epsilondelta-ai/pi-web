@@ -27,11 +27,10 @@ function initialTranscriptState(items) {
   const firstShownItemIndex = Math.max(0, items.length - TRANSCRIPT_OVERSCAN_ITEM_COUNT);
   const lastShownItemIndex = Math.max(0, items.length - 1);
   const beforeItemsHeight = transcriptRangeHeight(items, 0, firstShownItemIndex);
-  const itemHeights = items.map(transcriptItemHeight);
 
   return {
     items,
-    itemHeights,
+    itemHeights: new Array(items.length),
     itemStates: new Array(items.length),
     firstShownItemIndex,
     lastShownItemIndex,

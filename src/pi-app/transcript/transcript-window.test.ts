@@ -24,6 +24,12 @@ describe("pi-app transcript window", () => {
 
   it("adopts server-rendered transcript nodes on connect", async () => {
     const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? 35.6953125 : 21.6953125;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     app.termInner.innerHTML = [
       `<div class="transcript-spacer"></div>`,
       `<div class="msg" data-kind="pi"><div class="prefix pi">pi &gt;</div><div class="body">existing</div></div>`,
@@ -33,6 +39,8 @@ describe("pi-app transcript window", () => {
 
     expect(app.transcriptItems).toHaveLength(1);
     expect(app.querySelector(".term-inner .msg").textContent).toContain("existing");
+    expect(warn.mock.calls.some((call) => call.some((part) => String(part).includes("height changed unexpectedly"))))
+      .toBe(false);
   });
 
   it("covers tool fallback metadata and output chunks", async () => {

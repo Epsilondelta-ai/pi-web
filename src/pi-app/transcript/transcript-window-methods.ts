@@ -206,6 +206,9 @@ export const transcriptWindowMethods = {
   applyTranscriptVirtualState(state) {
     this.transcriptVisibleStart = state.firstShownItemIndex || 0;
     this.transcriptVisibleEnd = (state.lastShownItemIndex || 0) + 1;
+    state.itemHeights?.forEach((height, index) => {
+      if (height > 0 && this.transcriptItems?.[index]) this.transcriptItems[index].height = height;
+    });
   },
 
   measureTranscriptItem(item, element) {
