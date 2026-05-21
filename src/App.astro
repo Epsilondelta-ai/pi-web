@@ -1,6 +1,7 @@
 ---
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./lib/renderers";
+import { SETTINGS_FIELDS as settingsFields } from "./pi-app/workspace/settings-schema";
 
 const {
   initialRoute = "workspace",
@@ -49,33 +50,6 @@ function isToolCollapsed(msg) {
   return msg.collapsedByDefault !== false;
 }
 
-const settingsFields = [
-  { path: "defaultProvider", label: "Default provider", type: "text", hint: "provider id" },
-  { path: "defaultModel", label: "Default model", type: "text", hint: "model id or provider/model" },
-  { path: "defaultThinkingLevel", label: "Thinking level", type: "select", values: ["off", "minimal", "low", "medium", "high", "xhigh"] },
-  { path: "theme", label: "Theme", type: "text", hint: "dark, light, or custom theme" },
-  { path: "compaction.enabled", label: "Auto-compact", type: "boolean" },
-  { path: "terminal.showImages", label: "Show images", type: "boolean" },
-  { path: "terminal.imageWidthCells", label: "Image width", type: "numberSelect", values: ["60", "80", "120"] },
-  { path: "images.autoResize", label: "Auto-resize images", type: "boolean" },
-  { path: "images.blockImages", label: "Block images", type: "boolean" },
-  { path: "enableSkillCommands", label: "Skill commands", type: "boolean" },
-  { path: "showHardwareCursor", label: "Show hardware cursor", type: "boolean" },
-  { path: "editorPaddingX", label: "Editor padding", type: "numberSelect", values: ["0", "1", "2", "3"] },
-  { path: "autocompleteMaxVisible", label: "Autocomplete max items", type: "numberSelect", values: ["3", "5", "7", "10", "15", "20"] },
-  { path: "terminal.clearOnShrink", label: "Clear on shrink", type: "boolean" },
-  { path: "terminal.showTerminalProgress", label: "Terminal progress", type: "boolean" },
-  { path: "steeringMode", label: "Steering mode", type: "select", values: ["one-at-a-time", "all"] },
-  { path: "followUpMode", label: "Follow-up mode", type: "select", values: ["one-at-a-time", "all"] },
-  { path: "transport", label: "Transport", type: "select", values: ["sse", "websocket", "websocket-cached", "auto"] },
-  { path: "hideThinkingBlock", label: "Hide thinking", type: "boolean" },
-  { path: "collapseChangelog", label: "Collapse changelog", type: "boolean" },
-  { path: "quietStartup", label: "Quiet startup", type: "boolean" },
-  { path: "enableInstallTelemetry", label: "Install telemetry", type: "boolean" },
-  { path: "doubleEscapeAction", label: "Double-escape action", type: "select", values: ["tree", "fork", "none"] },
-  { path: "treeFilterMode", label: "Tree filter mode", type: "select", values: ["default", "no-tools", "user-only", "labeled-only", "all"] },
-  { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
-];
 ---
 
 <pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-sidebar={sidebarCollapsed ? "collapsed" : "open"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
