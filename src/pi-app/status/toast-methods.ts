@@ -1,4 +1,6 @@
+import { Notyf, NotyfEvent } from "notyf";
 import { sessionEvents } from "../../lib/api";
+import { escapeHtml } from "../../lib/renderers";
 import { parseFallbackChoices } from "../input/fallback-choices";
 
 const TOAST_MESSAGES = {
@@ -18,10 +20,29 @@ const TOAST_MESSAGES = {
 
 function toastText(kind, detail, context) {
   const message = TOAST_MESSAGES[kind] || TOAST_MESSAGES.success;
+  const label = toastContextLabel(context);
   return {
     title: message.title,
-    detail: [detail || message.detail, context].filter(Boolean).join(" · "),
+    detail: [detail || message.detail, label].filter(Boolean).join(" · "),
   };
+}
+
+function toastHtml(message) {
+  return [
+    `<span class="toast-dot" aria-hidden="true"></span>`,
+    `<span class="toast-copy"><strong>${escapeHtml(message.title)}</strong>`
+      + `<small>${escapeHtml(message.detail)}</small></span>`,
+  ].join("");
+}
+
+function toastContextLabel(context) {
+  if (!context || typeof context === "string") return context;
+  return context.label;
+}
+
+function toastContextSessionId(context) {
+  if (!context || typeof context === "string") return undefined;
+  return context.sessionId;
 }
 
 function displayName(name, id) {
@@ -33,63 +54,54 @@ function displayName(name, id) {
 
 export const toastMethods = {
   ensureToastRegion() {
-    if (this.toastRegion?.isConnected) return this.toastRegion;
-    const region = document.createElement("section");
-    region.className = "toast-region";
-    region.dataset.toastRegion = "";
-    region.setAttribute("aria-label", "session notifications");
-    region.setAttribute("aria-live", "polite");
-    region.innerHTML = [
-      `<button class="toast-dismiss-all" type="button" data-action="dismiss-all-toasts" hidden>전체 닫기</button>`,
-      `<div class="toast-list" data-toast-list></div>`,
-    ].join("");
-    region.addEventListener("click", (event) => this.handleToastClick(event));
-    (this.querySelector("[data-main='session']") || this).append(region);
-    this.toastRegion = region;
-    return region;
+    if (!this.notyf) {
+      this.notyf = new Notyf({
+        duration: 0,
+        dismissible: true,
+        position: { x: "right", y: "top" },
+        ripple: false,
+        types: [
+          { type: "success", icon: false, className: "session-toast success" },
+          { type: "choice", icon: false, className: "session-toast choice" },
+          { type: "error", icon: false, className: "session-toast error" },
+        ],
+      });
+    }
+    return this.notyf;
   },
 
-  handleToastClick(event) {
-    const target = event.target.closest("[data-action]");
-    if (!target || !this.toastRegion?.contains(target)) return;
-    if (target.dataset.action === "dismiss-all-toasts") this.dismissAllToasts();
-    if (target.dataset.action === "dismiss-toast") this.dismissToast(target.closest(".session-toast"));
-  },
+  handleToastClick() {},
 
   showToast(kind, detail, context = this.currentToastContext()) {
-    const region = this.ensureToastRegion();
-    const list = region.querySelector("[data-toast-list]");
-    if (!list) return undefined;
-    const toast = document.createElement("button");
+    const notyf = this.ensureToastRegion();
     const message = toastText(kind, detail, context);
-    toast.type = "button";
-    toast.className = `session-toast ${kind}`;
-    toast.dataset.action = "dismiss-toast";
-    toast.innerHTML = [
-      `<span class="toast-dot" aria-hidden="true"></span>`,
-      `<span class="toast-copy"><strong></strong><small></small></span>`,
-    ].join("");
-    toast.querySelector("strong").textContent = message.title;
-    toast.querySelector("small").textContent = message.detail;
-    list.prepend(toast);
-    this.syncToastDismissAll();
-    return toast;
+    const sessionId = toastContextSessionId(context);
+    const notification = notyf.open({
+      type: TOAST_MESSAGES[kind] ? kind : "success",
+      message: toastHtml(message),
+    });
+    notification.on(NotyfEvent.Click, () => {
+      this.activateToastSession(sessionId);
+      this.dismissToast(notification);
+    });
+    return notification;
   },
 
   dismissToast(toast) {
-    toast?.remove();
-    this.syncToastDismissAll();
+    if (toast) this.notyf?.dismiss(toast);
   },
 
   dismissAllToasts() {
-    this.toastRegion?.querySelectorAll(".session-toast").forEach((toast) => toast.remove());
-    this.syncToastDismissAll();
+    this.notyf?.dismissAll();
   },
 
-  syncToastDismissAll() {
-    const toasts = this.toastRegion?.querySelectorAll(".session-toast") ?? [];
-    const dismissAll = this.toastRegion?.querySelector(".toast-dismiss-all");
-    dismissAll?.toggleAttribute("hidden", toasts.length < 2);
+  syncToastDismissAll() {},
+
+  activateToastSession(sessionId) {
+    if (!sessionId || sessionId === this.dataset.activeSessionId) return;
+    const row = [...this.querySelectorAll(".session-row[data-session]")]
+      .find((item) => item.dataset.session === sessionId);
+    if (row) this.pickSession(row);
   },
 
   currentToastContext() {
@@ -101,7 +113,10 @@ export const toastMethods = {
       this.querySelector("[data-active-session-title]")?.textContent,
       this.dataset.activeSessionId,
     );
-    return `workspace: ${workspace} / session: ${session}`;
+    return {
+      label: `workspace: ${workspace} / session: ${session}`,
+      sessionId: this.dataset.activeSessionId,
+    };
   },
 
   notifySessionCompleted(context) {
@@ -188,6 +203,12 @@ export const toastMethods = {
   toastContextForSessionRow(row) {
     const workspaceId = row?.dataset.workspace;
     const workspaceName = this.querySelector(`[data-workspace-group='${workspaceId}'] .label`)?.textContent;
-    return `workspace: ${displayName(workspaceName, workspaceId)} / session: ${displayName(row?.dataset.title, row?.dataset.session)}`;
+    return {
+      label: [
+        `workspace: ${displayName(workspaceName, workspaceId)}`,
+        `session: ${displayName(row?.dataset.title, row?.dataset.session)}`,
+      ].join(" / "),
+      sessionId: row?.dataset.session,
+    };
   },
 };
