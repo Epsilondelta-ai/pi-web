@@ -10,8 +10,16 @@
 
 ## Installation
 
+Install the latest GitHub release binary:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
+```
+
+Install from npm:
+
+```bash
+npm i -g @epsilondelta-ai/pi-web
 ```
 
 Run after installation:

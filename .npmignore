@@ -1,0 +1,6 @@
+*
+!dist/
+!dist/pi-web
+!README.md
+!LICENSE
+!package.json
