@@ -131,6 +131,12 @@ func (u *githubSelfUpdater) DetectLatest(slug string) (*selfupdate.Release, bool
 }
 
 func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUpdater) error {
+	if options.Installer == "npm" {
+		fmt.Fprintln(out, "pi-web was installed with npm; update it with:")
+		fmt.Fprintln(out, "  npm update -g @epsilondelta-ai/pi-web")
+		return nil
+	}
+
 	current, err := parseCurrentVersion(options.CurrentVersion)
 	if err != nil {
 		return err
