@@ -221,7 +221,9 @@ export const transcriptWindowMethods = {
 
   measureTranscriptItem(item, element) {
     const height = measuredHeight([element]);
+    const previousHeight = item?.height;
     if (height > 0) item.height = height;
+    return height > 0 && previousHeight !== height;
   },
 
   notifyTranscriptNodeHeightDidChange(node) {
@@ -237,8 +239,8 @@ export const transcriptWindowMethods = {
     if (!item) return;
     const itemElement = element || this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
     if (!itemElement?.isConnected || !this.termInner?.contains?.(itemElement)) return;
-    this.measureTranscriptItem(item, itemElement);
-    if (this.transcriptVirtualScrollerStarted && this.isTranscriptItemVisible(item)) {
+    const changed = this.measureTranscriptItem(item, itemElement);
+    if (changed && this.transcriptVirtualScrollerStarted && this.isTranscriptItemVisible(item)) {
       this.transcriptVirtualScroller?.onItemHeightDidChange(item);
     }
     if (this.transcriptFollowBottom !== false && this.isTermPinnedToBottom()) this.scrollTerm({ force: true });
@@ -255,6 +257,14 @@ export const transcriptWindowMethods = {
       const element = this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
       if (element) this.measureTranscriptItem(item, element);
     }
+  },
+
+  syncRenderedTranscriptItemHeights() {
+    this.termInner?.querySelectorAll(".transcript-item[data-transcript-item]").forEach((element) => {
+      const itemId = element.dataset.transcriptItem;
+      const item = this.transcriptItems?.find((candidate) => String(candidate?.id) === itemId);
+      this.notifyTranscriptItemHeightDidChange(item, element);
+    });
   },
 
   transcriptRangeHeight(start, end) {

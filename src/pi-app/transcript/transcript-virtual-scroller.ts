@@ -105,6 +105,7 @@ export function updateTranscriptVirtualScroller(owner, { preservePrepend = false
       owner.transcriptVirtualScroller.start();
       owner.transcriptVirtualScrollerStarted = true;
     }
+    owner.syncRenderedTranscriptItemHeights?.();
     owner.transcriptVirtualScroller.setItems(owner.transcriptItems, {
       preserveScrollPositionOnPrependItems: preservePrepend,
     });
