@@ -25,7 +25,7 @@ describe("pi-app input actions coverage", () => {
       "openFile", "closeFilePreview", "toggleFilePreviewMode", "saveFilePreview", "collapseSidebar",
       "toggleDrawer", "toggleTool", "showFullToolOutput", "toggleWorkspace", "deleteWorkspace", "deleteWorkspaceSessions",
       "newSession", "toggleSessionMenu", "renameSession", "deleteSession", "submitFallbackChoice", "showUpdateTip", "openSettingsModal",
-      "closeSettingsModal", "saveSettingsForm", "pickSession", "openWorkspace", "fillPrompt", "pickSlash",
+      "closeSettingsModal", "saveSettingsForm", "saveAuthForm", "logoutAuthProvider", "pickSession", "openWorkspace", "fillPrompt", "pickSlash",
     ].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
     app.currentFolder = "/cwd";
     app.currentFolderParent = "/";
@@ -35,6 +35,7 @@ describe("pi-app input actions coverage", () => {
       "toggle-file-preview-mode", "save-file-preview", "collapse-sidebar", "expand-sidebar", "open-drawer", "close-drawer",
       "toggle-tool", "show-full-tool-output", "toggle-workspace", "delete-workspace", "delete-workspace-sessions", "new-session",
       "session-menu-toggle", "rename-session", "delete-session", "show-update-tip", "open-settings", "close-settings", "save-settings",
+      "save-auth-provider", "logout-auth-provider",
     ];
     for (const action of actions) {
       const row = document.createElement("div");

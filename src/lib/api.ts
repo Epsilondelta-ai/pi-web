@@ -40,6 +40,21 @@ export function getWorkspaces() {
   return request("/api/workspaces");
 }
 
+export function getAuthProviders() {
+  return request("/api/auth/providers");
+}
+
+export function saveAPIKey(provider, apiKey) {
+  return request("/api/auth/api-key", {
+    method: "POST",
+    body: JSON.stringify({ provider, apiKey }),
+  });
+}
+
+export function logoutProvider(provider) {
+  return request(`/api/auth/${encodeURIComponent(provider)}`, { method: "DELETE" });
+}
+
 export function openWorkspace(path) {
   return request("/api/workspaces/open", {
     method: "POST",

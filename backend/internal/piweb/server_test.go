@@ -250,6 +250,60 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 	}
 }
 
+func TestAuthEndpointsSaveListAndLogoutAPIKeys(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	authPath := filepath.Join(home, ".pi", "agent", "auth.json")
+	if err := os.MkdirAll(filepath.Dir(authPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(authPath, []byte(`{"openai":{"type":"oauth","access":"keep"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{}, NewMockStore(), NewBroker())
+
+	postBody := `{"provider":"anthropic","apiKey":"sk-test-secret"}`
+	postReq := httptest.NewRequest(http.MethodPost, "/api/auth/api-key", bytes.NewBufferString(postBody))
+	postRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(postRes, postReq)
+	if postRes.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", postRes.Code, postRes.Body.String())
+	}
+	if strings.Contains(postRes.Body.String(), "sk-test-secret") || !strings.Contains(postRes.Body.String(), `"configured":true`) {
+		t.Fatalf("unexpected API key response: %s", postRes.Body.String())
+	}
+	saved, err := os.ReadFile(authPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(saved), "sk-test-secret") || !strings.Contains(string(saved), `"type": "api_key"`) ||
+		!strings.Contains(string(saved), `"access": "keep"`) {
+		t.Fatalf("unexpected auth file: %s", string(saved))
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/auth/providers", nil)
+	getRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(getRes, getReq)
+	if getRes.Code != http.StatusOK || !strings.Contains(getRes.Body.String(), `"id":"anthropic"`) ||
+		!strings.Contains(getRes.Body.String(), `"source":"api_key"`) {
+		t.Fatalf("unexpected providers response: %d %s", getRes.Code, getRes.Body.String())
+	}
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/auth/anthropic", nil)
+	deleteRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(deleteRes, deleteReq)
+	if deleteRes.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", deleteRes.Code, deleteRes.Body.String())
+	}
+	saved, err = os.ReadFile(authPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(saved), "anthropic") || strings.Contains(string(saved), "sk-test-secret") {
+		t.Fatalf("logout did not remove credential: %s", string(saved))
+	}
+}
+
 func TestWorkspaceRuntimeSplitEndpointsUseMockStatusWhenPiDisabled(t *testing.T) {
 	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
 	modelReq := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-model", nil)

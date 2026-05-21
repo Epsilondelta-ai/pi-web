@@ -79,6 +79,13 @@ export function installPiAppFixture() {
             <option value="global">global</option>
           </select>
           <span data-settings-path></span>
+          <div data-auth-form>
+            <select data-auth-provider></select>
+            <input data-auth-api-key type="password" />
+            <button type="button" data-action="save-auth-provider">save key</button>
+            <button type="button" data-action="logout-auth-provider">logout</button>
+            <span data-auth-status></span>
+          </div>
           ${settingsField("input", "defaultProvider")}
           ${settingsField("input", "defaultModel")}
           ${settingsSelect("defaultThinkingLevel", ["inherit", "high"])}

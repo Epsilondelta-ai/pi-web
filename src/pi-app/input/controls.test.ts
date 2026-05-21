@@ -104,6 +104,12 @@ describe("pi-app controls", () => {
       status: 200,
       statusText: "OK",
       json: async () => {
+        if (String(url).endsWith("/auth/providers")) {
+          return { providers: [{ id: "anthropic", name: "Anthropic", configured: false }], path: "/home/me/.pi/agent/auth.json" };
+        }
+        if (String(url).endsWith("/auth/api-key")) {
+          return { provider: { id: "anthropic", name: "Anthropic", configured: true, source: "api_key" } };
+        }
         if (String(url).endsWith("/settings") && options.method === "PUT") {
           return { settings: { project: JSON.parse(options.body).settings, effective: {}, paths: {} } };
         }
@@ -135,6 +141,13 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='defaultProvider']").value).toBe("zai");
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='theme']").placeholder).toBe("dark");
+    expect(app.querySelector("[data-auth-provider]").value).toBe("anthropic");
+
+    app.querySelector("[data-auth-api-key]").value = "sk-test";
+    await app.saveAuthForm(new Event("submit"));
+    const authCall = globalThis.fetch.mock.calls.find(([url]) => String(url).endsWith("/auth/api-key"));
+    expect(JSON.parse(authCall[1].body)).toEqual({ provider: "anthropic", apiKey: "sk-test" });
+    expect(app.querySelector("[data-auth-api-key]").value).toBe("");
 
     app.querySelector("[data-setting='transport']").value = "sse";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";

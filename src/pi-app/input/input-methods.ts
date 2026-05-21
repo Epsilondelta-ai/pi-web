@@ -195,6 +195,8 @@ export const inputMethods = {
     if (action === "open-settings") this.openSettingsModal?.();
     if (action === "close-settings") this.closeSettingsModal?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
+    if (action === "save-auth-provider") this.saveAuthForm?.(event);
+    if (action === "logout-auth-provider") this.logoutAuthProvider?.();
     if (action === "close-tweaks") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
     if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) {
       this.pickSession(button.closest(".session-row") || button);
