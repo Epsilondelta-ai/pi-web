@@ -159,7 +159,10 @@ export function postPrompt(sessionId, text, attachments = []) {
 }
 
 export async function runAguiSessionPrompt(sessionId, text, attachments = [], subscriber: any = {}) {
-  if (typeof EventSource === "undefined") return postPrompt(sessionId, text, attachments);
+  if (typeof EventSource === "undefined") {
+    await postPrompt(sessionId, text, attachments);
+    return false;
+  }
   const agent = new HttpAgent({
     url: `${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/ag-ui`,
     threadId: sessionId,
@@ -216,8 +219,12 @@ export async function runAguiSessionPrompt(sessionId, text, attachments = [], su
         onRunFailed: ({ error }: any) => subscriber.onRunError?.(error?.message || String(error)),
       },
     );
+    return true;
   } catch (error) {
-    if (String(error).includes("Failed to getReader")) return postPrompt(sessionId, text, attachments);
+    if (String(error).includes("Failed to getReader")) {
+      await postPrompt(sessionId, text, attachments);
+      return false;
+    }
     throw error;
   }
 }

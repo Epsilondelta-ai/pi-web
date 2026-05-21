@@ -41,7 +41,12 @@ export const inputMethods = {
       this.eventSource = null;
       this.setMode("running");
       try {
-        await runAguiSessionPrompt(sessionId, text, attachments, this.aguiSubscriber(sessionId));
+        const completedInAguiStream = await runAguiSessionPrompt(sessionId, text, attachments, this.aguiSubscriber(sessionId));
+        if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
+          this.setMode("idle");
+          this.finalizeStreamingMessages();
+          this.removeLoadingMessage();
+        }
       } catch {
         this.setMode("idle");
         this.removeLoadingMessage();
@@ -210,7 +215,13 @@ export const inputMethods = {
     try {
       this.eventSource?.close();
       this.eventSource = null;
-      await runAguiSessionPrompt(this.dataset.activeSessionId, prompt, [], this.aguiSubscriber(this.dataset.activeSessionId));
+      const sessionId = this.dataset.activeSessionId;
+      const completedInAguiStream = await runAguiSessionPrompt(sessionId, prompt, [], this.aguiSubscriber(sessionId));
+      if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
+        this.setMode("idle");
+        this.finalizeStreamingMessages();
+        this.removeLoadingMessage();
+      }
     } catch {
       this.setMode("idle");
       this.removeLoadingMessage();

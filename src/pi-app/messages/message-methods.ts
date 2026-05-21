@@ -32,7 +32,10 @@ export const messageMethods = {
 
   appendMessage(message) {
     if (!this.termInner || !message) return;
-    if (this.isDuplicateMessage(message)) return;
+    if (this.isDuplicateMessage(message)) {
+      if (message.kind !== "user") this.removeLoadingMessage();
+      return;
+    }
     this.removeLoadingMessage();
     if (message.kind === "pi" || message.kind === "think") this.finishRunningTools();
     if (message.kind === "pi") this.piDeltaBuffer = "";
