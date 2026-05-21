@@ -1,4 +1,4 @@
-import { getAuthProviders, getWorkspaceSettings, logoutProvider, saveAPIKey, saveWorkspaceSettings } from "../../lib/api";
+import { getAuthProviders, getOAuthProviders, getWorkspaceSettings, logoutProvider, saveAPIKey, saveWorkspaceSettings } from "../../lib/api";
 import { SETTINGS_FIELDS, parseSettingsPatch, parseWorkspaceSettings, settingsScopeSchema } from "./settings-schema";
 
 function valueAt(settings, path) {
@@ -39,11 +39,17 @@ export const settingsMethods = {
     }
     this.setSettingsStatus("loading settings…");
     try {
-      const [{ settings }, auth] = await Promise.all([getWorkspaceSettings(workspaceId), getAuthProviders()]);
+      const [{ settings }, auth, oauth] = await Promise.all([
+        getWorkspaceSettings(workspaceId),
+        getAuthProviders(),
+        getOAuthProviders(),
+      ]);
       this.settingsState = parseWorkspaceSettings(settings);
       this.authState = auth;
+      this.oauthState = oauth;
       this.fillSettingsForm();
       this.fillAuthForm();
+      this.fillOAuthForm();
       this.setSettingsStatus("blank fields inherit from effective settings");
     } catch (error) {
       this.setSettingsStatus(error instanceof Error ? error.message : String(error), true);

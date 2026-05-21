@@ -85,6 +85,12 @@ export function installPiAppFixture() {
             <button type="button" data-action="save-auth-provider">save key</button>
             <button type="button" data-action="logout-auth-provider">logout</button>
             <span data-auth-status></span>
+            <select data-oauth-provider></select>
+            <a data-oauth-link href="#" hidden></a>
+            <input data-oauth-input hidden />
+            <button type="button" data-action="start-oauth-login">oauth</button>
+            <button type="button" data-action="send-oauth-input" hidden>send oauth</button>
+            <span data-oauth-status></span>
           </div>
           ${settingsField("input", "defaultProvider")}
           ${settingsField("input", "defaultModel")}

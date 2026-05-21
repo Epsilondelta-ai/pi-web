@@ -166,14 +166,21 @@
   white-space: nowrap;
 }
 .auth-login summary small.err { color: var(--danger); }
-.auth-login-fields {
+.auth-login-fields,
+.oauth-login-fields {
   display: grid;
   grid-template-columns: minmax(150px, 1fr) minmax(220px, 2fr) auto;
   gap: var(--space-2);
   align-items: end;
   padding: 0 12px 12px;
 }
-.auth-login-fields label {
+.oauth-login-fields {
+  grid-template-columns: minmax(180px, 1fr) auto minmax(160px, auto) minmax(220px, 2fr) auto;
+  border-top: 1px solid var(--border-dim);
+  padding-top: 12px;
+}
+.auth-login-fields label,
+.oauth-login-fields label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -186,6 +193,17 @@
   display: flex;
   gap: var(--space-2);
 }
+.oauth-login-fields a {
+  color: var(--accent);
+  font-size: var(--text-xs);
+  padding: 7px 0;
+}
+.oauth-login-fields small {
+  grid-column: 1 / -1;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
+.oauth-login-fields small.err { color: var(--danger); }
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -255,6 +273,7 @@
   .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
   .auth-login summary small { grid-column: 1 / -1; text-align: left; }
   .auth-login summary::after { display: none; }
-  .auth-login-fields { grid-template-columns: 1fr; }
+  .auth-login-fields,
+  .oauth-login-fields { grid-template-columns: 1fr; }
   .auth-login-actions { justify-content: flex-end; }
 }

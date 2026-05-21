@@ -107,6 +107,18 @@ describe("pi-app controls", () => {
         if (String(url).endsWith("/auth/providers")) {
           return { providers: [{ id: "anthropic", name: "Anthropic", configured: false }], path: "/home/me/.pi/agent/auth.json" };
         }
+        if (String(url).endsWith("/auth/oauth/providers")) {
+          return { providers: [{ id: "openai-codex", name: "ChatGPT Plus/Pro", configured: false }] };
+        }
+        if (String(url).endsWith("/auth/oauth/start")) {
+          return { session: { id: "oauth-1", provider: "openai-codex", status: "waiting", authUrl: "https://login.test", progress: [] } };
+        }
+        if (String(url).endsWith("/auth/oauth/sessions/oauth-1/input")) {
+          return { session: { id: "oauth-1", provider: "openai-codex", status: "success", progress: [] } };
+        }
+        if (String(url).endsWith("/auth/oauth/sessions/oauth-1")) {
+          return { session: { id: "oauth-1", provider: "openai-codex", status: "success", progress: [] } };
+        }
         if (String(url).endsWith("/auth/api-key")) {
           return { provider: { id: "anthropic", name: "Anthropic", configured: true, source: "api_key" } };
         }
@@ -142,6 +154,13 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='theme']").placeholder).toBe("dark");
     expect(app.querySelector("[data-auth-provider]").value).toBe("anthropic");
+    expect(app.querySelector("[data-oauth-provider]").value).toBe("openai-codex");
+
+    await app.startOAuthLogin();
+    expect(app.querySelector("[data-oauth-link]").href).toBe("https://login.test/");
+    app.querySelector("[data-oauth-input]").value = "code";
+    await app.sendOAuthInput();
+    expect(app.querySelector("[data-oauth-status]").textContent).toBe("OAuth login saved");
 
     app.querySelector("[data-auth-api-key]").value = "sk-test";
     await app.saveAuthForm(new Event("submit"));
