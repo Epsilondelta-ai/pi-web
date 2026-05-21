@@ -43,11 +43,7 @@ function initialTranscriptState(items) {
 
 function observeTranscriptItem(owner, item, element) {
   if (!globalThis.ResizeObserver) return;
-  const observer = new ResizeObserver(() => {
-    owner.measureTranscriptItem(item, element);
-    owner.transcriptVirtualScroller?.onItemHeightDidChange(item);
-    if (owner.transcriptFollowBottom !== false && owner.isTermPinnedToBottom()) owner.scrollTerm({ force: true });
-  });
+  const observer = new ResizeObserver(() => owner.notifyTranscriptItemHeightDidChange(item, element));
   observer.observe(element);
   owner.transcriptResizeObservers?.set(element, observer);
 }

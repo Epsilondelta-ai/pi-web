@@ -87,6 +87,7 @@ export const messageMethods = {
       this.scheduleStreamingRender(messageRow);
     } else if (body) {
       body.textContent += delta;
+      this.notifyTranscriptNodeHeightDidChange(messageRow);
     }
     this.scrollTerm();
   },
@@ -98,7 +99,10 @@ export const messageMethods = {
     }
     const row = this.pendingStreamingRow;
     const body = row?.querySelector("[data-stream-text]") || row?.querySelector(".body");
-    if (body && row?.dataset.streamText !== undefined) body.innerHTML = renderPiBody(row.dataset.streamText);
+    if (body && row?.dataset.streamText !== undefined) {
+      body.innerHTML = renderPiBody(row.dataset.streamText);
+      this.notifyTranscriptNodeHeightDidChange(row);
+    }
     this.pendingStreamingRow = undefined;
   },
 
@@ -170,6 +174,7 @@ export const messageMethods = {
       card.dataset.status = status;
       const meta = card.querySelector(".tc-meta");
       if (meta) meta.innerHTML = this.toolStatus({ status, resultMeta });
+      this.notifyTranscriptNodeHeightDidChange(card);
     });
   },
 

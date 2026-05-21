@@ -115,17 +115,41 @@ describe("pi-app transcript window", () => {
     });
 
     const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
     app.renderMessages([]);
     app.appendMessage({ kind: "tool", tool: "bash", status: "running", collapsedByDefault: true });
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
     app.appendToolOutput({ tool: "bash", chunk: "streaming output" });
     frames.splice(0).forEach((callback) => callback(0));
 
     const body = app.querySelector(".tool-card .tc-body");
     expect(body.hidden).toBe(true);
     expect(body.textContent).toContain("streaming output");
+    expect(heightChanged).not.toHaveBeenCalled();
 
     app.toggleTool(app.querySelector(".tc-head"));
     expect(body.hidden).toBe(false);
+    expect(heightChanged).toHaveBeenCalled();
+  });
+
+  it("notifies the virtual scroller after streamed assistant markup changes height", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 600 });
+    app.renderMessages([]);
+    app.appendDelta({ kind: "pi", delta: "start" });
+    const heightChanged = vi.spyOn(app.transcriptVirtualScroller, "onItemHeightDidChange");
+
+    app.appendDelta({ kind: "pi", delta: "\nsecond line" });
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(app.querySelector(".msg.streaming .markdown-body").innerHTML).toContain("<br>");
+    expect(heightChanged).toHaveBeenCalled();
   });
 
   it("covers transcript guard fallback paths", async () => {
