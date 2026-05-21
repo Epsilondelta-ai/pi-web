@@ -159,6 +159,23 @@ func (s *Server) workspaceCommands(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, body)
 }
+func (s *Server) workspaceModels(w http.ResponseWriter, r *http.Request) {
+	root, err := s.store.WorkspacePath(r.PathValue("workspaceID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	models := WorkspaceModelsResponse{Providers: []ModelProvider{{ID: "zai", Models: []ModelOption{{ID: "gpt-5.5", Provider: "zai"}}}}}
+	if s.config.EnablePiExecution {
+		models, err = WorkspaceModels(r.Context(), root)
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, models)
+}
+
 func (s *Server) workspaceRuntimeStatus(w http.ResponseWriter, r *http.Request) {
 	root, err := s.store.WorkspacePath(r.PathValue("workspaceID"))
 	if err != nil {

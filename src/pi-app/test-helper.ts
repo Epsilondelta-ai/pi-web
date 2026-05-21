@@ -92,8 +92,8 @@ export function installPiAppFixture() {
             <button type="button" data-action="send-oauth-input" hidden>send oauth</button>
             <span data-oauth-status></span>
           </div>
-          ${settingsField("input", "defaultProvider")}
-          ${settingsField("input", "defaultModel")}
+          ${settingsSelect("defaultProvider", ["inherit", "custom"], true)}
+          ${settingsSelect("defaultModel", ["inherit", "custom"], true)}
           ${settingsSelect("defaultThinkingLevel", ["inherit", "high"])}
           ${settingsField("input", "theme")}
           ${settingsSelect("steeringMode", ["inherit", "all"])}
@@ -115,9 +115,10 @@ function settingsField(tag, name) {
   return "";
 }
 
-function settingsSelect(name, values) {
+function settingsSelect(name, values, custom = false) {
   const options = values.map((value) => `<option value="${value}">${value}</option>`).join("");
-  return `<label class="settings-field"><select data-setting="${name}">${options}</select><small></small></label>`;
+  const customInput = custom ? `<input data-custom-setting="${name}" hidden />` : "";
+  return `<label class="settings-field"><select data-setting="${name}">${options}</select>${customInput}<small></small></label>`;
 }
 
 export function installEmptySessionFixture() {

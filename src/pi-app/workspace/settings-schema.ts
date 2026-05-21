@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const SETTINGS_FIELDS = [
-  { path: "defaultProvider", label: "Default provider", type: "text", hint: "provider id" },
-  { path: "defaultModel", label: "Default model", type: "text", hint: "model id or provider/model" },
+  { path: "defaultProvider", label: "Default provider", type: "providerSelect", hint: "provider id" },
+  { path: "defaultModel", label: "Default model", type: "modelSelect", hint: "model id or provider/model" },
   { path: "defaultThinkingLevel", label: "Thinking level", type: "select", values: ["off", "minimal", "low", "medium", "high", "xhigh"] },
   { path: "theme", label: "Theme", type: "text", hint: "dark, light, or custom theme" },
   { path: "compaction.enabled", label: "Auto-compact", type: "boolean" },

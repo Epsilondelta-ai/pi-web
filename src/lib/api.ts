@@ -119,6 +119,10 @@ export function getWorkspaceCommands(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/commands`);
 }
 
+export function getWorkspaceModels(workspaceId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/models`);
+}
+
 export function getWorkspaceRuntimeStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-status`);
 }

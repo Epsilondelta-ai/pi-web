@@ -108,6 +108,13 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
     this.querySelector("[data-settings-form]")?.addEventListener("submit", (event) => this.saveSettingsForm(event));
     this.querySelector("[data-settings-scope]")?.addEventListener("change", () => this.fillSettingsForm());
+    this.querySelector("[data-setting='defaultProvider']")?.addEventListener("change", (event) => {
+      this.syncCustomSettingInput(event.currentTarget);
+      this.fillModelControls();
+    });
+    this.querySelector("[data-setting='defaultModel']")?.addEventListener("change", (event) => {
+      this.syncCustomSettingInput(event.currentTarget);
+    });
     this.sendButton?.addEventListener("click", () => this.submitPrompt());
     this.stopButton?.addEventListener("click", () => this.cancelActiveSession());
     this.prompt?.addEventListener("input", () => this.updatePrompt());
