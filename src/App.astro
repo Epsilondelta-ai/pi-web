@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CornerDownLeft,
   Folder,
+  GitBranch,
   Menu,
   Paperclip,
   Play,
@@ -233,7 +234,7 @@ function isToolCollapsed(msg) {
       <div class="prompt-actions"><button class="stop-btn" type="button" aria-label="stop" title="stop" hidden><Square size={13} strokeWidth={2} aria-hidden="true" /></button><button class="send-btn" type="button" aria-label="send" title="send" disabled><SendHorizontal size={14} strokeWidth={2} aria-hidden="true" /></button></div>
       <div class="drop-overlay" hidden><span>drop to attach</span></div>
     </div>
-    <div class="prompt-meta" data-prompt-meta>— |  —</div>
+    <div class="prompt-meta" data-prompt-meta>— | <span class="prompt-meta-item prompt-meta-branch"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /><span>—</span></span></div>
   </div>
 
     <div class="scrim" data-action="close-drawer"></div>

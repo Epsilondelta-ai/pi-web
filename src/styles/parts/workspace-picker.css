@@ -10,6 +10,20 @@
   white-space: nowrap;
   letter-spacing: .01em;
 }
+.prompt-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: -2px;
+}
+.prompt-meta-item svg {
+  display: block;
+  flex: 0 0 auto;
+}
+.prompt-meta-battery-full { color: var(--accent); }
+.prompt-meta-battery-medium { color: var(--warn); }
+.prompt-meta-battery-low { color: var(--danger); }
+.prompt-meta-branch { color: var(--fg-2); }
 
 .picker-shell {
   flex: 1;

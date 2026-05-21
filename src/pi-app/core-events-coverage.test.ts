@@ -228,8 +228,10 @@ describe("pi-app core events coverage", () => {
     expect(app.syncCurrentSessionRunState).toHaveBeenCalledWith(false);
     expect(app.finishRunningTools).toHaveBeenCalled();
 
-    expect(app.quotaLabel("5h", 120)).toBe("5h 🔋(100%)");
-    expect(app.quotaLabel("5h", -1)).toBe("5h 🪫(0%)");
+    expect(app.quotaLabel("5h", 120)).toContain("prompt-meta-battery-full");
+    expect(app.quotaLabel("5h", 120)).toContain("(100%)");
+    expect(app.quotaLabel("5h", -1)).toContain("prompt-meta-battery-low");
+    expect(app.quotaLabel("5h", -1)).toContain("(0%)");
     expect(app.quotaLabel("5h", Number.NaN)).toBeUndefined();
     vi.resetModules();
     await import("./index");
