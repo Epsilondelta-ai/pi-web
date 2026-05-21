@@ -168,6 +168,10 @@ describe("pi-app input actions coverage", () => {
     globalThis.fetch = vi.fn(async () => ok({ cancelled: true }));
     await app.cancelActiveSession();
     expect(String(globalThis.fetch.mock.calls[0][0])).toContain("/cancel");
+    expect(app.isSessionCancellationPending("s1")).toBe(false);
+    globalThis.fetch = vi.fn(async () => ok({ cancelled: false }));
+    await app.cancelActiveSession();
+    expect(app.isSessionCancellationPending("s1")).toBe(false);
     globalThis.fetch = vi.fn(async () => err("cancel failed"));
     app.setConnection = vi.fn();
     await app.cancelActiveSession();

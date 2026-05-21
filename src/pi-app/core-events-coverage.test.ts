@@ -141,12 +141,17 @@ describe("pi-app core events coverage", () => {
     app.dataset.activeSessionId = "s1";
     app.running = true;
     app.notifySessionCompleted = vi.fn();
+    app.markSessionCancellationPending("");
     app.markSessionCancellationPending("s1");
 
-    app.aguiSubscriber("s1").onRunFinished();
+    app.setMode("idle");
 
     expect(app.running).toBe(false);
     expect(app.notifySessionCompleted).not.toHaveBeenCalled();
+    expect(app.isSessionCancellationPending("s1")).toBe(false);
+
+    app.markSessionCancellationPending("s1");
+    app.aguiSubscriber("s1").onRunFinished();
     expect(app.isSessionCancellationPending("s1")).toBe(false);
   });
 
