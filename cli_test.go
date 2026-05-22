@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"runtime/debug"
@@ -128,9 +131,18 @@ func TestRunUpdateReportsNpmUpdateCommand(t *testing.T) {
 	}
 }
 
-func TestRunUpdateReportsGoInstallCommand(t *testing.T) {
+func TestRunUpdateRunsGoInstall(t *testing.T) {
+	previous := runGoInstall
+	t.Cleanup(func() { runGoInstall = previous })
+
 	fake := &fakeBinaryUpdater{}
 	var out bytes.Buffer
+	var gotPackage string
+	runGoInstall = func(_ context.Context, out io.Writer, packagePath string) error {
+		gotPackage = packagePath
+		fmt.Fprintln(out, "go output")
+		return nil
+	}
 
 	if err := runUpdateWithUpdater(&out, updateOptions{
 		CurrentVersion: "v1.2.3",
@@ -143,10 +155,32 @@ func TestRunUpdateReportsGoInstallCommand(t *testing.T) {
 	if fake.called {
 		t.Fatal("go-installed binary should not self-update")
 	}
-	want := "pi-web was installed with Go; update it with:\n" +
+	if gotPackage != goInstallPackage {
+		t.Fatalf("expected package %q, got %q", goInstallPackage, gotPackage)
+	}
+	want := "Updating pi-web with Go...\n" +
+		"go output\n" +
+		"Updated pi-web with:\n" +
 		"  go install github.com/Epsilondelta-ai/pi-web@latest\n"
 	if got := out.String(); got != want {
 		t.Fatalf("unexpected output: %q", got)
+	}
+}
+
+func TestRunUpdateReturnsGoInstallError(t *testing.T) {
+	previous := runGoInstall
+	t.Cleanup(func() { runGoInstall = previous })
+
+	installErr := errors.New("install failed")
+	runGoInstall = func(context.Context, io.Writer, string) error { return installErr }
+
+	err := runUpdateWithUpdater(io.Discard, updateOptions{
+		CurrentVersion: "v1.2.3",
+		RepositorySlug: "owner/repo",
+		Installer:      "go",
+	}, &fakeBinaryUpdater{})
+	if !errors.Is(err, installErr) {
+		t.Fatalf("expected install error, got %v", err)
 	}
 }
 

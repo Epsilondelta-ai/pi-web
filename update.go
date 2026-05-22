@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -39,7 +40,18 @@ var (
 		return newGitHubSelfUpdater()
 	}
 	newSelfupdateUpdater = selfupdate.NewUpdater
+	runGoInstall         = defaultRunGoInstall
 )
+
+func defaultRunGoInstall(ctx context.Context, out io.Writer, packagePath string) error {
+	cmd := exec.CommandContext(ctx, "go", "install", packagePath+"@latest")
+	cmd.Stdout = out
+	cmd.Stderr = out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("go install %s@latest: %w", packagePath, err)
+	}
+	return nil
+}
 
 func runUpdate(out io.Writer, options updateOptions) error {
 	updater, err := newSelfUpdater()
@@ -137,8 +149,12 @@ func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUp
 		return nil
 	}
 	if options.Installer == "go" {
-		fmt.Fprintln(out, "pi-web was installed with Go; update it with:")
-		fmt.Fprintln(out, "  go install github.com/Epsilondelta-ai/pi-web@latest")
+		fmt.Fprintln(out, "Updating pi-web with Go...")
+		if err := runGoInstall(context.Background(), out, goInstallPackage); err != nil {
+			return err
+		}
+		fmt.Fprintln(out, "Updated pi-web with:")
+		fmt.Fprintf(out, "  go install %s@latest\n", goInstallPackage)
 		return nil
 	}
 
