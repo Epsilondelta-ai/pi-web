@@ -171,7 +171,13 @@ export const inputMethods = {
     if (action === "folder-up") this.loadFolder(this.currentFolderParent);
     if (action === "folder-open-current") this.openWorkspacePath(this.currentFolder);
     if (action === "toggle-tree") this.toggleTree();
-    if (action === "refresh-tree") this.refreshTree();
+    if (action === "show-file-tree") this.showFileTreePanel?.();
+    if (action === "show-git-history") this.showGitHistory?.();
+    if (action === "select-git-commit") this.selectGitCommit?.(actionTarget.dataset.hash);
+    if (action === "refresh-tree") {
+      this.refreshTree();
+      this.refreshGitHistory?.();
+    }
     if (action === "tree-root-menu") {
       const rect = button?.getBoundingClientRect?.();
       window.dispatchEvent(new CustomEvent("pi-workspace-tree:root-menu", {

@@ -7,6 +7,8 @@ import {
   deleteSession,
   deleteWorkspace,
   deleteWorkspaceSessions,
+  getGitCommit,
+  getGitHistory,
   getGitStatus,
   getSession,
   getVersionStatus,
@@ -113,6 +115,10 @@ describe("api adapter", () => {
     expect(files.url).toBe("http://backend.test/api/workspaces/w%2F1/files");
     const git = await getGitStatus("w/1");
     expect(git.url).toBe("http://backend.test/api/workspaces/w%2F1/git/status");
+    const gitHistory = await getGitHistory("w/1", 25);
+    expect(gitHistory.url).toBe("http://backend.test/api/workspaces/w%2F1/git/history?limit=25");
+    const gitCommit = await getGitCommit("w/1", "a/b");
+    expect(gitCommit.url).toBe("http://backend.test/api/workspaces/w%2F1/git/commit?hash=a%2Fb");
     const status = await getWorkspaceRuntimeStatus("w1");
     expect(status.url).toBe("http://backend.test/api/workspaces/w1/runtime-status");
     const model = await getWorkspaceRuntimeModel("w1");

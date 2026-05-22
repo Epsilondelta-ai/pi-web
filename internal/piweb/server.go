@@ -90,6 +90,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("DELETE /api/workspaces/{workspaceID}/files/delete", s.deleteWorkspaceFile)
 	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/files/upload", s.uploadWorkspaceFile)
 	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/status", s.gitStatus)
+	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/history", s.gitHistory)
+	s.mux.HandleFunc("GET /api/workspaces/{workspaceID}/git/commit", s.gitCommit)
 	s.mux.HandleFunc("POST /api/workspaces/{workspaceID}/shell", s.shellCommand)
 	s.mux.HandleFunc("GET /api/sessions/{sessionID}", s.session)
 	s.mux.HandleFunc("PATCH /api/sessions/{sessionID}", s.renameSession)
