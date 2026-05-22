@@ -11,6 +11,7 @@ import (
 
 type WorkspaceModelsResponse struct {
 	Providers []ModelProvider `json:"providers"`
+	Error     string          `json:"error,omitempty"`
 }
 
 type ModelProvider struct {
@@ -28,9 +29,9 @@ type ModelOption struct {
 }
 
 func WorkspaceModels(ctx context.Context, root string) (WorkspaceModelsResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, 12*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "pi", "--list-models")
+	cmd := exec.CommandContext(ctx, "pi", "--no-extensions", "--list-models")
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "PI_SKIP_VERSION_CHECK=1")
 	output, err := cmd.CombinedOutput()
@@ -38,6 +39,34 @@ func WorkspaceModels(ctx context.Context, root string) (WorkspaceModelsResponse,
 		return WorkspaceModelsResponse{}, err
 	}
 	return parseListModelsOutput(string(output)), nil
+}
+
+func fallbackWorkspaceModels(root string, err error) WorkspaceModelsResponse {
+	provider, model := "zai", "gpt-5.5"
+	if err != nil {
+		provider, model = fallbackModelFromSettings(root)
+	}
+	response := WorkspaceModelsResponse{Providers: []ModelProvider{{ID: provider, Models: []ModelOption{{ID: model, Provider: provider}}}}}
+	if err != nil {
+		response.Error = err.Error()
+	}
+	return response
+}
+
+func fallbackModelFromSettings(root string) (string, string) {
+	settings, err := WorkspaceSettings(root)
+	if err != nil {
+		return "zai", "gpt-5.5"
+	}
+	provider, _ := settings.Effective["defaultProvider"].(string)
+	model, _ := settings.Effective["defaultModel"].(string)
+	if strings.TrimSpace(provider) == "" {
+		provider = "zai"
+	}
+	if strings.TrimSpace(model) == "" {
+		model = "gpt-5.5"
+	}
+	return provider, model
 }
 
 func parseListModelsOutput(output string) WorkspaceModelsResponse {

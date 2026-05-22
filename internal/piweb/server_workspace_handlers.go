@@ -165,12 +165,11 @@ func (s *Server) workspaceModels(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	models := WorkspaceModelsResponse{Providers: []ModelProvider{{ID: "zai", Models: []ModelOption{{ID: "gpt-5.5", Provider: "zai"}}}}}
+	models := fallbackWorkspaceModels(root, nil)
 	if s.config.EnablePiExecution {
 		models, err = WorkspaceModels(r.Context(), root)
 		if err != nil {
-			writeError(w, http.StatusBadGateway, err)
-			return
+			models = fallbackWorkspaceModels(root, err)
 		}
 	}
 	writeJSON(w, http.StatusOK, models)

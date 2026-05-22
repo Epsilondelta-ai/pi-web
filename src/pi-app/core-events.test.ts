@@ -110,6 +110,28 @@ describe("pi-app core events", () => {
     expect(calls.map(([name]) => name)).toContain("navigateList");
   });
 
+  it("keeps settings controls usable when model discovery fails", async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      const path = String(url);
+      if (path.includes("/settings")) return { ok: true, json: async () => ({ settings: { project: {}, global: {}, effective: { defaultProvider: "zai", defaultModel: "gpt-5.5" }, paths: { project: "p", global: "g" } } }) };
+      if (path.includes("/models")) return { ok: false, status: 502, statusText: "Bad Gateway", json: async () => ({ error: "signal: killed" }) };
+      if (path.includes("/auth/oauth/providers")) return { ok: true, json: async () => ({ providers: [] }) };
+      if (path.includes("/auth/providers")) return { ok: true, json: async () => ({ providers: [] }) };
+      return { ok: true, json: async () => ({}) };
+    });
+    const app = await connectPiApp();
+    app.dataset.activeWorkspaceId = "w1";
+    app.apiConnected = true;
+    await app.openSettingsModal();
+    const provider = app.querySelector("[data-setting='defaultProvider']");
+    const model = app.querySelector("[data-setting='defaultModel']");
+    expect(provider.disabled).toBe(false);
+    expect(model.disabled).toBe(false);
+    expect([...provider.options].map((option) => option.value)).toContain("zai");
+    expect([...model.options].map((option) => option.value)).toContain("gpt-5.5");
+    expect(app.querySelector("[data-settings-status]").textContent).toBe("signal: killed");
+  });
+
   it("connects event streams and applies every event branch", async () => {
     const listeners = {};
     class FakeEventSource {
