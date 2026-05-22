@@ -3,13 +3,17 @@ package main
 import (
 	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/spf13/cobra"
 )
 
 const githubRepositorySlug = "Epsilondelta-ai/pi-web"
+const goInstallPackage = "github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web"
 
 var version = "v1.4.0"
+
+var readBuildInfo = debug.ReadBuildInfo
 
 type rootDependencies struct {
 	stdout io.Writer
@@ -57,6 +61,18 @@ func newRootCommand(deps rootDependencies) *cobra.Command {
 	return cmd
 }
 
+func detectedInstaller() string {
+	if installer := os.Getenv("PI_WEB_INSTALLER"); installer != "" {
+		return installer
+	}
+
+	info, ok := readBuildInfo()
+	if ok && info.Main.Path == goInstallPackage && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return "go"
+	}
+	return ""
+}
+
 func newUpdateCommand(update func(io.Writer, updateOptions) error) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update",
@@ -66,7 +82,7 @@ func newUpdateCommand(update func(io.Writer, updateOptions) error) *cobra.Comman
 			return update(cmd.OutOrStdout(), updateOptions{
 				CurrentVersion: version,
 				RepositorySlug: githubRepositorySlug,
-				Installer:      os.Getenv("PI_WEB_INSTALLER"),
+				Installer:      detectedInstaller(),
 			})
 		},
 	}

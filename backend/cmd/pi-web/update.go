@@ -136,6 +136,11 @@ func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUp
 		fmt.Fprintln(out, "  npm update -g @epsilondelta-ai/pi-web")
 		return nil
 	}
+	if options.Installer == "go" {
+		fmt.Fprintln(out, "pi-web was installed with Go; update it with:")
+		fmt.Fprintln(out, "  go install github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web@latest")
+		return nil
+	}
 
 	current, err := parseCurrentVersion(options.CurrentVersion)
 	if err != nil {
