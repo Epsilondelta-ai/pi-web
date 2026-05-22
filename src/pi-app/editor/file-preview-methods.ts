@@ -34,6 +34,7 @@ export const filePreviewMethods = {
       file,
       mode: defaultPreviewMode(file),
       cleanContent: file.content || "",
+      originalContent: gitOriginalContent(file),
       dirty: false,
       editor: undefined,
       saveStatus: "",
@@ -78,6 +79,7 @@ export const filePreviewMethods = {
     if (!this.filePreview?.file || !this.confirmCleanFilePreview?.()) return;
     this.filePreview.mode = this.filePreview.mode === "image" ? "text" : "image";
     this.filePreview.cleanContent = this.filePreview.file.content || "";
+    this.filePreview.originalContent = gitOriginalContent(this.filePreview.file);
     this.filePreview.dirty = false;
     this.filePreview.saveStatus = "";
     this.renderFilePreviewBody();
@@ -97,6 +99,7 @@ export const filePreviewMethods = {
       if (currentContent !== content) {
         state.file = next;
         state.cleanContent = next.content || content;
+        state.originalContent = gitOriginalContent(next);
         state.dirty = currentContent !== state.cleanContent;
         state.saveStatus = "saved";
         updatePreviewActions(this.querySelector("[data-file-preview]"), state);
@@ -108,6 +111,7 @@ export const filePreviewMethods = {
         file: next,
         mode: defaultPreviewMode(next),
         cleanContent: next.content || content,
+        originalContent: gitOriginalContent(next),
         dirty: false,
         editor: undefined,
         saveStatus: "saved",
@@ -177,6 +181,10 @@ function updatePreviewActions(preview, state) {
   setPreviewHeader(preview, state);
 }
 
+function gitOriginalContent(file) {
+  return typeof file?.originalContent === "string" ? file.originalContent : file?.content || "";
+}
+
 function defaultPreviewMode(file) {
   if (file.previewKind === "image" && file.dataUrl) return "image";
   if (isTextFile(file)) return "text";
@@ -194,6 +202,7 @@ function textPreviewNode(app, state) {
   state.editor = new CodeMirrorFileEditor(container, {
     file,
     content,
+    originalContent: state.originalContent,
     readOnly,
     onChange: (nextContent) => {
       state.dirty = nextContent !== state.cleanContent;

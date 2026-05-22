@@ -73,9 +73,38 @@ describe("file preview CodeMirror editor", () => {
     dispatchEditorChange(app, "const answer = 2;");
 
     expect(app.filePreview.dirty).toBe(true);
+    expect(editor.querySelector(".cm-gitChangeGutter")).toBeTruthy();
+    expect(editor.querySelector(".cm-git-modified")).toBeTruthy();
     expect(save.disabled).toBe(false);
     expect(save.textContent).toBe("save *");
     expect(app.querySelector(".fp-head small").textContent).toContain("modified");
+  });
+
+  it("shows added and deleted git gutter marker types", () => {
+    const app = mountPreview();
+    app.renderFilePreview({ path: "new.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;", originalContent: "" });
+    expect(app.querySelector(".cm-git-added")).toBeTruthy();
+
+    app.renderFilePreview({ path: "short.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;\n", originalContent: "let x = 1;\nlet y = 2;\n" });
+    expect(app.querySelector(".cm-git-deleted")).toBeTruthy();
+  });
+
+  it("shows git-based gutter markers without treating opened git changes as unsaved", () => {
+    const app = mountPreview();
+    app.renderFilePreview({
+      path: "demo.js",
+      mime: "text/javascript",
+      previewKind: "text",
+      content: "let x = 2;",
+      originalContent: "let x = 1;",
+      gitStatus: "tracked",
+    });
+
+    expect(app.filePreview.dirty).toBe(false);
+    expect(app.filePreview.cleanContent).toBe("let x = 2;");
+    expect(app.filePreview.originalContent).toBe("let x = 1;");
+    expect(app.querySelector(".cm-git-modified")).toBeTruthy();
+    expect(app.querySelector("[data-action='save-file-preview']").disabled).toBe(true);
   });
 
   it("saves current CodeMirror document and keeps edits after save failure", async () => {
