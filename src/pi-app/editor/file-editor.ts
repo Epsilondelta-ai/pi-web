@@ -8,6 +8,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { bracketMatching, defaultHighlightStyle, indentOnInput, syntaxHighlighting } from "@codemirror/language";
 import { StreamLanguage } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { unifiedMergeView } from "@codemirror/merge";
 import { search, searchKeymap } from "@codemirror/search";
 import { EditorState } from "@codemirror/state";
 import type { Extension } from "@codemirror/state";
@@ -44,6 +45,7 @@ export type EditableFileState = {
 export type FileEditorOptions = {
   file: FileLike;
   content: string;
+  originalContent?: string;
   readOnly?: boolean;
   onChange?: (content: string) => void;
   onSave?: () => void;
@@ -96,7 +98,13 @@ export class CodeMirrorFileEditor {
       parent: this.parent,
       state: EditorState.create({
         doc: options.content,
-        extensions: editorExtensions(options.file, !!options.readOnly, this.saveKeymap, this.changeListener),
+        extensions: editorExtensions(
+          options.file,
+          !!options.readOnly,
+          options.originalContent ?? options.content,
+          this.saveKeymap,
+          this.changeListener,
+        ),
       }),
     });
   }
@@ -167,7 +175,15 @@ export function codeMirrorLanguageExtension(file: FileLike): Extension[] {
   }
 }
 
-function editorExtensions(file: FileLike, readOnly: boolean, ...extra: Extension[]): Extension[] {
+function editorExtensions(file: FileLike, readOnly: boolean, originalContent: string, ...extra: Extension[]): Extension[] {
+  const changeIndicator = readOnly ? [] : unifiedMergeView({
+    original: originalContent,
+    gutter: true,
+    highlightChanges: false,
+    mergeControls: false,
+    syntaxHighlightDeletions: false,
+  });
+
   return [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -185,6 +201,7 @@ function editorExtensions(file: FileLike, readOnly: boolean, ...extra: Extension
     EditorView.editable.of(!readOnly),
     EditorView.lineWrapping,
     piEditorTheme(),
+    ...changeIndicator,
     ...codeMirrorLanguageExtension(file),
     keymap.of([indentWithTab, ...searchKeymap, ...historyKeymap, ...defaultKeymap]),
     ...extra,
@@ -211,6 +228,9 @@ function piEditorTheme() {
         borderRight: "1px solid var(--border-dim)",
       },
       ".cm-activeLineGutter, .cm-activeLine": { backgroundColor: "rgba(255,255,255,0.045)" },
+      ".cm-changeGutter": { width: "4px", paddingLeft: "0", backgroundColor: "var(--bg-0)" },
+      "&.cm-merge-b .cm-changedLineGutter": { backgroundColor: "var(--accent)" },
+      ".cm-changedLine": { backgroundColor: "transparent" },
       ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "rgba(0,255,136,0.24)" },
       ".cm-cursor": { borderLeftColor: "var(--accent)" },
       ".cm-panels": { backgroundColor: "var(--bg-2)", color: "var(--fg-1)" },

@@ -73,6 +73,8 @@ describe("file preview CodeMirror editor", () => {
     dispatchEditorChange(app, "const answer = 2;");
 
     expect(app.filePreview.dirty).toBe(true);
+    expect(editor.querySelector(".cm-changeGutter")).toBeTruthy();
+    expect(editor.querySelector(".cm-changedLineGutter")).toBeTruthy();
     expect(save.disabled).toBe(false);
     expect(save.textContent).toBe("save *");
     expect(app.querySelector(".fp-head small").textContent).toContain("modified");

@@ -194,6 +194,7 @@ function textPreviewNode(app, state) {
   state.editor = new CodeMirrorFileEditor(container, {
     file,
     content,
+    originalContent: state.cleanContent,
     readOnly,
     onChange: (nextContent) => {
       state.dirty = nextContent !== state.cleanContent;
