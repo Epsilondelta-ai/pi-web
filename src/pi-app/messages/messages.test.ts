@@ -91,6 +91,36 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
+  it("renders user prompts through markdown with preserved line breaks", async () => {
+    const app = await connectPiApp();
+    const text = [
+      "PR 올림: https://github.com/Epsilondelta-ai/juun-ai/pull/14",
+      "",
+      "Checks:",
+      "- Branch pushed",
+      "- PR created",
+      "- Docs-only change",
+    ].join("\n");
+    app.renderMessages([]);
+    app.appendMessage({ kind: "user", text });
+    app.appendLoadingMessage();
+    app.appendMessage({ kind: "user", text });
+
+    const body = app.querySelector(".msg[data-kind='user'] .body");
+    expect(app.querySelectorAll(".msg[data-kind='user']")).toHaveLength(1);
+    expect(body.classList.contains("markdown-body")).toBe(true);
+    expect(body.querySelector("a").textContent).toBe("https://github.com/Epsilondelta-ai/juun-ai/pull/14");
+    expect([...body.querySelectorAll("p")].map((item) => item.textContent)).toEqual([
+      "PR 올림: https://github.com/Epsilondelta-ai/juun-ai/pull/14",
+      "Checks:",
+    ]);
+    expect([...body.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
+      "Branch pushed",
+      "PR created",
+      "Docs-only change",
+    ]);
+  });
+
   it("does not append new deltas to an old streaming row", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);

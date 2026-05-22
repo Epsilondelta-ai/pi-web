@@ -21,8 +21,16 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+export function renderMarkdownBody(text) {
+  return markdown.render(String(text ?? "")).trim();
+}
+
 export function renderPiBody(text) {
-  return restorePiInlineMarkup(markdown.render(String(text ?? ""))).trim();
+  return restorePiInlineMarkup(renderMarkdownBody(text));
+}
+
+export function renderUserBody(text) {
+  return renderMarkdownBody(text);
 }
 
 function restorePiInlineMarkup(html) {
