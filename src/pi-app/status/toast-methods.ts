@@ -22,6 +22,8 @@ const TOAST_MESSAGES = {
   },
 };
 
+const UNREAD_COMPLETED_SESSIONS_KEY = "piweb:unread-completed-sessions";
+
 const BACKEND_CONNECTION_ERROR_PATTERNS = [
   /failed to fetch/i,
   /fetch failed/i,
@@ -89,6 +91,7 @@ export const toastMethods = {
           { type: "connection", icon: false, className: "session-toast connection" },
         ],
       });
+      this.toastDismissObserver = new MutationObserver(() => this.syncToastDismissAll());
     }
     return this.notyf;
   },
@@ -107,21 +110,44 @@ export const toastMethods = {
       this.activateToastSession(sessionId);
       this.dismissToast(notification);
     });
+    this.syncToastDismissAll();
     return notification;
   },
 
   dismissToast(toast) {
     if (toast) this.notyf?.dismiss(toast);
+    this.syncToastDismissAll();
   },
 
   dismissAllToasts() {
     this.notyf?.dismissAll();
+    this.syncToastDismissAll();
   },
 
-  syncToastDismissAll() {},
+  syncToastDismissAll() {
+    const region = document.querySelector(".notyf");
+    if (!region) return;
+    let button = region.querySelector(".toast-dismiss-all");
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.className = "toast-dismiss-all";
+      button.textContent = "전체 닫기";
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this.dismissAllToasts();
+      });
+      region.prepend(button);
+      this.toastDismissObserver?.observe(region, { childList: true });
+    }
+    const activeToastCount = region.querySelectorAll(".notyf__toast:not(.notyf__toast--disappear)").length;
+    button.hidden = activeToastCount === 0;
+  },
 
   activateToastSession(sessionId) {
-    if (!sessionId || sessionId === this.dataset.activeSessionId) return;
+    if (!sessionId) return;
+    this.clearUnreadCompletedSession(sessionId);
+    if (sessionId === this.dataset.activeSessionId) return;
     const row = [...this.querySelectorAll(".session-row[data-session]")]
       .find((item) => item.dataset.session === sessionId);
     if (row) this.pickSession(row);
@@ -143,6 +169,8 @@ export const toastMethods = {
   },
 
   notifySessionCompleted(context) {
+    const sessionId = toastContextSessionId(context || this.currentToastContext());
+    this.markUnreadCompletedSession(sessionId);
     this.showToast("success", undefined, context);
   },
 
@@ -226,6 +254,47 @@ export const toastMethods = {
     this.markSessionRunning?.(watch.row, false);
     this.updateSessionMeta?.(watch.row, false);
     this.syncActiveWorkspaceRows?.();
+  },
+
+  readUnreadCompletedSessions() {
+    try {
+      const raw = localStorage.getItem(UNREAD_COMPLETED_SESSIONS_KEY);
+      const parsed = JSON.parse(raw || "[]");
+      return new Set(Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  writeUnreadCompletedSessions(sessions) {
+    try {
+      localStorage.setItem(UNREAD_COMPLETED_SESSIONS_KEY, JSON.stringify([...sessions]));
+    } catch {
+      // Ignore storage failures; visual state will still update for this page.
+    }
+  },
+
+  markUnreadCompletedSession(sessionId) {
+    if (!sessionId || sessionId === this.dataset.activeSessionId) return;
+    const sessions = this.readUnreadCompletedSessions();
+    sessions.add(String(sessionId));
+    this.writeUnreadCompletedSessions(sessions);
+    this.syncUnreadCompletedSessions();
+  },
+
+  clearUnreadCompletedSession(sessionId) {
+    if (!sessionId) return;
+    const sessions = this.readUnreadCompletedSessions();
+    if (!sessions.delete(String(sessionId))) return;
+    this.writeUnreadCompletedSessions(sessions);
+    this.syncUnreadCompletedSessions();
+  },
+
+  syncUnreadCompletedSessions() {
+    const sessions = this.readUnreadCompletedSessions();
+    this.querySelectorAll(".session-row[data-session]").forEach((row) => {
+      row.classList.toggle("unread-completed", sessions.has(row.dataset.session));
+    });
   },
 
   toastContextForSessionRow(row) {

@@ -44,6 +44,7 @@ class PiApp extends HTMLElement {
     this.installFilePreviewUnloadGuard();
     this.bindDomEvents();
     this.restoreSidebar();
+    this.syncUnreadCompletedSessions?.();
     this.updatePrompt();
     this.updatePromptMeta();
     this.scrollTerm();
@@ -60,6 +61,7 @@ class PiApp extends HTMLElement {
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
     if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
+    this.toastDismissObserver?.disconnect?.();
     if (this.streamingRenderFrame) window.cancelAnimationFrame(this.streamingRenderFrame);
     if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
     this.destroyTranscriptVirtualScroller?.();

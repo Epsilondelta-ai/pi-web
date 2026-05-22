@@ -81,7 +81,8 @@ describe("pi-app toast notifications", () => {
     app.notifySessionCompleted();
 
     expect(document.querySelector(".session-toast.choice").textContent).toContain("선택지 요청");
-    app.dismissAllToasts();
+    expect(document.querySelector(".toast-dismiss-all").hidden).toBe(false);
+    document.querySelector(".toast-dismiss-all").click();
     expect(document.querySelectorAll(".notyf__toast--disappear")).toHaveLength(2);
   });
 
@@ -124,10 +125,35 @@ describe("pi-app toast notifications", () => {
     expect(toastText).toContain("workspace: other (other-workspace)");
     expect(toastText).toContain("session: background (background-session)");
     expect(sources[0].close).toHaveBeenCalled();
+    expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(true);
 
     app.loadSession = vi.fn();
     toast.click();
     expect(app.dataset.activeSessionId).toBe("background-session");
     expect(app.loadSession).toHaveBeenCalledWith("background-session");
+    expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(false);
+  });
+
+  it("restores unread completed session glow from local storage until the session is opened", async () => {
+    localStorage.setItem("piweb:unread-completed-sessions", JSON.stringify(["s2"]));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "s1";
+    app.renderWorkspaces([
+      { id: "w1", name: "demo", sessionCount: 2, sessions: [
+        { id: "s1", title: "current" },
+        { id: "s2", title: "done" },
+      ] },
+    ]);
+
+    const row = app.querySelector("[data-session='s2']");
+    expect(row.classList.contains("unread-completed")).toBe(true);
+
+    app.loadSession = vi.fn();
+    await app.pickSession(row);
+
+    expect(row.classList.contains("unread-completed")).toBe(false);
+    expect(localStorage.getItem("piweb:unread-completed-sessions")).toBe("[]");
   });
 });
