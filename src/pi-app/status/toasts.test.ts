@@ -74,6 +74,19 @@ describe("pi-app toast notifications", () => {
     expect(app.setConnection).toHaveBeenCalledWith("err");
   });
 
+  it("ignores toast body activation when the dismiss button is clicked", async () => {
+    const app = await connectPiApp();
+    setActiveToastContext(app);
+    app.activateToastSession = vi.fn();
+    app.dismissToast = vi.fn();
+
+    const notification = app.showToast("success");
+    notification.triggerEvent("click", { target: { closest: (selector) => selector === ".notyf__dismiss" } });
+
+    expect(app.activateToastSession).not.toHaveBeenCalled();
+    expect(app.dismissToast).not.toHaveBeenCalled();
+  });
+
   it("shows a blue choice toast and can dismiss all visible toasts", async () => {
     const app = await connectPiApp();
     setActiveToastContext(app);
@@ -139,6 +152,15 @@ describe("pi-app toast notifications", () => {
     expect(app.dataset.activeSessionId).toBe("background-session");
     expect(app.loadSession).toHaveBeenCalledWith("background-session");
     expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(false);
+  });
+
+  it("drops unread completed sessions that are no longer visible", async () => {
+    localStorage.setItem("piweb:unread-completed-sessions", JSON.stringify(["missing"]));
+    const app = await connectPiApp();
+
+    app.syncUnreadCompletedSessions();
+
+    expect(localStorage.getItem("piweb:unread-completed-sessions")).toBe("[]");
   });
 
   it("restores unread completed session glow from local storage until the session is opened", async () => {

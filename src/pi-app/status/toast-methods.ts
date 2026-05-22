@@ -120,7 +120,8 @@ export const toastMethods = {
       type: TOAST_MESSAGES[kind] ? kind : "success",
       message: toastHtml(message),
     });
-    notification.on(NotyfEvent.Click, () => {
+    notification.on(NotyfEvent.Click, ({ event } = {}) => {
+      if (event?.target?.closest?.(".notyf__dismiss")) return;
       this.activateToastSession(sessionId);
       this.dismissToast(notification);
     });
@@ -337,9 +338,18 @@ export const toastMethods = {
 
   syncUnreadCompletedSessions() {
     const sessions = this.readUnreadCompletedSessions();
+    const visibleSessions = new Set();
     this.querySelectorAll(".session-row[data-session]").forEach((row) => {
+      visibleSessions.add(row.dataset.session);
       row.classList.toggle("unread-completed", sessions.has(row.dataset.session));
     });
+    let changed = false;
+    for (const sessionId of sessions) {
+      if (visibleSessions.has(sessionId)) continue;
+      sessions.delete(sessionId);
+      changed = true;
+    }
+    if (changed) this.writeUnreadCompletedSessions(sessions);
   },
 
   toastContextForSessionRow(row) {
