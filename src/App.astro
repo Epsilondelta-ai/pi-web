@@ -20,7 +20,7 @@ import {
   X,
 } from "@lucide/astro";
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./lib/renderers";
+import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./lib/renderers";
 import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import { SETTINGS_FIELDS as settingsFields } from "./pi-app/workspace/settings-schema";
 
@@ -185,7 +185,7 @@ function isToolCollapsed(msg) {
             <pre class="ascii-banner welcome-banner" data-welcome-banner set:html={renderBannerBody(PI_WEB_WELCOME_TEXT)}></pre>
           ) : conversation.map((msg) => (
             msg.kind === "banner" ? <pre class="ascii-banner" set:html={renderBannerBody(msg.text)}></pre> :
-            msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body">{msg.text}</div></div> :
+            msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body markdown-body" set:html={renderUserBody(msg.text)}></div></div> :
             msg.kind === "think" ? <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{msg.text}</div></div></div> :
             msg.kind === "pi" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderPiBody(msg.text)}></div></div> :
             msg.kind === "tool" ? <div class:list={["tool-card", isToolCollapsed(msg) && "collapsed"]} data-tool={msg.tool}>

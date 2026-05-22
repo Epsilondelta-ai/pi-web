@@ -1,4 +1,4 @@
-import { escapeHtml, renderBannerBody, renderPiBody } from "../../lib/renderers";
+import { escapeHtml, renderBannerBody, renderPiBody, renderUserBody } from "../../lib/renderers";
 import {
   parseFallbackChoiceAnswer,
   parseFallbackChoices,
@@ -76,7 +76,7 @@ export const messageMethods = {
     if (!["user", "pi", "think"].includes(message.kind)) return false;
     const messages = [...this.termInner.querySelectorAll(".msg:not(.loading):not(.streaming)")];
     const last = messages.at(-1);
-    return last?.dataset.kind === message.kind && last.querySelector(".body")?.textContent === message.text;
+    return last?.dataset.kind === message.kind && (last.dataset.rawText ?? last.querySelector(".body")?.textContent) === message.text;
   },
 
   appendDelta(payload) {
@@ -260,7 +260,11 @@ export const messageMethods = {
   },
 
   userMessageNode(message) {
-    const messageRow = this.simpleMessage("user", "you >", message.text);
+    const messageRow = this.simpleMessage("user", "you >", "");
+    const body = messageRow.querySelector(".body");
+    messageRow.dataset.rawText = message.text;
+    body.classList.add("markdown-body");
+    body.innerHTML = renderUserBody(message.text);
     const images = (message.attachments || []).filter((item) => item.type === "image" && item.dataUrl);
     if (!images.length) return messageRow;
     const list = document.createElement("div");
@@ -272,7 +276,7 @@ export const messageMethods = {
       preview.alt = image.name || "attached image";
       list.append(preview);
     }
-    messageRow.querySelector(".body")?.append(list);
+    body?.append(list);
     return messageRow;
   },
 
@@ -330,6 +334,7 @@ export const messageMethods = {
     const row = document.createElement("div");
     row.className = "msg";
     row.dataset.kind = kind.split(" ")[0];
+    row.dataset.rawText = text;
     row.innerHTML = `<div class="prefix ${kind}"></div><div class="body"></div>`;
     row.querySelector(".prefix").textContent = prefix;
     row.querySelector(".body").textContent = text;

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, expect, it } from "vitest";
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody } from "./renderers";
+import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./renderers";
 
 describe("safe markdown rendering", () => {
   it("escapes untrusted pi message html before restoring allowed tokens", () => {
@@ -16,6 +16,22 @@ describe("safe markdown rendering", () => {
     expect(html).toContain("<strong>bold</strong>");
     expect(html).toContain("<li>one</li>");
     expect(html).toContain("<li>two</li>");
+  });
+
+  it("renders user markdown with line breaks", () => {
+    const html = renderUserBody([
+      "PR 올림: https://github.com/Epsilondelta-ai/juun-ai/pull/14",
+      "",
+      "Checks:",
+      "- Branch pushed",
+      "- PR created",
+      "- Docs-only change",
+    ].join("\n"));
+    expect(html).toContain("</p>\n<p>Checks:</p>");
+    expect(renderUserBody("line one\nline two")).toContain("line one<br>\nline two");
+    expect(html).toContain("<li>Branch pushed</li>");
+    expect(html).toContain("<li>PR created</li>");
+    expect(html).toContain("<li>Docs-only change</li>");
   });
 
   it("opens markdown links in a new tab", () => {
