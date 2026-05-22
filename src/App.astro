@@ -51,7 +51,7 @@ const pickerVisible = initialRoute === "picker";
 const emptyVisible = initialSession === "empty";
 const sessionVisible = !emptyVisible;
 const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
-const bodyGrid = sidebarCollapsed ? (treeOpen ? "1fr 260px" : "1fr") : (treeOpen ? "280px 1fr 260px" : "280px 1fr");
+const bodyGrid = sidebarCollapsed ? (treeOpen ? "1fr 320px" : "1fr") : (treeOpen ? "280px 1fr 320px" : "280px 1fr");
 const pickerHidden = !pickerVisible;
 const workspaceHidden = !workspaceVisible;
 const sessionHidden = !sessionVisible;
@@ -206,7 +206,7 @@ function isToolCollapsed(msg) {
     </main>
 
     <aside class="tree" aria-label="file tree" hidden={treeHidden}> 
-      <div class="tree-head"><span>files</span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="refresh-tree" aria-label="refresh file tree" title="refresh file tree"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
+      <div class="tree-head"><span>files</span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="tree-root-menu" aria-label="file tree actions" title="file tree actions"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /></button><button type="button" data-action="refresh-tree" aria-label="refresh file tree" title="refresh file tree"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
       <div class="tree-list">
         <WorkspaceFileTree client:load initialFiles={fileTree} />
       </div>

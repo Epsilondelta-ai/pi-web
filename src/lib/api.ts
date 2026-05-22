@@ -158,6 +158,34 @@ export function saveWorkspaceFile(workspaceId, path, content) {
   });
 }
 
+export function createWorkspaceFile(workspaceId, path, kind = "file", content = "") {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/create`, {
+    method: "POST",
+    body: JSON.stringify({ path, kind, content }),
+  });
+}
+
+export function renameWorkspaceFile(workspaceId, oldPath, newPath) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/rename`, {
+    method: "PATCH",
+    body: JSON.stringify({ oldPath, newPath }),
+  });
+}
+
+export function deleteWorkspaceFile(workspaceId, path) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/delete`, {
+    method: "DELETE",
+    body: JSON.stringify({ path }),
+  });
+}
+
+export function uploadWorkspaceFile(workspaceId, path, content, overwrite = false) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/upload`, {
+    method: "POST",
+    body: JSON.stringify({ path, content, overwrite }),
+  });
+}
+
 export function getGitStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/git/status`);
 }

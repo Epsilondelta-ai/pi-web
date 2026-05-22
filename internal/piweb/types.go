@@ -104,6 +104,27 @@ type WriteFileRequest struct {
 	Content string `json:"content"`
 }
 
+type CreateFileRequest struct {
+	Path    string `json:"path"`
+	Kind    string `json:"kind"`
+	Content string `json:"content,omitempty"`
+}
+
+type RenameFileRequest struct {
+	OldPath string `json:"oldPath"`
+	NewPath string `json:"newPath"`
+}
+
+type DeleteFileRequest struct {
+	Path string `json:"path"`
+}
+
+type UploadFileRequest struct {
+	Path      string `json:"path"`
+	Content   string `json:"content"`
+	Overwrite bool   `json:"overwrite,omitempty"`
+}
+
 type FileContent struct {
 	Path        string `json:"path"`
 	Content     string `json:"content,omitempty"`

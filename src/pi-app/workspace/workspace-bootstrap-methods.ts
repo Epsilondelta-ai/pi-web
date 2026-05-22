@@ -71,19 +71,19 @@ export const workspaceBootstrapMethods = {
     }
   },
 
-  async loadWorkspaceMeta(workspaceId) {
+  async loadWorkspaceMeta(workspaceId, options: any = {}) {
     try {
       const [{ files }, git] = await Promise.all([getWorkspaceFiles(workspaceId), getGitStatus(workspaceId)]);
-      this.renderWorkspaceTree(files, git?.files || {});
+      this.renderWorkspaceTree(files, git?.files || {}, options.selectedPath);
       this.renderGitStatus(git);
     } catch {}
   },
 
-  renderWorkspaceTree(files, statusMap = {}) {
+  renderWorkspaceTree(files, statusMap = {}, selectedPathOverride = undefined) {
     if (!files) return;
     this.workspaceFiles = files;
     this.workspaceFileStatuses = statusMap;
-    const selectedPath = this.filePreview?.file?.path || "";
+    const selectedPath = selectedPathOverride ?? (this.filePreview?.file?.path || "");
     window.dispatchEvent(new CustomEvent("pi-workspace-tree:update", {
       detail: { files, statusMap, selectedPath },
     }));

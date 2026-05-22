@@ -133,6 +133,15 @@ class PiApp extends HTMLElement {
     this.attachButton?.addEventListener("click", () => this.fileInput?.click());
     this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files));
     this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
+    window.addEventListener("pi-workspace-tree:refresh", (event) => {
+      const workspaceId = this.dataset.activeWorkspaceId;
+      const selectedPath = (event as CustomEvent)?.detail?.selectedPath || "";
+      if (workspaceId) void this.loadWorkspaceMeta(workspaceId, { selectedPath });
+    });
+    window.addEventListener("pi-workspace-file:open", (event) => {
+      const path = (event as CustomEvent)?.detail?.path;
+      if (path) void this.openFilePath?.(path);
+    });
     window.addEventListener("keydown", (event) => this.shortcut(event));
     window.addEventListener("click", (event) => {
       if (!event.target.closest?.(".session-menu, .session-menu-button")) this.closeSessionMenus();

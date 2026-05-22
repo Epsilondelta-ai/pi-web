@@ -121,6 +121,92 @@ func WriteWorkspaceFile(root, rel, content string) (FileContent, error) {
 	return ReadWorkspaceFile(root, rel, 256*1024)
 }
 
+func CreateWorkspacePath(root, rel, kind, content string) (FileContent, error) {
+	full, err := SafeJoin(root, rel)
+	if err != nil {
+		return FileContent{}, err
+	}
+	if _, err := os.Stat(full); err == nil {
+		return FileContent{}, errors.New("path already exists")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return FileContent{}, err
+	}
+	if err := os.MkdirAll(filepath.Dir(full), 0o700); err != nil {
+		return FileContent{}, err
+	}
+	if kind == "dir" {
+		if err := os.Mkdir(full, 0o700); err != nil {
+			return FileContent{}, err
+		}
+		return FileContent{Path: filepath.ToSlash(filepath.Clean(rel)), PreviewKind: "unsupported"}, nil
+	}
+	if kind != "file" {
+		return FileContent{}, errors.New("kind must be file or dir")
+	}
+	if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
+		return FileContent{}, err
+	}
+	return ReadWorkspaceFile(root, rel, 256*1024)
+}
+
+func RenameWorkspacePath(root, oldRel, newRel string) error {
+	oldFull, err := SafeJoin(root, oldRel)
+	if err != nil {
+		return err
+	}
+	newFull, err := SafeJoin(root, newRel)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(oldFull); err != nil {
+		return err
+	}
+	if _, err := os.Stat(newFull); err == nil {
+		return errors.New("target already exists")
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(newFull), 0o700); err != nil {
+		return err
+	}
+	return os.Rename(oldFull, newFull)
+}
+
+func DeleteWorkspacePath(root, rel string) error {
+	full, err := SafeJoin(root, rel)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(full); err != nil {
+		return err
+	}
+	return os.RemoveAll(full)
+}
+
+func UploadWorkspaceFile(root, rel string, data []byte, overwrite bool) (FileContent, error) {
+	full, err := SafeJoin(root, rel)
+	if err != nil {
+		return FileContent{}, err
+	}
+	if info, err := os.Stat(full); err == nil {
+		if info.IsDir() {
+			return FileContent{}, errors.New("path is a directory")
+		}
+		if !overwrite {
+			return FileContent{}, errors.New("path already exists")
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return FileContent{}, err
+	}
+	if err := os.MkdirAll(filepath.Dir(full), 0o700); err != nil {
+		return FileContent{}, err
+	}
+	if err := os.WriteFile(full, data, 0o600); err != nil {
+		return FileContent{}, err
+	}
+	return ReadWorkspaceFile(root, rel, 256*1024)
+}
+
 func SafeJoin(root, rel string) (string, error) {
 	root = filepath.Clean(root)
 	cleanRel := filepath.Clean(strings.TrimPrefix(rel, "/"))

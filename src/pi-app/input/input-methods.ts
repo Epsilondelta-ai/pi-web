@@ -172,6 +172,12 @@ export const inputMethods = {
     if (action === "folder-open-current") this.openWorkspacePath(this.currentFolder);
     if (action === "toggle-tree") this.toggleTree();
     if (action === "refresh-tree") this.refreshTree();
+    if (action === "tree-root-menu") {
+      const rect = button?.getBoundingClientRect?.();
+      window.dispatchEvent(new CustomEvent("pi-workspace-tree:root-menu", {
+        detail: { x: rect?.left || 24, y: rect?.bottom || 88 },
+      }));
+    }
     if (action === "open-file") this.openFile(button);
     if (action === "close-file-preview") this.closeFilePreview();
     if (action === "toggle-file-preview-mode") this.toggleFilePreviewMode();
