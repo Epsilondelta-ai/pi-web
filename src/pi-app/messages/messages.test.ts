@@ -232,6 +232,52 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("hello");
   });
 
+  it("replaces streamed AG-UI text with one final assistant message", async () => {
+    const app = await connectPiApp();
+    const text = [
+      "계획: `.pi/tasks/fix-agui-stream-duplicate-final-render.md` 확인",
+      "",
+      "- inline `code` 유지",
+      "```ts",
+      "const path = '.pi/tasks/example.md';",
+      "```",
+    ].join("\n");
+    app.dataset.activeSessionId = "s1";
+    app.renderMessages([]);
+
+    const subscriber = app.aguiSubscriber("s1");
+    subscriber.onRunStarted();
+    subscriber.onTextDelta(text.slice(0, 12));
+    subscriber.onTextDelta(text.slice(12));
+    subscriber.onTextEnd(text);
+
+    const messages = [...app.querySelectorAll(".msg[data-kind='pi']")];
+    expect(messages).toHaveLength(1);
+    expect(app.querySelector(".msg.streaming")).toBeNull();
+    expect(messages[0].dataset.rawText).toBe(text);
+    expect(messages[0].textContent).toContain("계획:");
+    expect(messages[0].textContent).not.toContain("계획계획");
+    expect(messages[0].textContent).not.toContain(". .pipi");
+  });
+
+  it("finalizes a virtualized streaming assistant row in transcript state", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    app.appendDelta({ kind: "pi", delta: "계획: `.pi/tasks/example.md`" });
+    const streaming = app.querySelector(".msg.streaming[data-kind='pi']");
+    app.termInner.replaceChildren();
+
+    app.finalizePiStream("계획: `.pi/tasks/example.md`");
+
+    const messages = [...app.querySelectorAll(".msg[data-kind='pi']")];
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).not.toBe(streaming);
+    expect(app.transcriptItems).toHaveLength(1);
+    expect(app.transcriptItems[0].nodes).toEqual([messages[0]]);
+    expect(app.streamingRows?.pi).toBeUndefined();
+    expect(app.pendingStreamingRow).toBeUndefined();
+  });
+
   it("does not show loading after a final assistant message while waiting for idle status", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
