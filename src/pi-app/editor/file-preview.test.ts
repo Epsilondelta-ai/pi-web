@@ -80,6 +80,24 @@ describe("file preview CodeMirror editor", () => {
     expect(app.querySelector(".fp-head small").textContent).toContain("modified");
   });
 
+  it("shows git-based gutter markers without treating opened git changes as unsaved", () => {
+    const app = mountPreview();
+    app.renderFilePreview({
+      path: "demo.js",
+      mime: "text/javascript",
+      previewKind: "text",
+      content: "let x = 2;",
+      originalContent: "let x = 1;",
+      gitStatus: "tracked",
+    });
+
+    expect(app.filePreview.dirty).toBe(false);
+    expect(app.filePreview.cleanContent).toBe("let x = 2;");
+    expect(app.filePreview.originalContent).toBe("let x = 1;");
+    expect(app.querySelector(".cm-changedLineGutter")).toBeTruthy();
+    expect(app.querySelector("[data-action='save-file-preview']").disabled).toBe(true);
+  });
+
   it("saves current CodeMirror document and keeps edits after save failure", async () => {
     const app = mountPreview();
     vi.mocked(api.saveWorkspaceFile).mockRejectedValueOnce(new Error("permission denied"));

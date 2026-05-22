@@ -56,6 +56,7 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 	if err != nil {
 		return FileContent{}, err
 	}
+	cleanRel := filepath.ToSlash(filepath.Clean(strings.TrimPrefix(rel, "/")))
 	info, err := os.Stat(full)
 	if err != nil {
 		return FileContent{}, err
@@ -93,13 +94,16 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 	if previewKind == "image" && truncated {
 		previewKind = "unsupported"
 	}
+	originalContent, gitStatus := GitOriginalFileContent(root, cleanRel)
 	return FileContent{
-		Path:        filepath.ToSlash(filepath.Clean(rel)),
-		Content:     content,
-		DataURL:     dataURL,
-		MIME:        mimeType,
-		PreviewKind: previewKind,
-		Truncated:   truncated,
+		Path:            cleanRel,
+		Content:         content,
+		OriginalContent: originalContent,
+		GitStatus:       gitStatus,
+		DataURL:         dataURL,
+		MIME:            mimeType,
+		PreviewKind:     previewKind,
+		Truncated:       truncated,
 	}, nil
 }
 
@@ -219,6 +223,29 @@ func SafeJoin(root, rel string) (string, error) {
 		return "", errors.New("path traversal is not allowed")
 	}
 	return full, nil
+}
+
+func GitOriginalFileContent(root, rel string) (string, string) {
+	cleanRel := filepath.ToSlash(filepath.Clean(strings.TrimPrefix(rel, "/")))
+	if cleanRel == "." || cleanRel == "" {
+		return "", ""
+	}
+	trackedPathBytes, err := exec.Command("git", "-C", root, "ls-files", "--full-name", "--", cleanRel).Output()
+	if err != nil {
+		return "", ""
+	}
+	trackedPath := strings.TrimSpace(string(trackedPathBytes))
+	if trackedPath == "" {
+		if _, err := exec.Command("git", "-C", root, "rev-parse", "--show-toplevel").Output(); err == nil {
+			return "", "untracked"
+		}
+		return "", ""
+	}
+	blob, err := exec.Command("git", "-C", root, "show", "HEAD:"+trackedPath).Output()
+	if err != nil {
+		return "", "added"
+	}
+	return string(blob), "tracked"
 }
 
 func RealGitStatus(root string) (GitStatus, error) {

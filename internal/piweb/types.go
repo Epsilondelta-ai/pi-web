@@ -126,12 +126,14 @@ type UploadFileRequest struct {
 }
 
 type FileContent struct {
-	Path        string `json:"path"`
-	Content     string `json:"content,omitempty"`
-	DataURL     string `json:"dataUrl,omitempty"`
-	MIME        string `json:"mime,omitempty"`
-	PreviewKind string `json:"previewKind"`
-	Truncated   bool   `json:"truncated,omitempty"`
+	Path            string `json:"path"`
+	Content         string `json:"content,omitempty"`
+	OriginalContent string `json:"originalContent,omitempty"`
+	GitStatus       string `json:"gitStatus,omitempty"`
+	DataURL         string `json:"dataUrl,omitempty"`
+	MIME            string `json:"mime,omitempty"`
+	PreviewKind     string `json:"previewKind"`
+	Truncated       bool   `json:"truncated,omitempty"`
 }
 
 type FolderEntry struct {

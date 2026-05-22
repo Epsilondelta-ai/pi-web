@@ -2,6 +2,7 @@ package piweb
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -58,6 +59,54 @@ func TestReadWorkspaceFileDoesNotPreviewBinaryWithTextExtension(t *testing.T) {
 	}
 	if content.PreviewKind == "text" || content.Content != "" {
 		t.Fatalf("unexpected binary preview: %#v", content)
+	}
+}
+
+func TestGitOriginalFileContent(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed")
+	}
+	root := t.TempDir()
+	runGit(t, root, "init")
+	runGit(t, root, "config", "user.email", "pi@example.test")
+	runGit(t, root, "config", "user.name", "pi")
+	if err := os.Mkdir(filepath.Join(root, "src"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "src", "main.txt"), []byte("base\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	runGit(t, root, "add", "src/main.txt")
+	runGit(t, root, "commit", "-m", "base")
+	if err := os.WriteFile(filepath.Join(root, "src", "main.txt"), []byte("changed\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "src", "new.txt"), []byte("new\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	original, status := GitOriginalFileContent(root, "src/main.txt")
+	if original != "base\n" || status != "tracked" {
+		t.Fatalf("tracked original=%q status=%q", original, status)
+	}
+	original, status = GitOriginalFileContent(root, "src/new.txt")
+	if original != "" || status != "untracked" {
+		t.Fatalf("untracked original=%q status=%q", original, status)
+	}
+	content, err := ReadWorkspaceFile(root, "src/main.txt", 1024)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if content.Content != "changed\n" || content.OriginalContent != "base\n" || content.GitStatus != "tracked" {
+		t.Fatalf("unexpected file content: %#v", content)
+	}
+}
+
+func runGit(t *testing.T, root string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, output)
 	}
 }
 
