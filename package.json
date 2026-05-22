@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "pi-web": "./bin/pi-web.js"
+    "pi-web": "bin/pi-web.js"
   },
   "files": [
     "bin/pi-web.js",
