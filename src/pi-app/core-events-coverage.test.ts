@@ -84,6 +84,7 @@ describe("pi-app core events coverage", () => {
     app.appendToolOutput = vi.fn();
     app.finishTool = vi.fn();
     app.notifyResponseFailure = vi.fn();
+    app.finalizePiStream = vi.fn();
     app.finalizeStreamingMessages = vi.fn();
 
     const subscriber = app.aguiSubscriber("s1");
@@ -116,8 +117,8 @@ describe("pi-app core events coverage", () => {
     expect(app.confirmConnection).toHaveBeenCalled();
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: "hello" });
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "think", delta: "think" });
-    expect(app.appendMessage).toHaveBeenCalledWith({ kind: "pi", text: "hellohello again" });
-    expect(app.appendMessage).toHaveBeenCalledWith({ kind: "pi", text: "final only" });
+    expect(app.finalizePiStream).toHaveBeenCalledWith("hellohello again");
+    expect(app.finalizePiStream).toHaveBeenCalledWith("final only");
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "args" });
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "result" });
     expect(app.finishTool).toHaveBeenCalledWith({ kind: "tool", tool: "bash", args: "{}", status: "ok", resultMeta: "done", body: "body" });
@@ -139,7 +140,7 @@ describe("pi-app core events coverage", () => {
     subscriber.onThinkingDelta("");
     subscriber.onToolArgs({ name: "skip", chunk: "" });
     subscriber.onToolResult({ name: "skip", content: "" });
-    expect(app.appendMessage).not.toHaveBeenCalledWith({ kind: "pi", text: "skip" });
+    expect(app.finalizePiStream).not.toHaveBeenCalledWith("skip");
   });
 
   it("uses AG-UI streamed text as final text to preserve newlines", async () => {
@@ -147,7 +148,7 @@ describe("pi-app core events coverage", () => {
     app.dataset.activeSessionId = "s1";
     app.setMode = vi.fn();
     app.appendDelta = vi.fn();
-    app.appendMessage = vi.fn();
+    app.finalizePiStream = vi.fn();
 
     const subscriber = app.aguiSubscriber("s1");
     subscriber.onRunStarted();
@@ -156,10 +157,9 @@ describe("pi-app core events coverage", () => {
     subscriber.onTextDelta("- Branch pushed\n- PR created\n- Working tree clean");
     subscriber.onTextEnd("PR 올림: https://github.com/Epsilondelta-ai/pi-web/pull/62Checks:\n\nBranch pushed- PR created- Working tree clean");
 
-    expect(app.appendMessage).toHaveBeenCalledWith({
-      kind: "pi",
-      text: "PR 올림: https://github.com/Epsilondelta-ai/pi-web/pull/62\n\nChecks:\n- Branch pushed\n- PR created\n- Working tree clean",
-    });
+    expect(app.finalizePiStream).toHaveBeenCalledWith(
+      "PR 올림: https://github.com/Epsilondelta-ai/pi-web/pull/62\n\nChecks:\n- Branch pushed\n- PR created\n- Working tree clean",
+    );
   });
 
   it("suppresses completion notifications after user cancellation", async () => {

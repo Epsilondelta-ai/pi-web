@@ -190,7 +190,7 @@ class PiApp extends HTMLElement {
         if (this.dataset.activeSessionId !== sessionId || (!text && !textBuffer)) return;
         const finalText = textBuffer || text;
         textBuffer = "";
-        this.appendMessage({ kind: "pi", text: finalText });
+        this.finalizePiStream(finalText);
       },
       onThinkingDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;

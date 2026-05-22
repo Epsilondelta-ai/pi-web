@@ -58,15 +58,11 @@ export const messageMethods = {
     }
     this.removeLoadingMessage();
     if (message.kind === "pi" || message.kind === "think") this.finishRunningTools();
-    if (message.kind === "pi") this.piDeltaBuffer = "";
+    if (message.kind === "pi") this.clearStreamingState("pi");
     if (message.kind === "tool") this.finalizeStreamingMessages();
-    const streamingRow = this.currentStreamingRow(message.kind);
-    if (streamingRow) this.removeTranscriptNode(streamingRow);
-    if (message.kind === "pi") this.flushStreamingRender();
+    for (const streamingRow of this.streamingRowsForKind(message.kind)) this.removeTranscriptNode(streamingRow);
     this.appendTranscriptNode(this.messageNode(message), { stickToBottom: true });
-    if (message.kind === "pi" && !this.deferTranscriptRender && parseFallbackChoices(message.text).length) {
-      this.notifyChoiceRequested?.();
-    }
+    this.notifyPiMessageCommitted(message);
     if (message.kind === "user") this.disableAnsweredChoice(parseFallbackChoiceAnswer(message.text));
     if (message.kind !== "user") this.syncLoadingMessage();
     this.scrollTerm();
@@ -137,9 +133,57 @@ export const messageMethods = {
   },
 
   currentStreamingRow(kind) {
+    return this.streamingRowsForKind(kind)[0];
+  },
+
+  streamingRowsForKind(kind) {
+    const rows = new Set();
+    const selector = `.msg.streaming[data-kind='${kind}']`;
     const cached = this.streamingRows?.[kind];
-    if (cached?.matches?.(`.msg.streaming[data-kind='${kind}']`)) return cached;
-    return this.termInner?.querySelector(`.msg.streaming[data-kind='${kind}']`);
+    if (cached?.matches?.(selector)) rows.add(cached);
+    this.termInner?.querySelectorAll(selector).forEach((row) => rows.add(row));
+    for (const item of this.transcriptItems || []) {
+      for (const node of item?.nodes || []) {
+        if (node?.matches?.(selector)) rows.add(node);
+      }
+    }
+    return [...rows];
+  },
+
+  finalizePiStream(text) {
+    if (!this.termInner) return;
+    const message = { kind: "pi", text };
+    this.removeWelcomeBanner();
+    const streamingRows = this.streamingRowsForKind("pi");
+    if (this.isDuplicateMessage(message)) {
+      this.removeLoadingMessage();
+      this.clearStreamingState("pi");
+      for (const row of streamingRows) this.removeTranscriptNode(row);
+      return;
+    }
+    this.removeLoadingMessage();
+    this.finishRunningTools();
+    this.clearStreamingState("pi");
+    const finalNode = this.messageNode(message);
+    const replaced = streamingRows[0] && this.replaceTranscriptNode(streamingRows[0], finalNode);
+    for (const row of streamingRows.slice(replaced ? 1 : 0)) this.removeTranscriptNode(row);
+    if (!replaced) this.appendTranscriptNode(finalNode, { stickToBottom: true });
+    this.notifyPiMessageCommitted(message);
+    this.syncLoadingMessage();
+    this.scrollTerm();
+  },
+
+  clearStreamingState(kind) {
+    this.flushStreamingRender();
+    if (kind === "pi") this.piDeltaBuffer = "";
+    if (this.streamingRows?.[kind]) this.streamingRows = { ...(this.streamingRows || {}), [kind]: undefined };
+    if (this.pendingStreamingRow?.matches?.(`.msg.streaming[data-kind='${kind}']`)) this.pendingStreamingRow = undefined;
+  },
+
+  notifyPiMessageCommitted(message) {
+    if (message.kind === "pi" && !this.deferTranscriptRender && parseFallbackChoices(message.text).length) {
+      this.notifyChoiceRequested?.();
+    }
   },
 
   attachThinkingStream(messageRow) {
@@ -207,7 +251,7 @@ export const messageMethods = {
   finalizeStreamingMessages() {
     this.flushStreamingRender();
     this.piDeltaBuffer = "";
-    Object.values(this.streamingRows || {}).forEach((row: Element) => row.classList.remove("streaming"));
+    Object.values(this.streamingRows || {}).forEach((row: Element) => row?.classList?.remove("streaming"));
     this.streamingRows = {};
     this.termInner?.querySelectorAll(".msg.streaming").forEach((row) => row.classList.remove("streaming"));
   },
@@ -249,6 +293,7 @@ export const messageMethods = {
     const text = stripFallbackChoices(message.text);
     const messageRow = this.simpleMessage("pi", "pi >", "");
     const body = messageRow.querySelector(".body");
+    messageRow.dataset.rawText = message.text;
     body.classList.add("markdown-body");
     body.innerHTML = renderPiBody(choices.length ? text : message.text);
     if (!choices.length) return messageRow;
