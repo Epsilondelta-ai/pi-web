@@ -10,11 +10,15 @@ export const inputMethods = {
       await this.submitSteeringPrompt(text);
       return;
     }
+    const workspaceId = this.dataset.activeWorkspaceId;
     let sessionId = this.dataset.activeSessionId;
-    if (!sessionId && this.apiConnected && this.dataset.activeWorkspaceId) {
+    if (sessionId && workspaceId && !this.activeSessionBelongsToWorkspace(sessionId, workspaceId)) {
+      sessionId = "";
+    }
+    if (!sessionId && this.apiConnected && workspaceId) {
       try {
-        const { session } = await createSession(this.dataset.activeWorkspaceId);
-        this.activateCreatedSession(this.dataset.activeWorkspaceId, session);
+        const { session } = await createSession(workspaceId);
+        this.activateCreatedSession(workspaceId, session);
         sessionId = session.id;
       } catch {
         this.setConnection("err");
@@ -58,6 +62,13 @@ export const inputMethods = {
         }
       }
     }
+  },
+
+  activeSessionBelongsToWorkspace(sessionId, workspaceId) {
+    const row = this.findSessionRow?.(sessionId)
+      || [...this.querySelectorAll("[data-session]")].find((item) => item.dataset.session === sessionId);
+    const rowWorkspace = row?.dataset.workspace;
+    return !rowWorkspace || rowWorkspace === workspaceId;
   },
 
   async submitSteeringPrompt(text) {

@@ -145,6 +145,29 @@ describe("pi-app input methods coverage", () => {
     expect(app.setConnection).toHaveBeenCalledWith("err");
   });
 
+  it("creates a session in the visible workspace when the active session belongs to another workspace", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "ws-a";
+    app.dataset.activeSessionId = "s-b";
+    const oldRow = document.createElement("div");
+    oldRow.dataset.session = "s-b";
+    oldRow.dataset.workspace = "ws-b";
+    app.append(oldRow);
+    app.activateCreatedSession = vi.fn((workspaceId, session) => { app.dataset.activeSessionId = session.id; });
+    globalThis.fetch = vi.fn(async (url) => String(url).includes("/workspaces/ws-a/sessions")
+      ? ok({ session: { id: "s-a", title: "new" } })
+      : ok({ accepted: true }));
+    app.prompt.value = "work in A";
+
+    await app.submitPrompt();
+
+    const urls = globalThis.fetch.mock.calls.map(([url]) => String(url));
+    expect(urls.some((url) => url.includes("/workspaces/ws-a/sessions"))).toBe(true);
+    expect(urls.some((url) => url.includes("/sessions/s-a/"))).toBe(true);
+    expect(urls.some((url) => url.includes("/sessions/s-b/"))).toBe(false);
+  });
+
   it("submits prompts and steering with attachments", async () => {
     const app = await connectPiApp();
     app.apiConnected = true;
