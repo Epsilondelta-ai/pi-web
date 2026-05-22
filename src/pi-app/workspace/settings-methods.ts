@@ -51,26 +51,40 @@ export const settingsMethods = {
     }
     this.setSettingsStatus("loading settings…");
     this.setModelControlsLoading("loading models…");
-    try {
-      const [{ settings }, auth, oauth, models] = await Promise.all([
-        getWorkspaceSettings(workspaceId),
-        getAuthProviders(),
-        getOAuthProviders(),
-        getWorkspaceModels(workspaceId),
-      ]);
-      this.settingsState = parseWorkspaceSettings(settings);
-      this.authState = auth;
-      this.oauthState = oauth;
-      this.modelState = models;
-      this.fillModelControls();
-      this.fillSettingsForm();
-      this.fillAuthForm();
-      this.fillOAuthForm();
-      this.setSettingsStatus("blank fields inherit from effective settings");
-    } catch (error) {
-      this.setSettingsStatus(error instanceof Error ? error.message : String(error), true);
+    const [settingsResult, authResult, oauthResult, modelsResult] = await Promise.allSettled([
+      getWorkspaceSettings(workspaceId),
+      getAuthProviders(),
+      getOAuthProviders(),
+      getWorkspaceModels(workspaceId),
+    ]);
+    if (settingsResult.status === "rejected") {
+      this.setSettingsStatus(settingsResult.reason instanceof Error ? settingsResult.reason.message : String(settingsResult.reason), true);
       this.setConnection("err");
+      return;
     }
+    this.settingsState = parseWorkspaceSettings(settingsResult.value.settings);
+    if (authResult.status === "fulfilled") {
+      this.authState = authResult.value;
+      this.fillAuthForm();
+    }
+    if (oauthResult.status === "fulfilled") {
+      this.oauthState = oauthResult.value;
+      this.fillOAuthForm();
+    }
+    if (modelsResult.status === "fulfilled") {
+      this.modelState = modelsResult.value;
+      this.fillModelControls();
+    } else {
+      this.modelState = null;
+      this.fillFallbackModelControls();
+    }
+    this.fillSettingsForm();
+    const errors = [authResult, oauthResult, modelsResult]
+      .filter((result) => result.status === "rejected")
+      .map((result) => result.reason instanceof Error ? result.reason.message : String(result.reason));
+    if (modelsResult.status === "fulfilled" && modelsResult.value?.error) errors.push(modelsResult.value.error);
+    this.setSettingsStatus(errors[0] || "blank fields inherit from effective settings", errors.length > 0);
+    if (errors.length > 0) this.setConnection("err");
   },
 
   closeSettingsModal() {
@@ -105,6 +119,16 @@ export const settingsMethods = {
     const providerModels = providers.find((provider) => provider.id === selectedProvider)?.models;
     const models = providerModels || providers.flatMap((provider) => provider.models || []);
     this.replaceSelectOptions(modelControl, models.map((model) => model.id));
+  },
+
+  fillFallbackModelControls() {
+    const effective = this.settingsState?.effective || {};
+    const provider = typeof effective.defaultProvider === "string" ? effective.defaultProvider : undefined;
+    const model = typeof effective.defaultModel === "string" ? effective.defaultModel : undefined;
+    const providerControl = this.querySelector("[data-setting='defaultProvider']");
+    const modelControl = this.querySelector("[data-setting='defaultModel']");
+    if (providerControl) this.replaceSelectOptions(providerControl, provider ? [provider] : []);
+    if (modelControl) this.replaceSelectOptions(modelControl, model ? [model] : []);
   },
 
   replaceSelectOptions(control, values) {

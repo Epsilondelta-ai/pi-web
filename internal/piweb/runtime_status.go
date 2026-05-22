@@ -54,5 +54,6 @@ func WorkspaceRuntimeQuotaStatus(ctx context.Context, root string, model string)
 	if fiveHour == nil && weekly == nil {
 		fiveHour, weekly = LiveQuotaForModel(ctx, model)
 	}
+	writeQuotaStatus(root, fiveHour, weekly)
 	return RuntimeStatus{FiveHourQuota: fiveHour, WeeklyQuota: weekly}
 }

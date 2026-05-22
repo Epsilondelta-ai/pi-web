@@ -104,6 +104,35 @@ func fetchZaiQuota(ctx context.Context) (*int, *int) {
 	return nil, nil
 }
 
+func writeQuotaStatus(root string, fiveHour *int, weekly *int) {
+	if fiveHour == nil && weekly == nil {
+		return
+	}
+	statusPath := filepath.Join(root, ".pi", "web-status.json")
+	if err := os.MkdirAll(filepath.Dir(statusPath), 0o700); err != nil {
+		return
+	}
+	payload := map[string]any{}
+	if data, err := os.ReadFile(statusPath); err == nil {
+		_ = json.Unmarshal(data, &payload)
+	}
+	if fiveHour != nil {
+		payload["fiveHourQuota"] = *normalizePercent(fiveHour)
+	}
+	if weekly != nil {
+		payload["weeklyQuota"] = *normalizePercent(weekly)
+	}
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return
+	}
+	tmp := statusPath + ".tmp"
+	if err := os.WriteFile(tmp, append(data, '\n'), 0o600); err != nil {
+		return
+	}
+	_ = os.Rename(tmp, statusPath)
+}
+
 func quotaFromFile(root string) (*int, *int) {
 	paths := []string{filepath.Join(root, ".pi", "web-status.json")}
 	if home, err := os.UserHomeDir(); err == nil {

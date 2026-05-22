@@ -1,8 +1,10 @@
 package piweb
 
 import (
+	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -32,6 +34,24 @@ func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
 	zai := &zaiQuotaPayload{Limits: []zaiLimit{{Type: "TOKENS_LIMIT", Percentage: float64(10)}, {Type: "WEEKLY", Percentage: float64(90)}}}
 	if got := zaiWindow(zai, "7D:"); got == nil || *got != 10 {
 		t.Fatalf("expected zai weekly remaining 10, got %v", got)
+	}
+}
+
+func TestWorkspaceRuntimeQuotaStatusWritesProjectStatus(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("PI_WEB_5H_QUOTA", "33")
+	t.Setenv("PI_WEB_WEEKLY_QUOTA", "44")
+	status := WorkspaceRuntimeQuotaStatus(context.Background(), root, "GPT-5.5")
+	if status.FiveHourQuota == nil || *status.FiveHourQuota != 33 || status.WeeklyQuota == nil || *status.WeeklyQuota != 44 {
+		t.Fatalf("unexpected quota status: %+v", status)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".pi", "web-status.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(data)
+	if !strings.Contains(body, `"fiveHourQuota": 33`) || !strings.Contains(body, `"weeklyQuota": 44`) {
+		t.Fatalf("quota was not written: %s", body)
 	}
 }
 

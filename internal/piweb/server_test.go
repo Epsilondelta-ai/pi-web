@@ -192,6 +192,71 @@ func TestWorkspaceModelsEndpointUsesMockModelsWhenPiDisabled(t *testing.T) {
 	}
 }
 
+func TestWorkspaceModelsEndpointUsesNoExtensions(t *testing.T) {
+	root := t.TempDir()
+	argsFile := filepath.Join(root, "args.txt")
+	t.Setenv("PI_ARGS_FILE", argsFile)
+	writeFakePi(t, root, `#!/bin/sh
+echo "$@" > "$PI_ARGS_FILE"
+echo 'provider  model  context  max-out  thinking  images' >&2
+echo 'zai gpt-5.5 1M 64K yes no' >&2
+`)
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{EnablePiExecution: true}, store, NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspace.ID+"/models", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", res.Code, res.Body.String())
+	}
+	if !strings.Contains(res.Body.String(), `"id":"gpt-5.5"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+	args, err := os.ReadFile(argsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(args)) != "--no-extensions --list-models" {
+		t.Fatalf("unexpected pi args: %q", string(args))
+	}
+}
+
+func TestWorkspaceModelsEndpointFallsBackOnPiFailure(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"defaultProvider":"anthropic","defaultModel":"claude-test"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	writeFakePi(t, root, `#!/bin/sh
+echo 'signal: killed' >&2
+exit 137
+`)
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{EnablePiExecution: true}, store, NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspace.ID+"/models", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200 fallback, got %d: %s", res.Code, res.Body.String())
+	}
+	body := res.Body.String()
+	if !strings.Contains(body, `"id":"anthropic"`) || !strings.Contains(body, `"id":"claude-test"`) || !strings.Contains(body, `"error"`) {
+		t.Fatalf("unexpected fallback body: %s", body)
+	}
+}
+
 func TestParseListModelsOutput(t *testing.T) {
 	models := parseListModelsOutput("provider  model  context  max-out  thinking  images\nzai gpt-5.5 1M 64K yes no\nanthropic claude 200K 8K yes yes\n")
 	if len(models.Providers) != 2 || models.Providers[0].ID != "anthropic" || models.Providers[1].Models[0].ID != "gpt-5.5" {
