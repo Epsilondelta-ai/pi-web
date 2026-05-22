@@ -1,6 +1,6 @@
 # `piweb` internal package map
 
-`backend/internal/piweb` is intentionally kept as one package for now so handlers, stores, and tests can share unexported helpers without introducing premature Go package boundaries.
+`internal/piweb` is intentionally kept as one package for now so handlers, stores, and tests can share unexported helpers without introducing premature Go package boundaries.
 
 Use filename prefixes as the navigation boundary:
 

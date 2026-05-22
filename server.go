@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Epsilondelta-ai/pi-web/backend/internal/piweb"
+	"github.com/Epsilondelta-ai/pi-web/internal/piweb"
 )
 
 type serverDependencies struct {

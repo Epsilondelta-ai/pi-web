@@ -6,9 +6,10 @@ This repository keeps the root focused on entry points, tool configuration, and 
 
 ```text
 .
-├── backend/                    # Go server and single-binary entrypoint
-│   ├── cmd/pi-web/              # executable package and embedded static assets
-│   └── internal/piweb/          # server, sessions, workspace, runner, store code
+├── *.go                        # root pi-web command for `go install github.com/.../pi-web`
+├── backend/                    # backend layout notes
+├── internal/piweb/             # server, sessions, workspace, runner, store code
+├── static/                     # committed embedded Astro assets
 ├── docs/                       # durable documentation, plans, and screenshots
 ├── public/                     # Astro static assets
 ├── scripts/                    # install/release/dev helper scripts
@@ -28,6 +29,7 @@ This repository keeps the root focused on entry points, tool configuration, and 
 Keep only files that are expected at repository root:
 
 - project metadata: `README.md`, `LICENSE`, `AGENTS.md`
+- root Go command files: `*.go`, required for `go install github.com/Epsilondelta-ai/pi-web@latest`
 - package/module manifests and lockfiles: `package.json`, `bun.lock`, `go.mod`, `go.sum`
 - tool configuration: `astro.config.ts`, `tsconfig.json`, `vitest.config.ts`, `vitest.setup.ts`
 - VCS/editor configuration: `.gitignore`, `.github/`, `.storybook/`
@@ -48,7 +50,7 @@ These paths are generated locally and intentionally ignored:
 - `storybook-static/`
 - `storybook-server/`
 
-Committed static embed assets live in `backend/cmd/pi-web/static/` so `go install` builds a complete UI.
+Committed static embed assets live in `static/` so `go install` builds a complete UI.
 
 Regenerate them with:
 
@@ -63,7 +65,7 @@ bun run embed:assets
 - Keep `docs/assets` for README/documentation images and `docs/plans` for durable implementation plans.
 - Keep `src/lib` for pure helpers and browser API clients that are not custom-element methods.
 - Keep `src/pi-app` for the `<pi-app>` element, feature folders, and their colocated tests.
-- Keep backend package maps in `backend/README.md` and `backend/internal/piweb/README.md` current when moving files.
+- Keep backend package maps in `backend/README.md` and `internal/piweb/README.md` current when moving files.
 
 ## Future migration option
 

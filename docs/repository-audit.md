@@ -6,7 +6,7 @@ Last reviewed: 2026-05-21
 
 The repository now has clear ownership boundaries. The remaining large flat areas are intentional:
 
-- `backend/internal/piweb` stays as one Go package to avoid premature exported APIs.
+- `internal/piweb` stays as one Go package to avoid premature exported APIs.
 - `src/pi-app` is split by browser feature and keeps tests colocated.
 - `.pi/extensions` is project-local Pi configuration/extension code, not application runtime code.
 
@@ -18,8 +18,9 @@ The repository now has clear ownership boundaries. The remaining large flat area
 | `.pi/` | Pi harness settings, prompts, local extensions, npm sandbox placeholder | OK; generated sessions/tasks/npm contents ignored |
 | `.pi/extensions/` | Project-local Pi footer/quota/web-status extensions | OK; entrypoints at root, implementation under `src/` |
 | `.storybook/` | Storybook config and fixtures | OK |
-| `backend/cmd/pi-web/` | CLI/binary entrypoint, update command, committed static embed assets | OK |
-| `backend/internal/piweb/` | Go HTTP/session/workspace/store/runner package | OK; documented in `backend/internal/piweb/README.md` |
+| root Go files | CLI/binary entrypoint and update command for root `go install` | OK |
+| `internal/piweb/` | Go HTTP/session/workspace/store/runner package | OK; documented in `internal/piweb/README.md` |
+| `static/` | Committed embedded Astro assets for `go install` | OK |
 | `docs/` | Durable docs and task history | OK |
 | `docs/assets/` | README/documentation images | OK |
 | `docs/plans/` | Durable implementation plans moved out of ignored `.pi/tasks` | OK |
@@ -41,6 +42,6 @@ The repository now has clear ownership boundaries. The remaining large flat area
 
 ## Follow-up only if the codebase grows
 
-- Split `backend/internal/piweb` into subpackages only when APIs are stable and tests do not need cross-package fixtures.
+- Split `internal/piweb` into subpackages only when APIs are stable and tests do not need cross-package fixtures.
 - Split `.pi/extensions/src/quota.ts` into smaller orchestration files if quota providers continue to grow.
 - Consider `apps/` / `packages/` only if more deployable apps or shared packages are added.

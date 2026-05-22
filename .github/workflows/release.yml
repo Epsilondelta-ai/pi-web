@@ -71,7 +71,7 @@ jobs:
           if [ "${{ matrix.goos }}" = "windows" ]; then
             output="release/pi-web.exe"
           fi
-          go build -ldflags "-X main.version=${GITHUB_REF_NAME}" -o "$output" ./backend/cmd/pi-web
+          go build -ldflags "-X main.version=${GITHUB_REF_NAME}" -o "$output" .
           if [ "${{ matrix.ext }}" = "zip" ]; then
             (cd release && zip -q "pi-web_${version}_${{ matrix.goos }}_${{ matrix.goarch }}.zip" "$(basename "$output")")
           else

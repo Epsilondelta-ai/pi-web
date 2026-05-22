@@ -144,7 +144,7 @@ func TestRunUpdateReportsGoInstallCommand(t *testing.T) {
 		t.Fatal("go-installed binary should not self-update")
 	}
 	want := "pi-web was installed with Go; update it with:\n" +
-		"  go install github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web@latest\n"
+		"  go install github.com/Epsilondelta-ai/pi-web@latest\n"
 	if got := out.String(); got != want {
 		t.Fatalf("unexpected output: %q", got)
 	}

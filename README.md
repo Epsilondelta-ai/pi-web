@@ -25,7 +25,7 @@ npm i -g @epsilondelta-ai/pi-web
 Install with Go:
 
 ```bash
-go install github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web@latest
+go install github.com/Epsilondelta-ai/pi-web@latest
 ```
 
 Update an npm install:
@@ -37,7 +37,7 @@ npm update -g @epsilondelta-ai/pi-web
 Update a Go install:
 
 ```bash
-go install github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web@latest
+go install github.com/Epsilondelta-ai/pi-web@latest
 ```
 
 `pi-web update` is reserved for standalone GitHub release installs and will point npm/Go installs back to their package manager.

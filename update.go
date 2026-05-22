@@ -12,7 +12,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 
-	"github.com/Epsilondelta-ai/pi-web/backend/internal/piweb"
+	"github.com/Epsilondelta-ai/pi-web/internal/piweb"
 )
 
 const piWebAssetFilter = `^pi-web_`
@@ -138,7 +138,7 @@ func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUp
 	}
 	if options.Installer == "go" {
 		fmt.Fprintln(out, "pi-web was installed with Go; update it with:")
-		fmt.Fprintln(out, "  go install github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web@latest")
+		fmt.Fprintln(out, "  go install github.com/Epsilondelta-ai/pi-web@latest")
 		return nil
 	}
 

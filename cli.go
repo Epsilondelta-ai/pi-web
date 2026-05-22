@@ -9,7 +9,7 @@ import (
 )
 
 const githubRepositorySlug = "Epsilondelta-ai/pi-web"
-const goInstallPackage = "github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web"
+const goInstallPackage = "github.com/Epsilondelta-ai/pi-web"
 
 var version = "v1.4.0"
 

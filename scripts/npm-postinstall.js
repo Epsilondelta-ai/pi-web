@@ -14,7 +14,7 @@ const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const vendorDir = join(packageRoot, "vendor");
 const binName = process.platform === "win32" ? "pi-web.exe" : "pi-web";
 const destination = join(vendorDir, binName);
-const sourceCheckoutMarker = join(packageRoot, "backend", "cmd", "pi-web");
+const sourceCheckoutMarker = join(packageRoot, "go.mod");
 
 if (
   process.env.PI_WEB_SKIP_DOWNLOAD === "1" ||
