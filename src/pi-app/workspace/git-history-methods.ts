@@ -67,8 +67,9 @@ export const gitHistoryMethods = {
       return;
     }
     panel.innerHTML = [
-      `<div class="git-history-grid">`,
+      `<div class="git-history-grid" data-git-history-grid>`,
       `<div class="git-commit-list" data-git-commit-list></div>`,
+      `<div class="git-detail-resizer" data-git-detail-resizer role="separator" aria-orientation="horizontal" aria-label="resize git commit details" title="drag to resize details"></div>`,
       `<div class="git-detail" data-git-detail><div class="git-empty">select a commit</div></div>`,
       `</div>`,
     ].join("");
@@ -77,6 +78,7 @@ export const gitHistoryMethods = {
     for (let index = 0; index < commits.length; index++) {
       list.append(this.createGitCommitRow(commits[index], lanes[index]));
     }
+    this.installGitDetailResizer(panel.querySelector("[data-git-history-grid]"));
   },
 
   createGitCommitRow(commit, lane) {
@@ -108,6 +110,29 @@ export const gitHistoryMethods = {
     } catch (error) {
       if (detail) detail.innerHTML = `<div class="git-empty err">${escapeHtml(error?.message || "commit unavailable")}</div>`;
     }
+  },
+
+  installGitDetailResizer(grid) {
+    const resizer = grid?.querySelector("[data-git-detail-resizer]");
+    if (!grid || !resizer || resizer.dataset.bound) return;
+    resizer.dataset.bound = "true";
+    resizer.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      resizer.setPointerCapture?.(event.pointerId);
+      const startY = event.clientY;
+      const startHeight = grid.querySelector("[data-git-commit-list]")?.getBoundingClientRect?.().height || 220;
+      const onMove = (moveEvent) => {
+        const rect = grid.getBoundingClientRect();
+        const next = Math.max(96, Math.min(rect.height - 140, startHeight + moveEvent.clientY - startY));
+        grid.style.setProperty("--git-list-height", `${next}px`);
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp, { once: true });
+    });
   },
 
   renderGitCommitDetail(detail) {
@@ -187,16 +212,16 @@ function gitLaneSvg(lane) {
   const laneCount = Math.max(lane.before.length, lane.after.length, lane.lane + 1, ...lane.parentLanes.map((item) => item + 1));
   const width = Math.max(42, laneCount * 14 + 18);
   const nodeX = laneX(lane.lane);
-  const topLines = lane.before.map((hash, index) => laneLine(hash, index, 0, index === lane.lane ? 19 : 38)).join("");
-  const bottomLines = lane.after.map((hash, index) => laneLine(hash, index, index === lane.lane ? 19 : 0, 38)).join("");
+  const topLines = lane.before.map((hash, index) => laneLine(hash, index, 0, index === lane.lane ? 50 : 100)).join("");
+  const bottomLines = lane.after.map((hash, index) => laneLine(hash, index, index === lane.lane ? 50 : 0, 100)).join("");
   const parentEdges = lane.parentLanes.map((parentLane, index) => {
     const parentX = laneX(parentLane);
     const color = COLORS[parentLane % COLORS.length];
     if (parentLane === lane.lane) return "";
-    const midY = 24 + index * 3;
-    return `<path d="M${nodeX} 19 C${nodeX} ${midY} ${parentX} ${midY} ${parentX} 38" stroke="${color}" stroke-width="2" fill="none" opacity=".82"/>`;
+    const midY = 62 + index * 6;
+    return `<path d="M${nodeX} 50 C${nodeX} ${midY} ${parentX} ${midY} ${parentX} 100" stroke="${color}" stroke-width="2" fill="none" opacity=".82"/>`;
   }).join("");
-  return `<svg viewBox="0 0 ${width} 38" width="${width}" height="38" aria-hidden="true">${topLines}${bottomLines}${parentEdges}<circle cx="${nodeX}" cy="19" r="4.5" fill="var(--bg)" stroke="${lane.color}" stroke-width="2.5"/></svg>`;
+  return `<svg viewBox="0 0 ${width} 100" width="${width}" aria-hidden="true" preserveAspectRatio="none">${topLines}${bottomLines}${parentEdges}<circle cx="${nodeX}" cy="50" r="4.5" fill="var(--bg)" stroke="${lane.color}" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>`;
 }
 
 function laneX(index) {

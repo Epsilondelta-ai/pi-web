@@ -228,13 +228,17 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-head button.on { border-color: var(--accent); color: var(--accent); }
 .tree-list { flex: 1 1 auto; min-height: 120px; overflow: hidden; padding: 4px 0 4px var(--space-2); }
 .git-panel { flex: 1 1 auto; min-height: 120px; overflow: hidden; }
-.git-history-grid { display: grid; grid-template-rows: minmax(170px, 42%) 1fr; height: 100%; min-height: 0; }
+.git-history-grid { display: grid; grid-template-rows: var(--git-list-height, minmax(170px, 42%)) 7px 1fr; height: 100%; min-height: 0; }
 .git-commit-list { overflow: auto; border-bottom: 1px solid var(--border-dim); }
-.git-commit-row { display: grid; grid-template-columns: auto 1fr; gap: 6px; width: 100%; min-height: 44px; padding: 3px 8px; border: 0; border-bottom: 1px solid var(--border-dim); background: transparent; color: var(--fg-1); font: inherit; text-align: left; cursor: pointer; }
+.git-detail-resizer { cursor: row-resize; border-top: 1px solid var(--border-dim); border-bottom: 1px solid var(--border-dim); background: linear-gradient(90deg, transparent, var(--border), transparent); touch-action: none; }
+.git-detail-resizer:hover,
+.git-detail-resizer:focus-visible { background: var(--accent-bg); outline: none; }
+.git-commit-row { display: grid; grid-template-columns: auto 1fr; gap: 6px; width: 100%; min-height: 44px; padding: 0 8px; border: 0; border-bottom: 1px solid var(--border-dim); background: transparent; color: var(--fg-1); font: inherit; text-align: left; cursor: pointer; }
 .git-commit-row:hover,
 .git-commit-row:focus-visible,
 .git-commit-row.selected { background: var(--bg-3); outline: none; }
-.git-graph-cell { display: flex; align-items: center; min-width: 42px; overflow: hidden; }
+.git-graph-cell { align-self: stretch; display: flex; align-items: stretch; min-width: 42px; overflow: hidden; }
+.git-graph-cell svg { height: 100%; min-height: 44px; }
 .git-commit-main { display: grid; gap: 2px; min-width: 0; }
 .git-subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-0); font-size: var(--text-sm); }
 .git-meta,

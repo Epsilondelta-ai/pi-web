@@ -51,7 +51,7 @@ func RealGitHistory(ctx context.Context, root string, limit int) ([]GitHistoryCo
 	if err := ensureGitRepo(ctx, root); err != nil {
 		return nil, err
 	}
-	logOutput, err := gitCommand(ctx, root, "log", "--max-count="+strconv.Itoa(limit), "--date=iso-strict", "--pretty=format:%H%x1f%P%x1f%an%x1f%ae%x1f%ad%x1f%D%x1f%s%x1e")
+	logOutput, err := gitCommand(ctx, root, "log", "--all", "--topo-order", "--max-count="+strconv.Itoa(limit), "--date=iso-strict", "--pretty=format:%H%x1f%P%x1f%an%x1f%ae%x1f%ad%x1f%D%x1f%s%x1e")
 	if err != nil {
 		return nil, err
 	}
