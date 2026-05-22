@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 2px;
   width: min(360px, calc(100% - var(--space-8)));
   height: auto;
   max-height: calc(100dvh - var(--space-8));
@@ -51,13 +51,13 @@
   font-family: var(--font-mono);
   cursor: pointer;
   pointer-events: auto;
-  translate: calc(var(--toast-stack-index, 0) * -6px) calc(var(--toast-stack-index, 0) * -48px);
+  translate: calc(var(--toast-stack-index, 0) * 0px) calc(var(--toast-stack-index, 0) * -56px);
   scale: calc(1 - (var(--toast-stack-index, 0) * 0.015));
   transition: translate 160ms ease, scale 160ms ease, box-shadow 160ms ease;
 }
-.notyf__toast.session-toast:not(:first-of-type) { margin-top: -4px; }
+.notyf__toast.session-toast:not(:first-of-type) { margin-top: -8px; }
 .notyf__toast.session-toast:hover {
-  translate: calc(var(--toast-stack-index, 0) * -6px) calc((var(--toast-stack-index, 0) * -48px) - 2px);
+  translate: calc(var(--toast-stack-index, 0) * 0px) calc((var(--toast-stack-index, 0) * -56px) - 2px);
 }
 .notyf__toast.session-toast:focus-visible {
   outline: 2px solid currentColor;
