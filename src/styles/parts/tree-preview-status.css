@@ -230,10 +230,10 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   color: var(--fg-1);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  line-height: 1.2;
+  line-height: 1.25;
   cursor: pointer;
   user-select: none;
-  min-height: 24px;
+  min-height: 38px;
   padding-right: var(--space-3);
   text-align: left;
   white-space: nowrap;
@@ -258,10 +258,15 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-node.deleted .glyph,
 .tree-node.renamed .glyph { color: inherit; }
 .tree-row-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 36px;
   color: var(--fg-3);
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 0 8px;
   border-radius: var(--radius-1);
   opacity: 0;
 }
