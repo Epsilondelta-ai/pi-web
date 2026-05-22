@@ -11,7 +11,7 @@ import (
 const githubRepositorySlug = "Epsilondelta-ai/pi-web"
 const goInstallPackage = "github.com/Epsilondelta-ai/pi-web"
 
-var version = "v1.4.0"
+var version = "v1.4.1"
 
 var readBuildInfo = debug.ReadBuildInfo
 
