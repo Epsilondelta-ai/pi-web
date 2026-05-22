@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -40,19 +39,7 @@ var (
 		return newGitHubSelfUpdater()
 	}
 	newSelfupdateUpdater = selfupdate.NewUpdater
-	execCommandContext   = exec.CommandContext
-	runGoInstall         = defaultRunGoInstall
 )
-
-func defaultRunGoInstall(ctx context.Context, out io.Writer, packagePath string) error {
-	cmd := execCommandContext(ctx, "go", "install", packagePath+"@latest")
-	cmd.Stdout = out
-	cmd.Stderr = out
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("go install %s@latest: %w", packagePath, err)
-	}
-	return nil
-}
 
 func runUpdate(out io.Writer, options updateOptions) error {
 	updater, err := newSelfUpdater()
@@ -144,21 +131,6 @@ func (u *githubSelfUpdater) DetectLatest(slug string) (*selfupdate.Release, bool
 }
 
 func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUpdater) error {
-	if options.Installer == "npm" {
-		fmt.Fprintln(out, "pi-web was installed with npm; update it with:")
-		fmt.Fprintln(out, "  npm update -g @epsilondelta-ai/pi-web")
-		return nil
-	}
-	if options.Installer == "go" {
-		fmt.Fprintln(out, "Updating pi-web with Go...")
-		if err := runGoInstall(context.Background(), out, goInstallPackage); err != nil {
-			return err
-		}
-		fmt.Fprintln(out, "Updated pi-web with:")
-		fmt.Fprintf(out, "  go install %s@latest\n", goInstallPackage)
-		return nil
-	}
-
 	current, err := parseCurrentVersion(options.CurrentVersion)
 	if err != nil {
 		return err

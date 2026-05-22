@@ -16,31 +16,11 @@ Install the latest GitHub release binary:
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
-Install from npm:
+Update the installed binary:
 
 ```bash
-npm i -g @epsilondelta-ai/pi-web
+pi-web update
 ```
-
-Install with Go:
-
-```bash
-go install github.com/Epsilondelta-ai/pi-web@latest
-```
-
-Update an npm install:
-
-```bash
-npm update -g @epsilondelta-ai/pi-web
-```
-
-Update a Go install:
-
-```bash
-go install github.com/Epsilondelta-ai/pi-web@latest
-```
-
-`pi-web update` is reserved for standalone GitHub release installs and will point npm/Go installs back to their package manager.
 
 Run after installation:
 
@@ -50,12 +30,6 @@ pi-web
 
 pi-web --port 9999
 # Open http://127.0.0.1:9999
-```
-
-Update the installed single binary:
-
-```bash
-pi-web update
 ```
 
 ## Introduction

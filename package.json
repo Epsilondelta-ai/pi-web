@@ -10,7 +10,6 @@
   },
   "files": [
     "bin/pi-web.js",
-    "scripts/npm-postinstall.js",
     "README.md",
     "LICENSE"
   ],
@@ -26,7 +25,6 @@
     "embed:assets": "find static -mindepth 1 ! -name README.txt -exec rm -rf {} + && cp -R dist/. static/",
     "build:binary": "bun run build && bun run embed:assets && go build -ldflags \"-X main.version=v$(node -p 'require(\"./package.json\").version')\" -o dist/pi-web .",
     "build:single": "bun run build:binary",
-    "postinstall": "node scripts/npm-postinstall.js",
     "preview": "astro preview --host 0.0.0.0",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

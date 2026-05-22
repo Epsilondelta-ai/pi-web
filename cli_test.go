@@ -2,12 +2,8 @@ package main
 
 import (
 	"bytes"
-	"context"
-	"errors"
-	"fmt"
 	"io"
 	"os"
-	"runtime/debug"
 	"testing"
 
 	"github.com/blang/semver"
@@ -64,11 +60,10 @@ func TestRootCommandRunsServerWithFlags(t *testing.T) {
 	}
 }
 
-func TestUpdateCommandUsesCurrentVersionRepositoryAndInstaller(t *testing.T) {
+func TestUpdateCommandUsesCurrentVersionAndRepository(t *testing.T) {
 	previousVersion := version
 	version = "1.2.3"
 	t.Cleanup(func() { version = previousVersion })
-	t.Setenv("PI_WEB_INSTALLER", "npm")
 
 	var got updateOptions
 	cmd := newRootCommand(rootDependencies{
@@ -89,7 +84,7 @@ func TestUpdateCommandUsesCurrentVersionRepositoryAndInstaller(t *testing.T) {
 		t.Fatalf("execute update command: %v", err)
 	}
 
-	if got.CurrentVersion != "1.2.3" || got.RepositorySlug != githubRepositorySlug || got.Installer != "npm" {
+	if got.CurrentVersion != "1.2.3" || got.RepositorySlug != githubRepositorySlug {
 		t.Fatalf("unexpected update options: %+v", got)
 	}
 }
@@ -106,118 +101,6 @@ func TestRunUpdateRejectsDevelopmentVersion(t *testing.T) {
 	}
 	if fake.called {
 		t.Fatal("updater should not run for development version")
-	}
-}
-
-func TestRunUpdateReportsNpmUpdateCommand(t *testing.T) {
-	fake := &fakeBinaryUpdater{}
-	var out bytes.Buffer
-
-	if err := runUpdateWithUpdater(&out, updateOptions{
-		CurrentVersion: "v1.2.3",
-		RepositorySlug: "owner/repo",
-		Installer:      "npm",
-	}, fake); err != nil {
-		t.Fatalf("run update: %v", err)
-	}
-
-	if fake.called {
-		t.Fatal("npm-installed binary should not self-update")
-	}
-	want := "pi-web was installed with npm; update it with:\n" +
-		"  npm update -g @epsilondelta-ai/pi-web\n"
-	if got := out.String(); got != want {
-		t.Fatalf("unexpected output: %q", got)
-	}
-}
-
-func TestRunUpdateRunsGoInstall(t *testing.T) {
-	previous := runGoInstall
-	t.Cleanup(func() { runGoInstall = previous })
-
-	fake := &fakeBinaryUpdater{}
-	var out bytes.Buffer
-	var gotPackage string
-	runGoInstall = func(_ context.Context, out io.Writer, packagePath string) error {
-		gotPackage = packagePath
-		fmt.Fprintln(out, "go output")
-		return nil
-	}
-
-	if err := runUpdateWithUpdater(&out, updateOptions{
-		CurrentVersion: "v1.2.3",
-		RepositorySlug: "owner/repo",
-		Installer:      "go",
-	}, fake); err != nil {
-		t.Fatalf("run update: %v", err)
-	}
-
-	if fake.called {
-		t.Fatal("go-installed binary should not self-update")
-	}
-	if gotPackage != goInstallPackage {
-		t.Fatalf("expected package %q, got %q", goInstallPackage, gotPackage)
-	}
-	want := "Updating pi-web with Go...\n" +
-		"go output\n" +
-		"Updated pi-web with:\n" +
-		"  go install github.com/Epsilondelta-ai/pi-web@latest\n"
-	if got := out.String(); got != want {
-		t.Fatalf("unexpected output: %q", got)
-	}
-}
-
-func TestRunUpdateReturnsGoInstallError(t *testing.T) {
-	previous := runGoInstall
-	t.Cleanup(func() { runGoInstall = previous })
-
-	installErr := errors.New("install failed")
-	runGoInstall = func(context.Context, io.Writer, string) error { return installErr }
-
-	err := runUpdateWithUpdater(io.Discard, updateOptions{
-		CurrentVersion: "v1.2.3",
-		RepositorySlug: "owner/repo",
-		Installer:      "go",
-	}, &fakeBinaryUpdater{})
-	if !errors.Is(err, installErr) {
-		t.Fatalf("expected install error, got %v", err)
-	}
-}
-
-func TestDetectedInstallerPrefersEnvironment(t *testing.T) {
-	previous := readBuildInfo
-	t.Cleanup(func() { readBuildInfo = previous })
-	t.Setenv("PI_WEB_INSTALLER", "npm")
-	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{Main: debug.Module{Path: goInstallPackage, Version: "v1.2.3"}}, true
-	}
-
-	if got := detectedInstaller(); got != "npm" {
-		t.Fatalf("expected npm, got %q", got)
-	}
-}
-
-func TestDetectedInstallerReportsGoInstallReleaseBuild(t *testing.T) {
-	previous := readBuildInfo
-	t.Cleanup(func() { readBuildInfo = previous })
-	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{Main: debug.Module{Path: goInstallPackage, Version: "v1.2.3"}}, true
-	}
-
-	if got := detectedInstaller(); got != "go" {
-		t.Fatalf("expected go, got %q", got)
-	}
-}
-
-func TestDetectedInstallerIgnoresDevelopmentBuild(t *testing.T) {
-	previous := readBuildInfo
-	t.Cleanup(func() { readBuildInfo = previous })
-	readBuildInfo = func() (*debug.BuildInfo, bool) {
-		return &debug.BuildInfo{Main: debug.Module{Path: goInstallPackage, Version: "(devel)"}}, true
-	}
-
-	if got := detectedInstaller(); got != "" {
-		t.Fatalf("expected empty installer, got %q", got)
 	}
 }
 

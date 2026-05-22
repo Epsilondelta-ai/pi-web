@@ -8,16 +8,13 @@ const packageRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const executable = join(packageRoot, "vendor", process.platform === "win32" ? "pi-web.exe" : "pi-web");
 
 if (!existsSync(executable)) {
-  console.error("pi-web binary is missing. Reinstall with: npm install -g @epsilondelta-ai/pi-web");
+  console.error("pi-web binary is missing. Install the latest GitHub release binary.");
   process.exit(1);
 }
 
 const child = spawn(executable, process.argv.slice(2), {
   stdio: "inherit",
-  env: {
-    ...process.env,
-    PI_WEB_INSTALLER: "npm",
-  },
+  env: process.env,
 });
 
 child.on("exit", (code, signal) => {

@@ -6,7 +6,7 @@ This repository keeps the root focused on entry points, tool configuration, and 
 
 ```text
 .
-├── *.go                        # root pi-web command for `go install github.com/.../pi-web`
+├── *.go                        # root pi-web command and embedded binary entrypoint
 ├── backend/                    # backend layout notes
 ├── internal/piweb/             # server, sessions, workspace, runner, store code
 ├── static/                     # committed embedded Astro assets
@@ -29,7 +29,7 @@ This repository keeps the root focused on entry points, tool configuration, and 
 Keep only files that are expected at repository root:
 
 - project metadata: `README.md`, `LICENSE`, `AGENTS.md`
-- root Go command files: `*.go`, required for `go install github.com/Epsilondelta-ai/pi-web@latest`
+- root Go command files: `*.go`, required for the release binary
 - package/module manifests and lockfiles: `package.json`, `bun.lock`, `go.mod`, `go.sum`
 - tool configuration: `astro.config.ts`, `tsconfig.json`, `vitest.config.ts`, `vitest.setup.ts`
 - VCS/editor configuration: `.gitignore`, `.github/`, `.storybook/`
@@ -50,7 +50,7 @@ These paths are generated locally and intentionally ignored:
 - `storybook-static/`
 - `storybook-server/`
 
-Committed static embed assets live in `static/` so `go install` builds a complete UI.
+Committed static embed assets live in `static/` so release binaries include a complete UI.
 
 Regenerate them with:
 
