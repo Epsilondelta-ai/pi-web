@@ -8,16 +8,18 @@ import { markdown } from "@codemirror/lang-markdown";
 import { bracketMatching, defaultHighlightStyle, indentOnInput, syntaxHighlighting } from "@codemirror/language";
 import { StreamLanguage } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
-import { unifiedMergeView } from "@codemirror/merge";
+import { diff } from "@codemirror/merge";
 import { search, searchKeymap } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
-import type { Extension } from "@codemirror/state";
+import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
+import type { Extension, Text } from "@codemirror/state";
 import {
   drawSelection,
   dropCursor,
   EditorView,
   highlightActiveLine,
   highlightActiveLineGutter,
+  GutterMarker,
+  gutter,
   highlightSpecialChars,
   keymap,
   lineNumbers,
@@ -176,13 +178,7 @@ export function codeMirrorLanguageExtension(file: FileLike): Extension[] {
 }
 
 function editorExtensions(file: FileLike, readOnly: boolean, originalContent: string, ...extra: Extension[]): Extension[] {
-  const changeIndicator = readOnly ? [] : unifiedMergeView({
-    original: originalContent,
-    gutter: true,
-    highlightChanges: false,
-    mergeControls: false,
-    syntaxHighlightDeletions: false,
-  });
+  const changeIndicator = readOnly ? [] : gitChangeGutter(originalContent);
 
   return [
     lineNumbers(),
@@ -208,6 +204,79 @@ function editorExtensions(file: FileLike, readOnly: boolean, originalContent: st
   ];
 }
 
+class GitChangeMarker extends GutterMarker {
+  constructor(private kind: "added" | "modified" | "deleted") {
+    super();
+  }
+
+  toDOM() {
+    const marker = document.createElement("span");
+    marker.className = `cm-gitChangeMarker cm-git-${this.kind}`;
+    marker.title = this.kind;
+    return marker;
+  }
+}
+
+const gitMarkers = {
+  added: new GitChangeMarker("added"),
+  modified: new GitChangeMarker("modified"),
+  deleted: new GitChangeMarker("deleted"),
+};
+
+function gitChangeGutter(originalContent: string): Extension[] {
+  const field = StateField.define({
+    create: (state) => buildGitChangeMarkers(originalContent, state.doc),
+    update: (markers, transaction) => transaction.docChanged ? buildGitChangeMarkers(originalContent, transaction.state.doc) : markers,
+  });
+  return [field, gutter({ class: "cm-gitChangeGutter", markers: (view) => view.state.field(field) })];
+}
+
+function buildGitChangeMarkers(originalContent: string, doc: Text) {
+  const builder = new RangeSetBuilder<GitChangeMarker>();
+  for (const change of diff(originalContent, doc.toString())) {
+    if (change.fromB === change.toB) {
+      addLineMarker(builder, doc, change.fromB, "deleted");
+    } else {
+      const kind = change.fromA === change.toA ? "added" : "modified";
+      addLineMarkers(builder, doc, change.fromB, change.toB, kind);
+    }
+  }
+  return builder.finish();
+}
+
+function addLineMarkers(
+  builder: RangeSetBuilder<GitChangeMarker>,
+  doc: Text,
+  from: number,
+  to: number,
+  kind: "added" | "modified" | "deleted",
+) {
+  const docEnd = doc.length;
+  const start = Math.max(0, Math.min(from, docEnd));
+  const end = Math.max(start, Math.min(to, docEnd));
+  if (start === end) {
+    addLineMarker(builder, doc, start, kind);
+    return;
+  }
+  const firstLine = doc.lineAt(start).number;
+  const lastLine = doc.lineAt(Math.max(start, end - 1)).number;
+  for (let lineNumber = firstLine; lineNumber <= lastLine; lineNumber++) {
+    const line = doc.line(lineNumber);
+    builder.add(line.from, line.from, gitMarkers[kind]);
+  }
+}
+
+function addLineMarker(
+  builder: RangeSetBuilder<GitChangeMarker>,
+  doc: Text,
+  position: number,
+  kind: "added" | "modified" | "deleted",
+) {
+  const safePosition = Math.max(0, Math.min(position, doc.length));
+  const line = doc.lineAt(safePosition);
+  builder.add(line.from, line.from, gitMarkers[kind]);
+}
+
 function piEditorTheme() {
   return EditorView.theme(
     {
@@ -228,9 +297,11 @@ function piEditorTheme() {
         borderRight: "1px solid var(--border-dim)",
       },
       ".cm-activeLineGutter, .cm-activeLine": { backgroundColor: "rgba(255,255,255,0.045)" },
-      ".cm-changeGutter": { width: "4px", paddingLeft: "0", backgroundColor: "var(--bg-0)" },
-      "&.cm-merge-b .cm-changedLineGutter": { backgroundColor: "var(--accent)" },
-      ".cm-changedLine": { backgroundColor: "transparent" },
+      ".cm-gitChangeGutter": { width: "4px", paddingLeft: "0", backgroundColor: "var(--bg-0)" },
+      ".cm-gitChangeMarker": { display: "block", width: "3px", height: "100%", minHeight: "1.5em" },
+      ".cm-gitChangeMarker.cm-git-added": { backgroundColor: "var(--accent)" },
+      ".cm-gitChangeMarker.cm-git-modified": { backgroundColor: "#d6b25e" },
+      ".cm-gitChangeMarker.cm-git-deleted": { backgroundColor: "var(--danger)" },
       ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": { backgroundColor: "rgba(0,255,136,0.24)" },
       ".cm-cursor": { borderLeftColor: "var(--accent)" },
       ".cm-panels": { backgroundColor: "var(--bg-2)", color: "var(--fg-1)" },
