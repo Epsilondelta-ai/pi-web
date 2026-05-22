@@ -13,6 +13,7 @@ export const workspaceRenderMethods = {
     if (count) count.textContent = `${workspaces.length} known`;
     this.renderRecentWorkspaces(workspaces);
     this.renderSidebarWorkspaces(workspaces);
+    this.syncUnreadCompletedSessions?.();
     this.syncBackgroundSessionWatches?.();
   },
 

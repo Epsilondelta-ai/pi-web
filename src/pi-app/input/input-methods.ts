@@ -25,6 +25,7 @@ export const inputMethods = {
     this.finalizeStreamingMessages();
     const waitForServerEcho = this.apiConnected && sessionId;
     const useAguiPrompt = waitForServerEcho && typeof EventSource !== "undefined";
+    this.writeLastSessionPrompt(sessionId, text);
     if (text) {
       if (!waitForServerEcho || useAguiPrompt) this.appendMessage({ kind: "user", text });
       this.appendLoadingMessage();
@@ -62,6 +63,7 @@ export const inputMethods = {
   async submitSteeringPrompt(text) {
     const sessionId = this.dataset.activeSessionId;
     if (!sessionId || !this.apiConnected) return;
+    this.writeLastSessionPrompt(sessionId, text);
     const attachments = this.attachmentContents.filter(Boolean);
     try {
       await steerSession(sessionId, text, attachments);

@@ -175,6 +175,29 @@ button.session-row:not(.new-session-row) {
 }
 .session-row .title { color: var(--fg-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .session-row.active .title { color: var(--fg-0); }
+.session-row.unread-completed {
+  animation: unread-completed-glow 2.8s ease-in-out infinite;
+  background: color-mix(in srgb, var(--accent) 11%, var(--bg-1));
+}
+.session-row.unread-completed::after {
+  content: "";
+  position: absolute;
+  inset: 5px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: var(--radius-1);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: unread-completed-sparkle 2.8s ease-in-out infinite;
+}
+.session-row.unread-completed .title { color: var(--fg-0); text-shadow: 0 0 8px var(--accent); }
+@keyframes unread-completed-glow {
+  0%, 100% { box-shadow: inset 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+  50% { box-shadow: inset 0 0 18px 0 color-mix(in srgb, var(--accent) 22%, transparent); }
+}
+@keyframes unread-completed-sparkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.985); }
+  50% { opacity: 0.75; transform: scale(1); }
+}
 .session-row .meta { color: var(--fg-3); font-size: 11px; font-variant-numeric: tabular-nums; }
 .session-row .meta.live { color: var(--accent); }
 .session-menu-button {

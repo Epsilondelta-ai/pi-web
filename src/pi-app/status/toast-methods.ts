@@ -22,6 +22,9 @@ const TOAST_MESSAGES = {
   },
 };
 
+const UNREAD_COMPLETED_SESSIONS_KEY = "piweb:unread-completed-sessions";
+const LAST_SESSION_PROMPTS_KEY = "piweb:last-session-prompts";
+
 const BACKEND_CONNECTION_ERROR_PATTERNS = [
   /failed to fetch/i,
   /fetch failed/i,
@@ -42,24 +45,38 @@ function isBackendConnectionError(detail) {
 
 function toastText(kind, detail, context) {
   const message = TOAST_MESSAGES[kind] || TOAST_MESSAGES.success;
-  const label = toastContextLabel(context);
   return {
     title: message.title,
-    detail: [detail || message.detail, label].filter(Boolean).join(" · "),
+    detail: detail || message.detail,
+    workspace: toastContextWorkspace(context),
+    session: toastContextSession(context),
+    prompt: toastContextPrompt(context) || detail || message.detail,
   };
 }
 
 function toastHtml(message) {
   return [
     `<span class="toast-dot" aria-hidden="true"></span>`,
-    `<span class="toast-copy"><strong>${escapeHtml(message.title)}</strong>`
-      + `<small>${escapeHtml(message.detail)}</small></span>`,
+    `<span class="toast-copy"><strong>${escapeHtml(message.title)}</strong>`,
+    `<span class="toast-line toast-workspace" title="${escapeHtml(message.workspace)}">${escapeHtml(message.workspace)}</span>`,
+    `<span class="toast-line toast-session" title="${escapeHtml(message.session)}">${escapeHtml(message.session)}</span>`,
+    `<small class="toast-line toast-prompt" title="${escapeHtml(message.prompt)}">${escapeHtml(message.prompt)}</small></span>`,
   ].join("");
 }
 
-function toastContextLabel(context) {
-  if (!context || typeof context === "string") return context;
-  return context.label;
+function toastContextWorkspace(context) {
+  if (!context || typeof context === "string") return context || "워크스페이스 없음";
+  return context.workspaceName || context.workspace || context.label || "워크스페이스 없음";
+}
+
+function toastContextSession(context) {
+  if (!context || typeof context === "string") return "세션 없음";
+  return context.sessionName || context.session || context.sessionId || "세션 없음";
+}
+
+function toastContextPrompt(context) {
+  if (!context || typeof context === "string") return "";
+  return context.prompt || "";
 }
 
 function toastContextSessionId(context) {
@@ -70,7 +87,6 @@ function toastContextSessionId(context) {
 function displayName(name, id) {
   const label = String(name || "").trim();
   const value = String(id || "").trim();
-  if (label && value && label !== value) return `${label} (${value})`;
   return label || value || "알 수 없음";
 }
 
@@ -89,6 +105,7 @@ export const toastMethods = {
           { type: "connection", icon: false, className: "session-toast connection" },
         ],
       });
+      this.toastDismissObserver = new MutationObserver(() => this.syncToastDismissAll());
     }
     return this.notyf;
   },
@@ -103,46 +120,77 @@ export const toastMethods = {
       type: TOAST_MESSAGES[kind] ? kind : "success",
       message: toastHtml(message),
     });
-    notification.on(NotyfEvent.Click, () => {
+    notification.on(NotyfEvent.Click, ({ event } = {}) => {
+      if (event?.target?.closest?.(".notyf__dismiss")) return;
       this.activateToastSession(sessionId);
       this.dismissToast(notification);
     });
+    this.syncToastDismissAll();
     return notification;
   },
 
   dismissToast(toast) {
     if (toast) this.notyf?.dismiss(toast);
+    this.syncToastDismissAll();
   },
 
   dismissAllToasts() {
     this.notyf?.dismissAll();
+    this.syncToastDismissAll();
   },
 
-  syncToastDismissAll() {},
+  syncToastDismissAll() {
+    const region = document.querySelector(".notyf");
+    if (!region) return;
+    let button = region.querySelector(".toast-dismiss-all");
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.className = "toast-dismiss-all";
+      button.textContent = "전체 닫기";
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        this.dismissAllToasts();
+      });
+      region.prepend(button);
+      this.toastDismissObserver?.observe(region, { childList: true });
+    }
+    const activeToasts = [...region.querySelectorAll(".notyf__toast:not(.notyf__toast--disappear)")];
+    activeToasts.forEach((toast, index) => {
+      toast.style.setProperty("--toast-stack-index", String(index));
+      toast.style.zIndex = String(index + 1);
+    });
+    button.hidden = activeToasts.length === 0;
+  },
 
   activateToastSession(sessionId) {
-    if (!sessionId || sessionId === this.dataset.activeSessionId) return;
+    if (!sessionId) return;
+    this.clearUnreadCompletedSession(sessionId);
+    if (sessionId === this.dataset.activeSessionId) return;
     const row = [...this.querySelectorAll(".session-row[data-session]")]
       .find((item) => item.dataset.session === sessionId);
     if (row) this.pickSession(row);
   },
 
   currentToastContext() {
-    const workspace = displayName(
-      this.querySelector("[data-active-workspace]")?.textContent,
-      this.dataset.activeWorkspaceId,
-    );
-    const session = displayName(
-      this.querySelector("[data-active-session-title]")?.textContent,
-      this.dataset.activeSessionId,
-    );
+    const sessionId = this.dataset.activeSessionId;
     return {
-      label: `workspace: ${workspace} / session: ${session}`,
-      sessionId: this.dataset.activeSessionId,
+      workspaceName: displayName(
+        this.querySelector("[data-active-workspace]")?.textContent,
+        this.dataset.activeWorkspaceId,
+      ),
+      sessionName: displayName(
+        this.querySelector("[data-active-session-title]")?.textContent,
+        sessionId,
+      ),
+      prompt: this.readLastSessionPrompt(sessionId),
+      sessionId,
     };
   },
 
   notifySessionCompleted(context) {
+    const sessionId = toastContextSessionId(context || this.currentToastContext());
+    this.markUnreadCompletedSession(sessionId);
     this.showToast("success", undefined, context);
   },
 
@@ -228,15 +276,91 @@ export const toastMethods = {
     this.syncActiveWorkspaceRows?.();
   },
 
+  readLastSessionPrompts() {
+    try {
+      const raw = localStorage.getItem(LAST_SESSION_PROMPTS_KEY);
+      const parsed = JSON.parse(raw || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  },
+
+  readLastSessionPrompt(sessionId) {
+    if (!sessionId) return "";
+    return String(this.readLastSessionPrompts()[sessionId] || "");
+  },
+
+  writeLastSessionPrompt(sessionId, prompt) {
+    if (!sessionId || !prompt) return;
+    const prompts = this.readLastSessionPrompts();
+    prompts[sessionId] = String(prompt).trim();
+    try {
+      localStorage.setItem(LAST_SESSION_PROMPTS_KEY, JSON.stringify(prompts));
+    } catch {
+      // Ignore storage failures; prompt text will simply be absent from future toasts.
+    }
+  },
+
+  readUnreadCompletedSessions() {
+    try {
+      const raw = localStorage.getItem(UNREAD_COMPLETED_SESSIONS_KEY);
+      const parsed = JSON.parse(raw || "[]");
+      return new Set(Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : []);
+    } catch {
+      return new Set();
+    }
+  },
+
+  writeUnreadCompletedSessions(sessions) {
+    try {
+      localStorage.setItem(UNREAD_COMPLETED_SESSIONS_KEY, JSON.stringify([...sessions]));
+    } catch {
+      // Ignore storage failures; visual state will still update for this page.
+    }
+  },
+
+  markUnreadCompletedSession(sessionId) {
+    if (!sessionId || sessionId === this.dataset.activeSessionId) return;
+    const sessions = this.readUnreadCompletedSessions();
+    sessions.add(String(sessionId));
+    this.writeUnreadCompletedSessions(sessions);
+    this.syncUnreadCompletedSessions();
+  },
+
+  clearUnreadCompletedSession(sessionId) {
+    if (!sessionId) return;
+    const sessions = this.readUnreadCompletedSessions();
+    if (!sessions.delete(String(sessionId))) return;
+    this.writeUnreadCompletedSessions(sessions);
+    this.syncUnreadCompletedSessions();
+  },
+
+  syncUnreadCompletedSessions() {
+    const sessions = this.readUnreadCompletedSessions();
+    const visibleSessions = new Set();
+    this.querySelectorAll(".session-row[data-session]").forEach((row) => {
+      visibleSessions.add(row.dataset.session);
+      row.classList.toggle("unread-completed", sessions.has(row.dataset.session));
+    });
+    let changed = false;
+    for (const sessionId of sessions) {
+      if (visibleSessions.has(sessionId)) continue;
+      sessions.delete(sessionId);
+      changed = true;
+    }
+    if (changed) this.writeUnreadCompletedSessions(sessions);
+  },
+
   toastContextForSessionRow(row) {
     const workspaceId = row?.dataset.workspace;
     const workspaceName = this.querySelector(`[data-workspace-group='${workspaceId}'] .label`)?.textContent;
+    const sessionId = row?.dataset.session;
     return {
-      label: [
-        `workspace: ${displayName(workspaceName, workspaceId)}`,
-        `session: ${displayName(row?.dataset.title, row?.dataset.session)}`,
-      ].join(" / "),
-      sessionId: row?.dataset.session,
+      workspaceName: displayName(workspaceName, workspaceId),
+      sessionName: displayName(row?.dataset.title, sessionId),
+      prompt: this.readLastSessionPrompt(sessionId),
+      sessionId,
     };
   },
 };

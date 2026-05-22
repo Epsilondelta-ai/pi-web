@@ -5,11 +5,34 @@
   bottom: auto;
   left: auto;
   z-index: var(--z-toast);
-  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   width: min(360px, calc(100% - var(--space-8)));
   height: auto;
+  max-height: calc(100dvh - var(--space-8));
   padding: 0;
+  overflow: visible;
   pointer-events: none;
+  justify-content: flex-start;
+}
+.toast-dismiss-all {
+  align-self: flex-end;
+  padding: 5px 9px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-1);
+  background: color-mix(in srgb, var(--bg-2) 94%, transparent);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.32);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.toast-dismiss-all:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .notyf__toast.session-toast {
   display: grid;
@@ -18,7 +41,7 @@
   width: 100%;
   max-width: none;
   min-height: 52px;
-  margin: 0 0 var(--space-2);
+  margin: 0;
   padding: 10px 12px;
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-2);
@@ -28,8 +51,14 @@
   font-family: var(--font-mono);
   cursor: pointer;
   pointer-events: auto;
+  translate: calc(var(--toast-stack-index, 0) * 0px) calc(var(--toast-stack-index, 0) * -72px);
+  scale: 1;
+  transition: translate 160ms ease, box-shadow 160ms ease;
 }
-.notyf__toast.session-toast:hover { transform: translateY(-1px); }
+.notyf__toast.session-toast:not(:first-of-type) { margin-top: 0; }
+.notyf__toast.session-toast:hover {
+  translate: calc(var(--toast-stack-index, 0) * 0px) calc((var(--toast-stack-index, 0) * -72px) - 2px);
+}
 .notyf__toast.session-toast:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
@@ -72,10 +101,20 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
+.toast-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-workspace,
+.toast-session {
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+}
 .toast-copy small {
   color: var(--fg-2);
   font-size: var(--text-xs);
-  overflow-wrap: anywhere;
 }
 .session-toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 64%, var(--border)); }
 .session-toast.choice { color: var(--ansi-blue); border-color: color-mix(in srgb, var(--ansi-blue) 64%, var(--border)); }

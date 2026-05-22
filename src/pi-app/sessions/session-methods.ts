@@ -28,6 +28,7 @@ export const sessionMethods = {
     this.updateSessionMeta(row, !!(session.active || session.live));
     this.markSessionRunning(row, !!(session.active || session.live));
     this.markSessionSelected(row, session.id === this.dataset.activeSessionId);
+    row.classList.toggle("unread-completed", this.readUnreadCompletedSessions?.().has(session.id));
     return row;
   },
 
@@ -82,6 +83,7 @@ export const sessionMethods = {
   },
 
   async pickSession(row) {
+    this.clearUnreadCompletedSession?.(row.dataset.session);
     this.dataset.activeSessionId = row.dataset.session;
     this.markSelectedSessionRow(row.dataset.session);
     this.activateWorkspaceForSession(row.dataset.workspace, { loadContext: true, forceLoadContext: true });
