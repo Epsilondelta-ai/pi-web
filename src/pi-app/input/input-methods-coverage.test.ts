@@ -97,6 +97,12 @@ describe("pi-app input methods coverage", () => {
     form.innerHTML = `<input name="command" value="pwd">`;
     app.dataset.activeWorkspaceId = "w1";
     await app.submitShellCommand({ preventDefault: vi.fn(), currentTarget: form });
+    app.findSessionRow = vi.fn(() => null);
+    const row = document.createElement("button");
+    row.dataset.session = "s-fallback";
+    row.dataset.workspace = "w1";
+    app.append(row);
+    expect(app.activeSessionBelongsToWorkspace("s-fallback", "w1")).toBe(true);
     const outside = document.createElement("button");
     outside.dataset.action = "route-picker";
     app.handleAppClick({ target: outside });

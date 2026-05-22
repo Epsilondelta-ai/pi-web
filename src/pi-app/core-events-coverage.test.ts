@@ -13,12 +13,14 @@ describe("pi-app core events coverage", () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
     app.bootstrapAPI = vi.fn();
+    app.uninstallFilePreviewUnloadGuard = vi.fn();
     app.connectedCallback();
     app.connectedCallback();
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 0 });
     app.installViewportSizing();
     app.applyEvent({ type: "unknown" });
     app.disconnectedCallback();
+    expect(app.uninstallFilePreviewUnloadGuard).toHaveBeenCalled();
     expect(app.bound).toBe(true);
   });
 
@@ -91,6 +93,9 @@ describe("pi-app core events coverage", () => {
     app.running = true;
     subscriber.onTextDelta("hello again");
     subscriber.onTextEnd("done");
+    const textOnlySubscriber = app.aguiSubscriber("s1");
+    textOnlySubscriber.onTextEnd("final only");
+    textOnlySubscriber.onTextEnd("");
     app.running = false;
     subscriber.onThinkingDelta("think");
     app.running = true;
@@ -112,6 +117,7 @@ describe("pi-app core events coverage", () => {
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: "hello" });
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "think", delta: "think" });
     expect(app.appendMessage).toHaveBeenCalledWith({ kind: "pi", text: "hellohello again" });
+    expect(app.appendMessage).toHaveBeenCalledWith({ kind: "pi", text: "final only" });
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "args" });
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "result" });
     expect(app.finishTool).toHaveBeenCalledWith({ kind: "tool", tool: "bash", args: "{}", status: "ok", resultMeta: "done", body: "body" });
