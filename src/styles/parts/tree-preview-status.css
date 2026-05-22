@@ -202,6 +202,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   user-select: none;
 }
 .tree-head .branch { color: var(--accent); text-transform: none; letter-spacing: 0; font-size: var(--text-xs); }
+.tree-title { color: var(--fg-4); }
 .tree-tabs,
 .tree-head-actions { display: inline-flex; align-items: center; gap: var(--space-2); }
 .tree-head button {
@@ -221,6 +222,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   font-size: var(--text-xs);
   letter-spacing: 0;
   text-transform: none;
+  white-space: nowrap;
 }
 .tree-head button:hover:not(:disabled),
 .tree-head button.on { border-color: var(--accent); color: var(--accent); }

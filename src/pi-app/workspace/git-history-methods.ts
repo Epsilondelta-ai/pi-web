@@ -157,13 +157,23 @@ function layoutGitLanes(commits) {
     }
     const parents = commit.parents || [];
     const before = [...active];
-    if (parents.length > 0) active[lane] = parents[0];
-    else active[lane] = "";
-    for (const parent of parents.slice(1)) {
-      const existing = active.indexOf(parent);
-      if (existing === -1) active[firstOpenLane(active)] = parent;
+    const parentLanes = [];
+    if (parents.length > 0) {
+      active[lane] = parents[0];
+      parentLanes.push(lane);
+    } else {
+      active[lane] = "";
     }
-    lanes.push({ lane, before, parentCount: parents.length, color: COLORS[lane % COLORS.length] });
+    for (const parent of parents.slice(1)) {
+      let parentLane = active.indexOf(parent);
+      if (parentLane === -1) {
+        parentLane = firstOpenLane(active);
+        active[parentLane] = parent;
+      }
+      parentLanes.push(parentLane);
+    }
+    const after = [...active];
+    lanes.push({ lane, before, after, parentLanes, color: COLORS[lane % COLORS.length] });
   }
   return lanes;
 }
@@ -174,14 +184,28 @@ function firstOpenLane(lanes) {
 }
 
 function gitLaneSvg(lane) {
-  const width = Math.max(42, lane.before.length * 14 + 18);
-  const nodeX = lane.lane * 14 + 8;
-  const lines = lane.before.map((hash, index) => {
-    if (!hash) return "";
-    const x = index * 14 + 8;
-    const stroke = COLORS[index % COLORS.length];
-    return `<line x1="${x}" y1="0" x2="${x}" y2="38" stroke="${stroke}" stroke-width="2" opacity=".55"/>`;
+  const laneCount = Math.max(lane.before.length, lane.after.length, lane.lane + 1, ...lane.parentLanes.map((item) => item + 1));
+  const width = Math.max(42, laneCount * 14 + 18);
+  const nodeX = laneX(lane.lane);
+  const topLines = lane.before.map((hash, index) => laneLine(hash, index, 0, index === lane.lane ? 19 : 38)).join("");
+  const bottomLines = lane.after.map((hash, index) => laneLine(hash, index, index === lane.lane ? 19 : 0, 38)).join("");
+  const parentEdges = lane.parentLanes.map((parentLane, index) => {
+    const parentX = laneX(parentLane);
+    const color = COLORS[parentLane % COLORS.length];
+    if (parentLane === lane.lane) return "";
+    const midY = 24 + index * 3;
+    return `<path d="M${nodeX} 19 C${nodeX} ${midY} ${parentX} ${midY} ${parentX} 38" stroke="${color}" stroke-width="2" fill="none" opacity=".82"/>`;
   }).join("");
-  const merge = lane.parentCount > 1 ? `<path d="M${nodeX} 19 C${nodeX + 10} 19 ${nodeX + 10} 32 ${nodeX + 20} 32" stroke="${lane.color}" stroke-width="2" fill="none" opacity=".8"/>` : "";
-  return `<svg viewBox="0 0 ${width} 38" width="${width}" height="38" aria-hidden="true">${lines}${merge}<circle cx="${nodeX}" cy="19" r="4.5" fill="var(--bg)" stroke="${lane.color}" stroke-width="2.5"/></svg>`;
+  return `<svg viewBox="0 0 ${width} 38" width="${width}" height="38" aria-hidden="true">${topLines}${bottomLines}${parentEdges}<circle cx="${nodeX}" cy="19" r="4.5" fill="var(--bg)" stroke="${lane.color}" stroke-width="2.5"/></svg>`;
+}
+
+function laneX(index) {
+  return index * 14 + 8;
+}
+
+function laneLine(hash, index, y1, y2) {
+  if (!hash || y1 === y2) return "";
+  const x = laneX(index);
+  const stroke = COLORS[index % COLORS.length];
+  return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${stroke}" stroke-width="2" opacity=".62"/>`;
 }

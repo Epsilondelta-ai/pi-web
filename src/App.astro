@@ -85,7 +85,7 @@ function isToolCollapsed(msg) {
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
     <div class="actions">
-      <button class:list={["iconbtn", treeOpen && "on"]} type="button" data-action="toggle-tree" aria-label="toggle file tree" title="files" hidden={workspaceHidden}>
+      <button class:list={["iconbtn", treeOpen && "on"]} type="button" data-action="toggle-tree" aria-label="toggle workspace explorer" title="workspace explorer: files and git graph" hidden={workspaceHidden}>
         <Folder size={14} strokeWidth={1.5} aria-hidden="true" />
       </button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
@@ -206,7 +206,7 @@ function isToolCollapsed(msg) {
     </main>
 
     <aside class="tree" aria-label="workspace details" hidden={treeHidden}> 
-      <div class="tree-head"><span class="tree-tabs"><button class="tree-tab on" type="button" data-action="show-file-tree">files</button><button class="tree-tab" type="button" data-action="show-git-history"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /> git</button></span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="tree-root-menu" aria-label="file tree actions" title="file tree actions"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /></button><button type="button" data-action="refresh-tree" aria-label="refresh file tree" title="refresh file tree"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
+      <div class="tree-head"><span class="tree-title">workspace</span><span class="tree-tabs"><button class="tree-tab on" type="button" data-action="show-file-tree">files</button><button class="tree-tab" type="button" data-action="show-git-history"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /> git graph</button></span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="tree-root-menu" aria-label="file tree actions" title="file tree actions"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /></button><button type="button" data-action="refresh-tree" aria-label="refresh workspace explorer" title="refresh workspace explorer"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
       <div class="tree-list">
         <WorkspaceFileTree client:load initialFiles={fileTree} />
       </div>
