@@ -140,8 +140,12 @@ export const toastMethods = {
       region.prepend(button);
       this.toastDismissObserver?.observe(region, { childList: true });
     }
-    const activeToastCount = region.querySelectorAll(".notyf__toast:not(.notyf__toast--disappear)").length;
-    button.hidden = activeToastCount === 0;
+    const activeToasts = [...region.querySelectorAll(".notyf__toast:not(.notyf__toast--disappear)")];
+    activeToasts.forEach((toast, index) => {
+      toast.style.setProperty("--toast-stack-index", String(index));
+      toast.style.zIndex = String(index + 1);
+    });
+    button.hidden = activeToasts.length === 0;
   },
 
   activateToastSession(sessionId) {

@@ -15,6 +15,7 @@
   padding: 0;
   overflow: visible;
   pointer-events: none;
+  justify-content: flex-start;
 }
 .toast-dismiss-all {
   align-self: flex-end;
@@ -50,8 +51,14 @@
   font-family: var(--font-mono);
   cursor: pointer;
   pointer-events: auto;
+  translate: calc(var(--toast-stack-index, 0) * -8px) calc(var(--toast-stack-index, 0) * -42px);
+  scale: calc(1 - (var(--toast-stack-index, 0) * 0.015));
+  transition: translate 160ms ease, scale 160ms ease, box-shadow 160ms ease;
 }
-.notyf__toast.session-toast:hover { transform: translateY(-1px); }
+.notyf__toast.session-toast:not(:first-of-type) { margin-top: -2px; }
+.notyf__toast.session-toast:hover {
+  translate: calc(var(--toast-stack-index, 0) * -8px) calc((var(--toast-stack-index, 0) * -42px) - 2px);
+}
 .notyf__toast.session-toast:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;

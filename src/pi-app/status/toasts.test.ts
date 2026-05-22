@@ -82,6 +82,9 @@ describe("pi-app toast notifications", () => {
 
     expect(document.querySelector(".session-toast.choice").textContent).toContain("선택지 요청");
     expect(document.querySelector(".toast-dismiss-all").hidden).toBe(false);
+    const visibleToasts = [...document.querySelectorAll(".notyf__toast:not(.notyf__toast--disappear)")];
+    expect(visibleToasts.map((toast) => toast.style.getPropertyValue("--toast-stack-index"))).toEqual(["0", "1"]);
+    expect(visibleToasts.map((toast) => toast.style.zIndex)).toEqual(["1", "2"]);
     document.querySelector(".toast-dismiss-all").click();
     expect(document.querySelectorAll(".notyf__toast--disappear")).toHaveLength(2);
   });
