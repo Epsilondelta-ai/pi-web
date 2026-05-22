@@ -12,7 +12,7 @@ type WorkspaceTreeUpdate = { files?: RawFileNode[]; statusMap?: GitStatusMap; se
 type Props = { initialFiles?: RawFileNode[]; initialStatusMap?: GitStatusMap };
 type MenuTarget = { x: number; y: number; path: string; kind: "file" | "dir" | "root" };
 
-const ROW_HEIGHT = 24;
+const ROW_HEIGHT = 38;
 const DEFAULT_HEIGHT = 480;
 
 export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap = {} }: Props) {
@@ -152,29 +152,34 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
         uploadInput.current?.click();
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : String(error));
+      showTemporaryError(error);
     }
   }
 
   async function uploadFiles(fileList: FileList | null) {
     const workspaceId = activeWorkspaceId();
     const target = uploadTarget.current;
+    const selectedFiles = fileList ? Array.from(fileList) : [];
     uploadTarget.current = null;
     if (uploadInput.current) uploadInput.current.value = "";
-    if (!workspaceId || !target || !fileList?.length) return;
+    if (!workspaceId || !target || !selectedFiles.length) return;
     const folder = uploadFolder(target);
     let firstPath = "";
     try {
-      for (const file of [...fileList]) {
+      for (const file of selectedFiles) {
         const path = joinPath(folder, file.name);
-        const overwrite = window.confirm(`${path} exists? Press OK to overwrite if needed, or Cancel to skip existing files.`);
         const content = await fileToBase64(file);
-        await uploadWorkspaceFile(workspaceId, path, content, overwrite);
+        try {
+          await uploadWorkspaceFile(workspaceId, path, content, false);
+        } catch (error) {
+          if (!isAlreadyExistsError(error) || !window.confirm(`${path} already exists. Overwrite?`)) throw error;
+          await uploadWorkspaceFile(workspaceId, path, content, true);
+        }
         if (!firstPath) firstPath = path;
       }
       refreshTree(firstPath);
     } catch (error) {
-      alert(error instanceof Error ? error.message : String(error));
+      showTemporaryError(error);
       refreshTree(firstPath);
     }
   }
@@ -234,8 +239,9 @@ function FileTreeRow({ node, style, dragHandle }: any) {
 
 function TreeActionMenu({ target, onAction }: { target: MenuTarget; onAction: (action: string) => void }) {
   const canTarget = target.kind !== "root";
+  const style = menuPosition(target);
   return (
-    <div className="tree-action-menu" style={{ left: target.x, top: target.y }} onClick={(event) => event.stopPropagation()}>
+    <div className="tree-action-menu" style={style} onClick={(event) => event.stopPropagation()}>
       <button type="button" onClick={() => onAction("new-file")}>new file</button>
       <button type="button" onClick={() => onAction("new-folder")}>new folder</button>
       <button type="button" onClick={() => onAction("upload")}>upload here</button>
@@ -245,10 +251,27 @@ function TreeActionMenu({ target, onAction }: { target: MenuTarget; onAction: (a
   );
 }
 
+function menuPosition(target: MenuTarget) {
+  const width = 168;
+  const height = 180;
+  const margin = 8;
+  const maxX = Math.max(margin, window.innerWidth - width - margin);
+  const maxY = Math.max(margin, window.innerHeight - height - margin);
+  return {
+    left: Math.min(Math.max(margin, target.x), maxX),
+    top: Math.min(Math.max(margin, target.y), maxY),
+  };
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === "clean") return null;
   const label = statusLabels[status] || "•";
   return <span className="tree-status-badge" aria-label={status}>{label}</span>;
+}
+
+function showTemporaryError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  window.alert(message);
 }
 
 function activeWorkspaceId() {
@@ -273,6 +296,10 @@ function parentPath(path: string) {
 
 function joinPath(parent: string, name: string) {
   return [parent, name].filter(Boolean).join("/").replace(/\/+/g, "/");
+}
+
+function isAlreadyExistsError(error: unknown) {
+  return String(error instanceof Error ? error.message : error).toLowerCase().includes("already exists");
 }
 
 function fileToBase64(file: File) {
