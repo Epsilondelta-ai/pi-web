@@ -172,20 +172,25 @@ class PiApp extends HTMLElement {
   }
 
   aguiSubscriber(sessionId) {
+    let textBuffer = "";
     return {
       onRunStarted: () => {
         if (this.dataset.activeSessionId !== sessionId) return;
+        textBuffer = "";
         this.confirmConnection();
         this.setMode("running");
       },
       onTextDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;
+        textBuffer += delta;
         this.setMode("running");
         this.appendDelta({ kind: "pi", delta });
       },
       onTextEnd: (text) => {
-        if (this.dataset.activeSessionId !== sessionId || !text) return;
-        this.appendMessage({ kind: "pi", text });
+        if (this.dataset.activeSessionId !== sessionId || (!text && !textBuffer)) return;
+        const finalText = textBuffer || text;
+        textBuffer = "";
+        this.appendMessage({ kind: "pi", text: finalText });
       },
       onThinkingDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;
@@ -212,12 +217,14 @@ class PiApp extends HTMLElement {
       },
       onRunError: (message) => {
         if (this.dataset.activeSessionId !== sessionId) return;
+        textBuffer = "";
         this.notifyResponseFailure?.(message);
         this.setMode("idle");
         this.finalizeStreamingMessages();
       },
       onRunFinished: () => {
         if (this.dataset.activeSessionId !== sessionId) return;
+        textBuffer = "";
         this.setMode(this.isSessionCancellationPending(sessionId) ? "cancelled" : "idle");
         this.finalizeStreamingMessages();
       },
