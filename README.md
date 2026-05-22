@@ -22,6 +22,12 @@ Install from npm:
 npm i -g @epsilondelta-ai/pi-web
 ```
 
+Install with Go:
+
+```bash
+go install github.com/Epsilondelta-ai/pi-web/backend/cmd/pi-web@latest
+```
+
 Update an npm install:
 
 ```bash

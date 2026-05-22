@@ -7,7 +7,7 @@ This repository keeps the root focused on entry points, tool configuration, and 
 ```text
 .
 ├── backend/                    # Go server and single-binary entrypoint
-│   ├── cmd/pi-web-server/       # executable package and embedded static placeholder
+│   ├── cmd/pi-web/              # executable package and embedded static assets
 │   └── internal/piweb/          # server, sessions, workspace, runner, store code
 ├── docs/                       # durable documentation, plans, and screenshots
 ├── public/                     # Astro static assets
@@ -47,7 +47,8 @@ These paths are generated locally and intentionally ignored:
 - `dist/`
 - `storybook-static/`
 - `storybook-server/`
-- `backend/cmd/pi-web-server/static/*` except `README.txt`
+
+Committed static embed assets live in `backend/cmd/pi-web/static/` so `go install` builds a complete UI.
 
 Regenerate them with:
 

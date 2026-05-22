@@ -5,8 +5,6 @@ dist/
 storybook-static/
 storybook-server/
 coverage/
-backend/cmd/pi-web-server/static/*
-!backend/cmd/pi-web-server/static/README.txt
 .pi/sessions
 .pi/tasks/
 .pi/web-status.json

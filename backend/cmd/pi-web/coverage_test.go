@@ -16,7 +16,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 
-	"pi-web-ui/backend/internal/piweb"
+	"github.com/Epsilondelta-ai/pi-web/backend/internal/piweb"
 )
 
 func TestMainSuccessAndError(t *testing.T) {

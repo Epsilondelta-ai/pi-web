@@ -18,7 +18,7 @@ The repository now has clear ownership boundaries. The remaining large flat area
 | `.pi/` | Pi harness settings, prompts, local extensions, npm sandbox placeholder | OK; generated sessions/tasks/npm contents ignored |
 | `.pi/extensions/` | Project-local Pi footer/quota/web-status extensions | OK; entrypoints at root, implementation under `src/` |
 | `.storybook/` | Storybook config and fixtures | OK |
-| `backend/cmd/pi-web-server/` | CLI/binary entrypoint, update command, static embed placeholder | OK |
+| `backend/cmd/pi-web/` | CLI/binary entrypoint, update command, committed static embed assets | OK |
 | `backend/internal/piweb/` | Go HTTP/session/workspace/store/runner package | OK; documented in `backend/internal/piweb/README.md` |
 | `docs/` | Durable docs and task history | OK |
 | `docs/assets/` | README/documentation images | OK |

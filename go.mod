@@ -1,4 +1,4 @@
-module pi-web-ui
+module github.com/Epsilondelta-ai/pi-web
 
 go 1.26
 
