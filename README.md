@@ -3,12 +3,14 @@
 <div align="center">
 
 ![pi.dev web](./docs/assets/pi-web.png)
-<br /><br />
-![Workspace session UI](docs/assets/screenshot.png)
-<br /><br />
-![Tablet workspace UI](docs/assets/tablet.webp)
-<br /><br />
-![Mobile file tree UI](docs/assets/mobile.webp)
+
+| Desktop |
+| --- |
+| ![Workspace session UI](docs/assets/screenshot.png) |
+
+| Tablet | Mobile |
+| --- | --- |
+| ![Tablet workspace UI](docs/assets/tablet.webp) | ![Mobile file tree UI](docs/assets/mobile.webp) |
 
 </div>
 
