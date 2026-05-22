@@ -1,7 +1,10 @@
+import React from "react";
+import { createRoot } from "react-dom/client";
 import { getGitCommit, getGitHistory } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
 
 const COLORS = ["#8bd5ff", "#c792ea", "#89dd88", "#ffcb6b", "#f78c6c", "#82aaff", "#f07178"];
+const GRAPH_ROW_HEIGHT = 44;
 
 export const gitHistoryMethods = {
   async showGitHistory() {
@@ -48,6 +51,7 @@ export const gitHistoryMethods = {
     const panel = this.querySelector("[data-git-panel]");
     if (!panel) return;
     panel.dataset.mode = mode;
+    this.unmountGitGraph?.();
     if (mode === "loading") {
       panel.innerHTML = `<div class="git-empty">loading git graph…</div>`;
     }
@@ -56,39 +60,89 @@ export const gitHistoryMethods = {
   renderGitHistoryError(message) {
     const panel = this.querySelector("[data-git-panel]");
     if (!panel) return;
+    this.unmountGitGraph?.();
     panel.innerHTML = `<div class="git-empty err">${escapeHtml(message)}</div>`;
   },
 
   renderGitHistory(commits) {
     const panel = this.querySelector("[data-git-panel]");
     if (!panel) return;
+    this.unmountGitGraph?.();
     if (!commits.length) {
       panel.innerHTML = `<div class="git-empty">no commits found</div>`;
       return;
     }
     panel.innerHTML = [
       `<div class="git-history-grid" data-git-history-grid>`,
+      `<div class="git-commit-scroll" data-git-commit-scroll>`,
+      `<div class="git-graph-library" data-git-graph-library></div>`,
       `<div class="git-commit-list" data-git-commit-list></div>`,
+      `</div>`,
       `<div class="git-detail-resizer" data-git-detail-resizer role="separator" aria-orientation="horizontal" aria-label="resize git commit details" title="drag to resize details"></div>`,
       `<div class="git-detail" data-git-detail><div class="git-empty">select a commit</div></div>`,
       `</div>`,
     ].join("");
     const list = panel.querySelector("[data-git-commit-list]");
-    const lanes = layoutGitLanes(commits);
-    for (let index = 0; index < commits.length; index++) {
-      list.append(this.createGitCommitRow(commits[index], lanes[index]));
-    }
+    for (const commit of commits) list.append(this.createGitCommitRow(commit));
+    void this.renderGitGraphLibrary(panel.querySelector("[data-git-graph-library]"), commits);
     this.installGitDetailResizer(panel.querySelector("[data-git-history-grid]"));
   },
 
-  createGitCommitRow(commit, lane) {
+  async renderGitGraphLibrary(container, commits) {
+    if (!container) return;
+    const graphCommits = commits.map((commit) => ({
+      id: commit.shortHash,
+      message: commit.subject || commit.shortHash,
+      author: commit.authorName || "unknown",
+      date: commit.date || "",
+      parents: commit.parents || [],
+      meta: commit,
+    }));
+    ensureReact18SecretInternals();
+    const { GitGraph } = await import("git-graph-svg");
+    if (!container.isConnected) return;
+    const root = createRoot(container);
+    this.gitGraphRoot = root;
+    this.unmountGitGraph = () => {
+      this.gitGraphRoot?.unmount?.();
+      this.gitGraphRoot = null;
+      this.unmountGitGraph = null;
+    };
+    root.render(React.createElement(GitGraph, {
+      commits: graphCommits,
+      colorPalette: COLORS,
+      rowHeight: GRAPH_ROW_HEIGHT,
+      laneWidth: 14,
+      padding: { top: GRAPH_ROW_HEIGHT / 2, right: 8, bottom: GRAPH_ROW_HEIGHT / 2, left: 8 },
+      style: { minHeight: `${commits.length * GRAPH_ROW_HEIGHT}px`, width: "100%" },
+      renderNode: (x, y, color) => React.createElement("circle", {
+        cx: x,
+        cy: y,
+        r: 4.5,
+        fill: "var(--bg)",
+        stroke: color,
+        strokeWidth: 2.5,
+        vectorEffect: "non-scaling-stroke",
+      }),
+      renderEdge: (from, to, d, color) => React.createElement("path", {
+        key: `${from.id}-${to.id}`,
+        d,
+        stroke: color,
+        strokeWidth: 2,
+        fill: "none",
+        opacity: 0.72,
+        vectorEffect: "non-scaling-stroke",
+      }),
+    }));
+  },
+
+  createGitCommitRow(commit) {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "git-commit-row";
     row.dataset.action = "select-git-commit";
     row.dataset.hash = commit.hash;
     row.innerHTML = [
-      `<span class="git-graph-cell">${gitLaneSvg(lane)}</span>`,
       `<span class="git-commit-main">`,
       `<span class="git-subject"></span>`,
       `<span class="git-meta"><code>${escapeHtml(commit.shortHash)}</code> · ${escapeHtml(commit.authorName || "unknown")} · ${formatGitDate(commit.date)}</span>`,
@@ -120,7 +174,7 @@ export const gitHistoryMethods = {
       event.preventDefault();
       resizer.setPointerCapture?.(event.pointerId);
       const startY = event.clientY;
-      const startHeight = grid.querySelector("[data-git-commit-list]")?.getBoundingClientRect?.().height || 220;
+      const startHeight = grid.querySelector("[data-git-commit-scroll]")?.getBoundingClientRect?.().height || 220;
       const onMove = (moveEvent) => {
         const rect = grid.getBoundingClientRect();
         const next = Math.max(96, Math.min(rect.height - 140, startHeight + moveEvent.clientY - startY));
@@ -154,6 +208,15 @@ export const gitHistoryMethods = {
   },
 };
 
+function ensureReact18SecretInternals() {
+  const reactCompat = React as any;
+  if (reactCompat.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) return;
+  reactCompat.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
+    ReactCurrentDispatcher: { current: null },
+    ReactCurrentOwner: { current: null },
+  };
+}
+
 function fileTemplate(file) {
   const oldPath = file.oldPath ? `<small>${escapeHtml(file.oldPath)} →</small>` : "";
   return `<div class="git-file"><span class="status ${escapeHtml(file.status || "modified")}">${escapeHtml(file.status || "modified")}</span><span class="path">${oldPath}${escapeHtml(file.path || "")}</span><span class="nums"><span class="add">+${file.additions || 0}</span><span class="del">-${file.deletions || 0}</span></span></div>`;
@@ -169,68 +232,4 @@ function formatGitDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return escapeHtml(value);
   return date.toLocaleString(undefined, { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-}
-
-function layoutGitLanes(commits) {
-  const active = [];
-  const lanes = [];
-  for (const commit of commits) {
-    let lane = active.indexOf(commit.shortHash);
-    if (lane === -1) {
-      lane = firstOpenLane(active);
-      active[lane] = commit.shortHash;
-    }
-    const parents = commit.parents || [];
-    const before = [...active];
-    const parentLanes = [];
-    if (parents.length > 0) {
-      active[lane] = parents[0];
-      parentLanes.push(lane);
-    } else {
-      active[lane] = "";
-    }
-    for (const parent of parents.slice(1)) {
-      let parentLane = active.indexOf(parent);
-      if (parentLane === -1) {
-        parentLane = firstOpenLane(active);
-        active[parentLane] = parent;
-      }
-      parentLanes.push(parentLane);
-    }
-    const after = [...active];
-    lanes.push({ lane, before, after, parentLanes, color: COLORS[lane % COLORS.length] });
-  }
-  return lanes;
-}
-
-function firstOpenLane(lanes) {
-  const index = lanes.findIndex((item) => !item);
-  return index === -1 ? lanes.length : index;
-}
-
-function gitLaneSvg(lane) {
-  const laneCount = Math.max(lane.before.length, lane.after.length, lane.lane + 1, ...lane.parentLanes.map((item) => item + 1));
-  const width = Math.max(42, laneCount * 14 + 18);
-  const nodeX = laneX(lane.lane);
-  const topLines = lane.before.map((hash, index) => laneLine(hash, index, 0, index === lane.lane ? 50 : 100)).join("");
-  const bottomLines = lane.after.map((hash, index) => laneLine(hash, index, index === lane.lane ? 50 : 0, 100)).join("");
-  const parentEdges = lane.parentLanes.map((parentLane, index) => {
-    const parentX = laneX(parentLane);
-    const color = COLORS[parentLane % COLORS.length];
-    if (parentLane === lane.lane) return "";
-    const midY = 62 + index * 6;
-    return `<path d="M${nodeX} 50 C${nodeX} ${midY} ${parentX} ${midY} ${parentX} 100" stroke="${color}" stroke-width="2" fill="none" opacity=".82"/>`;
-  }).join("");
-  return `<svg viewBox="0 0 ${width} 100" width="${width}" aria-hidden="true" preserveAspectRatio="none">${topLines}${bottomLines}${parentEdges}<circle cx="${nodeX}" cy="50" r="4.5" fill="var(--bg)" stroke="${lane.color}" stroke-width="2.5" vector-effect="non-scaling-stroke"/></svg>`;
-}
-
-function laneX(index) {
-  return index * 14 + 8;
-}
-
-function laneLine(hash, index, y1, y2) {
-  if (!hash || y1 === y2) return "";
-  const x = laneX(index);
-  const stroke = COLORS[index % COLORS.length];
-  return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${stroke}" stroke-width="2" opacity=".62"/>`;
 }
