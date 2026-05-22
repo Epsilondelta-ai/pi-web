@@ -96,44 +96,47 @@ export const gitHistoryMethods = {
       author: commit.authorName || "unknown",
       date: commit.date || "",
       parents: commit.parents || [],
-      meta: commit,
     }));
-    ensureReact18SecretInternals();
-    const { GitGraph } = await import("git-graph-svg");
-    if (!container.isConnected) return;
-    const root = createRoot(container);
-    this.gitGraphRoot = root;
-    this.unmountGitGraph = () => {
-      this.gitGraphRoot?.unmount?.();
-      this.gitGraphRoot = null;
-      this.unmountGitGraph = null;
-    };
-    root.render(React.createElement(GitGraph, {
-      commits: graphCommits,
-      colorPalette: COLORS,
-      rowHeight: GRAPH_ROW_HEIGHT,
-      laneWidth: 14,
-      padding: { top: GRAPH_ROW_HEIGHT / 2, right: 8, bottom: GRAPH_ROW_HEIGHT / 2, left: 8 },
-      style: { minHeight: `${commits.length * GRAPH_ROW_HEIGHT}px`, width: "100%" },
-      renderNode: (x, y, color) => React.createElement("circle", {
-        cx: x,
-        cy: y,
-        r: 4.5,
-        fill: "var(--bg)",
-        stroke: color,
-        strokeWidth: 2.5,
-        vectorEffect: "non-scaling-stroke",
-      }),
-      renderEdge: (from, to, d, color) => React.createElement("path", {
-        key: `${from.id}-${to.id}`,
-        d,
-        stroke: color,
-        strokeWidth: 2,
-        fill: "none",
-        opacity: 0.72,
-        vectorEffect: "non-scaling-stroke",
-      }),
-    }));
+    try {
+      ensureReact18SecretInternals();
+      const { GitGraph } = await import("git-graph-svg");
+      if (!container.isConnected) return;
+      const root = createRoot(container);
+      this.gitGraphRoot = root;
+      this.unmountGitGraph = () => {
+        this.gitGraphRoot?.unmount?.();
+        this.gitGraphRoot = null;
+        this.unmountGitGraph = null;
+      };
+      root.render(React.createElement(GitGraph, {
+        commits: graphCommits,
+        colorPalette: COLORS,
+        rowHeight: GRAPH_ROW_HEIGHT,
+        laneWidth: 14,
+        padding: { top: GRAPH_ROW_HEIGHT / 2, right: 8, bottom: GRAPH_ROW_HEIGHT / 2, left: 8 },
+        style: { minHeight: `${commits.length * GRAPH_ROW_HEIGHT}px`, width: "100%" },
+        renderNode: (x, y, color) => React.createElement("circle", {
+          cx: x,
+          cy: y,
+          r: 4.5,
+          fill: "var(--bg)",
+          stroke: color,
+          strokeWidth: 2.5,
+          vectorEffect: "non-scaling-stroke",
+        }),
+        renderEdge: (from, to, d, color) => React.createElement("path", {
+          key: `${from.id}-${to.id}`,
+          d,
+          stroke: color,
+          strokeWidth: 2,
+          fill: "none",
+          opacity: 0.72,
+          vectorEffect: "non-scaling-stroke",
+        }),
+      }));
+    } catch (error) {
+      container.innerHTML = `<div class="git-empty err">git graph render failed: ${escapeHtml(error?.message || String(error))}</div>`;
+    }
   },
 
   createGitCommitRow(commit) {
