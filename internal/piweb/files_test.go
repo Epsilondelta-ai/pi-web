@@ -80,3 +80,46 @@ func TestRealFileTree(t *testing.T) {
 		t.Fatalf("unexpected nodes: %#v", nodes)
 	}
 }
+
+func TestWorkspaceFileMutations(t *testing.T) {
+	root := t.TempDir()
+	created, err := CreateWorkspacePath(root, "src/new.txt", "file", "hello")
+	if err != nil || created.Content != "hello" {
+		t.Fatalf("create file: %#v %v", created, err)
+	}
+	if _, err := CreateWorkspacePath(root, "src/new.txt", "file", "again"); err == nil {
+		t.Fatal("expected duplicate create to fail")
+	}
+	if _, err := CreateWorkspacePath(root, "src/assets", "dir", ""); err != nil {
+		t.Fatalf("create dir: %v", err)
+	}
+	if err := RenameWorkspacePath(root, "src/new.txt", "src/assets/renamed.txt"); err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	if _, err := ReadWorkspaceFile(root, "src/assets/renamed.txt", 1024); err != nil {
+		t.Fatalf("read renamed: %v", err)
+	}
+	if err := DeleteWorkspacePath(root, "src/assets/renamed.txt"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if _, err := ReadWorkspaceFile(root, "src/assets/renamed.txt", 1024); err == nil {
+		t.Fatal("expected deleted file to be missing")
+	}
+}
+
+func TestUploadWorkspaceFile(t *testing.T) {
+	root := t.TempDir()
+	if _, err := UploadWorkspaceFile(root, "docs/image.png", []byte("png"), false); err != nil {
+		t.Fatalf("upload: %v", err)
+	}
+	if _, err := UploadWorkspaceFile(root, "docs/image.png", []byte("again"), false); err == nil {
+		t.Fatal("expected upload without overwrite to fail")
+	}
+	file, err := UploadWorkspaceFile(root, "docs/image.png", []byte("again"), true)
+	if err != nil {
+		t.Fatalf("overwrite upload: %v", err)
+	}
+	if file.Path != "docs/image.png" {
+		t.Fatalf("unexpected path: %#v", file)
+	}
+}

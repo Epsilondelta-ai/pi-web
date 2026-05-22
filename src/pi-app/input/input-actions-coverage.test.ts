@@ -31,7 +31,7 @@ describe("pi-app input actions coverage", () => {
     app.currentFolderParent = "/";
     const actions = [
       "route-picker", "route-workspace", "refresh-workspaces", "browse-folder", "folder-enter", "folder-up",
-      "folder-open-current", "toggle-tree", "refresh-tree", "open-file", "close-file-preview",
+      "folder-open-current", "toggle-tree", "refresh-tree", "tree-root-menu", "open-file", "close-file-preview",
       "toggle-file-preview-mode", "save-file-preview", "collapse-sidebar", "expand-sidebar", "open-drawer", "close-drawer",
       "toggle-tool", "show-full-tool-output", "toggle-workspace", "delete-workspace", "delete-workspace-sessions", "new-session",
       "session-menu-toggle", "rename-session", "delete-session", "show-update-tip", "open-settings", "close-settings", "save-settings",
@@ -113,6 +113,19 @@ describe("pi-app input actions coverage", () => {
     app.append(badChip);
     badChip.querySelector("button").click();
     expect(calls.some(([name]) => name === "newSession")).toBe(true);
+
+    app.dataset.activeWorkspaceId = "w1";
+    app.loadWorkspaceMeta = (...args) => calls.push(["loadWorkspaceMeta", ...args]);
+    app.openFilePath = (...args) => calls.push(["openFilePath", ...args]);
+    window.dispatchEvent(new CustomEvent("pi-workspace-tree:refresh", { detail: { selectedPath: "src/main.ts" } }));
+    window.dispatchEvent(new CustomEvent("pi-workspace-file:open", { detail: { path: "src/main.ts" } }));
+    expect(calls).toContainEqual(["loadWorkspaceMeta", "w1", { selectedPath: "src/main.ts" }]);
+    expect(calls).toContainEqual(["openFilePath", "src/main.ts"]);
+    app.dataset.activeWorkspaceId = "";
+    delete app.openFilePath;
+    window.dispatchEvent(new Event("pi-workspace-tree:refresh"));
+    window.dispatchEvent(new CustomEvent("pi-workspace-file:open", { detail: { path: "" } }));
+    window.dispatchEvent(new CustomEvent("pi-workspace-file:open", { detail: { path: "src/skip.ts" } }));
 
     Element.prototype.scrollIntoView = vi.fn();
     const event = { preventDefault: vi.fn(), key: "ArrowDown" };

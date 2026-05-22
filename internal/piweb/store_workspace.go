@@ -75,6 +75,42 @@ func (s *Store) WriteFile(workspaceID, rel, content string) (FileContent, error)
 	}
 	return WriteWorkspaceFile(root, rel, content)
 }
+func (s *Store) CreateFile(workspaceID, rel, kind, content string) (FileContent, error) {
+	s.mu.RLock()
+	root := s.workspacePath[workspaceID]
+	s.mu.RUnlock()
+	if root == "" {
+		return FileContent{}, ErrNotFound
+	}
+	return CreateWorkspacePath(root, rel, kind, content)
+}
+func (s *Store) RenameFile(workspaceID, oldRel, newRel string) error {
+	s.mu.RLock()
+	root := s.workspacePath[workspaceID]
+	s.mu.RUnlock()
+	if root == "" {
+		return ErrNotFound
+	}
+	return RenameWorkspacePath(root, oldRel, newRel)
+}
+func (s *Store) DeleteFile(workspaceID, rel string) error {
+	s.mu.RLock()
+	root := s.workspacePath[workspaceID]
+	s.mu.RUnlock()
+	if root == "" {
+		return ErrNotFound
+	}
+	return DeleteWorkspacePath(root, rel)
+}
+func (s *Store) UploadFile(workspaceID, rel string, data []byte, overwrite bool) (FileContent, error) {
+	s.mu.RLock()
+	root := s.workspacePath[workspaceID]
+	s.mu.RUnlock()
+	if root == "" {
+		return FileContent{}, ErrNotFound
+	}
+	return UploadWorkspaceFile(root, rel, data, overwrite)
+}
 func (s *Store) GitStatus(workspaceID string) (GitStatus, error) {
 	s.mu.RLock()
 	root := s.workspacePath[workspaceID]

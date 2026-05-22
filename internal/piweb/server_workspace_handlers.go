@@ -1,6 +1,7 @@
 package piweb
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strings"
@@ -265,6 +266,65 @@ func (s *Server) writeWorkspaceFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	file, err := s.store.WriteFile(r.PathValue("workspaceID"), r.URL.Query().Get("path"), req.Content)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, file)
+}
+func (s *Server) createWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+	var req CreateFileRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	file, err := s.store.CreateFile(r.PathValue("workspaceID"), req.Path, req.Kind, req.Content)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, file)
+}
+func (s *Server) renameWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+	var req RenameFileRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.store.RenameFile(r.PathValue("workspaceID"), req.OldPath, req.NewPath); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"renamed": true, "path": req.NewPath})
+}
+func (s *Server) deleteWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+	var req DeleteFileRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := s.store.DeleteFile(r.PathValue("workspaceID"), req.Path); err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"deleted": true})
+}
+func (s *Server) uploadWorkspaceFile(w http.ResponseWriter, r *http.Request) {
+	var req UploadFileRequest
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	content := req.Content
+	if index := strings.Index(content, ","); strings.HasPrefix(content, "data:") && index >= 0 {
+		content = content[index+1:]
+	}
+	data, err := base64.StdEncoding.DecodeString(content)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	file, err := s.store.UploadFile(r.PathValue("workspaceID"), req.Path, data, req.Overwrite)
 	if err != nil {
 		writeStoreError(w, err)
 		return

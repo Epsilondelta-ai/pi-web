@@ -3,12 +3,15 @@ import { CodeMirrorFileEditor, codeMirrorLanguageName, editableFileState, isText
 
 export const filePreviewMethods = {
   async openFile(button) {
-    const path = button?.dataset.filePath;
+    return this.openFilePath?.(button?.dataset.filePath, button);
+  },
+
+  async openFilePath(path, button = undefined) {
     const workspaceId = this.dataset.activeWorkspaceId;
     if (!path || !workspaceId || !this.apiConnected || !this.confirmCleanFilePreview?.()) return;
     try {
       this.querySelectorAll(".tree-node.selected").forEach((node) => node.classList.remove("selected"));
-      button.classList.add("selected");
+      button?.classList.add("selected");
       window.dispatchEvent(new CustomEvent("pi-workspace-tree:update", {
         detail: { files: this.workspaceFiles || [], statusMap: this.workspaceFileStatuses || {}, selectedPath: path },
       }));

@@ -21,8 +21,8 @@
   .tree {
     position: absolute;
     right: 0; top: 0; bottom: 0;
-    width: 280px;
-    max-width: 80vw;
+    width: 100vw;
+    max-width: 100vw;
     transform: translateX(100%);
     transition: transform var(--dur-base) var(--ease-out);
     z-index: var(--z-drawer);
@@ -32,6 +32,8 @@
   .app-body.tree-open .scrim { display: block; }
   .topbar .hamburger { display: inline-flex; }
   .prompt-region { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
+  .tree-row-menu { opacity: 1; }
+  .tree-node { min-height: 38px; }
   .session-row { min-height: 44px; }
   .ws-row { min-height: 44px; }
   .recent-row { min-height: 56px; }

@@ -221,7 +221,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-tip { padding-top: 6px; }
 .tree-node {
   display: grid;
-  grid-template-columns: 14px 1fr auto;
+  grid-template-columns: 14px 1fr auto auto;
   align-items: center;
   gap: 4px;
   width: 100%;
@@ -257,6 +257,41 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-node.untracked .glyph,
 .tree-node.deleted .glyph,
 .tree-node.renamed .glyph { color: inherit; }
+.tree-row-menu {
+  color: var(--fg-3);
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--radius-1);
+  opacity: 0;
+}
+.tree-node:hover .tree-row-menu,
+.tree-node:focus-visible .tree-row-menu,
+.tree-row-menu:focus { opacity: 1; background: var(--bg-4); color: var(--fg-1); outline: none; }
+.tree-action-menu {
+  position: fixed;
+  z-index: 150;
+  min-width: 156px;
+  border: 1px solid var(--border-hi);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-modal);
+  padding: 4px;
+}
+.tree-action-menu button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  padding: 7px 9px;
+}
+.tree-action-menu button:hover:not(:disabled),
+.tree-action-menu button:focus-visible { background: var(--bg-3); outline: none; }
+.tree-action-menu button:disabled { color: var(--fg-4); }
+.tree-action-menu button.danger { color: var(--danger); }
 .tree-status-badge { color: var(--fg-0); font-size: 10px; font-weight: 700; }
 .tree-node.modified .tree-status-badge { color: var(--warn); }
 .tree-node.added .tree-status-badge,
