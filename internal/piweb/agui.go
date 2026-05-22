@@ -190,7 +190,7 @@ func (s *aguiStreamState) consume(event Event, stream *aguiEventStream) bool {
 }
 
 func (s *aguiStreamState) emitTextDelta(delta string, stream *aguiEventStream) {
-	if strings.TrimSpace(delta) == "" {
+	if delta == "" || (!s.textOpen && strings.TrimSpace(delta) == "") {
 		return
 	}
 	if !s.textOpen {

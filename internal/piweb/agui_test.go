@@ -44,6 +44,25 @@ func TestAguiSessionRunStreamsProtocolEvents(t *testing.T) {
 	}
 }
 
+func TestAguiStreamPreservesWhitespaceOnlyTextDeltas(t *testing.T) {
+	res := httptest.NewRecorder()
+	stream := newAguiEventStream(res, t.Context())
+	state := newAguiStreamState("thread", "run", "session")
+
+	state.emitTextDelta("PR 올림: https://github.com/Epsilondelta-ai/pi-web/pull/62", stream)
+	state.emitTextDelta("\n\n", stream)
+	state.emitTextDelta("Checks:\n", stream)
+	state.emitTextDelta("- Branch pushed\n- PR created\n- Working tree clean", stream)
+
+	got := res.Body.String()
+	if !strings.Contains(got, `"delta":"\n\n"`) {
+		t.Fatalf("missing blank-line delta in SSE body:\n%s", got)
+	}
+	if !strings.Contains(got, `"delta":"Checks:\n"`) {
+		t.Fatalf("missing line-break delta in SSE body:\n%s", got)
+	}
+}
+
 func TestAguiSessionRunRejectsMissingText(t *testing.T) {
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
 	store := NewMockStore()
