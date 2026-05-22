@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -322,6 +324,60 @@ func TestNewGitHubSelfUpdater(t *testing.T) {
 	if _, err := newGitHubSelfUpdater(); !errors.Is(err, factoryErr) {
 		t.Fatalf("expected factory error, got %v", err)
 	}
+}
+
+func TestDefaultRunGoInstall(t *testing.T) {
+	previous := execCommandContext
+	defer func() { execCommandContext = previous }()
+
+	var gotName string
+	var gotArgs []string
+	execCommandContext = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		gotName = name
+		gotArgs = args
+		cmdArgs := []string{"-test.run=TestDefaultRunGoInstallHelper", "--"}
+		cmdArgs = append(cmdArgs, args...)
+		cmd := exec.CommandContext(ctx, os.Args[0], cmdArgs...)
+		cmd.Env = append(os.Environ(), "PI_WEB_GO_INSTALL_HELPER=success")
+		return cmd
+	}
+	var out bytes.Buffer
+	if err := defaultRunGoInstall(context.Background(), &out, "example.com/pi-web"); err != nil {
+		t.Fatalf("defaultRunGoInstall success: %v", err)
+	}
+	if gotName != "go" || len(gotArgs) != 2 || gotArgs[0] != "install" || gotArgs[1] != "example.com/pi-web@latest" {
+		t.Fatalf("unexpected command %q args=%v", gotName, gotArgs)
+	}
+	if !strings.Contains(out.String(), "helper output") {
+		t.Fatalf("expected helper output, got %q", out.String())
+	}
+
+	execCommandContext = func(ctx context.Context, _ string, args ...string) *exec.Cmd {
+		cmdArgs := []string{"-test.run=TestDefaultRunGoInstallHelper", "--"}
+		cmdArgs = append(cmdArgs, args...)
+		cmd := exec.CommandContext(ctx, os.Args[0], cmdArgs...)
+		cmd.Env = append(os.Environ(), "PI_WEB_GO_INSTALL_HELPER=fail")
+		return cmd
+	}
+	out.Reset()
+	if err := defaultRunGoInstall(context.Background(), &out, "example.com/pi-web"); err == nil || !strings.Contains(err.Error(), "go install example.com/pi-web@latest") {
+		t.Fatalf("expected wrapped go install error, got %v", err)
+	}
+	if !strings.Contains(out.String(), "helper output") {
+		t.Fatalf("expected helper failure output, got %q", out.String())
+	}
+}
+
+func TestDefaultRunGoInstallHelper(t *testing.T) {
+	mode := os.Getenv("PI_WEB_GO_INSTALL_HELPER")
+	if mode == "" {
+		return
+	}
+	fmt.Fprintln(os.Stdout, "helper output")
+	if mode == "fail" {
+		os.Exit(42)
+	}
+	os.Exit(0)
 }
 
 func TestRunUpdateErrors(t *testing.T) {

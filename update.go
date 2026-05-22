@@ -40,11 +40,12 @@ var (
 		return newGitHubSelfUpdater()
 	}
 	newSelfupdateUpdater = selfupdate.NewUpdater
+	execCommandContext   = exec.CommandContext
 	runGoInstall         = defaultRunGoInstall
 )
 
 func defaultRunGoInstall(ctx context.Context, out io.Writer, packagePath string) error {
-	cmd := exec.CommandContext(ctx, "go", "install", packagePath+"@latest")
+	cmd := execCommandContext(ctx, "go", "install", packagePath+"@latest")
 	cmd.Stdout = out
 	cmd.Stderr = out
 	if err := cmd.Run(); err != nil {
