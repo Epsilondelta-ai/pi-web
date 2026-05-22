@@ -120,8 +120,10 @@ export const toastMethods = {
       type: TOAST_MESSAGES[kind] ? kind : "success",
       message: toastHtml(message),
     });
-    notification.on(NotyfEvent.Click, ({ event } = {}) => {
-      if (event?.target?.closest?.(".notyf__dismiss")) return;
+    notification.on(NotyfEvent.Click, (payload = {}) => {
+      const event = (payload as { event?: Event }).event;
+      const target = event?.target as Element | null | undefined;
+      if (target?.closest?.(".notyf__dismiss")) return;
       this.activateToastSession(sessionId);
       this.dismissToast(notification);
     });
