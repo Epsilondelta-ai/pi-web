@@ -52,8 +52,8 @@
   cursor: pointer;
   pointer-events: auto;
   translate: calc(var(--toast-stack-index, 0) * 0px) calc(var(--toast-stack-index, 0) * -72px);
-  scale: calc(1 - (var(--toast-stack-index, 0) * 0.015));
-  transition: translate 160ms ease, scale 160ms ease, box-shadow 160ms ease;
+  scale: 1;
+  transition: translate 160ms ease, box-shadow 160ms ease;
 }
 .notyf__toast.session-toast:not(:first-of-type) { margin-top: 0; }
 .notyf__toast.session-toast:hover {
