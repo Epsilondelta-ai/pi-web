@@ -24,6 +24,7 @@ function setActiveToastContext(app) {
   workspace.textContent = "demo";
   session.textContent = "chat";
   app.append(workspace, session);
+  app.writeLastSessionPrompt?.("s1", "explain the failure and suggest a fix");
 }
 
 describe("pi-app toast notifications", () => {
@@ -37,10 +38,11 @@ describe("pi-app toast notifications", () => {
     app.applyEvent({ type: "session.status", payload: { status: "running" } });
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
 
-    expect(document.querySelector(".session-toast.success").textContent).toContain("응답 완료");
-    expect(document.querySelector(".session-toast.success").textContent).toContain("workspace: demo (w1)");
-    expect(document.querySelector(".session-toast.success").textContent).toContain("session: chat (s1)");
-    expect(document.querySelector(".session-toast.success")).toBeTruthy();
+    const toast = document.querySelector(".session-toast.success");
+    expect(toast.textContent).toContain("응답 완료");
+    expect(toast.querySelector(".toast-workspace").textContent).toBe("demo");
+    expect(toast.querySelector(".toast-session").textContent).toBe("chat");
+    expect(toast.querySelector(".toast-prompt").textContent).toBe("explain the failure and suggest a fix");
   });
 
   it("shows a red failure toast and suppresses completion after a response error", async () => {
@@ -52,8 +54,8 @@ describe("pi-app toast notifications", () => {
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
 
     expect(document.querySelector(".session-toast.error").textContent).toContain("응답 실패");
-    expect(document.querySelector(".session-toast.error").textContent).toContain("boom");
-    expect(document.querySelector(".session-toast.error").textContent).toContain("workspace: demo (w1)");
+    expect(document.querySelector(".session-toast.error").querySelector(".toast-prompt").textContent).toBe("explain the failure and suggest a fix");
+    expect(document.querySelector(".session-toast.error").querySelector(".toast-workspace").textContent).toBe("demo");
     expect(document.querySelector(".session-toast.success")).toBeNull();
   });
 
@@ -106,6 +108,7 @@ describe("pi-app toast notifications", () => {
     app.dataset.activeSessionId = "active-session";
     app.dataset.activeWorkspaceId = "active-workspace";
 
+    app.writeLastSessionPrompt("background-session", "finish the background task");
     app.renderWorkspaces([
       { id: "active-workspace", name: "active", sessionCount: 1, sessions: [{ id: "active-session", title: "now" }] },
       { id: "other-workspace", name: "other", sessionCount: 1, sessions: [
@@ -125,8 +128,9 @@ describe("pi-app toast notifications", () => {
     const toast = document.querySelector(".session-toast.success");
     const toastText = toast.textContent;
     expect(toastText).toContain("응답 완료");
-    expect(toastText).toContain("workspace: other (other-workspace)");
-    expect(toastText).toContain("session: background (background-session)");
+    expect(toast.querySelector(".toast-workspace").textContent).toBe("other");
+    expect(toast.querySelector(".toast-session").textContent).toBe("background");
+    expect(toast.querySelector(".toast-prompt").textContent).toBe("finish the background task");
     expect(sources[0].close).toHaveBeenCalled();
     expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(true);
 

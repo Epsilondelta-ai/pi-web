@@ -101,10 +101,20 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
+.toast-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-workspace,
+.toast-session {
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+}
 .toast-copy small {
   color: var(--fg-2);
   font-size: var(--text-xs);
-  overflow-wrap: anywhere;
 }
 .session-toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 64%, var(--border)); }
 .session-toast.choice { color: var(--ansi-blue); border-color: color-mix(in srgb, var(--ansi-blue) 64%, var(--border)); }
