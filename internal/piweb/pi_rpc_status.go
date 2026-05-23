@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -21,7 +20,7 @@ func CurrentPiModel(ctx context.Context, cwd string) (string, error) {
 	cmd := exec.CommandContext(ctx, "pi", "--mode", "rpc", "--no-session")
 	cmd.Dir = cwd
 	cmd.Env = append(os.Environ(), "PI_SKIP_VERSION_CHECK=1")
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	configureCommandProcessGroup(cmd)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -40,9 +39,7 @@ func CurrentPiModel(ctx context.Context, cwd string) (string, error) {
 		return "", err
 	}
 	defer func() {
-		if cmd.Process != nil {
-			_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
-		}
+		terminateCommandProcessGroup(cmd)
 		_ = cmd.Wait()
 	}()
 

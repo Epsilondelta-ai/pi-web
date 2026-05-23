@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -62,7 +61,7 @@ func (r *Runner) StartPiPrompt(
 	ctx, cancel := context.WithCancel(parent)
 	cmd := exec.CommandContext(ctx, "pi", piRPCArgs(sessionFile)...)
 	cmd.Dir = cwd
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	configureCommandProcessGroup(cmd)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancel()
@@ -108,9 +107,7 @@ func (r *Runner) StartPiPrompt(
 
 		go func() {
 			<-ctx.Done()
-			if cmd.Process != nil {
-				_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM)
-			}
+			terminateCommandProcessGroup(cmd)
 		}()
 
 		state := &jsonStreamState{}
