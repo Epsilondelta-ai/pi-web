@@ -28,12 +28,6 @@ jobs:
           - goos: darwin
             goarch: arm64
             ext: tar.gz
-          - goos: windows
-            goarch: amd64
-            ext: zip
-          - goos: windows
-            goarch: arm64
-            ext: zip
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -68,15 +62,8 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           mkdir -p release
           output="release/pi-web"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            output="release/pi-web.exe"
-          fi
           go build -ldflags "-X main.version=${GITHUB_REF_NAME}" -o "$output" .
-          if [ "${{ matrix.ext }}" = "zip" ]; then
-            (cd release && zip -q "pi-web_${version}_${{ matrix.goos }}_${{ matrix.goarch }}.zip" "$(basename "$output")")
-          else
-            tar -C release -czf "release/pi-web_${version}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" pi-web
-          fi
+          tar -C release -czf "release/pi-web_${version}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" pi-web
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2

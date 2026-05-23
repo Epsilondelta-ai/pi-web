@@ -74,7 +74,7 @@ os_name() {
   case "$(uname -s)" in
     Darwin) printf 'darwin' ;;
     Linux) printf 'linux' ;;
-    MINGW*|MSYS*|CYGWIN*|Windows_NT) printf 'windows' ;;
+    MINGW*|MSYS*|CYGWIN*|Windows_NT) echo "error: Windows releases are not provided" >&2; exit 1 ;;
     *) echo "error: unsupported OS: $(uname -s)" >&2; exit 1 ;;
   esac
 }
@@ -96,10 +96,6 @@ ARCH="$(arch_name)"
 ASSET_VERSION="${VERSION#v}"
 EXT="tar.gz"
 BIN_FILE="$BIN_NAME"
-if [ "$OS" = "windows" ]; then
-  EXT="zip"
-  BIN_FILE="$BIN_NAME.exe"
-fi
 
 ASSET="${BIN_NAME}_${ASSET_VERSION}_${OS}_${ARCH}.${EXT}"
 URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET"
@@ -115,19 +111,8 @@ echo "Installing $BIN_NAME $VERSION for $OS/$ARCH"
 echo "Downloading $URL"
 download_file "$URL" "$ARCHIVE"
 
-if [ "$EXT" = "zip" ]; then
-  if command -v unzip >/dev/null 2>&1; then
-    unzip -q "$ARCHIVE" -d "$TMP_DIR"
-  elif command -v powershell.exe >/dev/null 2>&1; then
-    powershell.exe -NoProfile -Command "Expand-Archive -Force '$ARCHIVE' '$TMP_DIR'" >/dev/null
-  else
-    echo "error: unzip or powershell.exe is required to extract $ASSET" >&2
-    exit 1
-  fi
-else
-  need_cmd tar
-  tar -xzf "$ARCHIVE" -C "$TMP_DIR"
-fi
+need_cmd tar
+tar -xzf "$ARCHIVE" -C "$TMP_DIR"
 
 FOUND_BIN="$(find "$TMP_DIR" -type f -name "$BIN_FILE" | head -n 1)"
 if [ -z "$FOUND_BIN" ]; then
