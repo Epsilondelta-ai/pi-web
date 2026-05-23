@@ -275,6 +275,12 @@ export const toastMethods = {
     this.showToast("success", undefined, context);
   },
 
+  notifyResponseCompletedOnce(context) {
+    if (this.responseCompletionToastShown) return;
+    this.responseCompletionToastShown = true;
+    this.notifySessionCompleted(context);
+  },
+
   notifyChoiceRequested(context) {
     this.showToast("choice", undefined, context);
   },

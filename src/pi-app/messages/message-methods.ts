@@ -184,7 +184,12 @@ export const messageMethods = {
   notifyPiMessageCommitted(message) {
     if (message.kind !== "pi") return;
     if (this.isReadAloudEnabled()) this.speakAssistantText(message.text);
-    if (!this.deferTranscriptRender && parseFallbackChoices(message.text).length) this.notifyChoiceRequested?.();
+    const choices = parseFallbackChoices(message.text);
+    if (!this.deferTranscriptRender && choices.length) {
+      this.notifyChoiceRequested?.();
+      return;
+    }
+    if (this.running) this.notifyResponseCompletedOnce?.();
   },
 
   attachThinkingStream(messageRow) {
