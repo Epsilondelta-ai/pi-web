@@ -3,7 +3,7 @@ import { getGitCommit, getGitHistory } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
 
 const COLORS = ["#8bd5ff", "#c792ea", "#89dd88", "#ffcb6b", "#f78c6c", "#82aaff", "#f07178"];
-const GRAPH_ROW_HEIGHT = 44;
+const GRAPH_ROW_HEIGHT = 64;
 
 export const gitHistoryMethods = {
   async showGitHistory() {
@@ -106,7 +106,7 @@ export const gitHistoryMethods = {
           },
         }),
       });
-      gitgraph.import(commits.map(gitgraphImportCommit));
+      gitgraph.import(gitgraphImportCommits(commits));
       container.querySelector("svg")?.setAttribute("aria-hidden", "true");
     } catch (error) {
       container.innerHTML = `<div class="git-empty err">git graph render failed: ${escapeHtml(error?.message || String(error))}</div>`;
@@ -185,7 +185,12 @@ export const gitHistoryMethods = {
   },
 };
 
-function gitgraphImportCommit(commit) {
+function gitgraphImportCommits(commits) {
+  const syntheticRefs = syntheticMergeRefs(commits);
+  return commits.map((commit) => gitgraphImportCommit(commit, syntheticRefs.get(commit.shortHash) || []));
+}
+
+function gitgraphImportCommit(commit, syntheticRefs) {
   const timestamp = Date.parse(commit.date || "") || Date.now();
   return {
     hash: commit.shortHash,
@@ -194,8 +199,23 @@ function gitgraphImportCommit(commit) {
     author: { name: commit.authorName || "unknown", email: commit.authorEmail || "", timestamp },
     committer: { name: commit.authorName || "unknown", email: commit.authorEmail || "", timestamp },
     parents: commit.parents || [],
-    refs: commit.refs || [],
+    refs: [...(commit.refs || []), ...syntheticRefs],
   };
+}
+
+function syntheticMergeRefs(commits) {
+  const refs = new Map();
+  const commitsByHash = new Map(commits.map((commit) => [commit.shortHash, commit]));
+  let branchIndex = 1;
+  for (const commit of commits) {
+    for (const parent of (commit.parents || []).slice(1)) {
+      if (!commitsByHash.has(parent)) continue;
+      const names = refs.get(parent) || [];
+      if (names.length === 0) names.push(`merged/${branchIndex++}`);
+      refs.set(parent, names);
+    }
+  }
+  return refs;
 }
 
 function fileTemplate(file) {
