@@ -149,6 +149,10 @@ button.tc-head {
   display: block;
   flex: 0 0 auto;
 }
+.topbar .workspace-explorer-btn {
+  gap: 2px;
+  width: 42px;
+}
 .topbar .iconbtn.statusbtn {
   min-width: 32px;
   padding: 0;

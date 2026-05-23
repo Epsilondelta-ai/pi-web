@@ -190,6 +190,14 @@ export function getGitStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/git/status`);
 }
 
+export function getGitHistory(workspaceId, limit = 80) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/git/history?limit=${encodeURIComponent(limit)}`);
+}
+
+export function getGitCommit(workspaceId, hash) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/git/commit?hash=${encodeURIComponent(hash)}`);
+}
+
 export function runShellCommand(workspaceId, command) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/shell`, {
     method: "POST",
