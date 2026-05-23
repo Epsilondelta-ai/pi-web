@@ -35,6 +35,7 @@ export default defineConfig({
         "src/pi-app/transcript/transcript-window-methods.ts",
         "src/pi-app/status/version-methods.ts",
         "src/pi-app/workspace/workspace-bootstrap-methods.ts",
+        "src/pi-app/workspace/git-history-methods.ts",
       ],
       thresholds: {
         statements: 100,
