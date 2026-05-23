@@ -249,6 +249,21 @@ describe("pi-app controls", () => {
     expect(tree.hidden).toBe(true);
   });
 
+  it("keeps the file tree open when an inside click removes its target", async () => {
+    const app = await connectPiApp();
+    const tree = app.querySelector(".tree");
+    const removable = document.createElement("button");
+    removable.type = "button";
+    removable.addEventListener("click", () => removable.remove());
+    tree.append(removable);
+
+    app.toggleTree(true);
+    removable.click();
+
+    expect(app.dataset.tree).toBe("on");
+    expect(tree.hidden).toBe(false);
+  });
+
   it("refreshes workspaces from the sidebar refresh button", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
