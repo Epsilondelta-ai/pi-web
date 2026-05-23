@@ -48,6 +48,27 @@ func TestVersionEndpoint(t *testing.T) {
 	}
 }
 
+func TestPiVersionEndpoint(t *testing.T) {
+	server := NewServer(Config{
+		EnablePiExecution: true,
+		PiVersionStatus: func(_ context.Context) (PiVersionStatus, error) {
+			return PiVersionStatus{CurrentVersion: "0.75.0", LatestVersion: "0.75.5", UpdateAvailable: true, Note: "security"}, nil
+		},
+	}, NewMockStore(), NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/pi/version", nil)
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", res.Code)
+	}
+	if !strings.Contains(res.Body.String(), `"currentVersion":"0.75.0"`) ||
+		!strings.Contains(res.Body.String(), `"latestVersion":"0.75.5"`) ||
+		!strings.Contains(res.Body.String(), `"updateAvailable":true`) ||
+		!strings.Contains(res.Body.String(), `"note":"security"`) {
+		t.Fatalf("unexpected body: %s", res.Body.String())
+	}
+}
+
 func TestServesStaticUI(t *testing.T) {
 	files := fstest.MapFS{
 		"index.html":    {Data: []byte("<html>app shell</html>")},

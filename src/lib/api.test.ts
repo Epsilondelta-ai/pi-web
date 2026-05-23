@@ -10,6 +10,7 @@ import {
   getGitCommit,
   getGitHistory,
   getGitStatus,
+  getPiVersionStatus,
   getSession,
   getVersionStatus,
   getWorkspaceCommands,
@@ -58,6 +59,11 @@ describe("api adapter", () => {
   it("fetches version status", async () => {
     const result = await getVersionStatus();
     expect(result.url).toBe("http://backend.test/api/version");
+  });
+
+  it("fetches pi version status", async () => {
+    const result = await getPiVersionStatus();
+    expect(result.url).toBe("http://backend.test/api/pi/version");
   });
 
   it("defaults to same-origin API paths for the embedded app", async () => {

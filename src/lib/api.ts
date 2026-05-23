@@ -36,6 +36,10 @@ export function getVersionStatus() {
   return request("/api/version");
 }
 
+export function getPiVersionStatus() {
+  return request("/api/pi/version");
+}
+
 export function getWorkspaces() {
   return request("/api/workspaces");
 }

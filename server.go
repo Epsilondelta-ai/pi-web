@@ -15,30 +15,32 @@ import (
 )
 
 type serverDependencies struct {
-	newAutoStore  func() *piweb.Store
-	newMockStore  func() *piweb.Store
-	newServer     func(piweb.Config, *piweb.Store, *piweb.Broker) *piweb.Server
-	newBroker     func() *piweb.Broker
-	staticFiles   func() fs.FS
-	versionStatus func(context.Context, string) (piweb.VersionStatus, error)
-	listen        func(*http.Server) error
-	shutdown      func(*http.Server, context.Context) error
-	notify        func(chan<- os.Signal, ...os.Signal)
-	stopNotify    func(chan<- os.Signal)
+	newAutoStore    func() *piweb.Store
+	newMockStore    func() *piweb.Store
+	newServer       func(piweb.Config, *piweb.Store, *piweb.Broker) *piweb.Server
+	newBroker       func() *piweb.Broker
+	staticFiles     func() fs.FS
+	versionStatus   func(context.Context, string) (piweb.VersionStatus, error)
+	piVersionStatus func(context.Context) (piweb.PiVersionStatus, error)
+	listen          func(*http.Server) error
+	shutdown        func(*http.Server, context.Context) error
+	notify          func(chan<- os.Signal, ...os.Signal)
+	stopNotify      func(chan<- os.Signal)
 }
 
 func defaultServerDependencies() serverDependencies {
 	return serverDependencies{
-		newAutoStore:  piweb.NewAutoStore,
-		newMockStore:  piweb.NewMockStore,
-		newServer:     piweb.NewServer,
-		newBroker:     piweb.NewBroker,
-		staticFiles:   staticFiles,
-		versionStatus: detectReleaseStatus,
-		listen:        (*http.Server).ListenAndServe,
-		shutdown:      (*http.Server).Shutdown,
-		notify:        signal.Notify,
-		stopNotify:    signal.Stop,
+		newAutoStore:    piweb.NewAutoStore,
+		newMockStore:    piweb.NewMockStore,
+		newServer:       piweb.NewServer,
+		newBroker:       piweb.NewBroker,
+		staticFiles:     staticFiles,
+		versionStatus:   detectReleaseStatus,
+		piVersionStatus: piweb.DetectPiVersionStatus,
+		listen:          (*http.Server).ListenAndServe,
+		shutdown:        (*http.Server).Shutdown,
+		notify:          signal.Notify,
+		stopNotify:      signal.Stop,
 	}
 }
 
@@ -61,6 +63,7 @@ func runServerWithDependencies(options serverOptions, deps serverDependencies) e
 		StaticFiles:       deps.staticFiles(),
 		CurrentVersion:    version,
 		VersionStatus:     deps.versionStatus,
+		PiVersionStatus:   deps.piVersionStatus,
 	}, store, deps.newBroker())
 	httpServer := &http.Server{
 		Addr:              server.Addr(),

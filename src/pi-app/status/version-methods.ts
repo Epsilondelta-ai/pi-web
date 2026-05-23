@@ -1,10 +1,11 @@
-import { getVersionStatus } from "../../lib/api";
+import { getPiVersionStatus, getVersionStatus } from "../../lib/api";
 
 export const versionMethods = {
   async loadVersionStatus() {
     try {
-      const status = await getVersionStatus();
-      this.renderVersionStatus(status);
+      const [webStatus, piStatus] = await Promise.allSettled([getVersionStatus(), getPiVersionStatus()]);
+      if (webStatus.status === "fulfilled") this.renderVersionStatus(webStatus.value);
+      if (piStatus.status === "fulfilled") this.renderPiVersionStatus(piStatus.value);
     } catch {}
   },
 
@@ -17,6 +18,11 @@ export const versionMethods = {
       button.title = `Current ${status.currentVersion}; latest ${status.latestVersion}`;
       this.notifyUpdateAvailable?.(status);
     }
+  },
+
+  renderPiVersionStatus(status) {
+    if (!status?.updateAvailable || status?.latestVersion === status?.currentVersion) return;
+    this.notifyPiUpdateAvailable?.(status);
   },
 
   showUpdateTip() {

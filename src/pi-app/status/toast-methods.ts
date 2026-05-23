@@ -187,9 +187,21 @@ export const toastMethods = {
     const latest = status?.latestVersion || "latest";
     this.showSystemToast(
       "warning",
-      "업데이트 가능",
+      "pi-web 업데이트 가능",
       `현재 ${current}, 최신 ${latest}. pi-web update 실행 후 pi-web을 재시작하세요.`,
-      `update:${current}:${latest}`,
+      `piweb-update:${current}:${latest}`,
+    );
+  },
+
+  notifyPiUpdateAvailable(status) {
+    const current = status?.currentVersion || "unknown";
+    const latest = status?.latestVersion || "latest";
+    const note = status?.note ? ` ${status.note}` : "";
+    this.showSystemToast(
+      "warning",
+      "pi 업데이트 가능",
+      `현재 ${current}, 최신 ${latest}. pi update 실행 후 pi를 재시작하세요.${note}`,
+      `pi-update:${current}:${latest}`,
     );
   },
 
