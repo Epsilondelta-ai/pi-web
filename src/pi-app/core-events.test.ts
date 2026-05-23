@@ -186,6 +186,27 @@ describe("pi-app core events", () => {
     expect(app.finishTool).toHaveBeenCalled();
   });
 
+  it("surfaces runtime auth warnings while loading prompt metadata", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async (url) => {
+      const path = String(url);
+      if (path.endsWith("/runtime-model")) {
+        return { ok: true, json: async () => ({ status: { model: "M", warning: "OAuth token expired" } }) };
+      }
+      if (path.includes("/runtime-quota")) return { ok: true, json: async () => ({ status: { fiveHourQuota: 12 } }) };
+      return { ok: true, json: async () => ({ workspaces: [] }) };
+    });
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+
+    await app.loadRuntimeStatus();
+    await Promise.resolve();
+
+    expect(app.querySelector("[data-prompt-meta]").textContent).toContain("M");
+    expect(document.querySelector(".session-toast.warning").textContent).toContain("인증 경고");
+  });
+
   it("updates connection, mode, and prompt metadata branches", async () => {
     const app = await connectPiApp();
     app.setConnection("ok");

@@ -15,6 +15,7 @@ export const versionMethods = {
     button.hidden = !updateAvailable;
     if (updateAvailable) {
       button.title = `Current ${status.currentVersion}; latest ${status.latestVersion}`;
+      this.notifyUpdateAvailable?.(status);
     }
   },
 

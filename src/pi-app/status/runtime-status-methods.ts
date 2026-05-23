@@ -5,12 +5,12 @@ export const runtimeStatusMethods = {
     if (!workspaceId || !this.apiConnected) return;
     try {
       const { status } = await getWorkspaceRuntimeModel(workspaceId);
-      if (status) this.updatePromptMeta(status);
+      this.applyRuntimeStatus(status);
       void this.loadRuntimeQuota(workspaceId, status?.model);
     } catch {
       try {
         const { status } = await getWorkspaceRuntimeStatus(workspaceId);
-        if (status) this.updatePromptMeta(status);
+        this.applyRuntimeStatus(status);
       } catch {}
     }
   },
@@ -19,7 +19,13 @@ export const runtimeStatusMethods = {
     if (!workspaceId || !this.apiConnected) return;
     try {
       const { status } = await getWorkspaceRuntimeQuota(workspaceId, model || "");
-      if (status) this.updatePromptMeta(status);
+      this.applyRuntimeStatus(status);
     } catch {}
+  },
+
+  applyRuntimeStatus(status) {
+    if (!status) return;
+    this.updatePromptMeta(status);
+    if (status.warning) this.notifyRuntimeWarning?.(status.warning);
   },
 };
