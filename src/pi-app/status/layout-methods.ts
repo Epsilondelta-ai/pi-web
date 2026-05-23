@@ -48,8 +48,11 @@ export const layoutMethods = {
 
   closeTreeFromOutside(event) {
     if (this.dataset.tree !== "on") return;
+    const selector = ".tree, [data-action='toggle-tree']";
+    const path = event.composedPath?.() || [];
+    if (path.some((node) => node?.matches?.(selector))) return;
     const target = event.target;
-    if (target?.closest?.(".tree, [data-action='toggle-tree']")) return;
+    if (target?.closest?.(selector)) return;
     this.toggleTree(false);
   },
 
