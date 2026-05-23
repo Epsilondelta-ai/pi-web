@@ -176,6 +176,29 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
+  it("renders lucide-style tool icons while unknown tools keep the dot", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "tool", tool: "read", status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "bash", args: JSON.stringify({ command: "git status" }), status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "bash", args: JSON.stringify({ command: "bun test" }), status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "bash", args: JSON.stringify({ command: "bun run build" }), status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "bash", args: JSON.stringify({ command: "bun install" }), status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "bash", args: JSON.stringify({ command: "pwd" }), status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "unknown_tool", status: "ok" });
+
+    const glyphs = [...app.querySelectorAll(".tool-card .tc-glyph")];
+    expect(glyphs[0].querySelector("[data-tool-icon='book-open']")).not.toBeNull();
+    expect(glyphs[1].querySelector("[data-tool-icon='git-branch']")).not.toBeNull();
+    expect(glyphs[2].querySelector("[data-tool-icon='circle-check']")).not.toBeNull();
+    expect(glyphs[3].querySelector("[data-tool-icon='hammer']")).not.toBeNull();
+    expect(glyphs[4].querySelector("[data-tool-icon='package']")).not.toBeNull();
+    expect(glyphs[5].querySelector("[data-tool-icon='terminal']")).not.toBeNull();
+    expect(glyphs[6].querySelector("svg")).toBeNull();
+    expect(glyphs[6].textContent).toBe("●");
+  });
+
   it("marks stale running tools complete when assistant output resumes", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
