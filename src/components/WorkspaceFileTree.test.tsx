@@ -30,11 +30,13 @@ describe("WorkspaceFileTree", () => {
     const folder = host.querySelector<HTMLButtonElement>(".tree-node.dir");
     expect(folder?.textContent).toContain("src");
     expect(folder?.querySelector("[aria-label='dirty']")?.textContent).toBe("•");
+    expect(folder?.querySelector(".file-icon")?.getAttribute("data-icon-name")).toBe("folder-src");
 
     await act(async () => folder?.click());
     const file = [...host.querySelectorAll<HTMLButtonElement>(".tree-node.file")]
       .find((button) => button.dataset.filePath === "src/main.ts");
     expect(file?.dataset.action).toBe("open-file");
+    expect(file?.querySelector(".file-icon")?.getAttribute("data-icon-name")).toBe("typescript");
     expect(file?.querySelector("[aria-label='modified']")?.textContent).toBe("M");
 
     const click = vi.fn();
