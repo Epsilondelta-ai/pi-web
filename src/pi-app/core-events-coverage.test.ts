@@ -162,6 +162,20 @@ describe("pi-app core events coverage", () => {
     );
   });
 
+  it("notifies as soon as an AG-UI answer is committed", async () => {
+    const app = await connectPiApp();
+    app.dataset.activeSessionId = "s1";
+    app.notifySessionCompleted = vi.fn();
+
+    const subscriber = app.aguiSubscriber("s1");
+    subscriber.onRunStarted();
+    subscriber.onTextDelta("final answer");
+    subscriber.onTextEnd("final answer");
+    subscriber.onRunFinished();
+
+    expect(app.notifySessionCompleted).toHaveBeenCalledTimes(1);
+  });
+
   it("suppresses completion notifications after user cancellation", async () => {
     const app = await connectPiApp();
     app.dataset.activeSessionId = "s1";

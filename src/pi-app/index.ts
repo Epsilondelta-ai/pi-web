@@ -326,11 +326,14 @@ class PiApp extends HTMLElement {
     if (mode === "idle" && this.isSessionCancellationPending(sessionId)) mode = "cancelled";
     const wasRunning = this.running;
     const willRun = ["running", "thinking"].includes(mode);
-    if (!wasRunning && willRun) this.responseFailureToastShown = false;
+    if (!wasRunning && willRun) {
+      this.responseFailureToastShown = false;
+      this.responseCompletionToastShown = false;
+    }
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = willRun;
-    if (wasRunning && mode === "idle" && !this.responseFailureToastShown) this.notifySessionCompleted?.();
+    if (wasRunning && mode === "idle" && !this.responseFailureToastShown) this.notifyResponseCompletedOnce?.();
     if (!willRun && mode === "cancelled") this.clearSessionCancellationPending(sessionId);
     this.syncCurrentSessionRunState?.(this.running);
     this.stopButton?.toggleAttribute("hidden", !this.running);
