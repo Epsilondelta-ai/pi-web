@@ -5,6 +5,8 @@ REPO="${PI_WEB_REPO:-Epsilondelta-ai/pi-web}"
 VERSION="${PI_WEB_VERSION:-latest}"
 INSTALL_DIR="${PI_WEB_INSTALL_DIR:-$HOME/.local/bin}"
 BIN_NAME="pi-web"
+PI_INSTALL_URL="${PI_WEB_PI_INSTALL_URL:-https://pi.dev/install.sh}"
+INSTALL_PI="${PI_WEB_INSTALL_PI:-auto}"
 
 usage() {
   cat <<'USAGE'
@@ -15,6 +17,9 @@ Environment variables:
                       Example: PI_WEB_VERSION=v1.0.0
   PI_WEB_INSTALL_DIR  Install directory. Default: $HOME/.local/bin
   PI_WEB_REPO         GitHub repo. Default: Epsilondelta-ai/pi-web
+  PI_WEB_INSTALL_PI   Install pi when missing: auto, always, or never. Default: auto
+  PI_WEB_PI_INSTALL_URL
+                      pi installer URL. Default: https://pi.dev/install.sh
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
@@ -33,6 +38,33 @@ need_cmd() {
     echo "error: required command not found: $1" >&2
     exit 1
   fi
+}
+
+install_pi_if_needed() {
+  case "$INSTALL_PI" in
+    auto|always|never) ;;
+    *) echo "error: PI_WEB_INSTALL_PI must be auto, always, or never" >&2; exit 1 ;;
+  esac
+
+  if [ "$INSTALL_PI" = "never" ]; then
+    return
+  fi
+
+  if [ "$INSTALL_PI" = "auto" ] && command -v pi >/dev/null 2>&1; then
+    echo "pi already installed: $(command -v pi)"
+    return
+  fi
+
+  echo "Installing pi from $PI_INSTALL_URL"
+  fetch_stdout "$PI_INSTALL_URL" | sh
+
+  if command -v pi >/dev/null 2>&1; then
+    echo "Installed pi: $(command -v pi)"
+    return
+  fi
+
+  echo "error: pi install finished, but pi was not found in PATH" >&2
+  exit 1
 }
 
 fetch_stdout() {
@@ -86,6 +118,8 @@ arch_name() {
     *) echo "error: unsupported architecture: $(uname -m)" >&2; exit 1 ;;
   esac
 }
+
+install_pi_if_needed
 
 if [ "$VERSION" = "latest" ]; then
   VERSION="$(resolve_latest_version)"
