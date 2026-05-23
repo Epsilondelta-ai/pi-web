@@ -230,10 +230,11 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .git-panel { flex: 1 1 auto; min-height: 120px; overflow: hidden; }
 .git-history-grid {
   display: grid;
-  grid-template-rows: auto var(--git-list-height, minmax(170px, 42%)) 7px 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   min-height: 0;
 }
+.git-history-grid.detail-open { grid-template-rows: auto minmax(0, 1fr) minmax(120px, 42%); }
 .git-history-toolbar {
   display: flex;
   justify-content: flex-end;
@@ -261,9 +262,6 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 }
 .git-commit-scroll { min-height: 0; overflow: auto; border-bottom: 1px solid var(--border-dim); }
 .git-commit-list { min-width: 0; overflow: visible; }
-.git-detail-resizer { cursor: row-resize; border-top: 1px solid var(--border-dim); border-bottom: 1px solid var(--border-dim); background: linear-gradient(90deg, transparent, var(--border), transparent); touch-action: none; }
-.git-detail-resizer:hover,
-.git-detail-resizer:focus-visible { background: var(--accent-bg); outline: none; }
 .git-commit-row { display: grid; width: 100%; height: 64px; padding: 6px 8px; border: 0; border-bottom: 1px solid var(--border-dim); background: transparent; color: var(--fg-1); font: inherit; text-align: left; cursor: pointer; }
 .git-commit-row:hover,
 .git-commit-row:focus-visible,
@@ -276,9 +274,12 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .git-detail .add { color: var(--accent); }
 .git-stats .del,
 .git-detail .del { color: var(--danger); }
-.git-detail { min-height: 0; overflow: auto; padding: 10px; }
+.git-detail { min-height: 0; overflow: auto; padding: 10px; border-top: 1px solid var(--border-dim); }
 .git-detail-head { display: grid; gap: 4px; margin-bottom: 10px; color: var(--fg-3); font-size: var(--text-xs); }
-.git-detail-head strong { color: var(--fg-0); font-size: var(--text-sm); }
+.git-detail-head strong { color: var(--fg-0); font-size: var(--text-sm); padding-right: 28px; }
+.git-detail-close { float: right; display: inline-flex; align-items: center; justify-content: center; justify-self: end; width: 24px; height: 24px; border: 1px solid var(--border); border-radius: var(--radius-1); background: var(--bg-1); color: var(--fg-3); }
+.git-detail-close:hover,
+.git-detail-close:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
 .git-refs { display: flex; flex-wrap: wrap; gap: 4px; }
 .git-refs em { border: 1px solid var(--border); border-radius: 999px; color: var(--accent); font-style: normal; padding: 1px 6px; }
 .git-file-list { display: grid; gap: 3px; margin-bottom: 10px; }

@@ -175,6 +175,7 @@ export const inputMethods = {
     if (action === "show-git-history") this.showGitHistory?.();
     if (action === "load-more-git-history") this.loadMoreGitHistory?.();
     if (action === "select-git-commit") this.selectGitCommit?.(actionTarget.dataset.hash);
+    if (action === "close-git-detail") this.closeGitDetail?.();
     if (action === "refresh-tree") {
       this.refreshTree();
       this.refreshGitHistory?.();

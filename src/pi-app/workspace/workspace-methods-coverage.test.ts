@@ -275,7 +275,41 @@ describe("workspace folder/render/bootstrap coverage", () => {
 
     expect(panel.querySelector("[data-git-graph-library]")).toBeNull();
     expect(panel.querySelector("[data-action='toggle-git-graph']")).toBeNull();
+    expect(panel.querySelector("[data-git-detail]")).toBeNull();
     expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
+  });
+
+  it("opens and closes git commit detail on demand", async () => {
+    const app = await connectPiApp();
+    const panel = document.createElement("div");
+    panel.dataset.gitPanel = "";
+    app.dataset.activeWorkspaceId = "w1";
+    app.append(panel);
+    app.renderGitHistory([
+      {
+        hash: "abc123",
+        shortHash: "abc123",
+        subject: "initial",
+        authorName: "pi",
+        date: "2026-01-01T00:00:00Z",
+        files: [],
+      },
+    ]);
+    globalThis.fetch = vi.fn(async () => okJson({
+      commit: { shortHash: "abc123", subject: "initial", authorName: "pi", date: "2026-01-01T00:00:00Z", files: [] },
+      body: "body",
+      diff: "diff",
+    }));
+
+    await app.selectGitCommit("abc123");
+
+    expect(panel.querySelector("[data-git-history-grid]").classList.contains("detail-open")).toBe(true);
+    expect(panel.querySelector("[data-git-detail]")?.textContent).toContain("initial");
+    expect(panel.querySelector("[data-action='close-git-detail']")).not.toBeNull();
+
+    app.closeGitDetail();
+    expect(panel.querySelector("[data-git-detail]")).toBeNull();
+    expect(panel.querySelector(".git-commit-row")?.classList.contains("selected")).toBe(false);
   });
 
   it("loads git history in 30 commit pages", async () => {
