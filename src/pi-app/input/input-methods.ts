@@ -1,6 +1,16 @@
 import { cancelSession, createSession, runAguiSessionPrompt, runShellCommand, steerSession } from "../../lib/api";
 import { fallbackChoicePrompt } from "./fallback-choices";
 
+function mergeSpeechTranscript(current, next) {
+  const incoming = String(next || "");
+  if (!current || !incoming) return current || incoming;
+  const maxOverlap = Math.min(current.length, incoming.length);
+  for (let size = maxOverlap; size >= 2; size -= 1) {
+    if (current.endsWith(incoming.slice(0, size))) return current + incoming.slice(size);
+  }
+  return current + incoming;
+}
+
 export const inputMethods = {
   async submitPrompt() {
     this.stopSpeechInput?.();
@@ -345,7 +355,7 @@ export const inputMethods = {
     recognition.onresult = (event) => {
       let transcript = "";
       for (let index = 0; index < event.results.length; index += 1) {
-        transcript += event.results[index]?.[0]?.transcript || "";
+        transcript = mergeSpeechTranscript(transcript, event.results[index]?.[0]?.transcript);
       }
       applyTranscript(transcript);
       resetSilenceTimer();

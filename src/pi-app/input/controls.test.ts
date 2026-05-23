@@ -55,6 +55,14 @@ describe("pi-app controls", () => {
       ],
     });
     expect(prompt.value).toBe("기존 음성 입력");
+    recognition.onresult({
+      resultIndex: 0,
+      results: [
+        { 0: { transcript: "PR" }, isFinal: true },
+        { 0: { transcript: "PR 올려" }, isFinal: false },
+      ],
+    });
+    expect(prompt.value).toBe("기존 PR 올려");
     expect(app.querySelector(".send-btn").disabled).toBe(false);
 
     mic.click();
