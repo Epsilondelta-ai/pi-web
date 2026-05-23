@@ -1,6 +1,6 @@
 {
   "name": "@epsilondelta-ai/pi-web",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "private": false,
   "description": "Browser UI for operating the local pi coding agent.",
   "license": "MIT",

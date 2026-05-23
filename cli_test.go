@@ -60,6 +60,34 @@ func TestRootCommandRunsServerWithFlags(t *testing.T) {
 	}
 }
 
+func TestVersionCommandPrintsVersion(t *testing.T) {
+	previousVersion := version
+	version = "v1.5.4"
+	t.Cleanup(func() { version = previousVersion })
+
+	var out bytes.Buffer
+	cmd := newRootCommand(rootDependencies{
+		stdout: &out,
+		stderr: io.Discard,
+		serve: func(serverOptions) error {
+			t.Fatal("server should not run")
+			return nil
+		},
+		update: func(io.Writer, updateOptions) error {
+			t.Fatal("update should not run")
+			return nil
+		},
+	})
+	cmd.SetArgs([]string{"version"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute version command: %v", err)
+	}
+	if got := out.String(); got != "pi-web v1.5.4\n" {
+		t.Fatalf("unexpected version output: %q", got)
+	}
+}
+
 func TestUpdateCommandUsesCurrentVersionAndRepository(t *testing.T) {
 	previousVersion := version
 	version = "1.2.3"
