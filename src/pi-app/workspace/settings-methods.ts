@@ -79,6 +79,7 @@ export const settingsMethods = {
       this.fillFallbackModelControls();
     }
     this.fillSettingsForm();
+    this.syncReadAloudFromSettingsState();
     const errors = [authResult, oauthResult, modelsResult]
       .filter((result) => result.status === "rejected")
       .map((result) => result.reason instanceof Error ? result.reason.message : String(result.reason));
@@ -278,12 +279,18 @@ export const settingsMethods = {
       const { settings } = await saveWorkspaceSettings(workspaceId, scope, patch);
       this.settingsState = parseWorkspaceSettings(settings);
       this.fillSettingsForm();
+      this.syncReadAloudFromSettingsState();
       this.setSettingsStatus("saved");
       void this.loadRuntimeStatus?.(workspaceId);
     } catch (error) {
       this.setSettingsStatus(error instanceof Error ? error.message : String(error), true);
       this.setConnection("err");
     }
+  },
+
+  syncReadAloudFromSettingsState() {
+    this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
+    this.syncReadAloudControls?.();
   },
 
   settingsPatchFromForm(form) {

@@ -380,7 +380,7 @@ export const messageMethods = {
   },
 
   isReadAloudEnabled() {
-    return !!this.readAloudToggle?.checked;
+    return this.readResponsesAloud === true;
   },
 
   syncReadAloudControls() {
@@ -402,8 +402,22 @@ export const messageMethods = {
     button.type = "button";
     button.className = "read-response-btn";
     button.dataset.action = "read-response";
-    button.textContent = "Read again";
+    button.title = "Read response aloud";
+    button.setAttribute("aria-label", "Read response aloud");
+    button.innerHTML = this.speakerIcon();
     messageRow.append(button);
+  },
+
+  speakerIcon() {
+    return [
+      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"`,
+      ` stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"`,
+      ` aria-hidden="true" data-lucide="volume-2">`,
+      `<path d="M11 5 6 9H2v6h4l5 4V5z"></path>`,
+      `<path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>`,
+      `<path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>`,
+      `</svg>`,
+    ].join("");
   },
 
   readAssistantMessageNode(messageRow) {

@@ -170,15 +170,16 @@
 }
 .read-response-btn {
   align-self: flex-start;
+  width: 28px;
+  height: 28px;
   border: 1px solid var(--border);
   border-radius: var(--radius-1);
   background: var(--bg-2);
   color: var(--fg-2);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  line-height: 1;
-  padding: 6px 8px;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 .read-response-btn:hover {
   border-color: var(--accent);

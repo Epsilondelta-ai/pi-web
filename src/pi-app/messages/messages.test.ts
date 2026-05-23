@@ -121,7 +121,7 @@ describe("pi-app messages", () => {
     ]);
   });
 
-  it("reads assistant responses aloud when enabled and exposes replay", async () => {
+  it("reads assistant responses aloud when enabled in settings and exposes speaker replay", async () => {
     const speak = vi.fn();
     const cancel = vi.fn();
     function Utterance(text) {
@@ -138,19 +138,22 @@ describe("pi-app messages", () => {
     expect(speak).not.toHaveBeenCalled();
     expect(app.querySelector("[data-action='read-response']")).toBeNull();
 
-    app.readAloudToggle.checked = true;
-    app.readAloudToggle.dispatchEvent(new Event("change"));
-    expect(app.querySelector("[data-action='read-response']").textContent).toBe("Read again");
+    app.settingsState = { effective: { readResponsesAloud: true } };
+    app.syncReadAloudFromSettingsState();
+    const replay = app.querySelector("[data-action='read-response']");
+    expect(replay.getAttribute("aria-label")).toBe("Read response aloud");
+    expect(replay.querySelector("[data-lucide='volume-2']")).not.toBeNull();
+    expect(replay.textContent).toBe("");
 
     app.appendMessage({ kind: "pi", text: "**spoken** response" });
     expect(cancel).toHaveBeenCalled();
     expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: "spoken response", lang: "ko-KR" }));
 
-    app.querySelector("[data-action='read-response']").click();
+    replay.click();
     expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: "not spoken", lang: "ko-KR" }));
 
-    app.readAloudToggle.checked = false;
-    app.readAloudToggle.dispatchEvent(new Event("change"));
+    app.settingsState = { effective: { readResponsesAloud: false } };
+    app.syncReadAloudFromSettingsState();
     expect(app.querySelector("[data-action='read-response']")).toBeNull();
   });
 

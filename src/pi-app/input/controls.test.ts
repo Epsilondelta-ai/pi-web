@@ -138,6 +138,7 @@ describe("pi-app controls", () => {
                 defaultProvider: "zai",
                 defaultModel: "gpt-5.5",
                 compaction: { enabled: true },
+                readResponsesAloud: true,
               },
               paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
             },
@@ -155,6 +156,8 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-settings-path]").textContent).toBe("/demo/.pi/settings.json");
     expect(app.querySelector("[data-setting='defaultProvider']").value).toBe("zai");
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
+    expect(app.querySelector("[data-setting='readResponsesAloud']").value).toBe("inherit");
+    expect(app.readResponsesAloud).toBe(true);
     expect(app.querySelector("[data-setting='theme']")).toBeNull();
     expect(app.querySelector("[data-setting='transport']")).toBeNull();
     expect(app.querySelector("[data-auth-provider]").value).toBe("anthropic");
@@ -176,11 +179,12 @@ describe("pi-app controls", () => {
     app.querySelector("[data-setting='defaultModel']").dispatchEvent(new Event("change"));
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
+    app.querySelector("[data-setting='readResponsesAloud']").value = "true";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({
       scope: "project",
-      settings: { defaultModel: "my-model", compaction: { enabled: false } },
+      settings: { defaultModel: "my-model", compaction: { enabled: false }, readResponsesAloud: true },
     });
   });
 
