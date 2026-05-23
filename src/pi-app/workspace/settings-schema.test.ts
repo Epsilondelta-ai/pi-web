@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest";
 import { SETTINGS_FIELDS, parseSettingsPatch, parseWorkspaceSettings } from "./settings-schema";
 
 describe("settings schema", () => {
-  it("shares UI metadata for all editable settings", () => {
-    expect(SETTINGS_FIELDS.map((field) => field.path)).toContain("terminal.imageWidthCells");
-    expect(SETTINGS_FIELDS.find((field) => field.path === "transport")?.values).toContain("websocket-cached");
+  it("shows only settings relevant to pi-web", () => {
+    const paths = SETTINGS_FIELDS.map((field) => field.path);
+
+    expect(paths).toContain("defaultModel");
+    expect(paths).toContain("compaction.enabled");
+    expect(paths).toContain("enableSkillCommands");
+    expect(paths).not.toContain("theme");
+    expect(paths).not.toContain("terminal.imageWidthCells");
+    expect(paths).not.toContain("transport");
+    expect(paths).not.toContain("doubleEscapeAction");
   });
 
   it("accepts valid workspace settings responses with unknown custom keys", () => {

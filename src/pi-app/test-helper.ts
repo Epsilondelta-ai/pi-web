@@ -95,13 +95,12 @@ export function installPiAppFixture() {
           ${settingsSelect("defaultProvider", ["inherit", "custom"], true)}
           ${settingsSelect("defaultModel", ["inherit", "custom"], true)}
           ${settingsSelect("defaultThinkingLevel", ["inherit", "high"])}
-          ${settingsField("input", "theme")}
-          ${settingsSelect("steeringMode", ["inherit", "all"])}
-          ${settingsSelect("followUpMode", ["inherit", "all"])}
-          ${settingsSelect("transport", ["inherit", "sse"])}
-          ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
           ${settingsSelect("compaction.enabled", ["inherit", "true", "false"])}
           ${settingsSelect("enableSkillCommands", ["inherit", "true", "false"])}
+          ${settingsSelect("steeringMode", ["inherit", "all"])}
+          ${settingsSelect("followUpMode", ["inherit", "all"])}
+          ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
+          ${settingsSelect("warnings.anthropicExtraUsage", ["inherit", "true", "false"])}
           <span data-settings-status></span>
           <button type="submit">save</button>
         </form>
