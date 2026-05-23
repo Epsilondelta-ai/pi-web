@@ -171,6 +171,10 @@ export const inputMethods = {
       this.readAssistantMessageNode(actionTarget.closest(".msg"));
       return;
     }
+    if (action === "stop-response") {
+      this.stopReadingResponse();
+      return;
+    }
     if (action === "route-picker") this.route("picker");
     if (action === "route-workspace") this.route("workspace");
     if (action === "refresh-workspaces") this.refreshWorkspaces();

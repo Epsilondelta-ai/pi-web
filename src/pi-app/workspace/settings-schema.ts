@@ -10,6 +10,7 @@ export const SETTINGS_FIELDS = [
   { path: "followUpMode", label: "Follow-up mode", type: "select", values: ["one-at-a-time", "all"] },
   { path: "hideThinkingBlock", label: "Hide thinking", type: "boolean" },
   { path: "readResponsesAloud", label: "Read responses aloud", type: "checkbox" },
+  { path: "speechLanguage", label: "Speech language", type: "speechLanguage" },
   { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
 ] as const;
 
@@ -20,6 +21,7 @@ const steeringModeSchema = z.enum(["one-at-a-time", "all"]);
 const transportSchema = z.enum(["sse", "websocket", "websocket-cached", "auto"]);
 const doubleEscapeActionSchema = z.enum(["tree", "fork", "none"]);
 const treeFilterModeSchema = z.enum(["default", "no-tools", "user-only", "labeled-only", "all"]);
+const speechLanguageSchema = z.enum(["system", "en-US", "ko-KR", "ja-JP", "zh-CN"]);
 
 const settingsObjectSchema = z.object({
   defaultProvider: z.string().optional(),
@@ -46,6 +48,7 @@ const settingsObjectSchema = z.object({
   transport: transportSchema.optional(),
   hideThinkingBlock: z.boolean().optional(),
   readResponsesAloud: z.boolean().optional(),
+  speechLanguage: speechLanguageSchema.optional(),
   collapseChangelog: z.boolean().optional(),
   quietStartup: z.boolean().optional(),
   enableInstallTelemetry: z.boolean().optional(),
@@ -83,6 +86,7 @@ export const settingsPatchSchema = z.object({
   transport: transportSchema.nullable().optional(),
   hideThinkingBlock: nullishBoolean,
   readResponsesAloud: nullishBoolean,
+  speechLanguage: speechLanguageSchema.nullable().optional(),
   collapseChangelog: nullishBoolean,
   quietStartup: nullishBoolean,
   enableInstallTelemetry: nullishBoolean,

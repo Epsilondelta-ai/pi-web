@@ -396,16 +396,26 @@ export const messageMethods = {
 
   syncReadAloudButton(messageRow) {
     if (!messageRow?.matches?.(".msg[data-kind='pi']")) return;
-    messageRow.querySelector("[data-action='read-response']")?.remove();
+    messageRow.querySelector(".read-response-actions")?.remove();
     if (!this.isReadAloudEnabled()) return;
+    const actions = document.createElement("span");
+    actions.className = "read-response-actions";
+    actions.append(
+      this.readResponseButton("read-response", "Read response aloud", this.speakerIcon()),
+      this.readResponseButton("stop-response", "Stop reading", this.stopIcon()),
+    );
+    messageRow.append(actions);
+  },
+
+  readResponseButton(action, label, icon) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "read-response-btn";
-    button.dataset.action = "read-response";
-    button.title = "Read response aloud";
-    button.setAttribute("aria-label", "Read response aloud");
-    button.innerHTML = this.speakerIcon();
-    messageRow.append(button);
+    button.dataset.action = action;
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.innerHTML = icon;
+    return button;
   },
 
   speakerIcon() {
@@ -420,9 +430,23 @@ export const messageMethods = {
     ].join("");
   },
 
+  stopIcon() {
+    return [
+      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"`,
+      ` stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"`,
+      ` aria-hidden="true" data-lucide="square">`,
+      `<rect width="18" height="18" x="3" y="3" rx="2"></rect>`,
+      `</svg>`,
+    ].join("");
+  },
+
   readAssistantMessageNode(messageRow) {
     if (!messageRow) return;
     this.speakAssistantText(messageRow.dataset.rawText || messageRow.querySelector(".body")?.textContent || "");
+  },
+
+  stopReadingResponse() {
+    globalThis.speechSynthesis?.cancel?.();
   },
 
   speakAssistantText(text) {
@@ -431,7 +455,7 @@ export const messageMethods = {
     if (!content || !synth || typeof SpeechSynthesisUtterance === "undefined") return;
     synth.cancel?.();
     const utterance = new SpeechSynthesisUtterance(content);
-    utterance.lang = navigator.language || "en-US";
+    utterance.lang = this.speechLanguage === "system" ? navigator.language || "en-US" : this.speechLanguage || "en-US";
     synth.speak?.(utterance);
   },
 

@@ -139,6 +139,7 @@ describe("pi-app controls", () => {
                 defaultModel: "gpt-5.5",
                 compaction: { enabled: true },
                 readResponsesAloud: true,
+                speechLanguage: "ko-KR",
               },
               paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
             },
@@ -158,7 +159,9 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
     expect(app.querySelector("[data-setting='readResponsesAloud']").checked).toBe(true);
+    expect(app.querySelector("[data-setting='speechLanguage']").value).toBe("ko-KR");
     expect(app.readResponsesAloud).toBe(true);
+    expect(app.speechLanguage).toBe("ko-KR");
     expect(app.querySelector("[data-setting='theme']")).toBeNull();
     expect(app.querySelector("[data-setting='transport']")).toBeNull();
     expect(app.querySelector("[data-auth-provider]").value).toBe("anthropic");
@@ -181,11 +184,12 @@ describe("pi-app controls", () => {
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
     app.querySelector("[data-setting='readResponsesAloud']").checked = true;
+    app.querySelector("[data-setting='speechLanguage']").value = "ja-JP";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({
       scope: "project",
-      settings: { defaultModel: "my-model", compaction: { enabled: false }, readResponsesAloud: true },
+      settings: { defaultModel: "my-model", compaction: { enabled: false }, readResponsesAloud: true, speechLanguage: "ja-JP" },
     });
   });
 

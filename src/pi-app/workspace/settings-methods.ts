@@ -201,6 +201,10 @@ export const settingsMethods = {
       control.checked = explicitValue === undefined ? effectiveValue === true : explicitValue === true;
       return;
     }
+    if (field.type === "speechLanguage") {
+      control.value = explicitValue === undefined ? String(effectiveValue || "system") : String(explicitValue || "system");
+      return;
+    }
     control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
   },
 
@@ -294,6 +298,7 @@ export const settingsMethods = {
 
   syncReadAloudFromSettingsState() {
     this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
+    this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
     this.syncReadAloudControls?.();
   },
 
@@ -321,6 +326,7 @@ export const settingsMethods = {
       return control.value;
     }
     if (field.type === "checkbox") return control.checked === true;
+    if (field.type === "speechLanguage") return control.value === "system" ? null : control.value;
     if (control.value === "inherit") return null;
     if (field.type === "boolean") return control.value === "true";
     if (field.type === "numberSelect") return Number(control.value);
