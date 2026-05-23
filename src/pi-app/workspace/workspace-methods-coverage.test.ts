@@ -295,12 +295,15 @@ describe("workspace folder/render/bootstrap coverage", () => {
       parents: index === 59 ? [] : [`h${index + 1}`],
       files: [],
     }));
+    app.renderGitHistory(commits.slice(0, 30));
+    panel.querySelector("[data-git-commit-scroll]").scrollTop = 320;
     globalThis.fetch = vi.fn(async () => okJson({ commits }));
 
     await app.loadMoreGitHistory();
 
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("limit=60"), expect.anything());
     expect(panel.querySelectorAll(".git-commit-row")).toHaveLength(60);
+    expect(panel.querySelector("[data-git-commit-scroll]").scrollTop).toBe(320);
     expect(panel.querySelector("[data-action='load-more-git-history']")?.textContent).toBe("load 30 more");
   });
 });

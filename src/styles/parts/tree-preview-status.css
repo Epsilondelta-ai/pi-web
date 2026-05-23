@@ -242,6 +242,9 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   border-bottom: 1px solid var(--border-dim);
 }
 .git-history-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-1);
   background: var(--bg-1);

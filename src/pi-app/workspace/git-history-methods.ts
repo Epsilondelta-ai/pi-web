@@ -1,6 +1,7 @@
 import { getGitCommit, getGitHistory } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
 
+const LUCIDE_LIST_PLUS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 12H3"></path><path d="M16 6H3"></path><path d="M16 18H3"></path><path d="M18 9v6"></path><path d="M21 12h-6"></path></svg>`;
 const GIT_HISTORY_PAGE_SIZE = 30;
 const MAX_GIT_HISTORY_COMMITS = 200;
 
@@ -72,7 +73,7 @@ export const gitHistoryMethods = {
       `<div class="git-history-grid" data-git-history-grid>`,
       `<div class="git-history-toolbar">`,
       `<button type="button" data-action="load-more-git-history"`,
-      ` ${this.gitHistoryHasMore ? "" : "disabled"}>load 30 more</button>`,
+      ` ${this.gitHistoryHasMore ? "" : "disabled"}>${LUCIDE_LIST_PLUS_ICON}<span>load 30 more</span></button>`,
       `</div>`,
       `<div class="git-commit-scroll" data-git-commit-scroll>`,
       `<div class="git-commit-list" data-git-commit-list></div>`,
@@ -92,11 +93,15 @@ export const gitHistoryMethods = {
     const button = this.querySelector("[data-action='load-more-git-history']");
     if (button) button.disabled = true;
     try {
+      const scroll = this.querySelector("[data-git-commit-scroll]");
+      const scrollTop = scroll?.scrollTop || 0;
       const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, nextLimit);
       this.gitHistoryLimit = nextLimit;
       this.gitHistoryCommits = commits || [];
       this.gitHistoryHasMore = this.gitHistoryCommits.length >= nextLimit && nextLimit < MAX_GIT_HISTORY_COMMITS;
       this.renderGitHistory(this.gitHistoryCommits);
+      const nextScroll = this.querySelector("[data-git-commit-scroll]");
+      if (nextScroll) nextScroll.scrollTop = scrollTop;
     } catch (error) {
       this.renderGitHistoryError(error?.message || "git history unavailable");
     }
