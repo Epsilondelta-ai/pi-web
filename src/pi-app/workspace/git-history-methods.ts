@@ -6,6 +6,7 @@ const GRAPH_ROW_HEIGHT = 64;
 const LANE_WIDTH = 16;
 const GRAPH_PAD_X = 10;
 const ROW_MID_Y = GRAPH_ROW_HEIGHT / 2;
+const LINE_OPACITY = 0.78;
 
 export const gitHistoryMethods = {
   async showGitHistory() {
@@ -209,7 +210,7 @@ function renderGraphSvg(layout) {
     row.before.forEach((hash, lane) => {
       if (!hash) return;
       const x = laneX(lane);
-      paths.push(linePath(x, yTop, x, lane === row.lane ? yMid : yBottom, laneColor(lane), 0.62));
+      paths.push(linePath(x, yTop, x, lane === row.lane ? yMid : yBottom, laneColor(lane), LINE_OPACITY));
     });
     row.after.forEach((hash, lane) => {
       if (!hash) return;
@@ -217,16 +218,16 @@ function renderGraphSvg(layout) {
       const startsAtCurrentNode = lane === row.lane;
       if (!existedBefore && !startsAtCurrentNode) return;
       const x = laneX(lane);
-      paths.push(linePath(x, startsAtCurrentNode ? yMid : yTop, x, yBottom, laneColor(lane), 0.62));
+      paths.push(linePath(x, startsAtCurrentNode ? yMid : yTop, x, yBottom, laneColor(lane), LINE_OPACITY));
     });
     row.parentLanes.forEach((parentLane, index) => {
       if (parentLane === row.lane) return;
       const x1 = laneX(row.lane);
       const x2 = laneX(parentLane);
       const bendY = yMid + 12 + index * 5;
-      paths.push(`<path d="M${x1} ${yMid} C${x1} ${bendY} ${x2} ${bendY} ${x2} ${yBottom}" stroke="${laneColor(parentLane)}" stroke-width="2" fill="none" opacity=".86"/>`);
+      paths.push(`<path d="M${x1} ${yMid} C${x1} ${bendY} ${x2} ${bendY} ${x2} ${yBottom}" stroke="${laneColor(parentLane)}" stroke-width="2" fill="none" opacity="${LINE_OPACITY}"/>`);
     });
-    nodes.push(`<circle cx="${laneX(row.lane)}" cy="${yMid}" r="5" fill="var(--bg)" stroke="${laneColor(row.lane)}" stroke-width="2.5"/>`);
+    nodes.push(`<circle cx="${laneX(row.lane)}" cy="${yMid}" r="5" fill="none" stroke="${laneColor(row.lane)}" stroke-width="2" opacity="${LINE_OPACITY}"/>`);
   });
   return `<svg class="git-graph-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" aria-hidden="true">${paths.join("")}${nodes.join("")}</svg>`;
 }
