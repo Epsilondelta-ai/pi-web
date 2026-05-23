@@ -182,9 +182,9 @@ export const messageMethods = {
   },
 
   notifyPiMessageCommitted(message) {
-    if (message.kind === "pi" && !this.deferTranscriptRender && parseFallbackChoices(message.text).length) {
-      this.notifyChoiceRequested?.();
-    }
+    if (message.kind !== "pi") return;
+    if (this.isReadAloudEnabled()) this.speakAssistantText(message.text);
+    if (!this.deferTranscriptRender && parseFallbackChoices(message.text).length) this.notifyChoiceRequested?.();
   },
 
   attachThinkingStream(messageRow) {
@@ -299,6 +299,7 @@ export const messageMethods = {
     messageRow.dataset.rawText = message.text;
     body.classList.add("markdown-body");
     body.innerHTML = renderPiBody(choices.length ? text : message.text);
+    this.syncReadAloudButton(messageRow);
     if (!choices.length) return messageRow;
 
     const fragment = document.createDocumentFragment();
@@ -352,9 +353,9 @@ export const messageMethods = {
     const custom = document.createElement("div");
     custom.className = "choice-custom";
     custom.innerHTML = [
-      `<input type="text" placeholder="직접 답변 입력" data-choice-custom-input>`,
+      `<input type="text" placeholder="Type a custom answer" data-choice-custom-input>`,
       `<button type="button" data-action="fallback-choice-custom"`,
-      ` data-choice-id="${escapeHtml(choice.id)}">보내기</button>`,
+      ` data-choice-id="${escapeHtml(choice.id)}">Send</button>`,
     ].join("");
     panel.append(custom);
     return panel;
@@ -376,6 +377,94 @@ export const messageMethods = {
     const panel = panels.find((item) => item.dataset.choiceId === choiceId);
     panel?.classList.add("answered");
     panel?.querySelectorAll("button, input").forEach((item) => item.disabled = true);
+  },
+
+  isReadAloudEnabled() {
+    return this.readResponsesAloud === true;
+  },
+
+  syncReadAloudControls() {
+    const nodes = new Set(this.termInner?.querySelectorAll(".msg[data-kind='pi']") || []);
+    for (const item of this.transcriptItems || []) {
+      for (const node of item?.nodes || []) {
+        if (node?.matches?.(".msg[data-kind='pi']")) nodes.add(node);
+      }
+    }
+    for (const node of nodes) this.syncReadAloudButton(node);
+    if (!this.isReadAloudEnabled()) globalThis.speechSynthesis?.cancel?.();
+  },
+
+  syncReadAloudButton(messageRow) {
+    if (!messageRow?.matches?.(".msg[data-kind='pi']")) return;
+    messageRow.querySelector(".read-response-actions")?.remove();
+    if (!this.isReadAloudEnabled()) return;
+    const actions = document.createElement("span");
+    actions.className = "read-response-actions";
+    actions.append(
+      this.readResponseButton("read-response", "Read response aloud", this.speakerIcon()),
+      this.readResponseButton("stop-response", "Stop reading", this.stopIcon()),
+    );
+    messageRow.append(actions);
+  },
+
+  readResponseButton(action, label, icon) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "read-response-btn";
+    button.dataset.action = action;
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.innerHTML = icon;
+    return button;
+  },
+
+  speakerIcon() {
+    return [
+      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"`,
+      ` stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"`,
+      ` aria-hidden="true" data-lucide="volume-2">`,
+      `<path d="M11 5 6 9H2v6h4l5 4V5z"></path>`,
+      `<path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>`,
+      `<path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>`,
+      `</svg>`,
+    ].join("");
+  },
+
+  stopIcon() {
+    return [
+      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"`,
+      ` stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"`,
+      ` aria-hidden="true" data-lucide="square">`,
+      `<rect width="18" height="18" x="3" y="3" rx="2"></rect>`,
+      `</svg>`,
+    ].join("");
+  },
+
+  readAssistantMessageNode(messageRow) {
+    if (!messageRow) return;
+    this.speakAssistantText(messageRow.dataset.rawText || messageRow.querySelector(".body")?.textContent || "");
+  },
+
+  stopReadingResponse() {
+    globalThis.speechSynthesis?.cancel?.();
+  },
+
+  speakAssistantText(text) {
+    const content = this.speechTextFromAssistantText(text);
+    const synth = globalThis.speechSynthesis;
+    if (!content || !synth || typeof SpeechSynthesisUtterance === "undefined") return;
+    synth.cancel?.();
+    const utterance = new SpeechSynthesisUtterance(content);
+    utterance.lang = this.speechLanguage === "system" ? navigator.language || "en-US" : this.speechLanguage || "en-US";
+    synth.speak?.(utterance);
+  },
+
+  speechTextFromAssistantText(text) {
+    const visibleText = stripFallbackChoices(text || "").trim();
+    if (!visibleText) return "";
+    const scratch = document.createElement("div");
+    scratch.innerHTML = renderPiBody(visibleText);
+    return (scratch.textContent || visibleText).replace(/\s+/g, " ").trim();
   },
 
   async copyCodeBlock(button) {

@@ -121,6 +121,46 @@ describe("pi-app messages", () => {
     ]);
   });
 
+  it("reads assistant responses aloud when enabled in settings and exposes speaker replay", async () => {
+    const speak = vi.fn();
+    const cancel = vi.fn();
+    function Utterance(text) {
+      this.text = text;
+      this.lang = "";
+    }
+    vi.stubGlobal("speechSynthesis", { speak, cancel });
+    vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+    Object.defineProperty(navigator, "language", { value: "ko-KR", configurable: true });
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "pi", text: "not spoken" });
+    expect(speak).not.toHaveBeenCalled();
+    expect(app.querySelector("[data-action='read-response']")).toBeNull();
+
+    app.settingsState = { effective: { readResponsesAloud: true, speechLanguage: "ja-JP" } };
+    app.syncReadAloudFromSettingsState();
+    const replay = app.querySelector("[data-action='read-response']");
+    expect(replay.getAttribute("aria-label")).toBe("Read response aloud");
+    expect(replay.querySelector("[data-lucide='volume-2']")).not.toBeNull();
+    expect(app.querySelector("[data-action='stop-response'] [data-lucide='square']")).not.toBeNull();
+    expect(replay.textContent).toBe("");
+
+    app.appendMessage({ kind: "pi", text: "**spoken** response" });
+    expect(cancel).toHaveBeenCalled();
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: "spoken response", lang: "ja-JP" }));
+
+    app.querySelector("[data-action='stop-response']").click();
+    expect(cancel).toHaveBeenCalledTimes(2);
+
+    replay.click();
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: "not spoken", lang: "ja-JP" }));
+
+    app.settingsState = { effective: { readResponsesAloud: false } };
+    app.syncReadAloudFromSettingsState();
+    expect(app.querySelector("[data-action='read-response']")).toBeNull();
+  });
+
   it("copies markdown code blocks with button feedback", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });

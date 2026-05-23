@@ -79,6 +79,7 @@ export const settingsMethods = {
       this.fillFallbackModelControls();
     }
     this.fillSettingsForm();
+    this.syncReadAloudFromSettingsState();
     const errors = [authResult, oauthResult, modelsResult]
       .filter((result) => result.status === "rejected")
       .map((result) => result.reason instanceof Error ? result.reason.message : String(result.reason));
@@ -196,6 +197,14 @@ export const settingsMethods = {
       control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
       return;
     }
+    if (field.type === "checkbox") {
+      control.checked = explicitValue === undefined ? effectiveValue === true : explicitValue === true;
+      return;
+    }
+    if (field.type === "speechLanguage") {
+      control.value = explicitValue === undefined ? String(effectiveValue || "system") : String(explicitValue || "system");
+      return;
+    }
     control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
   },
 
@@ -278,12 +287,19 @@ export const settingsMethods = {
       const { settings } = await saveWorkspaceSettings(workspaceId, scope, patch);
       this.settingsState = parseWorkspaceSettings(settings);
       this.fillSettingsForm();
+      this.syncReadAloudFromSettingsState();
       this.setSettingsStatus("saved");
       void this.loadRuntimeStatus?.(workspaceId);
     } catch (error) {
       this.setSettingsStatus(error instanceof Error ? error.message : String(error), true);
       this.setConnection("err");
     }
+  },
+
+  syncReadAloudFromSettingsState() {
+    this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
+    this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
+    this.syncReadAloudControls?.();
   },
 
   settingsPatchFromForm(form) {
@@ -309,6 +325,8 @@ export const settingsMethods = {
       }
       return control.value;
     }
+    if (field.type === "checkbox") return control.checked === true;
+    if (field.type === "speechLanguage") return control.value === "system" ? null : control.value;
     if (control.value === "inherit") return null;
     if (field.type === "boolean") return control.value === "true";
     if (field.type === "numberSelect") return Number(control.value);

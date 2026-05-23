@@ -168,6 +168,27 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.read-response-actions {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 4px;
+}
+.read-response-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-2);
+  color: var(--fg-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.read-response-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .msg .body.markdown-body { white-space: normal; }
 .msg .body.markdown-body > :first-child { margin-top: 0; }
 .msg .body.markdown-body > :last-child { margin-bottom: 0; }

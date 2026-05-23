@@ -227,6 +227,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.settings-checkbox {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.settings-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  accent-color: var(--accent);
+}
 .settings-dialog input,
 .settings-dialog select {
   min-width: 0;

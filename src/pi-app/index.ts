@@ -25,6 +25,8 @@ class PiApp extends HTMLElement {
     this.sendButton = this.querySelector(".send-btn");
     this.stopButton = this.querySelector(".stop-btn");
     this.attachButton = this.querySelector(".attach-btn");
+    this.readResponsesAloud = false;
+    this.speechLanguage = "system";
     this.fileInput = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
     this.slashPopover = this.querySelector(".slash-pop");
