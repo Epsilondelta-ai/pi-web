@@ -197,6 +197,10 @@ export const settingsMethods = {
       control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
       return;
     }
+    if (field.type === "checkbox") {
+      control.checked = explicitValue === undefined ? effectiveValue === true : explicitValue === true;
+      return;
+    }
     control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
   },
 
@@ -316,6 +320,7 @@ export const settingsMethods = {
       }
       return control.value;
     }
+    if (field.type === "checkbox") return control.checked === true;
     if (control.value === "inherit") return null;
     if (field.type === "boolean") return control.value === "true";
     if (field.type === "numberSelect") return Number(control.value);

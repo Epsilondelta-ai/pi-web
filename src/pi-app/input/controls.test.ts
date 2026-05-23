@@ -156,7 +156,8 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-settings-path]").textContent).toBe("/demo/.pi/settings.json");
     expect(app.querySelector("[data-setting='defaultProvider']").value).toBe("zai");
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
-    expect(app.querySelector("[data-setting='readResponsesAloud']").value).toBe("inherit");
+    expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
+    expect(app.querySelector("[data-setting='readResponsesAloud']").checked).toBe(true);
     expect(app.readResponsesAloud).toBe(true);
     expect(app.querySelector("[data-setting='theme']")).toBeNull();
     expect(app.querySelector("[data-setting='transport']")).toBeNull();
@@ -179,7 +180,7 @@ describe("pi-app controls", () => {
     app.querySelector("[data-setting='defaultModel']").dispatchEvent(new Event("change"));
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
-    app.querySelector("[data-setting='readResponsesAloud']").value = "true";
+    app.querySelector("[data-setting='readResponsesAloud']").checked = true;
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({

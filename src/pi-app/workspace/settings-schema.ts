@@ -9,7 +9,7 @@ export const SETTINGS_FIELDS = [
   { path: "steeringMode", label: "Steering mode", type: "select", values: ["one-at-a-time", "all"] },
   { path: "followUpMode", label: "Follow-up mode", type: "select", values: ["one-at-a-time", "all"] },
   { path: "hideThinkingBlock", label: "Hide thinking", type: "boolean" },
-  { path: "readResponsesAloud", label: "Read responses aloud", type: "boolean" },
+  { path: "readResponsesAloud", label: "Read responses aloud", type: "checkbox" },
   { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
 ] as const;
 

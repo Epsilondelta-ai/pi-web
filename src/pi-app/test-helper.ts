@@ -100,7 +100,7 @@ export function installPiAppFixture() {
           ${settingsSelect("steeringMode", ["inherit", "all"])}
           ${settingsSelect("followUpMode", ["inherit", "all"])}
           ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
-          ${settingsSelect("readResponsesAloud", ["inherit", "true", "false"])}
+          ${settingsCheckbox("readResponsesAloud")}
           ${settingsSelect("warnings.anthropicExtraUsage", ["inherit", "true", "false"])}
           <span data-settings-status></span>
           <button type="submit">save</button>
@@ -119,6 +119,10 @@ function settingsSelect(name, values, custom = false) {
   const options = values.map((value) => `<option value="${value}">${value}</option>`).join("");
   const customInput = custom ? `<input data-custom-setting="${name}" hidden />` : "";
   return `<label class="settings-field"><select data-setting="${name}">${options}</select>${customInput}<small></small></label>`;
+}
+
+function settingsCheckbox(name) {
+  return `<label class="settings-field"><span class="settings-checkbox"><input type="checkbox" data-setting="${name}" /> <span>Enabled</span></span><small></small></label>`;
 }
 
 export function installEmptySessionFixture() {

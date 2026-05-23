@@ -312,6 +312,8 @@ function isToolCollapsed(msg) {
                   <option value="true">on</option>
                   <option value="false">off</option>
                 </select>
+              ) : field.type === "checkbox" ? (
+                <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span>Enabled</span></span>
               ) : (
                 <select data-setting={field.path}>
                   <option value="inherit">inherit</option>
