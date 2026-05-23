@@ -1,5 +1,4 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
+import { createGitgraph, Mode, Orientation, templateExtend, TemplateName } from "@gitgraph/js";
 import { getGitCommit, getGitHistory } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
 
@@ -51,7 +50,6 @@ export const gitHistoryMethods = {
     const panel = this.querySelector("[data-git-panel]");
     if (!panel) return;
     panel.dataset.mode = mode;
-    this.unmountGitGraph?.();
     if (mode === "loading") {
       panel.innerHTML = `<div class="git-empty">loading git graph…</div>`;
     }
@@ -60,14 +58,12 @@ export const gitHistoryMethods = {
   renderGitHistoryError(message) {
     const panel = this.querySelector("[data-git-panel]");
     if (!panel) return;
-    this.unmountGitGraph?.();
     panel.innerHTML = `<div class="git-empty err">${escapeHtml(message)}</div>`;
   },
 
   renderGitHistory(commits) {
     const panel = this.querySelector("[data-git-panel]");
     if (!panel) return;
-    this.unmountGitGraph?.();
     if (!commits.length) {
       panel.innerHTML = `<div class="git-empty">no commits found</div>`;
       return;
@@ -84,56 +80,34 @@ export const gitHistoryMethods = {
     ].join("");
     const list = panel.querySelector("[data-git-commit-list]");
     for (const commit of commits) list.append(this.createGitCommitRow(commit));
-    void this.renderGitGraphLibrary(panel.querySelector("[data-git-graph-library]"), commits);
+    this.renderGitGraphLibrary(panel.querySelector("[data-git-graph-library]"), commits);
     this.installGitDetailResizer(panel.querySelector("[data-git-history-grid]"));
   },
 
-  async renderGitGraphLibrary(container, commits) {
+  renderGitGraphLibrary(container, commits) {
     if (!container) return;
-    const graphCommits = commits.map((commit) => ({
-      id: commit.shortHash,
-      message: commit.subject || commit.shortHash,
-      author: commit.authorName || "unknown",
-      date: commit.date || "",
-      parents: commit.parents || [],
-    }));
+    container.replaceChildren();
     try {
-      ensureReact18SecretInternals();
-      const { GitGraph } = await import("git-graph-svg");
-      if (!container.isConnected) return;
-      const root = createRoot(container);
-      this.gitGraphRoot = root;
-      this.unmountGitGraph = () => {
-        this.gitGraphRoot?.unmount?.();
-        this.gitGraphRoot = null;
-        this.unmountGitGraph = null;
-      };
-      root.render(React.createElement(GitGraph, {
-        commits: graphCommits,
-        colorPalette: COLORS,
-        rowHeight: GRAPH_ROW_HEIGHT,
-        laneWidth: 14,
-        padding: { top: GRAPH_ROW_HEIGHT / 2, right: 8, bottom: GRAPH_ROW_HEIGHT / 2, left: 8 },
-        style: { minHeight: `${commits.length * GRAPH_ROW_HEIGHT}px`, width: "100%" },
-        renderNode: (x, y, color) => React.createElement("circle", {
-          cx: x,
-          cy: y,
-          r: 4.5,
-          fill: "var(--bg)",
-          stroke: color,
-          strokeWidth: 2.5,
-          vectorEffect: "non-scaling-stroke",
+      const gitgraph = createGitgraph(container, {
+        mode: Mode.Compact,
+        orientation: Orientation.VerticalReverse,
+        responsive: false,
+        template: templateExtend(TemplateName.Metro, {
+          colors: COLORS,
+          commit: {
+            spacing: GRAPH_ROW_HEIGHT,
+            dot: { size: 9 },
+            message: { display: false },
+          },
+          branch: {
+            lineWidth: 2,
+            spacing: 14,
+            label: { display: false },
+          },
         }),
-        renderEdge: (from, to, d, color) => React.createElement("path", {
-          key: `${from.id}-${to.id}`,
-          d,
-          stroke: color,
-          strokeWidth: 2,
-          fill: "none",
-          opacity: 0.72,
-          vectorEffect: "non-scaling-stroke",
-        }),
-      }));
+      });
+      gitgraph.import(commits.map(gitgraphImportCommit));
+      container.querySelector("svg")?.setAttribute("aria-hidden", "true");
     } catch (error) {
       container.innerHTML = `<div class="git-empty err">git graph render failed: ${escapeHtml(error?.message || String(error))}</div>`;
     }
@@ -211,12 +185,16 @@ export const gitHistoryMethods = {
   },
 };
 
-function ensureReact18SecretInternals() {
-  const reactCompat = React as any;
-  if (reactCompat.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED) return;
-  reactCompat.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = {
-    ReactCurrentDispatcher: { current: null },
-    ReactCurrentOwner: { current: null },
+function gitgraphImportCommit(commit) {
+  const timestamp = Date.parse(commit.date || "") || Date.now();
+  return {
+    hash: commit.shortHash,
+    subject: commit.subject || commit.shortHash,
+    body: "",
+    author: { name: commit.authorName || "unknown", email: commit.authorEmail || "", timestamp },
+    committer: { name: commit.authorName || "unknown", email: commit.authorEmail || "", timestamp },
+    parents: commit.parents || [],
+    refs: commit.refs || [],
   };
 }
 
