@@ -30,6 +30,7 @@ describe("pi-app controls", () => {
       configurable: true,
       value: MockSpeechRecognition,
     });
+    Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
     const app = await connectPiApp();
     app.enableSpeechInput = true;
     app.speechLanguage = "ko-KR";
@@ -44,7 +45,14 @@ describe("pi-app controls", () => {
     expect(mic.classList.contains("listening")).toBe(true);
     recognition.onresult({
       resultIndex: 0,
-      results: [{ 0: { transcript: "음성 입력" }, isFinal: true }],
+      results: [{ 0: { transcript: "음성" }, isFinal: true }],
+    });
+    recognition.onresult({
+      resultIndex: 0,
+      results: [
+        { 0: { transcript: "음성" }, isFinal: true },
+        { 0: { transcript: " 입력" }, isFinal: false },
+      ],
     });
     expect(prompt.value).toBe("기존 음성 입력");
     expect(app.querySelector(".send-btn").disabled).toBe(false);
@@ -53,6 +61,7 @@ describe("pi-app controls", () => {
     expect(recognition.stop).toHaveBeenCalled();
     expect(mic.classList.contains("listening")).toBe(false);
     Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+    Object.defineProperty(window, "isSecureContext", { configurable: true, value: undefined });
     vi.useRealTimers();
   });
 

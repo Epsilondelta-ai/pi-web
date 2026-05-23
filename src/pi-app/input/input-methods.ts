@@ -292,6 +292,15 @@ export const inputMethods = {
 
   startSpeechInput() {
     if (!this.enableSpeechInput || !this.prompt) return;
+    if (window.isSecureContext === false) {
+      this.showSystemToast?.(
+        "warning",
+        "음성 입력 HTTPS 필요",
+        "음성 입력은 HTTPS 또는 localhost에서만 사용할 수 있습니다.",
+        "speech-input:insecure-context",
+      );
+      return;
+    }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       this.showSystemToast?.(
@@ -305,15 +314,17 @@ export const inputMethods = {
     this.stopSpeechInput();
     const recognition = new SpeechRecognition();
     const basePrompt = this.prompt.value;
-    let finalTranscript = "";
     const resetSilenceTimer = () => {
       if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
       this.speechSilenceTimer = setTimeout(() => this.stopSpeechInput(), 3000);
     };
-    const applyTranscript = (interimTranscript = "") => {
-      const transcript = `${finalTranscript}${interimTranscript}`.trimStart();
-      const needsSpace = basePrompt && transcript && !/\s$/.test(basePrompt) && !/^[\s.,!?;:)]/.test(transcript);
-      this.prompt.value = `${basePrompt}${needsSpace ? " " : ""}${transcript}`;
+    const applyTranscript = (transcript = "") => {
+      const cleanTranscript = transcript.trimStart();
+      const needsSpace = basePrompt
+        && cleanTranscript
+        && !/\s$/.test(basePrompt)
+        && !/^[\s.,!?;:)]/.test(cleanTranscript);
+      this.prompt.value = `${basePrompt}${needsSpace ? " " : ""}${cleanTranscript}`;
       this.updatePrompt();
     };
     recognition.lang = this.speechLanguage === "system" ? (navigator.language || "ko-KR") : this.speechLanguage;
@@ -328,13 +339,11 @@ export const inputMethods = {
     recognition.onspeechstart = resetSilenceTimer;
     recognition.onspeechend = resetSilenceTimer;
     recognition.onresult = (event) => {
-      let interimTranscript = "";
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        const transcript = event.results[index]?.[0]?.transcript || "";
-        if (event.results[index]?.isFinal) finalTranscript += transcript;
-        else interimTranscript += transcript;
+      let transcript = "";
+      for (let index = 0; index < event.results.length; index += 1) {
+        transcript += event.results[index]?.[0]?.transcript || "";
       }
-      applyTranscript(interimTranscript);
+      applyTranscript(transcript);
       resetSilenceTimer();
     };
     recognition.onerror = (event) => {
@@ -382,7 +391,7 @@ export const inputMethods = {
 
   syncSpeechInputControls() {
     if (!this.micButton) return;
-    this.micButton.hidden = !this.enableSpeechInput;
+    this.micButton.hidden = !this.enableSpeechInput || window.isSecureContext === false;
     this.micButton.classList.toggle("listening", this.speechListening);
     this.micButton.setAttribute("aria-pressed", this.speechListening ? "true" : "false");
     this.micButton.setAttribute("aria-label", this.speechListening ? "stop voice input" : "start voice input");
