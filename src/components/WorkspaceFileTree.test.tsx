@@ -47,6 +47,22 @@ describe("WorkspaceFileTree", () => {
     await cleanup(root, host);
   });
 
+  it("filters the tree with the all-file search", async () => {
+    const { host, root } = await renderTree();
+    await updateTree();
+
+    const search = host.querySelector<HTMLInputElement>(".tree-search input");
+    await act(async () => {
+      setInputValue(search!, "new");
+      search!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    expect(host.querySelector("[data-file-path='src/new.ts']")).toBeTruthy();
+    expect(host.querySelector("[data-file-path='src/main.ts']")).toBeFalsy();
+
+    await cleanup(root, host);
+  });
+
   it("creates files in the context menu target folder", async () => {
     const { host, root } = await renderTree();
     await updateTree();
@@ -133,6 +149,10 @@ async function updateTree() {
       },
     }));
   });
+}
+
+function setInputValue(input: HTMLInputElement, value: string) {
+  Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set?.call(input, value);
 }
 
 async function cleanup(root, host) {

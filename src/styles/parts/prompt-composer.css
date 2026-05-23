@@ -8,6 +8,8 @@
   font-size: var(--text-xs);
 }
 .file-preview-modal .fp-code-editor {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 100%;
   height: 100%;
   border: 1px solid var(--border);
@@ -15,9 +17,38 @@
   background: var(--bg-0);
   overflow: hidden;
 }
+.file-preview-modal .fp-editor-search {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.file-preview-modal .fp-editor-search input {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font: inherit;
+  padding: 5px 7px;
+}
+.file-preview-modal .fp-editor-search input:focus { border-color: var(--accent); outline: none; }
+.file-preview-modal .fp-editor-search button {
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+}
 .file-preview-modal .fp-codemirror-editor .cm-editor {
+  min-height: 0;
   outline: none;
 }
+.file-preview-modal .fp-codemirror-editor .cm-searchMatch { background-color: rgba(255, 214, 77, 0.42); }
+.file-preview-modal .fp-codemirror-editor .cm-searchMatch-selected { background-color: rgba(255, 214, 77, 0.72); }
 .file-preview-modal .fp-codemirror-editor .cm-editor.cm-focused {
   outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
 }
