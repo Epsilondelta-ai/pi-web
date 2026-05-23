@@ -228,9 +228,44 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 .tree-head button.on { border-color: var(--accent); color: var(--accent); }
 .tree-list { flex: 1 1 auto; min-height: 120px; overflow: hidden; padding: 4px 0 4px var(--space-2); }
 .git-panel { flex: 1 1 auto; min-height: 120px; overflow: hidden; }
-.git-history-grid { display: grid; grid-template-rows: var(--git-list-height, minmax(170px, 42%)) 7px 1fr; height: 100%; min-height: 0; }
-.git-commit-scroll { display: grid; grid-template-columns: minmax(54px, auto) minmax(0, 1fr); min-height: 0; overflow: auto; border-bottom: 1px solid var(--border-dim); }
+.git-history-grid {
+  display: grid;
+  grid-template-rows: auto var(--git-list-height, minmax(170px, 42%)) 7px 1fr;
+  height: 100%;
+  min-height: 0;
+}
+.git-history-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.git-history-toolbar button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-1);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 3px 7px;
+}
+.git-history-toolbar button:hover,
+.git-history-toolbar button:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+.git-commit-scroll {
+  display: grid;
+  grid-template-columns: minmax(54px, auto) minmax(0, 1fr);
+  min-height: 0;
+  overflow: auto;
+  border-bottom: 1px solid var(--border-dim);
+}
+.git-commit-scroll.graph-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
 .git-graph-library { min-width: 54px; }
+.git-commit-scroll.graph-collapsed .git-graph-library { min-width: 0; overflow: hidden; }
 .git-graph-library svg { display: block; overflow: visible; }
 .git-commit-list { min-width: 0; overflow: visible; }
 .git-detail-resizer { cursor: row-resize; border-top: 1px solid var(--border-dim); border-bottom: 1px solid var(--border-dim); background: linear-gradient(90deg, transparent, var(--border), transparent); touch-action: none; }

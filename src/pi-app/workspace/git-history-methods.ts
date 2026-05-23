@@ -70,9 +70,14 @@ export const gitHistoryMethods = {
       return;
     }
     const graphRows = layoutGitGraph(commits);
+    const graphCollapsed = !!this.gitGraphCollapsed;
     panel.innerHTML = [
       `<div class="git-history-grid" data-git-history-grid>`,
-      `<div class="git-commit-scroll" data-git-commit-scroll>`,
+      `<div class="git-history-toolbar">`,
+      `<button type="button" data-action="toggle-git-graph" aria-pressed="${graphCollapsed}"`,
+      ` title="toggle git graph lanes">${graphCollapsed ? "show graph" : "hide graph"}</button>`,
+      `</div>`,
+      `<div class="git-commit-scroll${graphCollapsed ? " graph-collapsed" : ""}" data-git-commit-scroll>`,
       `<div class="git-graph-library" data-git-graph-library></div>`,
       `<div class="git-commit-list" data-git-commit-list></div>`,
       `</div>`,
@@ -84,7 +89,23 @@ export const gitHistoryMethods = {
     const list = panel.querySelector("[data-git-commit-list]");
     graph.innerHTML = renderGraphSvg(graphRows);
     for (const commit of commits) list.append(this.createGitCommitRow(commit));
+    this.updateGitGraphToggle();
     this.installGitDetailResizer(panel.querySelector("[data-git-history-grid]"));
+  },
+
+  toggleGitGraph() {
+    this.gitGraphCollapsed = !this.gitGraphCollapsed;
+    this.updateGitGraphToggle();
+  },
+
+  updateGitGraphToggle() {
+    const collapsed = !!this.gitGraphCollapsed;
+    const scroll = this.querySelector("[data-git-commit-scroll]");
+    const button = this.querySelector("[data-action='toggle-git-graph']");
+    scroll?.classList.toggle("graph-collapsed", collapsed);
+    if (!button) return;
+    button.setAttribute("aria-pressed", String(collapsed));
+    button.textContent = collapsed ? "show graph" : "hide graph";
   },
 
   createGitCommitRow(commit) {

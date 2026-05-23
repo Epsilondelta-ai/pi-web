@@ -254,4 +254,32 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.connectEvents = vi.fn();
     app.applyLoadedSession({ id: "s-default", title: "default" }, undefined, "");
   });
+
+  it("toggles git graph lanes while keeping commit rows visible", async () => {
+    const app = await connectPiApp();
+    const panel = document.createElement("div");
+    panel.dataset.gitPanel = "";
+    app.append(panel);
+
+    app.renderGitHistory([
+      {
+        hash: "abc123",
+        shortHash: "abc123",
+        subject: "initial",
+        authorName: "pi",
+        date: "2026-01-01T00:00:00Z",
+        parents: [],
+        files: [],
+      },
+    ]);
+
+    expect(panel.querySelector("[data-git-graph-library]")).not.toBeNull();
+    expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
+    expect(panel.querySelector("[data-git-commit-scroll]")?.classList.contains("graph-collapsed")).toBe(false);
+
+    app.toggleGitGraph();
+    expect(panel.querySelector("[data-git-commit-scroll]")?.classList.contains("graph-collapsed")).toBe(true);
+    expect(panel.querySelector("[data-action='toggle-git-graph']")?.textContent).toBe("show graph");
+    expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
+  });
 });
