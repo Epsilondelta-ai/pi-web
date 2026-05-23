@@ -268,12 +268,13 @@ describe("workspace folder/render/bootstrap coverage", () => {
         subject: "initial",
         authorName: "pi",
         date: "2026-01-01T00:00:00Z",
-        parents: [],
+        parents: ["p0", "p1", "p2", "p3", "p4", "p5", "p6"],
         files: [],
       },
     ]);
 
     expect(panel.querySelector("[data-git-graph-library]")).not.toBeNull();
+    expect(panel.querySelector(".git-graph-svg")?.getAttribute("width")).toBe("116");
     expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
     expect(panel.querySelector("[data-git-commit-scroll]")?.classList.contains("graph-collapsed")).toBe(false);
 
