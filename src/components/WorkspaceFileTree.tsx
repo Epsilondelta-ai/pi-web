@@ -4,6 +4,7 @@ import {
   createWorkspaceFile,
   deleteWorkspaceFile,
   renameWorkspaceFile,
+  searchWorkspaceFiles,
   uploadWorkspaceFile,
 } from "../lib/api";
 import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../lib/file-tree-model";
@@ -24,6 +25,7 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [contentMatches, setContentMatches] = useState<Set<string>>(() => new Set());
   const treeArea = useRef<HTMLDivElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const uploadTarget = useRef<MenuTarget | null>(null);
@@ -68,6 +70,30 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
     };
   }, [menu]);
 
+  useEffect(() => {
+    const query = searchTerm.trim();
+    if (!query) {
+      setContentMatches(new Set());
+      return;
+    }
+    const workspaceId = activeWorkspaceId();
+    if (!workspaceId) return;
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      void searchWorkspaceFiles(workspaceId, query)
+        .then((result) => {
+          if (!cancelled) setContentMatches(new Set(result.matches || []));
+        })
+        .catch(() => {
+          if (!cancelled) setContentMatches(new Set());
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [searchTerm]);
+
   const data = useMemo(
     () => decorateFileTree(files, statusMap, selectedPath, expandedPaths),
     [expandedPaths, files, selectedPath, statusMap],
@@ -108,7 +134,7 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
               childrenAccessor="children"
               openByDefault={false}
               searchTerm={searchTerm}
-              searchMatch={(node, term) => fileTreeSearchMatch(node.data as FileTreeNode, term)}
+              searchMatch={(node, term) => fileTreeSearchMatch(node.data as FileTreeNode, term, contentMatches)}
               selection={selectedPath || undefined}
               disableDrag
               disableDrop
@@ -291,9 +317,11 @@ function StatusBadge({ status }: { status: string }) {
   return <span className="tree-status-badge" aria-label={status}>{label}</span>;
 }
 
-function fileTreeSearchMatch(node: FileTreeNode, term: string) {
+function fileTreeSearchMatch(node: FileTreeNode, term: string, contentMatches: ReadonlySet<string>) {
   const query = term.trim().toLowerCase();
-  return Boolean(query && (node.path.toLowerCase().includes(query) || node.name.toLowerCase().includes(query)));
+  return Boolean(
+    query && (node.path.toLowerCase().includes(query) || node.name.toLowerCase().includes(query) || contentMatches.has(node.path)),
+  );
 }
 
 function showTemporaryError(error: unknown) {

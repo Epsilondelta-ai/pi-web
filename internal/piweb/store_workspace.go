@@ -57,6 +57,16 @@ func (s *Store) Files(workspaceID string) ([]FileNode, error) {
 	}
 	return mock, nil
 }
+func (s *Store) SearchFiles(workspaceID, query string) ([]string, error) {
+	s.mu.RLock()
+	root := s.workspacePath[workspaceID]
+	s.mu.RUnlock()
+	if root == "" {
+		return nil, ErrNotFound
+	}
+	return SearchWorkspaceFiles(root, query)
+}
+
 func (s *Store) ReadFile(workspaceID, rel string) (FileContent, error) {
 	s.mu.RLock()
 	root := s.workspacePath[workspaceID]

@@ -115,6 +115,10 @@ export function getWorkspaceFiles(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files`);
 }
 
+export function searchWorkspaceFiles(workspaceId, query) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/search?q=${encodeURIComponent(query)}`);
+}
+
 export function getWorkspaceCommands(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/commands`);
 }

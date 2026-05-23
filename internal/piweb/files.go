@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const maxSearchFileBytes = 256 * 1024
+
 func RealFileTree(root string, maxDepth int) ([]FileNode, error) {
 	root = filepath.Clean(root)
 	entries, err := os.ReadDir(root)
@@ -49,6 +51,62 @@ func shouldSkipFile(name string) bool {
 		return true
 	}
 	return false
+}
+
+func SearchWorkspaceFiles(root, query string) ([]string, error) {
+	root = filepath.Clean(root)
+	needle := strings.ToLower(strings.TrimSpace(query))
+	if needle == "" {
+		return []string{}, nil
+	}
+	var matches []string
+	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		name := entry.Name()
+		if shouldSkipFile(name) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return nil
+		}
+		rel = filepath.ToSlash(rel)
+		if strings.Contains(strings.ToLower(rel), needle) || fileContentContains(path, needle) {
+			matches = append(matches, rel)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return matches, nil
+}
+
+func fileContentContains(path, needle string) bool {
+	file, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+	buf := make([]byte, maxSearchFileBytes+1)
+	n, _ := file.Read(buf)
+	if n > maxSearchFileBytes {
+		n = maxSearchFileBytes
+	}
+	data := buf[:n]
+	mimeType := detectPreviewMIME(path, data)
+	if previewKindForMIME(mimeType) != "text" && mimeType != "image/svg+xml" {
+		return false
+	}
+	return strings.Contains(strings.ToLower(string(data)), needle)
 }
 
 func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {

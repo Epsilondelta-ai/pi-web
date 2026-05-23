@@ -1,13 +1,14 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile } from "../lib/api";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile, searchWorkspaceFiles } from "../lib/api";
 import WorkspaceFileTree from "./WorkspaceFileTree";
 
 vi.mock("../lib/api", () => ({
   createWorkspaceFile: vi.fn().mockResolvedValue({}),
   deleteWorkspaceFile: vi.fn().mockResolvedValue({}),
   renameWorkspaceFile: vi.fn().mockResolvedValue({}),
+  searchWorkspaceFiles: vi.fn().mockResolvedValue({ matches: [] }),
   uploadWorkspaceFile: vi.fn().mockResolvedValue({}),
 }));
 
@@ -15,6 +16,10 @@ describe("WorkspaceFileTree", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     document.body.replaceChildren();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders files, status badges, expansion, and activation contract", async () => {
@@ -59,6 +64,32 @@ describe("WorkspaceFileTree", () => {
 
     expect(host.querySelector("[data-file-path='src/new.ts']")).toBeTruthy();
     expect(host.querySelector("[data-file-path='src/main.ts']")).toBeFalsy();
+
+    await cleanup(root, host);
+  });
+
+  it("filters the tree with file contents from backend search", async () => {
+    vi.useFakeTimers();
+    vi.mocked(searchWorkspaceFiles).mockResolvedValueOnce({ matches: ["src/main.ts"] });
+    const app = document.createElement("pi-app");
+    app.dataset.activeWorkspaceId = "workspace-1";
+    document.body.append(app);
+    const { host, root } = await renderTree();
+    await updateTree();
+
+    const search = host.querySelector<HTMLInputElement>(".tree-search input");
+    await act(async () => {
+      setInputValue(search!, "answer");
+      search!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+      await Promise.resolve();
+    });
+
+    expect(searchWorkspaceFiles).toHaveBeenCalledWith("workspace-1", "answer");
+    expect(host.querySelector("[data-file-path='src/main.ts']")).toBeTruthy();
+    expect(host.querySelector("[data-file-path='src/new.ts']")).toBeFalsy();
 
     await cleanup(root, host);
   });
