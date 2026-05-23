@@ -55,7 +55,6 @@
     "@codemirror/search": "^6.7.0",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.43.0",
-    "@gitgraph/js": "^1.4.0",
     "@lucide/astro": "^1.16.0",
     "@storybook-astro/framework": "1.2.0",
     "@storybook/addon-docs": "10.4.0",
