@@ -38,8 +38,7 @@
     "typecheck": "tsc --noEmit",
     "check": "bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
   },
-  "dependencies": {},
-  "devDependencies": {
+  "dependencies": {
     "@ag-ui/client": "^0.0.53",
     "@astrojs/react": "^5.0.5",
     "@codemirror/commands": "^6.10.3",
@@ -58,13 +57,16 @@
     "@lucide/astro": "^1.16.0",
     "astro": "6.3.3",
     "markdown-it": "^14.1.1",
+    "material-icon-theme": "5.35.0",
     "notyf": "^3.10.0",
     "react": "^19.2.6",
     "react-arborist": "^3.7.0",
     "react-dom": "^19.2.6",
     "shiki": "4.0.2",
     "virtual-scroller": "^1.16.4",
-    "zod": "^4.4.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
     "@storybook-astro/framework": "1.2.0",
     "@storybook/addon-docs": "10.4.0",
     "@storybook/builder-vite": "10.4.0",

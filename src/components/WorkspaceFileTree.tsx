@@ -7,6 +7,7 @@ import {
   uploadWorkspaceFile,
 } from "../lib/api";
 import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../lib/file-tree-model";
+import { resolveMaterialFileIcon } from "../lib/material-file-icons";
 
 type WorkspaceTreeUpdate = { files?: RawFileNode[]; statusMap?: GitStatusMap; selectedPath?: string };
 type Props = { initialFiles?: RawFileNode[]; initialStatusMap?: GitStatusMap };
@@ -193,7 +194,8 @@ function FileTreeRow({ node, style, dragHandle }: any) {
   const isDir = item.kind === "dir";
   const status = item.gitStatus !== "clean" ? item.gitStatus : item.dirtyDescendants ? "dirty" : "clean";
   const classes = ["tree-node", item.kind, status, node.isSelected && "selected"].filter(Boolean).join(" ");
-  const glyph = isDir ? (node.isOpen ? "▾" : "▸") : "·";
+  const glyph = isDir ? (node.isOpen ? "▾" : "▸") : "";
+  const icon = resolveMaterialFileIcon({ name: item.name, path: item.path, kind: item.kind, open: node.isOpen });
 
   const onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if ((event.target as Element).closest(".tree-row-menu")) return;
@@ -230,6 +232,9 @@ function FileTreeRow({ node, style, dragHandle }: any) {
       onContextMenu={onContextMenu}
     >
       <span className="glyph">{glyph}</span>
+      <span className="file-icon" data-icon-name={icon.name}>
+        <img src={icon.url} alt="" aria-hidden="true" draggable={false} />
+      </span>
       <span className="name">{item.name}</span>
       <StatusBadge status={status} />
       <span className="tree-row-menu" role="button" tabIndex={0} aria-label={`actions for ${item.name}`} onClick={onMenuClick}>⋯</span>
