@@ -282,4 +282,30 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(panel.querySelector("[data-action='toggle-git-graph']")?.textContent).toBe("show graph");
     expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
   });
+
+  it("loads git history in 30 commit pages", async () => {
+    const app = await connectPiApp();
+    const panel = document.createElement("div");
+    panel.dataset.gitPanel = "";
+    app.dataset.activeWorkspaceId = "w1";
+    app.gitHistoryLimit = 30;
+    app.gitHistoryHasMore = true;
+    app.append(panel);
+    const commits = Array.from({ length: 60 }, (_, index) => ({
+      hash: `hash${index}`,
+      shortHash: `h${index}`,
+      subject: `commit ${index}`,
+      authorName: "pi",
+      date: "2026-01-01T00:00:00Z",
+      parents: index === 59 ? [] : [`h${index + 1}`],
+      files: [],
+    }));
+    globalThis.fetch = vi.fn(async () => okJson({ commits }));
+
+    await app.loadMoreGitHistory();
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("limit=60"), expect.anything());
+    expect(panel.querySelectorAll(".git-commit-row")).toHaveLength(60);
+    expect(panel.querySelector("[data-action='load-more-git-history']")?.textContent).toBe("load 30 more");
+  });
 });

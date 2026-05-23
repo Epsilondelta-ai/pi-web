@@ -7,6 +7,8 @@ const LANE_WIDTH = 16;
 const GRAPH_PAD_X = 10;
 const ROW_MID_Y = GRAPH_ROW_HEIGHT / 2;
 const LINE_OPACITY = 0.78;
+const GIT_HISTORY_PAGE_SIZE = 30;
+const MAX_GIT_HISTORY_COMMITS = 200;
 
 export const gitHistoryMethods = {
   async showGitHistory() {
@@ -14,8 +16,11 @@ export const gitHistoryMethods = {
     this.ensureGitPanel();
     this.setGitPanelMode("loading");
     try {
-      const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, 30);
+      this.gitHistoryLimit = GIT_HISTORY_PAGE_SIZE;
+      const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, this.gitHistoryLimit);
       this.gitHistoryCommits = commits || [];
+      this.gitHistoryHasMore = this.gitHistoryCommits.length >= this.gitHistoryLimit
+        && this.gitHistoryLimit < MAX_GIT_HISTORY_COMMITS;
       this.renderGitHistory(this.gitHistoryCommits);
       if (this.gitHistoryCommits[0]) await this.selectGitCommit(this.gitHistoryCommits[0].hash);
     } catch (error) {
@@ -74,6 +79,8 @@ export const gitHistoryMethods = {
     panel.innerHTML = [
       `<div class="git-history-grid" data-git-history-grid>`,
       `<div class="git-history-toolbar">`,
+      `<button type="button" data-action="load-more-git-history"`,
+      ` ${this.gitHistoryHasMore ? "" : "disabled"}>load 30 more</button>`,
       `<button type="button" data-action="toggle-git-graph" aria-pressed="${graphCollapsed}"`,
       ` title="toggle git graph lanes">${graphCollapsed ? "show graph" : "hide graph"}</button>`,
       `</div>`,
@@ -91,6 +98,22 @@ export const gitHistoryMethods = {
     for (const commit of commits) list.append(this.createGitCommitRow(commit));
     this.updateGitGraphToggle();
     this.installGitDetailResizer(panel.querySelector("[data-git-history-grid]"));
+  },
+
+  async loadMoreGitHistory() {
+    if (!this.dataset.activeWorkspaceId || !this.gitHistoryHasMore) return;
+    const nextLimit = Math.min((this.gitHistoryLimit || GIT_HISTORY_PAGE_SIZE) + GIT_HISTORY_PAGE_SIZE, MAX_GIT_HISTORY_COMMITS);
+    const button = this.querySelector("[data-action='load-more-git-history']");
+    if (button) button.disabled = true;
+    try {
+      const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, nextLimit);
+      this.gitHistoryLimit = nextLimit;
+      this.gitHistoryCommits = commits || [];
+      this.gitHistoryHasMore = this.gitHistoryCommits.length >= nextLimit && nextLimit < MAX_GIT_HISTORY_COMMITS;
+      this.renderGitHistory(this.gitHistoryCommits);
+    } catch (error) {
+      this.renderGitHistoryError(error?.message || "git history unavailable");
+    }
   },
 
   toggleGitGraph() {
