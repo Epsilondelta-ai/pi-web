@@ -1,12 +1,17 @@
 package piweb
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 type RuntimeStatus struct {
 	Model         string `json:"model,omitempty"`
+	ModelProvider string `json:"modelProvider,omitempty"`
 	FiveHourQuota *int   `json:"fiveHourQuota,omitempty"`
 	WeeklyQuota   *int   `json:"weeklyQuota,omitempty"`
 	CurrentBranch string `json:"currentBranch,omitempty"`
+	Warning       string `json:"warning,omitempty"`
 }
 
 func MockRuntimeStatus() RuntimeStatus {
@@ -39,14 +44,72 @@ func WorkspaceRuntimeStatus(ctx context.Context, root string) (RuntimeStatus, er
 }
 
 func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatus, error) {
-	status := RuntimeStatus{}
-	if model, err := CurrentPiModel(ctx, root); err == nil {
-		status.Model = model
+	status, err := CurrentPiModelStatus(ctx, root)
+	if err != nil {
+		status = RuntimeStatus{}
+		if warning := runtimeAuthWarning(err); warning != "" {
+			status.Warning = warning
+		}
+	}
+	if status.Warning == "" {
+		status.Warning = anthropicSubscriptionAuthWarning(status)
 	}
 	if git, err := RealGitStatus(root); err == nil {
 		status.CurrentBranch = git.Branch
 	}
 	return status, nil
+}
+
+func runtimeAuthWarning(err error) string {
+	if err == nil {
+		return ""
+	}
+	message := strings.TrimSpace(err.Error())
+	lower := strings.ToLower(message)
+	patterns := []string{
+		"authentication failed",
+		"credentials may have expired",
+		"no api key found",
+		"no models available",
+		"no model selected",
+		"models.json error",
+		"oauth",
+		"unauthorized",
+		"invalid_grant",
+		"token expired",
+	}
+	for _, pattern := range patterns {
+		if strings.Contains(lower, pattern) {
+			return message
+		}
+	}
+	return ""
+}
+
+func anthropicSubscriptionAuthWarning(status RuntimeStatus) string {
+	if status.ModelProvider != "anthropic" {
+		return ""
+	}
+	path, err := authPath()
+	if err != nil {
+		return ""
+	}
+	stored, err := readAuthFile(path)
+	if err != nil {
+		return ""
+	}
+	credential, ok := stored["anthropic"]
+	if !ok {
+		return ""
+	}
+	if credential["type"] == "oauth" {
+		return "Anthropic subscription auth is active. Third-party harness usage draws from extra usage and is billed per token, not your Claude plan limits. Manage extra usage at https://claude.ai/settings/usage."
+	}
+	key, _ := credential["key"].(string)
+	if strings.HasPrefix(key, "sk-ant-oat") {
+		return "Anthropic subscription auth is active. Third-party harness usage draws from extra usage and is billed per token, not your Claude plan limits. Manage extra usage at https://claude.ai/settings/usage."
+	}
+	return ""
 }
 
 func WorkspaceRuntimeQuotaStatus(ctx context.Context, root string, model string) RuntimeStatus {

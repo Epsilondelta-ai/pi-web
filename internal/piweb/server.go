@@ -18,6 +18,7 @@ type Config struct {
 	StaticFiles       fs.FS
 	CurrentVersion    string
 	VersionStatus     func(context.Context, string) (VersionStatus, error)
+	PiVersionStatus   func(context.Context) (PiVersionStatus, error)
 }
 
 type Server struct {
@@ -60,6 +61,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
 	s.mux.HandleFunc("GET /api/version", s.versionStatus)
+	s.mux.HandleFunc("GET /api/pi/version", s.piVersionStatus)
 	s.mux.HandleFunc("GET /api/auth/providers", s.authProviders)
 	s.mux.HandleFunc("GET /api/auth/oauth/providers", s.oauthProviders)
 	s.mux.HandleFunc("POST /api/auth/oauth/start", s.startOAuthLogin)

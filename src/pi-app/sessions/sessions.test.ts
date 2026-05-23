@@ -200,9 +200,13 @@ describe("pi-app sessions", () => {
   it("shows the update hint when a newer version is available", async () => {
     const app = await connectPiApp();
     app.renderVersionStatus({ currentVersion: "1.0.0", latestVersion: "1.1.0", updateAvailable: true });
+    app.renderPiVersionStatus({ currentVersion: "0.75.0", latestVersion: "0.75.5", updateAvailable: true });
+    app.renderPiVersionStatus({ currentVersion: "0.75.5", latestVersion: "0.75.5", updateAvailable: true });
+    app.renderPiVersionStatus({ updateAvailable: false });
 
     const button = app.querySelector("[data-action='show-update-tip']");
     expect(button.hidden).toBe(false);
+    expect([...document.querySelectorAll(".session-toast.warning")].some((toast) => toast.textContent.includes("pi 업데이트 가능"))).toBe(true);
     button.click();
     expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
   });

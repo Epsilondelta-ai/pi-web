@@ -12,6 +12,10 @@ const TOAST_MESSAGES = {
     title: "선택지 요청",
     detail: "세션에서 선택지 질문을 요청했습니다.",
   },
+  warning: {
+    title: "경고",
+    detail: "확인이 필요합니다.",
+  },
   error: {
     title: "응답 실패",
     detail: "답변을 받는데 실패했습니다.",
@@ -38,9 +42,35 @@ const BACKEND_CONNECTION_ERROR_PATTERNS = [
   /terminated/i,
 ];
 
+const AUTH_CREDENTIAL_ERROR_PATTERNS = [
+  /authentication\s*failed/i,
+  /credentials?\s+may\s+have\s+expired/i,
+  /no\s+api\s+key\s+found/i,
+  /oauth/i,
+  /unauthorized/i,
+  /invalid_grant/i,
+  /token\s+expired/i,
+];
+
+function detailMessage(detail) {
+  return typeof detail === "string" ? detail : detail?.message || String(detail || "");
+}
+
 function isBackendConnectionError(detail) {
-  const message = typeof detail === "string" ? detail : detail?.message || String(detail || "");
+  const message = detailMessage(detail);
   return BACKEND_CONNECTION_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function isAuthCredentialError(detail) {
+  const message = detailMessage(detail);
+  return AUTH_CREDENTIAL_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function authWarningDetail(detail) {
+  const message = detailMessage(detail).trim();
+  return message
+    ? `OAuth/API 키 인증이 끊겼을 수 있습니다. Settings에서 다시 로그인하세요. (${message})`
+    : "OAuth/API 키 인증이 끊겼을 수 있습니다. Settings에서 다시 로그인하세요.";
 }
 
 function toastText(kind, detail, context) {
@@ -61,6 +91,14 @@ function toastHtml(message) {
     `<span class="toast-line toast-workspace" title="${escapeHtml(message.workspace)}">${escapeHtml(message.workspace)}</span>`,
     `<span class="toast-line toast-session" title="${escapeHtml(message.session)}">${escapeHtml(message.session)}</span>`,
     `<small class="toast-line toast-prompt" title="${escapeHtml(message.prompt)}">${escapeHtml(message.prompt)}</small></span>`,
+  ].join("");
+}
+
+function systemToastHtml(title, detail) {
+  return [
+    `<span class="toast-dot" aria-hidden="true"></span>`,
+    `<span class="toast-copy"><strong>${escapeHtml(title)}</strong>`,
+    `<small class="toast-line toast-prompt" title="${escapeHtml(detail)}">${escapeHtml(detail)}</small></span>`,
   ].join("");
 }
 
@@ -101,6 +139,7 @@ export const toastMethods = {
         types: [
           { type: "success", icon: false, className: "session-toast success" },
           { type: "choice", icon: false, className: "session-toast choice" },
+          { type: "warning", icon: false, className: "session-toast warning" },
           { type: "error", icon: false, className: "session-toast error" },
           { type: "connection", icon: false, className: "session-toast connection" },
         ],
@@ -129,6 +168,46 @@ export const toastMethods = {
     });
     this.syncToastDismissAll();
     return notification;
+  },
+
+  showSystemToast(type, title, detail, key = `${type}:${title}:${detail}`) {
+    this.systemToastKeys ??= new Set();
+    if (this.systemToastKeys.has(key)) return undefined;
+    this.systemToastKeys.add(key);
+    const notification = this.ensureToastRegion().open({
+      type: TOAST_MESSAGES[type] ? type : "warning",
+      message: systemToastHtml(title, detail),
+    });
+    this.syncToastDismissAll();
+    return notification;
+  },
+
+  notifyUpdateAvailable(status) {
+    const current = status?.currentVersion || "unknown";
+    const latest = status?.latestVersion || "latest";
+    this.showSystemToast(
+      "warning",
+      "pi-web 업데이트 가능",
+      `현재 ${current}, 최신 ${latest}. pi-web update 실행 후 pi-web을 재시작하세요.`,
+      `piweb-update:${current}:${latest}`,
+    );
+  },
+
+  notifyPiUpdateAvailable(status) {
+    const current = status?.currentVersion || "unknown";
+    const latest = status?.latestVersion || "latest";
+    const note = status?.note ? ` ${status.note}` : "";
+    this.showSystemToast(
+      "warning",
+      "pi 업데이트 가능",
+      `현재 ${current}, 최신 ${latest}. pi update 실행 후 pi를 재시작하세요.${note}`,
+      `pi-update:${current}:${latest}`,
+    );
+  },
+
+  notifyRuntimeWarning(detail) {
+    const message = authWarningDetail(detail);
+    this.showSystemToast("warning", "인증 경고", message, `auth:${message}`);
   },
 
   dismissToast(toast) {
@@ -206,6 +285,10 @@ export const toastMethods = {
     if (isBackendConnectionError(detail)) {
       this.setConnection?.("err");
       this.showToast("connection", undefined, context);
+      return;
+    }
+    if (isAuthCredentialError(detail)) {
+      this.notifyRuntimeWarning(detail);
       return;
     }
     this.showToast("error", detail, context);

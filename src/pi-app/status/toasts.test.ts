@@ -74,6 +74,38 @@ describe("pi-app toast notifications", () => {
     expect(app.setConnection).toHaveBeenCalledWith("err");
   });
 
+  it("shows system warnings for update and auth credential failures once", async () => {
+    const app = await connectPiApp();
+
+    app.notifyUpdateAvailable({ currentVersion: "1.0.0", latestVersion: "1.1.0" });
+    app.notifyUpdateAvailable({ currentVersion: "1.0.0", latestVersion: "1.1.0" });
+    app.notifyPiUpdateAvailable({ currentVersion: "0.75.0", latestVersion: "0.75.5", note: "security fix" });
+    app.notifyRuntimeWarning("Authentication failed for github-copilot. Credentials may have expired.");
+
+    const warnings = [...document.querySelectorAll(".session-toast.warning")];
+    expect(warnings).toHaveLength(3);
+    expect(warnings[0].textContent).toContain("pi-web 업데이트 가능");
+    expect(warnings[0].textContent).toContain("pi-web update");
+    expect(warnings[1].textContent).toContain("pi 업데이트 가능");
+    expect(warnings[1].textContent).toContain("pi update");
+    expect(warnings[1].textContent).toContain("security fix");
+    expect(warnings[2].textContent).toContain("인증 경고");
+    expect(warnings[2].textContent).toContain("Settings에서 다시 로그인");
+  });
+
+  it("shows auth warnings instead of generic response errors for credential failures", async () => {
+    const app = await connectPiApp();
+    setActiveToastContext(app);
+
+    app.applyEvent({ type: "session.status", payload: { status: "running" } });
+    app.notifyResponseFailure({ message: "No API key found for provider github-copilot" });
+    app.applyEvent({ type: "session.status", payload: { status: "idle" } });
+
+    expect(document.querySelector(".session-toast.warning").textContent).toContain("인증 경고");
+    expect(document.querySelector(".session-toast.error")).toBeNull();
+    expect(document.querySelector(".session-toast.success")).toBeNull();
+  });
+
   it("ignores toast body activation when the dismiss button is clicked", async () => {
     const app = await connectPiApp();
     setActiveToastContext(app);

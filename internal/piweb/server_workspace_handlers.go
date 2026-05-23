@@ -27,6 +27,28 @@ func (s *Server) versionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, status)
 }
+
+func (s *Server) piVersionStatus(w http.ResponseWriter, r *http.Request) {
+	status := MockPiVersionStatus()
+	if s.config.EnablePiExecution {
+		if s.config.PiVersionStatus != nil {
+			resolved, err := s.config.PiVersionStatus(r.Context())
+			if err != nil {
+				status.Error = err.Error()
+			} else {
+				status = resolved
+			}
+		} else {
+			resolved, err := DetectPiVersionStatus(r.Context())
+			if err != nil {
+				status.Error = err.Error()
+			} else {
+				status = resolved
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, status)
+}
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	if path == "" {

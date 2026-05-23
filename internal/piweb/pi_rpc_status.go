@@ -14,6 +14,11 @@ import (
 )
 
 func CurrentPiModel(ctx context.Context, cwd string) (string, error) {
+	status, err := CurrentPiModelStatus(ctx, cwd)
+	return status.Model, err
+}
+
+func CurrentPiModelStatus(ctx context.Context, cwd string) (RuntimeStatus, error) {
 	ctx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 
@@ -24,11 +29,11 @@ func CurrentPiModel(ctx context.Context, cwd string) (string, error) {
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return "", err
+		return RuntimeStatus{}, err
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", err
+		return RuntimeStatus{}, err
 	}
 	stderr, _ := cmd.StderrPipe()
 	var stderrBuf bytes.Buffer
@@ -36,7 +41,7 @@ func CurrentPiModel(ctx context.Context, cwd string) (string, error) {
 		go func() { _, _ = stderrBuf.ReadFrom(stderr) }()
 	}
 	if err := cmd.Start(); err != nil {
-		return "", err
+		return RuntimeStatus{}, err
 	}
 	defer func() {
 		terminateCommandProcessGroup(cmd)
@@ -44,34 +49,39 @@ func CurrentPiModel(ctx context.Context, cwd string) (string, error) {
 	}()
 
 	if _, err := io.WriteString(stdin, `{"id":"state","type":"get_state"}`+"\n"); err != nil {
-		return "", err
+		return RuntimeStatus{}, err
 	}
 	_ = stdin.Close()
 
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
 	for scanner.Scan() {
-		model, matched, err := parseStateModelRPCLine(scanner.Text())
+		status, matched, err := parseStateModelStatusRPCLine(scanner.Text())
 		if err != nil {
-			return "", err
+			return RuntimeStatus{}, err
 		}
 		if matched {
-			return model, nil
+			return status, nil
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", err
+		return RuntimeStatus{}, err
 	}
 	if ctx.Err() != nil {
-		return "", ctx.Err()
+		return RuntimeStatus{}, ctx.Err()
 	}
 	if output := strings.TrimSpace(stderrBuf.String()); output != "" {
-		return "", fmt.Errorf("pi get_state failed: %s", output)
+		return RuntimeStatus{}, fmt.Errorf("pi get_state failed: %s", output)
 	}
-	return "", fmt.Errorf("pi get_state returned no response")
+	return RuntimeStatus{}, fmt.Errorf("pi get_state returned no response")
 }
 
 func parseStateModelRPCLine(line string) (string, bool, error) {
+	status, matched, err := parseStateModelStatusRPCLine(line)
+	return status.Model, matched, err
+}
+
+func parseStateModelStatusRPCLine(line string) (RuntimeStatus, bool, error) {
 	var response struct {
 		ID      string `json:"id"`
 		Type    string `json:"type"`
@@ -87,25 +97,26 @@ func parseStateModelRPCLine(line string) (string, bool, error) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(line), &response); err != nil {
-		return "", false, nil
+		return RuntimeStatus{}, false, nil
 	}
 	if response.ID != "state" || response.Type != "response" || response.Command != "get_state" {
-		return "", false, nil
+		return RuntimeStatus{}, false, nil
 	}
 	if !response.Success {
 		if response.Error == "" {
 			response.Error = "pi get_state failed"
 		}
-		return "", true, fmt.Errorf("%s", response.Error)
+		return RuntimeStatus{}, true, fmt.Errorf("%s", response.Error)
 	}
 	if response.Data.Model == nil {
-		return "", true, nil
+		return RuntimeStatus{}, true, nil
 	}
-	if strings.TrimSpace(response.Data.Model.Name) != "" {
-		return response.Data.Model.Name, true, nil
+	model := strings.TrimSpace(response.Data.Model.Name)
+	if model == "" {
+		model = strings.TrimSpace(response.Data.Model.ID)
 	}
-	if strings.TrimSpace(response.Data.Model.ID) != "" {
-		return response.Data.Model.ID, true, nil
+	if model == "" {
+		model = strings.TrimSpace(response.Data.Model.Provider)
 	}
-	return response.Data.Model.Provider, true, nil
+	return RuntimeStatus{Model: model, ModelProvider: strings.TrimSpace(response.Data.Model.Provider)}, true, nil
 }

@@ -788,6 +788,38 @@ done
 	if err != nil || status.Model != "glm-test" || status.CurrentBranch == "" {
 		t.Fatalf("model status=%+v err=%v", status, err)
 	}
+	writeFakePi(t, root, `#!/bin/sh
+while IFS= read -r line; do
+  case "$line" in
+    *get_state*) echo '{"id":"state","type":"response","command":"get_state","success":false,"error":"Authentication failed for github-copilot. Credentials may have expired."}' ;;
+    *) exit 0 ;;
+  esac
+done
+`)
+	status, err = WorkspaceRuntimeModelStatus(context.Background(), root)
+	if err != nil || !strings.Contains(status.Warning, "Authentication failed") {
+		t.Fatalf("auth warning status=%+v err=%v", status, err)
+	}
+	writeFakePi(t, root, `#!/bin/sh
+while IFS= read -r line; do
+  case "$line" in
+    *get_state*) echo '{"id":"state","type":"response","command":"get_state","success":false,"error":"plain failure"}' ;;
+    *) exit 0 ;;
+  esac
+done
+`)
+	status, err = WorkspaceRuntimeModelStatus(context.Background(), root)
+	if err != nil || status.Warning != "" {
+		t.Fatalf("unexpected warning status=%+v err=%v", status, err)
+	}
+	writeFakePi(t, root, `#!/bin/sh
+while IFS= read -r line; do
+  case "$line" in
+    *get_state*) echo '{"id":"state","type":"response","command":"get_state","success":true,"data":{"model":{"id":"glm-test"}}}' ;;
+    *) exit 0 ;;
+  esac
+done
+`)
 	t.Setenv("PI_WEB_5H_QUOTA", "42")
 	status = WorkspaceRuntimeQuotaStatus(context.Background(), root, "unknown")
 	if status.FiveHourQuota == nil || *status.FiveHourQuota != 42 {
