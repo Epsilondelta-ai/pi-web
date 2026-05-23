@@ -164,6 +164,7 @@ export const settingsMethods = {
   fillSettingsForm() {
     const form = this.querySelector("[data-settings-form]");
     if (!form || !this.settingsState) return;
+    this.syncSecureContextSettingsControls();
     const scope = form.querySelector("[name='scope']")?.value || "project";
     const scopedSettings = this.settingsState[scope] || {};
     const effective = this.settingsState.effective || {};
@@ -304,11 +305,13 @@ export const settingsMethods = {
   },
 
   syncSettingsStateToApp() {
+    const allowSpeechInput = this.speechInputAllowed?.() === true;
     this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
-    this.enableSpeechInput = this.settingsState?.effective?.enableSpeechInput === true;
+    this.enableSpeechInput = allowSpeechInput && this.settingsState?.effective?.enableSpeechInput === true;
     if (!this.enableSpeechInput) this.stopSpeechInput?.();
     this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
     this.syncReadAloudControls?.();
+    this.syncSecureContextSettingsControls();
     this.syncSpeechInputControls?.();
   },
 
@@ -316,9 +319,18 @@ export const settingsMethods = {
     this.syncSettingsStateToApp();
   },
 
+  syncSecureContextSettingsControls() {
+    const allowSpeechInput = this.speechInputAllowed?.() === true;
+    for (const field of this.querySelectorAll("[data-secure-context-only='https']")) {
+      field.hidden = !allowSpeechInput;
+    }
+  },
+
   settingsPatchFromForm(form) {
     const patch = {};
+    const allowSpeechInput = this.speechInputAllowed?.() === true;
     for (const field of SETTINGS_FIELDS) {
+      if (field.path === "enableSpeechInput" && !allowSpeechInput) continue;
       const control = form.querySelector(`[data-setting='${field.path}']`);
       if (!control) continue;
       setPatchValue(patch, field.path, this.settingValueFromControl(control, field));

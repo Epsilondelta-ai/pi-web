@@ -30,8 +30,8 @@ describe("pi-app controls", () => {
       configurable: true,
       value: MockSpeechRecognition,
     });
-    Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
     const app = await connectPiApp();
+    app.speechInputAllowed = () => true;
     app.enableSpeechInput = true;
     app.speechLanguage = "ko-KR";
     app.syncSpeechInputControls();
@@ -61,7 +61,6 @@ describe("pi-app controls", () => {
     expect(recognition.stop).toHaveBeenCalled();
     expect(mic.classList.contains("listening")).toBe(false);
     Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
-    Object.defineProperty(window, "isSecureContext", { configurable: true, value: undefined });
     vi.useRealTimers();
   });
 
@@ -199,6 +198,7 @@ describe("pi-app controls", () => {
       },
     }));
     const app = await connectPiApp();
+    app.speechInputAllowed = () => true;
     app.apiConnected = true;
     app.dataset.activeWorkspaceId = "w1";
 
@@ -245,6 +245,48 @@ describe("pi-app controls", () => {
       scope: "project",
       settings: { defaultModel: "my-model", compaction: { enabled: false }, readResponsesAloud: true, enableSpeechInput: true, speechLanguage: "ja-JP" },
     });
+  });
+
+  it("hides voice input setting and skips saving it outside https", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async (url, options = {}) => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => {
+        if (String(url).endsWith("/auth/providers")) return { providers: [] };
+        if (String(url).endsWith("/auth/oauth/providers")) return { providers: [] };
+        if (String(url).endsWith("/models")) return { providers: [] };
+        if (String(url).endsWith("/settings") && options.method === "PUT") {
+          return { settings: { project: JSON.parse(options.body).settings, effective: {}, paths: {} } };
+        }
+        if (String(url).endsWith("/settings")) {
+          return {
+            settings: {
+              global: {},
+              project: {},
+              effective: { enableSpeechInput: true, speechLanguage: "ko-KR" },
+              paths: {},
+            },
+          };
+        }
+        return {};
+      },
+    }));
+    const app = await connectPiApp();
+    app.speechInputAllowed = () => false;
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+
+    await app.openSettingsModal();
+    const field = app.querySelector("[data-setting='enableSpeechInput']").closest(".settings-field");
+    expect(field.hidden).toBe(true);
+    expect(app.enableSpeechInput).toBe(false);
+    expect(app.querySelector(".mic-btn").hidden).toBe(true);
+
+    await app.saveSettingsForm(new Event("submit"));
+    const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
+    expect(JSON.parse(putCall[1].body).settings).not.toHaveProperty("enableSpeechInput");
   });
 
   it("sets app height from the visual viewport for mobile browser chrome", async () => {

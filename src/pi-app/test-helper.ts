@@ -125,7 +125,8 @@ function settingsSelect(name, values, custom = false) {
 }
 
 function settingsCheckbox(name) {
-  return `<label class="settings-field"><span class="settings-checkbox"><input type="checkbox" data-setting="${name}" /> <span>Enabled</span></span><small></small></label>`;
+  const secureOnly = name === "enableSpeechInput" ? " data-secure-context-only=\"https\" hidden" : "";
+  return `<label class="settings-field"${secureOnly}><span class="settings-checkbox"><input type="checkbox" data-setting="${name}" /> <span>Enabled</span></span><small></small></label>`;
 }
 
 export function installEmptySessionFixture() {

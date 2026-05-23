@@ -296,7 +296,11 @@ function isToolCollapsed(msg) {
         </details>
         <div class="settings-grid">
           {settingsFields.map((field) => (
-            <label class="settings-field">
+            <label
+              class="settings-field"
+              data-secure-context-only={field.path === "enableSpeechInput" ? "https" : undefined}
+              hidden={field.path === "enableSpeechInput"}
+            >
               <span>{field.label}</span>
                 {field.type === "text" ? (
                 <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />

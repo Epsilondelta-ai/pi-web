@@ -290,13 +290,17 @@ export const inputMethods = {
     this.startSpeechInput();
   },
 
+  speechInputAllowed() {
+    return window.location?.protocol === "https:";
+  },
+
   startSpeechInput() {
     if (!this.enableSpeechInput || !this.prompt) return;
-    if (window.isSecureContext === false) {
+    if (this.speechInputAllowed?.() !== true) {
       this.showSystemToast?.(
         "warning",
         "음성 입력 HTTPS 필요",
-        "음성 입력은 HTTPS 또는 localhost에서만 사용할 수 있습니다.",
+        "음성 입력은 HTTPS에서만 사용할 수 있습니다.",
         "speech-input:insecure-context",
       );
       return;
@@ -391,7 +395,7 @@ export const inputMethods = {
 
   syncSpeechInputControls() {
     if (!this.micButton) return;
-    this.micButton.hidden = !this.enableSpeechInput || window.isSecureContext === false;
+    this.micButton.hidden = !this.enableSpeechInput || this.speechInputAllowed?.() !== true;
     this.micButton.classList.toggle("listening", this.speechListening);
     this.micButton.setAttribute("aria-pressed", this.speechListening ? "true" : "false");
     this.micButton.setAttribute("aria-label", this.speechListening ? "stop voice input" : "start voice input");
