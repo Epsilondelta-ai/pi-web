@@ -213,8 +213,11 @@ function renderGraphSvg(layout) {
     });
     row.after.forEach((hash, lane) => {
       if (!hash) return;
+      const existedBefore = !!row.before[lane];
+      const startsAtCurrentNode = lane === row.lane;
+      if (!existedBefore && !startsAtCurrentNode) return;
       const x = laneX(lane);
-      paths.push(linePath(x, lane === row.lane ? yMid : yTop, x, yBottom, laneColor(lane), 0.62));
+      paths.push(linePath(x, startsAtCurrentNode ? yMid : yTop, x, yBottom, laneColor(lane), 0.62));
     });
     row.parentLanes.forEach((parentLane, index) => {
       if (parentLane === row.lane) return;
