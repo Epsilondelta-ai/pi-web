@@ -14,7 +14,7 @@ export const gitHistoryMethods = {
     this.ensureGitPanel();
     this.setGitPanelMode("loading");
     try {
-      const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, 120);
+      const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, 30);
       this.gitHistoryCommits = commits || [];
       this.renderGitHistory(this.gitHistoryCommits);
       if (this.gitHistoryCommits[0]) await this.selectGitCommit(this.gitHistoryCommits[0].hash);
