@@ -375,6 +375,49 @@ export const messageMethods = {
     panel?.querySelectorAll("button, input").forEach((item) => item.disabled = true);
   },
 
+  async copyCodeBlock(button) {
+    const code = button?.closest?.(".code-block")?.querySelector?.("pre code")?.textContent ?? "";
+    if (!code) return;
+    button.disabled = true;
+    try {
+      await this.copyTextToClipboard(code);
+      this.markCodeCopyButton(button, "copied");
+    } catch {
+      this.markCodeCopyButton(button, "failed");
+    } finally {
+      button.disabled = false;
+    }
+  },
+
+  async copyTextToClipboard(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    const copied = document.execCommand?.("copy");
+    textarea.remove();
+    if (copied === false) throw new Error("copy failed");
+  },
+
+  markCodeCopyButton(button, status) {
+    if (!button) return;
+    if (button.copyResetTimer) window.clearTimeout(button.copyResetTimer);
+    button.dataset.copyStatus = status;
+    button.textContent = status === "copied" ? "copied" : "failed";
+    button.copyResetTimer = window.setTimeout(() => {
+      button.dataset.copyStatus = "";
+      button.textContent = "copy";
+      button.copyResetTimer = undefined;
+    }, 1400);
+  },
+
   simpleMessage(kind, prefix, text) {
     const row = document.createElement("div");
     row.className = "msg";

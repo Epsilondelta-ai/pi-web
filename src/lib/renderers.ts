@@ -12,6 +12,9 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
   return self.renderToken(tokens, index, options);
 };
 
+markdown.renderer.rules.fence = (tokens, index) => renderCodeBlock(tokens[index].content, languageFromInfo(tokens[index].info));
+markdown.renderer.rules.code_block = (tokens, index) => renderCodeBlock(tokens[index].content);
+
 export function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -19,6 +22,21 @@ export function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function languageFromInfo(info) {
+  const language = String(info || "").trim().split(/\s+/)[0] || "";
+  return language.replace(/[^\w-]/g, "");
+}
+
+function renderCodeBlock(code, language = "") {
+  const classAttr = language ? ` class="language-${escapeHtml(language)}"` : "";
+  return [
+    '<div class="code-block">',
+    '<button type="button" class="code-copy-btn" data-action="copy-code" aria-label="copy code" title="copy code">copy</button>',
+    `<pre><code${classAttr}>${escapeHtml(code)}</code></pre>`,
+    "</div>\n",
+  ].join("");
 }
 
 export function renderMarkdownBody(text) {

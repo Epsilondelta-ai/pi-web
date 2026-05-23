@@ -121,6 +121,23 @@ describe("pi-app messages", () => {
     ]);
   });
 
+  it("copies markdown code blocks with button feedback", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    app.appendMessage({ kind: "pi", text: ["```ts", "const ok = true;", "```"].join("\n") });
+
+    const button = app.querySelector(".code-copy-btn");
+    button.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith("const ok = true;\n");
+    expect(button.dataset.copyStatus).toBe("copied");
+    expect(button.textContent).toBe("copied");
+  });
+
   it("does not append new deltas to an old streaming row", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
