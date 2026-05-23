@@ -256,17 +256,7 @@ pre.ascii-banner .dim { color: var(--fg-3); }
   color: var(--accent);
   outline: none;
 }
-.git-commit-scroll {
-  display: grid;
-  grid-template-columns: minmax(54px, auto) minmax(0, 1fr);
-  min-height: 0;
-  overflow: auto;
-  border-bottom: 1px solid var(--border-dim);
-}
-.git-commit-scroll.graph-collapsed { grid-template-columns: 0 minmax(0, 1fr); }
-.git-graph-library { min-width: 54px; }
-.git-commit-scroll.graph-collapsed .git-graph-library { min-width: 0; overflow: hidden; }
-.git-graph-library svg { display: block; overflow: visible; }
+.git-commit-scroll { min-height: 0; overflow: auto; border-bottom: 1px solid var(--border-dim); }
 .git-commit-list { min-width: 0; overflow: visible; }
 .git-detail-resizer { cursor: row-resize; border-top: 1px solid var(--border-dim); border-bottom: 1px solid var(--border-dim); background: linear-gradient(90deg, transparent, var(--border), transparent); touch-action: none; }
 .git-detail-resizer:hover,

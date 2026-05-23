@@ -255,7 +255,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.applyLoadedSession({ id: "s-default", title: "default" }, undefined, "");
   });
 
-  it("toggles git graph lanes while keeping commit rows visible", async () => {
+  it("renders git history as a commit-only list", async () => {
     const app = await connectPiApp();
     const panel = document.createElement("div");
     panel.dataset.gitPanel = "";
@@ -268,19 +268,13 @@ describe("workspace folder/render/bootstrap coverage", () => {
         subject: "initial",
         authorName: "pi",
         date: "2026-01-01T00:00:00Z",
-        parents: ["p0", "p1", "p2", "p3", "p4", "p5", "p6"],
+        parents: ["p0", "p1"],
         files: [],
       },
     ]);
 
-    expect(panel.querySelector("[data-git-graph-library]")).not.toBeNull();
-    expect(panel.querySelector(".git-graph-svg")?.getAttribute("width")).toBe("116");
-    expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
-    expect(panel.querySelector("[data-git-commit-scroll]")?.classList.contains("graph-collapsed")).toBe(false);
-
-    app.toggleGitGraph();
-    expect(panel.querySelector("[data-git-commit-scroll]")?.classList.contains("graph-collapsed")).toBe(true);
-    expect(panel.querySelector("[data-action='toggle-git-graph']")?.textContent).toBe("show graph");
+    expect(panel.querySelector("[data-git-graph-library]")).toBeNull();
+    expect(panel.querySelector("[data-action='toggle-git-graph']")).toBeNull();
     expect(panel.querySelector(".git-commit-row")?.textContent).toContain("initial");
   });
 

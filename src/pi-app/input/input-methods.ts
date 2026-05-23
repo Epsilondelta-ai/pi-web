@@ -174,7 +174,6 @@ export const inputMethods = {
     if (action === "show-file-tree") this.showFileTreePanel?.();
     if (action === "show-git-history") this.showGitHistory?.();
     if (action === "load-more-git-history") this.loadMoreGitHistory?.();
-    if (action === "toggle-git-graph") this.toggleGitGraph?.();
     if (action === "select-git-commit") this.selectGitCommit?.(actionTarget.dataset.hash);
     if (action === "refresh-tree") {
       this.refreshTree();
