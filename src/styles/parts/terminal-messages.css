@@ -168,6 +168,22 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.read-response-btn {
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-2);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+.read-response-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .msg .body.markdown-body { white-space: normal; }
 .msg .body.markdown-body > :first-child { margin-top: 0; }
 .msg .body.markdown-body > :last-child { margin-bottom: 0; }

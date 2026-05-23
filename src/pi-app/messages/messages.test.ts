@@ -121,6 +121,39 @@ describe("pi-app messages", () => {
     ]);
   });
 
+  it("reads assistant responses aloud when enabled and exposes replay", async () => {
+    const speak = vi.fn();
+    const cancel = vi.fn();
+    function Utterance(text) {
+      this.text = text;
+      this.lang = "";
+    }
+    vi.stubGlobal("speechSynthesis", { speak, cancel });
+    vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+    Object.defineProperty(navigator, "language", { value: "ko-KR", configurable: true });
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "pi", text: "not spoken" });
+    expect(speak).not.toHaveBeenCalled();
+    expect(app.querySelector("[data-action='read-response']")).toBeNull();
+
+    app.readAloudToggle.checked = true;
+    app.readAloudToggle.dispatchEvent(new Event("change"));
+    expect(app.querySelector("[data-action='read-response']").textContent).toBe("Read again");
+
+    app.appendMessage({ kind: "pi", text: "**spoken** response" });
+    expect(cancel).toHaveBeenCalled();
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: "spoken response", lang: "ko-KR" }));
+
+    app.querySelector("[data-action='read-response']").click();
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ text: "not spoken", lang: "ko-KR" }));
+
+    app.readAloudToggle.checked = false;
+    app.readAloudToggle.dispatchEvent(new Event("change"));
+    expect(app.querySelector("[data-action='read-response']")).toBeNull();
+  });
+
   it("copies markdown code blocks with button feedback", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });

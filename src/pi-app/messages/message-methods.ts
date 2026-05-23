@@ -182,9 +182,9 @@ export const messageMethods = {
   },
 
   notifyPiMessageCommitted(message) {
-    if (message.kind === "pi" && !this.deferTranscriptRender && parseFallbackChoices(message.text).length) {
-      this.notifyChoiceRequested?.();
-    }
+    if (message.kind !== "pi") return;
+    if (this.isReadAloudEnabled()) this.speakAssistantText(message.text);
+    if (!this.deferTranscriptRender && parseFallbackChoices(message.text).length) this.notifyChoiceRequested?.();
   },
 
   attachThinkingStream(messageRow) {
@@ -299,6 +299,7 @@ export const messageMethods = {
     messageRow.dataset.rawText = message.text;
     body.classList.add("markdown-body");
     body.innerHTML = renderPiBody(choices.length ? text : message.text);
+    this.syncReadAloudButton(messageRow);
     if (!choices.length) return messageRow;
 
     const fragment = document.createDocumentFragment();
@@ -352,9 +353,9 @@ export const messageMethods = {
     const custom = document.createElement("div");
     custom.className = "choice-custom";
     custom.innerHTML = [
-      `<input type="text" placeholder="직접 답변 입력" data-choice-custom-input>`,
+      `<input type="text" placeholder="Type a custom answer" data-choice-custom-input>`,
       `<button type="button" data-action="fallback-choice-custom"`,
-      ` data-choice-id="${escapeHtml(choice.id)}">보내기</button>`,
+      ` data-choice-id="${escapeHtml(choice.id)}">Send</button>`,
     ].join("");
     panel.append(custom);
     return panel;
@@ -376,6 +377,56 @@ export const messageMethods = {
     const panel = panels.find((item) => item.dataset.choiceId === choiceId);
     panel?.classList.add("answered");
     panel?.querySelectorAll("button, input").forEach((item) => item.disabled = true);
+  },
+
+  isReadAloudEnabled() {
+    return !!this.readAloudToggle?.checked;
+  },
+
+  syncReadAloudControls() {
+    const nodes = new Set(this.termInner?.querySelectorAll(".msg[data-kind='pi']") || []);
+    for (const item of this.transcriptItems || []) {
+      for (const node of item?.nodes || []) {
+        if (node?.matches?.(".msg[data-kind='pi']")) nodes.add(node);
+      }
+    }
+    for (const node of nodes) this.syncReadAloudButton(node);
+    if (!this.isReadAloudEnabled()) globalThis.speechSynthesis?.cancel?.();
+  },
+
+  syncReadAloudButton(messageRow) {
+    if (!messageRow?.matches?.(".msg[data-kind='pi']")) return;
+    messageRow.querySelector("[data-action='read-response']")?.remove();
+    if (!this.isReadAloudEnabled()) return;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "read-response-btn";
+    button.dataset.action = "read-response";
+    button.textContent = "Read again";
+    messageRow.append(button);
+  },
+
+  readAssistantMessageNode(messageRow) {
+    if (!messageRow) return;
+    this.speakAssistantText(messageRow.dataset.rawText || messageRow.querySelector(".body")?.textContent || "");
+  },
+
+  speakAssistantText(text) {
+    const content = this.speechTextFromAssistantText(text);
+    const synth = globalThis.speechSynthesis;
+    if (!content || !synth || typeof SpeechSynthesisUtterance === "undefined") return;
+    synth.cancel?.();
+    const utterance = new SpeechSynthesisUtterance(content);
+    utterance.lang = navigator.language || "en-US";
+    synth.speak?.(utterance);
+  },
+
+  speechTextFromAssistantText(text) {
+    const visibleText = stripFallbackChoices(text || "").trim();
+    if (!visibleText) return "";
+    const scratch = document.createElement("div");
+    scratch.innerHTML = renderPiBody(visibleText);
+    return (scratch.textContent || visibleText).replace(/\s+/g, " ").trim();
   },
 
   async copyCodeBlock(button) {

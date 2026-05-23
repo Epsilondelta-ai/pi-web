@@ -66,6 +66,7 @@ export function installPiAppFixture() {
         </div>
         <div class="attach-chips" hidden></div>
         <textarea class="prompt-textarea"></textarea>
+        <label class="read-aloud-toggle"><input type="checkbox" data-read-aloud /> <span>Read responses aloud</span></label>
         <button class="stop-btn" hidden>stop</button>
         <button class="send-btn" disabled>send</button>
         <button class="attach-btn">attach</button>
@@ -130,6 +131,7 @@ export function installEmptySessionFixture() {
         <div class="slash-pop" hidden></div>
         <div class="attach-chips" hidden></div>
         <textarea class="prompt-textarea"></textarea>
+        <label class="read-aloud-toggle"><input type="checkbox" data-read-aloud /> <span>Read responses aloud</span></label>
         <button class="stop-btn" hidden>stop</button>
         <button class="send-btn">send</button>
         <button class="attach-btn">attach</button>

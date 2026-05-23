@@ -25,6 +25,7 @@ class PiApp extends HTMLElement {
     this.sendButton = this.querySelector(".send-btn");
     this.stopButton = this.querySelector(".stop-btn");
     this.attachButton = this.querySelector(".attach-btn");
+    this.readAloudToggle = this.querySelector("[data-read-aloud]");
     this.fileInput = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
     this.slashPopover = this.querySelector(".slash-pop");
@@ -132,6 +133,7 @@ class PiApp extends HTMLElement {
     });
     this.attachButton?.addEventListener("click", () => this.fileInput?.click());
     this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files));
+    this.readAloudToggle?.addEventListener("change", () => this.syncReadAloudControls?.());
     this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
     window.addEventListener("pi-workspace-tree:refresh", (event) => {
       const workspaceId = this.dataset.activeWorkspaceId;
