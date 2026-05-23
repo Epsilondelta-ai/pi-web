@@ -134,7 +134,7 @@ func TestNewPiStoreAddsTeamChildSessions(t *testing.T) {
 	if err := os.MkdirAll(teamSessionDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	teamSessionFile := writeTestSessionFile(t, teamSessionDir, "team-child", "2026-01-01T00:00:01.000Z", "/tmp/project")
+	teamSessionFile := writeTestSessionFile(t, teamSessionDir, "team-child", "2026-01-01T00:00:01.000Z", "/tmp/project-worker")
 	config := fmt.Sprintf(
 		`{"version":1,"teamId":"parent","taskListId":"parent","leadName":"team-lead","createdAt":"now","updatedAt":"now","members":[{"name":"alice","role":"worker","status":"online","addedAt":"now","sessionFile":%q}]}`,
 		teamSessionFile,
@@ -148,9 +148,55 @@ func TestNewPiStoreAddsTeamChildSessions(t *testing.T) {
 		t.Fatal(err)
 	}
 	workspaces := store.Workspaces()
+	if len(workspaces) != 1 || workspaces[0].Path != "/tmp/project" {
+		t.Fatalf("expected team child to stay under parent workspace, got %#v", workspaces)
+	}
 	child := findSession(t, workspaces[0].Sessions, "team-child")
 	if child.ParentID != "parent" || child.Kind != SessionKindTeam {
 		t.Fatalf("unexpected team child metadata: %#v", child)
+	}
+}
+
+func TestNewPiStoreSeparatesSameBasenameWorkspaces(t *testing.T) {
+	root := t.TempDir()
+	firstDir := filepath.Join(root, "first")
+	secondDir := filepath.Join(root, "second")
+	if err := os.MkdirAll(firstDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(secondDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	firstWorkspace := filepath.Join(firstDir, "project")
+	secondWorkspace := filepath.Join(secondDir, "project")
+	firstSessionDir := filepath.Join(root, "--first-project--")
+	secondSessionDir := filepath.Join(root, "--second-project--")
+	if err := os.MkdirAll(firstSessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(secondSessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	writeTestSessionFile(t, firstSessionDir, "first-session", "2026-01-01T00:00:00.000Z", firstWorkspace)
+	writeTestSessionFile(t, secondSessionDir, "second-session", "2026-01-01T00:00:01.000Z", secondWorkspace)
+
+	store, err := NewPiStore(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaces := store.Workspaces()
+	if len(workspaces) != 2 {
+		t.Fatalf("expected separate workspaces for same basename, got %#v", workspaces)
+	}
+	paths := map[string]Workspace{}
+	for _, workspace := range workspaces {
+		paths[workspace.Path] = workspace
+	}
+	for _, path := range []string{firstWorkspace, secondWorkspace} {
+		workspace, ok := paths[path]
+		if !ok || len(workspace.Sessions) != 1 || workspace.ID == "project" {
+			t.Fatalf("expected hashed workspace for %s, got %#v", path, workspaces)
+		}
 	}
 }
 

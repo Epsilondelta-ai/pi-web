@@ -1,6 +1,8 @@
 package piweb
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -54,6 +56,8 @@ func NewPiStore(sessionDir string) (*Store, error) {
 		return nil, err
 	}
 	parsed = withTeamChildSessions(parsed)
+	parentCWD := parentSessionCWD(parsed)
+	workspaceIDs := workspaceIDsForSessions(parsed, parentCWD)
 	byWorkspace := map[string]*Workspace{}
 	workspacePath := map[string]string{}
 	sessionFiles := map[string]string{}
@@ -62,12 +66,13 @@ func NewPiStore(sessionDir string) (*Store, error) {
 	conversations := map[string][]Message{}
 	workspaceLastUsed := map[string]time.Time{}
 	for _, item := range parsed {
-		id := workspaceIDFromPath(item.Header.CWD)
+		workspaceRoot := workspaceRootForSession(item, parentCWD)
+		id := workspaceIDs[workspaceRoot]
 		workspace, ok := byWorkspace[id]
 		if !ok {
-			workspace = &Workspace{ID: id, Name: filepath.Base(item.Header.CWD), Path: item.Header.CWD, LastUsed: item.Session.LastUsed}
+			workspace = &Workspace{ID: id, Name: filepath.Base(workspaceRoot), Path: workspaceRoot, LastUsed: item.Session.LastUsed}
 			byWorkspace[id] = workspace
-			workspacePath[id] = item.Header.CWD
+			workspacePath[id] = workspaceRoot
 			workspaceSessionDir[id] = parsedWorkspaceSessionDir(sessionDir, item.File)
 		}
 		if lastUsedAt, ok := workspaceLastUsed[id]; !ok || item.ModTime.After(lastUsedAt) {
@@ -99,6 +104,56 @@ func NewPiStore(sessionDir string) (*Store, error) {
 		refreshDisabledWorkspace: map[string]bool{},
 	}, nil
 }
+func parentSessionCWD(sessions []ParsedSession) map[string]string {
+	parents := map[string]string{}
+	for _, item := range sessions {
+		if item.Session.ParentID == "" && item.Header.ID != "" && item.Header.CWD != "" {
+			parents[item.Header.ID] = item.Header.CWD
+		}
+	}
+	return parents
+}
+
+func workspaceRootForSession(item ParsedSession, parentCWD map[string]string) string {
+	if item.Session.ParentID != "" {
+		if cwd := parentCWD[item.Session.ParentID]; cwd != "" {
+			return cwd
+		}
+	}
+	return item.Header.CWD
+}
+
+func workspaceIDsForSessions(sessions []ParsedSession, parentCWD map[string]string) map[string]string {
+	baseRoots := map[string]map[string]struct{}{}
+	for _, item := range sessions {
+		root := workspaceRootForSession(item, parentCWD)
+		base := workspaceIDFromPath(root)
+		if baseRoots[base] == nil {
+			baseRoots[base] = map[string]struct{}{}
+		}
+		baseRoots[base][root] = struct{}{}
+	}
+	ids := map[string]string{}
+	for _, item := range sessions {
+		root := workspaceRootForSession(item, parentCWD)
+		if ids[root] != "" {
+			continue
+		}
+		base := workspaceIDFromPath(root)
+		if len(baseRoots[base]) > 1 {
+			ids[root] = base + "-" + shortPathHash(root)
+		} else {
+			ids[root] = base
+		}
+	}
+	return ids
+}
+
+func shortPathHash(path string) string {
+	sum := sha1.Sum([]byte(filepath.Clean(path)))
+	return hex.EncodeToString(sum[:])[:8]
+}
+
 func (s *Store) saveWorkspaceRecentsLocked() {
 	paths := make([]string, 0, len(s.workspaces))
 	for _, workspace := range s.workspaces {
