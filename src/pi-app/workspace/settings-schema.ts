@@ -10,6 +10,7 @@ export const SETTINGS_FIELDS = [
   { path: "followUpMode", label: "Follow-up mode", type: "select", values: ["one-at-a-time", "all"] },
   { path: "hideThinkingBlock", label: "Hide thinking", type: "boolean" },
   { path: "readResponsesAloud", label: "Read responses aloud", type: "checkbox" },
+  { path: "enableSpeechInput", label: "Voice input", type: "checkbox" },
   { path: "speechLanguage", label: "Speech language", type: "speechLanguage" },
   { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
 ] as const;
@@ -48,6 +49,7 @@ const settingsObjectSchema = z.object({
   transport: transportSchema.optional(),
   hideThinkingBlock: z.boolean().optional(),
   readResponsesAloud: z.boolean().optional(),
+  enableSpeechInput: z.boolean().optional(),
   speechLanguage: speechLanguageSchema.optional(),
   collapseChangelog: z.boolean().optional(),
   quietStartup: z.boolean().optional(),
@@ -86,6 +88,7 @@ export const settingsPatchSchema = z.object({
   transport: transportSchema.nullable().optional(),
   hideThinkingBlock: nullishBoolean,
   readResponsesAloud: nullishBoolean,
+  enableSpeechInput: nullishBoolean,
   speechLanguage: speechLanguageSchema.nullable().optional(),
   collapseChangelog: nullishBoolean,
   quietStartup: nullishBoolean,

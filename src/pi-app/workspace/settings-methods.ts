@@ -38,6 +38,13 @@ function customInputFor(control) {
 }
 
 export const settingsMethods = {
+  async loadWorkspaceSettingsState(workspaceId = this.dataset.activeWorkspaceId) {
+    if (!workspaceId || !this.apiConnected) return;
+    const { settings } = await getWorkspaceSettings(workspaceId);
+    this.settingsState = parseWorkspaceSettings(settings);
+    this.syncSettingsStateToApp();
+  },
+
   async openSettingsModal() {
     const workspaceId = this.dataset.activeWorkspaceId;
     this.settingsModal?.removeAttribute("hidden");
@@ -79,7 +86,7 @@ export const settingsMethods = {
       this.fillFallbackModelControls();
     }
     this.fillSettingsForm();
-    this.syncReadAloudFromSettingsState();
+    this.syncSettingsStateToApp();
     const errors = [authResult, oauthResult, modelsResult]
       .filter((result) => result.status === "rejected")
       .map((result) => result.reason instanceof Error ? result.reason.message : String(result.reason));
@@ -287,7 +294,7 @@ export const settingsMethods = {
       const { settings } = await saveWorkspaceSettings(workspaceId, scope, patch);
       this.settingsState = parseWorkspaceSettings(settings);
       this.fillSettingsForm();
-      this.syncReadAloudFromSettingsState();
+      this.syncSettingsStateToApp();
       this.setSettingsStatus("saved");
       void this.loadRuntimeStatus?.(workspaceId);
     } catch (error) {
@@ -296,10 +303,17 @@ export const settingsMethods = {
     }
   },
 
-  syncReadAloudFromSettingsState() {
+  syncSettingsStateToApp() {
     this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
+    this.enableSpeechInput = this.settingsState?.effective?.enableSpeechInput === true;
+    if (!this.enableSpeechInput) this.stopSpeechInput?.();
     this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
     this.syncReadAloudControls?.();
+    this.syncSpeechInputControls?.();
+  },
+
+  syncReadAloudFromSettingsState() {
+    this.syncSettingsStateToApp();
   },
 
   settingsPatchFromForm(form) {

@@ -9,6 +9,7 @@ describe("settings schema", () => {
     expect(paths).toContain("compaction.enabled");
     expect(paths).toContain("enableSkillCommands");
     expect(paths).toContain("readResponsesAloud");
+    expect(paths).toContain("enableSpeechInput");
     expect(paths).toContain("speechLanguage");
     expect(paths).not.toContain("theme");
     expect(paths).not.toContain("terminal.imageWidthCells");
@@ -20,11 +21,11 @@ describe("settings schema", () => {
     expect(parseWorkspaceSettings({
       global: { theme: "dark", customSetting: "keep" },
       project: { terminal: { showImages: true } },
-      effective: { transport: "auto", readResponsesAloud: true, speechLanguage: "ko-KR", terminal: { imageWidthCells: 80 } },
+      effective: { transport: "auto", readResponsesAloud: true, enableSpeechInput: true, speechLanguage: "ko-KR", terminal: { imageWidthCells: 80 } },
       paths: { global: "/home/me/.pi/agent/settings.json", project: "/repo/.pi/settings.json" },
     })).toMatchObject({
       global: { customSetting: "keep" },
-      effective: { transport: "auto", readResponsesAloud: true, speechLanguage: "ko-KR" },
+      effective: { transport: "auto", readResponsesAloud: true, enableSpeechInput: true, speechLanguage: "ko-KR" },
     });
   });
 
@@ -43,6 +44,7 @@ describe("settings schema", () => {
       defaultProvider: null,
       transport: "sse",
       readResponsesAloud: true,
+      enableSpeechInput: true,
       speechLanguage: "ja-JP",
       terminal: { imageWidthCells: 120, showImages: false },
     })).toMatchObject({ transport: "sse", terminal: { showImages: false } });

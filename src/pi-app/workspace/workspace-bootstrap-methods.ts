@@ -46,6 +46,7 @@ export const workspaceBootstrapMethods = {
       if (activeWorkspace) {
         void this.loadWorkspaceCommands(activeWorkspace.id);
         void this.loadRuntimeStatus(activeWorkspace.id);
+        void (this.loadWorkspaceSettingsState?.(activeWorkspace.id))?.catch?.(() => undefined);
         await this.loadWorkspaceMeta(activeWorkspace.id);
       }
       if (activeSession) await this.loadSession(activeSession.id);
@@ -232,6 +233,7 @@ export const workspaceBootstrapMethods = {
   loadWorkspaceContext(workspaceId) {
     void this.loadWorkspaceCommands(workspaceId);
     void this.loadRuntimeStatus(workspaceId);
+    void (this.loadWorkspaceSettingsState?.(workspaceId))?.catch?.(() => undefined);
     void this.loadWorkspaceMeta(workspaceId);
   },
 

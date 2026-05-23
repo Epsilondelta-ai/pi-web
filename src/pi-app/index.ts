@@ -24,9 +24,14 @@ class PiApp extends HTMLElement {
     this.prompt = this.querySelector(".prompt-textarea");
     this.sendButton = this.querySelector(".send-btn");
     this.stopButton = this.querySelector(".stop-btn");
+    this.micButton = this.querySelector(".mic-btn");
     this.attachButton = this.querySelector(".attach-btn");
     this.readResponsesAloud = false;
+    this.enableSpeechInput = false;
     this.speechLanguage = "system";
+    this.speechRecognition = null;
+    this.speechListening = false;
+    this.speechSilenceTimer = null;
     this.fileInput = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
     this.slashPopover = this.querySelector(".slash-pop");
@@ -55,6 +60,7 @@ class PiApp extends HTMLElement {
     this.bootstrapAPI();
   }
   disconnectedCallback() {
+    this.stopSpeechInput?.();
     this.destroyFilePreviewEditor?.();
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());

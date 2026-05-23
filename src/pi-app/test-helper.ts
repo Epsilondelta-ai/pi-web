@@ -67,6 +67,7 @@ export function installPiAppFixture() {
         <div class="attach-chips" hidden></div>
         <textarea class="prompt-textarea"></textarea>
         <button class="stop-btn" hidden>stop</button>
+        <button class="mic-btn" data-action="toggle-speech-input" hidden>mic</button>
         <button class="send-btn" disabled>send</button>
         <button class="attach-btn">attach</button>
         <input data-file-input type="file" />
@@ -101,6 +102,7 @@ export function installPiAppFixture() {
           ${settingsSelect("followUpMode", ["inherit", "all"])}
           ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
           ${settingsCheckbox("readResponsesAloud")}
+          ${settingsCheckbox("enableSpeechInput")}
           ${settingsSelect("speechLanguage", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"])}
           ${settingsSelect("warnings.anthropicExtraUsage", ["inherit", "true", "false"])}
           <span data-settings-status></span>
@@ -137,6 +139,7 @@ export function installEmptySessionFixture() {
         <div class="attach-chips" hidden></div>
         <textarea class="prompt-textarea"></textarea>
         <button class="stop-btn" hidden>stop</button>
+        <button class="mic-btn" data-action="toggle-speech-input" hidden>mic</button>
         <button class="send-btn">send</button>
         <button class="attach-btn">attach</button>
         <input data-file-input type="file" />

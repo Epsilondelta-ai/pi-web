@@ -16,6 +16,46 @@ describe("pi-app controls", () => {
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
   });
 
+  it("toggles voice input and writes speech recognition text into the prompt", async () => {
+    vi.useFakeTimers();
+    const instances = [];
+    class MockSpeechRecognition {
+      constructor() {
+        instances.push(this);
+      }
+      start = vi.fn(() => this.onstart?.());
+      stop = vi.fn(() => this.onend?.());
+    }
+    Object.defineProperty(window, "webkitSpeechRecognition", {
+      configurable: true,
+      value: MockSpeechRecognition,
+    });
+    const app = await connectPiApp();
+    app.enableSpeechInput = true;
+    app.speechLanguage = "ko-KR";
+    app.syncSpeechInputControls();
+    const mic = app.querySelector(".mic-btn");
+    const prompt = app.querySelector(".prompt-textarea");
+    prompt.value = "기존";
+
+    mic.click();
+    const recognition = instances[0];
+    expect(recognition.lang).toBe("ko-KR");
+    expect(mic.classList.contains("listening")).toBe(true);
+    recognition.onresult({
+      resultIndex: 0,
+      results: [{ 0: { transcript: "음성 입력" }, isFinal: true }],
+    });
+    expect(prompt.value).toBe("기존 음성 입력");
+    expect(app.querySelector(".send-btn").disabled).toBe(false);
+
+    mic.click();
+    expect(recognition.stop).toHaveBeenCalled();
+    expect(mic.classList.contains("listening")).toBe(false);
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+    vi.useRealTimers();
+  });
+
   it("restores unsent prompt text and clears the draft on send", async () => {
     const app = await connectPiApp();
     const prompt = app.querySelector(".prompt-textarea");
@@ -139,6 +179,7 @@ describe("pi-app controls", () => {
                 defaultModel: "gpt-5.5",
                 compaction: { enabled: true },
                 readResponsesAloud: true,
+                enableSpeechInput: true,
                 speechLanguage: "ko-KR",
               },
               paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
@@ -159,8 +200,11 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
     expect(app.querySelector("[data-setting='readResponsesAloud']").checked).toBe(true);
+    expect(app.querySelector("[data-setting='enableSpeechInput']").checked).toBe(true);
     expect(app.querySelector("[data-setting='speechLanguage']").value).toBe("ko-KR");
     expect(app.readResponsesAloud).toBe(true);
+    expect(app.enableSpeechInput).toBe(true);
+    expect(app.querySelector(".mic-btn").hidden).toBe(false);
     expect(app.speechLanguage).toBe("ko-KR");
     expect(app.querySelector("[data-setting='theme']")).toBeNull();
     expect(app.querySelector("[data-setting='transport']")).toBeNull();
@@ -184,12 +228,13 @@ describe("pi-app controls", () => {
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
     app.querySelector("[data-setting='readResponsesAloud']").checked = true;
+    app.querySelector("[data-setting='enableSpeechInput']").checked = true;
     app.querySelector("[data-setting='speechLanguage']").value = "ja-JP";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({
       scope: "project",
-      settings: { defaultModel: "my-model", compaction: { enabled: false }, readResponsesAloud: true, speechLanguage: "ja-JP" },
+      settings: { defaultModel: "my-model", compaction: { enabled: false }, readResponsesAloud: true, enableSpeechInput: true, speechLanguage: "ja-JP" },
     });
   });
 

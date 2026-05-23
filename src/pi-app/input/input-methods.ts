@@ -3,6 +3,7 @@ import { fallbackChoicePrompt } from "./fallback-choices";
 
 export const inputMethods = {
   async submitPrompt() {
+    this.stopSpeechInput?.();
     const text = this.prompt?.value.trim() || "";
     if (!text && !this.attachments?.children.length) return;
     this.clearPromptDraft?.();
@@ -233,6 +234,7 @@ export const inputMethods = {
     if (action === "show-update-tip") this.showUpdateTip?.();
     if (action === "open-settings") this.openSettingsModal?.();
     if (action === "close-settings") this.closeSettingsModal?.();
+    if (action === "toggle-speech-input") this.toggleSpeechInput?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
     if (action === "save-auth-provider") this.saveAuthForm?.(event);
     if (action === "logout-auth-provider") this.logoutAuthProvider?.();
@@ -278,6 +280,113 @@ export const inputMethods = {
         this.connectEvents(this.dataset.activeSessionId, { replay: false });
       }
     }
+  },
+
+  toggleSpeechInput() {
+    if (this.speechListening) {
+      this.stopSpeechInput();
+      return;
+    }
+    this.startSpeechInput();
+  },
+
+  startSpeechInput() {
+    if (!this.enableSpeechInput || !this.prompt) return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      this.showSystemToast?.(
+        "warning",
+        "음성 입력 미지원",
+        "이 브라우저는 Web Speech API 음성 입력을 지원하지 않습니다. Chrome/Safari에서 사용하세요.",
+        "speech-input:unsupported",
+      );
+      return;
+    }
+    this.stopSpeechInput();
+    const recognition = new SpeechRecognition();
+    const basePrompt = this.prompt.value;
+    let finalTranscript = "";
+    const resetSilenceTimer = () => {
+      if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
+      this.speechSilenceTimer = setTimeout(() => this.stopSpeechInput(), 3000);
+    };
+    const applyTranscript = (interimTranscript = "") => {
+      const transcript = `${finalTranscript}${interimTranscript}`.trimStart();
+      const needsSpace = basePrompt && transcript && !/\s$/.test(basePrompt) && !/^[\s.,!?;:)]/.test(transcript);
+      this.prompt.value = `${basePrompt}${needsSpace ? " " : ""}${transcript}`;
+      this.updatePrompt();
+    };
+    recognition.lang = this.speechLanguage === "system" ? (navigator.language || "ko-KR") : this.speechLanguage;
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    recognition.onstart = () => {
+      this.speechRecognition = recognition;
+      this.speechListening = true;
+      this.syncSpeechInputControls();
+      resetSilenceTimer();
+    };
+    recognition.onspeechstart = resetSilenceTimer;
+    recognition.onspeechend = resetSilenceTimer;
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const transcript = event.results[index]?.[0]?.transcript || "";
+        if (event.results[index]?.isFinal) finalTranscript += transcript;
+        else interimTranscript += transcript;
+      }
+      applyTranscript(interimTranscript);
+      resetSilenceTimer();
+    };
+    recognition.onerror = (event) => {
+      if (!recognition.piManualStop && event.error !== "no-speech" && event.error !== "aborted") {
+        this.showSystemToast?.("warning", "음성 입력 오류", event.error || "음성 입력을 시작하지 못했습니다.", `speech-input:${event.error || "error"}`);
+      }
+    };
+    recognition.onend = () => {
+      if (this.speechRecognition !== recognition) return;
+      if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
+      this.speechSilenceTimer = null;
+      this.speechRecognition = null;
+      this.speechListening = false;
+      this.syncSpeechInputControls();
+    };
+    this.speechRecognition = recognition;
+    try {
+      recognition.start();
+    } catch (error) {
+      recognition.piManualStop = true;
+      this.speechRecognition = null;
+      this.speechListening = false;
+      this.syncSpeechInputControls();
+      this.showSystemToast?.("warning", "음성 입력 오류", error instanceof Error ? error.message : String(error), "speech-input:start");
+    }
+  },
+
+  stopSpeechInput() {
+    if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
+    this.speechSilenceTimer = null;
+    if (!this.speechRecognition) {
+      this.speechListening = false;
+      this.syncSpeechInputControls?.();
+      return;
+    }
+    const recognition = this.speechRecognition;
+    recognition.piManualStop = true;
+    this.speechRecognition = null;
+    this.speechListening = false;
+    try {
+      recognition.stop();
+    } catch {}
+    this.syncSpeechInputControls?.();
+  },
+
+  syncSpeechInputControls() {
+    if (!this.micButton) return;
+    this.micButton.hidden = !this.enableSpeechInput;
+    this.micButton.classList.toggle("listening", this.speechListening);
+    this.micButton.setAttribute("aria-pressed", this.speechListening ? "true" : "false");
+    this.micButton.setAttribute("aria-label", this.speechListening ? "stop voice input" : "start voice input");
+    this.micButton.title = this.speechListening ? "stop voice input" : "voice input";
   },
 
   updatePrompt() {
