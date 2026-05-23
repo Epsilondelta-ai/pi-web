@@ -181,14 +181,15 @@ describe("pi-app messages", () => {
     expect(row.classList.contains("streaming")).toBe(false);
   });
 
-  it("keeps loading out of the transcript between tool calls", async () => {
+  it("keeps loading visible through tool activity until assistant output arrives", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
     app.setMode("running");
     app.appendMessage({ kind: "tool", tool: "read", status: "running" });
-    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     app.finishTool({ kind: "tool", tool: "read", status: "ok" });
-    expect(app.querySelector(".msg.loading")).toBeNull();
+    app.syncLoadingMessage();
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     app.setMode("idle");
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
@@ -326,14 +327,14 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
-  it("wraps streaming thinking deltas immediately", async () => {
+  it("wraps streaming thinking deltas while keeping response loading visible", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
-    app.appendLoadingMessage();
+    app.setMode("running");
     app.appendDelta({ kind: "think", delta: "rea" });
     app.appendDelta({ kind: "think", delta: "son" });
     const block = app.querySelector(".msg.streaming[data-kind='think'] .thinking-block");
-    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     expect(block).not.toBeNull();
     expect(block.querySelector(".label").textContent).toBe("thinking");
     expect(block.querySelector("[data-stream-text]").textContent).toBe("reason");

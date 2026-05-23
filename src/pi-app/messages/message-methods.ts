@@ -79,8 +79,8 @@ export const messageMethods = {
     if (!this.termInner || !payload?.delta) return;
     this.removeWelcomeBanner();
     this.finishRunningTools();
-    this.removeLoadingMessage();
     const kind = payload.kind === "think" ? "think" : "pi";
+    this.removeLoadingMessage();
     let delta = payload.delta;
     if (kind === "pi") {
       const filtered = streamVisibleChoiceText(this.piDeltaBuffer + payload.delta);
@@ -106,6 +106,7 @@ export const messageMethods = {
       body.textContent += delta;
       this.notifyTranscriptNodeHeightDidChange(messageRow);
     }
+    if (kind !== "pi") this.syncLoadingMessage();
     this.scrollTerm();
   },
 
@@ -243,9 +244,11 @@ export const messageMethods = {
     const last = this.termInner?.lastElementChild?.matches?.(".transcript-item")
       ? this.termInner.lastElementChild.lastElementChild
       : this.termInner?.lastElementChild;
-    const hasRunningTool = !!this.termInner?.querySelector(".tool-card[data-status='running']");
-    const hasAssistantOutput = !!last?.matches?.(".msg[data-kind='pi'], .fallback-choice-list");
-    return !!last?.matches?.(".msg.streaming") || hasRunningTool || hasAssistantOutput;
+    return !!last?.matches?.([
+      ".msg.streaming[data-kind='pi']",
+      ".msg[data-kind='pi']",
+      ".fallback-choice-list",
+    ].join(", "));
   },
 
   finalizeStreamingMessages() {
