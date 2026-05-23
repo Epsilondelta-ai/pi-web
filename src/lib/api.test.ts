@@ -30,6 +30,7 @@ import {
   runShellCommand,
   saveWorkspaceFile,
   saveWorkspaceSettings,
+  searchWorkspaceFiles,
   sessionEvents,
 } from "./api";
 
@@ -113,6 +114,8 @@ describe("api adapter", () => {
     expect(models.url).toBe("http://backend.test/api/workspaces/w1/models");
     const files = await getWorkspaceFiles("w/1");
     expect(files.url).toBe("http://backend.test/api/workspaces/w%2F1/files");
+    const search = await searchWorkspaceFiles("w/1", "hello world");
+    expect(search.url).toBe("http://backend.test/api/workspaces/w%2F1/files/search?q=hello%20world");
     const git = await getGitStatus("w/1");
     expect(git.url).toBe("http://backend.test/api/workspaces/w%2F1/git/status");
     const gitHistory = await getGitHistory("w/1", 25);

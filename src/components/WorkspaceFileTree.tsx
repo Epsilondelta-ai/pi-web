@@ -4,6 +4,7 @@ import {
   createWorkspaceFile,
   deleteWorkspaceFile,
   renameWorkspaceFile,
+  searchWorkspaceFiles,
   uploadWorkspaceFile,
 } from "../lib/api";
 import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../lib/file-tree-model";
@@ -23,6 +24,9 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => new Set());
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const [menu, setMenu] = useState<MenuTarget | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [contentMatches, setContentMatches] = useState<Set<string>>(() => new Set());
+  const treeArea = useRef<HTMLDivElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const uploadTarget = useRef<MenuTarget | null>(null);
 
@@ -46,7 +50,7 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
   }, []);
 
   useEffect(() => {
-    const container = document.querySelector(".tree-list");
+    const container = treeArea.current;
     if (!container || typeof ResizeObserver === "undefined") return;
     const resize = () => setHeight(Math.max(120, Math.floor(container.getBoundingClientRect().height || DEFAULT_HEIGHT)));
     resize();
@@ -66,6 +70,30 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
     };
   }, [menu]);
 
+  useEffect(() => {
+    const query = searchTerm.trim();
+    if (!query) {
+      setContentMatches(new Set());
+      return;
+    }
+    const workspaceId = activeWorkspaceId();
+    if (!workspaceId) return;
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      void searchWorkspaceFiles(workspaceId, query)
+        .then((result) => {
+          if (!cancelled) setContentMatches(new Set(result.matches || []));
+        })
+        .catch(() => {
+          if (!cancelled) setContentMatches(new Set());
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [searchTerm]);
+
   const data = useMemo(
     () => decorateFileTree(files, statusMap, selectedPath, expandedPaths),
     [expandedPaths, files, selectedPath, statusMap],
@@ -82,35 +110,50 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
   return (
     <TreeContext.Provider value={contextValue}>
       <div className="tree-arborist" data-testid="workspace-file-tree" onContextMenu={onEmptyContextMenu}>
-        {!files.length ? (
-          <div className="tree-empty">file tree loads from backend.</div>
-        ) : (
-          <Tree<FileTreeNode>
-            data={data}
-            width="100%"
-            height={height}
-            rowHeight={ROW_HEIGHT}
-            indent={14}
-            overscanCount={8}
-            idAccessor="id"
-            childrenAccessor="children"
-            openByDefault={false}
-            selection={selectedPath || undefined}
-            disableDrag
-            disableDrop
-            disableEdit
-            onToggle={(id) => {
-              setExpandedPaths((current) => {
-                const next = new Set(current);
-                if (next.has(id)) next.delete(id);
-                else next.add(id);
-                return next;
-              });
-            }}
-          >
-            {FileTreeRow}
-          </Tree>
-        )}
+        <label className="tree-search" aria-label="search all files">
+          <span>검색</span>
+          <input
+            type="search"
+            placeholder="전체 검색"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.currentTarget.value)}
+          />
+        </label>
+        <div ref={treeArea} className="tree-arborist-body">
+          {!files.length ? (
+            <div className="tree-empty">file tree loads from backend.</div>
+          ) : data.length ? (
+            <Tree<FileTreeNode>
+              data={data}
+              width="100%"
+              height={height}
+              rowHeight={ROW_HEIGHT}
+              indent={14}
+              overscanCount={8}
+              idAccessor="id"
+              childrenAccessor="children"
+              openByDefault={false}
+              searchTerm={searchTerm}
+              searchMatch={(node, term) => fileTreeSearchMatch(node.data as FileTreeNode, term, contentMatches)}
+              selection={selectedPath || undefined}
+              disableDrag
+              disableDrop
+              disableEdit
+              onToggle={(id) => {
+                setExpandedPaths((current) => {
+                  const next = new Set(current);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                });
+              }}
+            >
+              {FileTreeRow}
+            </Tree>
+          ) : (
+            <div className="tree-empty">검색 결과가 없습니다.</div>
+          )}
+        </div>
         <input
           ref={uploadInput}
           type="file"
@@ -272,6 +315,13 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "clean") return null;
   const label = statusLabels[status] || "•";
   return <span className="tree-status-badge" aria-label={status}>{label}</span>;
+}
+
+function fileTreeSearchMatch(node: FileTreeNode, term: string, contentMatches: ReadonlySet<string>) {
+  const query = term.trim().toLowerCase();
+  return Boolean(
+    query && (node.path.toLowerCase().includes(query) || node.name.toLowerCase().includes(query) || contentMatches.has(node.path)),
+  );
 }
 
 function showTemporaryError(error: unknown) {

@@ -9,7 +9,7 @@ import { bracketMatching, defaultHighlightStyle, indentOnInput, syntaxHighlighti
 import { StreamLanguage } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { diff } from "@codemirror/merge";
-import { search, searchKeymap } from "@codemirror/search";
+import { findNext, findPrevious, search, SearchQuery, searchKeymap, setSearchQuery } from "@codemirror/search";
 import { EditorState, RangeSetBuilder, StateField } from "@codemirror/state";
 import type { Extension, Text } from "@codemirror/state";
 import {
@@ -96,6 +96,7 @@ export class CodeMirrorFileEditor {
       if (update.docChanged) options.onChange?.(update.state.doc.toString());
     });
 
+    this.parent.append(this.createSearchToolbar());
     this.view = new EditorView({
       parent: this.parent,
       state: EditorState.create({
@@ -109,6 +110,55 @@ export class CodeMirrorFileEditor {
         ),
       }),
     });
+  }
+
+  private createSearchToolbar() {
+    const toolbar = document.createElement("div");
+    toolbar.className = "fp-editor-search";
+    toolbar.setAttribute("role", "search");
+
+    const label = document.createElement("span");
+    label.textContent = "검색";
+
+    const input = document.createElement("input");
+    input.type = "search";
+    input.placeholder = "파일 검색";
+    input.setAttribute("aria-label", "search file content");
+
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.textContent = "↑";
+    previous.setAttribute("aria-label", "previous search match");
+
+    const next = document.createElement("button");
+    next.type = "button";
+    next.textContent = "↓";
+    next.setAttribute("aria-label", "next search match");
+
+    const applySearch = () => {
+      const view = this.view;
+      if (!view) return;
+      view.dispatch({ effects: setSearchQuery.of(new SearchQuery({ search: input.value })) });
+    };
+    const move = (direction: "next" | "previous") => {
+      applySearch();
+      const view = this.view;
+      if (!view || !input.value) return;
+      (direction === "next" ? findNext : findPrevious)(view);
+      view.focus();
+    };
+
+    input.addEventListener("input", applySearch);
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      move(event.shiftKey ? "previous" : "next");
+    });
+    previous.addEventListener("click", () => move("previous"));
+    next.addEventListener("click", () => move("next"));
+
+    toolbar.append(label, input, previous, next);
+    return toolbar;
   }
 }
 

@@ -7,6 +7,29 @@ import (
 	"testing"
 )
 
+func TestSearchWorkspaceFilesMatchesPathAndTextContent(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "src"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "src", "needle-name-only.txt"), []byte("ordinary"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "src", "content.txt"), []byte("needle inside"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "src", "binary.txt"), []byte{0x00, 'n', 'e', 'e', 'd', 'l', 'e'}, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	matches, err := SearchWorkspaceFiles(root, "needle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 2 || matches[0] != "src/content.txt" || matches[1] != "src/needle-name-only.txt" {
+		t.Fatalf("unexpected matches: %#v", matches)
+	}
+}
+
 func TestReadWorkspaceFileRejectsTraversal(t *testing.T) {
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "note.txt"), []byte("hello"), 0o600); err != nil {

@@ -80,6 +80,25 @@ describe("file preview CodeMirror editor", () => {
     expect(app.querySelector(".fp-head small").textContent).toContain("modified");
   });
 
+  it("searches file content with highlighted next and previous matches", () => {
+    const app = mountPreview();
+    app.renderFilePreview({ path: "demo.txt", mime: "text/plain", previewKind: "text", content: "alpha beta alpha" });
+
+    const input = app.querySelector<HTMLInputElement>(".fp-editor-search input");
+    input!.value = "alpha";
+    input!.dispatchEvent(new Event("input", { bubbles: true }));
+    app.querySelector<HTMLButtonElement>("[aria-label='next search match']")!.click();
+
+    expect(app.querySelector(".fp-editor-search")).toBeTruthy();
+    expect(app.filePreview.editor.view.state.selection.main.from).toBe(0);
+
+    app.querySelector<HTMLButtonElement>("[aria-label='next search match']")!.click();
+    expect(app.filePreview.editor.view.state.selection.main.from).toBe(11);
+
+    app.querySelector<HTMLButtonElement>("[aria-label='previous search match']")!.click();
+    expect(app.filePreview.editor.view.state.selection.main.from).toBe(0);
+  });
+
   it("shows added and deleted git gutter marker types", () => {
     const app = mountPreview();
     app.renderFilePreview({ path: "new.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;", originalContent: "" });
