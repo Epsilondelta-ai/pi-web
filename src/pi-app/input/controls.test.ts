@@ -76,13 +76,164 @@ describe("pi-app controls", () => {
       results: [{ 0: { transcript: "다시" }, isFinal: false }],
     });
     expect(prompt.value).toBe("기존 다시");
+    recognition.onerror({ error: "not-allowed" });
     expect(app.querySelector(".send-btn").disabled).toBe(false);
 
+    recognition.onend();
+    expect(mic.classList.contains("listening")).toBe(false);
     mic.click();
-    expect(recognition.stop).toHaveBeenCalled();
+    expect(instances[1].start).toHaveBeenCalled();
+    mic.click();
+    expect(instances[1].stop).toHaveBeenCalled();
+
+    mic.click();
+    expect(instances[2].start).toHaveBeenCalled();
+    mic.click();
+    expect(instances[2].stop).toHaveBeenCalled();
     expect(mic.classList.contains("listening")).toBe(false);
     Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
     vi.useRealTimers();
+  });
+
+  it("ignores speech input when disabled or prompt is missing", async () => {
+    const app = await connectPiApp();
+    app.speechInputAllowed = vi.fn(() => true);
+
+    app.enableSpeechInput = false;
+    app.startSpeechInput();
+    expect(app.speechInputAllowed).not.toHaveBeenCalled();
+
+    app.enableSpeechInput = true;
+    app.prompt = null;
+    app.startSpeechInput();
+    expect(app.speechInputAllowed).not.toHaveBeenCalled();
+  });
+
+  it("blocks speech input outside HTTPS", async () => {
+    const app = await connectPiApp();
+    app.speechInputAllowed = () => false;
+    app.enableSpeechInput = true;
+    app.showSystemToast = vi.fn();
+
+    app.startSpeechInput();
+
+    expect(app.showSystemToast).toHaveBeenCalledWith(
+      "warning",
+      "음성 입력 HTTPS 필요",
+      "음성 입력은 HTTPS에서만 사용할 수 있습니다.",
+      "speech-input:insecure-context",
+    );
+  });
+
+  it("covers speech recognition edge branches", async () => {
+    vi.useFakeTimers();
+    const instances = [];
+    class MockSpeechRecognition {
+      constructor() {
+        instances.push(this);
+      }
+      start = vi.fn(() => this.onstart?.());
+      stop = vi.fn(() => this.onend?.());
+    }
+    Object.defineProperty(window, "webkitSpeechRecognition", {
+      configurable: true,
+      value: MockSpeechRecognition,
+    });
+    const app = await connectPiApp();
+    expect(app.speechInputAllowed()).toBe(false);
+    app.speechInputAllowed = () => true;
+    app.enableSpeechInput = true;
+    app.speechLanguage = "system";
+    app.showSystemToast = vi.fn();
+
+    app.startSpeechInput();
+    const recognition = instances[0];
+    expect(recognition.lang).toBe(navigator.language);
+    recognition.onresult({ results: [{}] });
+    expect(app.prompt.value).toBe("");
+    recognition.onerror({ error: "no-speech" });
+    recognition.onerror({ error: "aborted" });
+    expect(app.showSystemToast).not.toHaveBeenCalled();
+    recognition.onerror({});
+    expect(app.showSystemToast).toHaveBeenCalledWith(
+      "warning",
+      "음성 입력 오류",
+      "음성 입력을 시작하지 못했습니다.",
+      "speech-input:error",
+    );
+    recognition.onspeechstart();
+    recognition.onspeechend();
+    vi.advanceTimersByTime(3000);
+    expect(recognition.stop).toHaveBeenCalled();
+    app.speechRecognition = recognition;
+    app.speechSilenceTimer = null;
+    recognition.onend();
+    app.speechRecognition = recognition;
+    app.stopSpeechInput();
+    recognition.onerror({ error: "not-allowed" });
+    expect(app.showSystemToast).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+    vi.useRealTimers();
+  });
+
+  it("handles missing speech recognition support", async () => {
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: undefined });
+    const app = await connectPiApp();
+    app.speechInputAllowed = () => true;
+    app.enableSpeechInput = true;
+    app.showSystemToast = vi.fn();
+
+    app.startSpeechInput();
+
+    expect(app.showSystemToast).toHaveBeenCalledWith(
+      "warning",
+      "음성 입력 미지원",
+      "이 브라우저는 Web Speech API 음성 입력을 지원하지 않습니다. Chrome/Safari에서 사용하세요.",
+      "speech-input:unsupported",
+    );
+  });
+
+  it("handles speech recognition start failures", async () => {
+    class ThrowingSpeechRecognition {
+      start() {
+        throw new Error("blocked");
+      }
+      stop = vi.fn();
+    }
+    Object.defineProperty(window, "webkitSpeechRecognition", {
+      configurable: true,
+      value: ThrowingSpeechRecognition,
+    });
+    const app = await connectPiApp();
+    app.speechInputAllowed = () => true;
+    app.enableSpeechInput = true;
+    app.showSystemToast = vi.fn();
+
+    app.startSpeechInput();
+
+    expect(app.speechListening).toBe(false);
+    expect(app.speechRecognition).toBeNull();
+    expect(app.showSystemToast).toHaveBeenCalledWith("warning", "음성 입력 오류", "blocked", "speech-input:start");
+
+    class StringThrowingSpeechRecognition {
+      start() {
+        throw "string blocked";
+      }
+    }
+    Object.defineProperty(window, "webkitSpeechRecognition", {
+      configurable: true,
+      value: StringThrowingSpeechRecognition,
+    });
+    app.startSpeechInput();
+    expect(app.showSystemToast).toHaveBeenCalledWith(
+      "warning",
+      "음성 입력 오류",
+      "string blocked",
+      "speech-input:start",
+    );
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
   });
 
   it("restores unsent prompt text and clears the draft on send", async () => {

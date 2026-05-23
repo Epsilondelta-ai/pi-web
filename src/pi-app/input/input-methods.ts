@@ -346,7 +346,7 @@ export const inputMethods = {
       this.prompt.value = `${basePrompt}${needsSpace ? " " : ""}${cleanTranscript}`;
       this.updatePrompt();
     };
-    recognition.lang = this.speechLanguage === "system" ? (navigator.language || "ko-KR") : this.speechLanguage;
+    recognition.lang = this.speechLanguage === "system" ? navigator.language : this.speechLanguage;
     recognition.interimResults = true;
     recognition.continuous = true;
     recognition.onstart = () => {
