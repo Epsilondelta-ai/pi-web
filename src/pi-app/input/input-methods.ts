@@ -163,6 +163,10 @@ export const inputMethods = {
     const button = event.target.closest("button");
     if ((!button && !actionTarget) || !this.contains(button || actionTarget)) return;
     const action = actionTarget?.dataset.action || button?.dataset.action;
+    if (action === "copy-code") {
+      void this.copyCodeBlock(button);
+      return;
+    }
     if (action === "route-picker") this.route("picker");
     if (action === "route-workspace") this.route("workspace");
     if (action === "refresh-workspaces") this.refreshWorkspaces();

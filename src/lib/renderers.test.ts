@@ -18,6 +18,15 @@ describe("safe markdown rendering", () => {
     expect(html).toContain("<li>two</li>");
   });
 
+  it("adds copy buttons to markdown code blocks", () => {
+    const html = renderPiBody(["```ts", "const ok = true;", "```", "", "`inline`"].join("\n"));
+    expect(html).toContain('class="code-block"');
+    expect(html).toContain('data-action="copy-code"');
+    expect(html).toContain('class="language-ts"');
+    expect(html).toContain("const ok = true;");
+    expect(html.match(/data-action="copy-code"/g)).toHaveLength(1);
+  });
+
   it("renders user markdown with line breaks", () => {
     const html = renderUserBody([
       "PR 올림: https://github.com/Epsilondelta-ai/juun-ai/pull/14",
