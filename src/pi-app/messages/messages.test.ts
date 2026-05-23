@@ -176,6 +176,21 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
+  it("renders lucide-style tool icons while unknown tools keep the dot", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "tool", tool: "read", status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "bash", args: JSON.stringify({ command: "git status" }), status: "ok" });
+    app.appendMessage({ kind: "tool", tool: "unknown_tool", status: "ok" });
+
+    const glyphs = [...app.querySelectorAll(".tool-card .tc-glyph")];
+    expect(glyphs[0].querySelector("[data-tool-icon='book-open']")).not.toBeNull();
+    expect(glyphs[1].querySelector("[data-tool-icon='git-branch']")).not.toBeNull();
+    expect(glyphs[2].querySelector("svg")).toBeNull();
+    expect(glyphs[2].textContent).toBe("●");
+  });
+
   it("marks stale running tools complete when assistant output resumes", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);

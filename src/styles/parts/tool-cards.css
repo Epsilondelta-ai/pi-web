@@ -17,7 +17,23 @@
 }
 .tool-card.collapsed .tc-head { border-bottom: 0; }
 .tool-card .tc-head:hover { background: var(--bg-3); }
-.tool-card .tc-glyph { color: var(--tool-call); font-size: 12px; text-align: center; }
+.tool-card .tc-glyph {
+  align-items: center;
+  color: var(--tool-call);
+  display: inline-flex;
+  font-size: 12px;
+  justify-content: center;
+  text-align: center;
+}
+.tool-card .tc-icon {
+  fill: none;
+  height: 14px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 14px;
+}
 .tool-card .tc-name { color: var(--tool-call); font-weight: 500; }
 .tool-card .tc-args {
   color: var(--fg-1);
