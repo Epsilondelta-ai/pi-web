@@ -11,6 +11,10 @@ function mergeSpeechTranscript(current, next) {
   return current + incoming;
 }
 
+function composeSpeechSegments(segments) {
+  return segments.reduce((text, segment) => mergeSpeechTranscript(text, segment?.text), "");
+}
+
 export const inputMethods = {
   async submitPrompt() {
     this.stopSpeechInput?.();
@@ -328,6 +332,7 @@ export const inputMethods = {
     this.stopSpeechInput();
     const recognition = new SpeechRecognition();
     const basePrompt = this.prompt.value;
+    const resultSegments = [];
     const resetSilenceTimer = () => {
       if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
       this.speechSilenceTimer = setTimeout(() => this.stopSpeechInput(), 3000);
@@ -353,11 +358,15 @@ export const inputMethods = {
     recognition.onspeechstart = resetSilenceTimer;
     recognition.onspeechend = resetSilenceTimer;
     recognition.onresult = (event) => {
-      let transcript = "";
-      for (let index = 0; index < event.results.length; index += 1) {
-        transcript = mergeSpeechTranscript(transcript, event.results[index]?.[0]?.transcript);
+      const resultIndex = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
+      resultSegments.length = event.results.length;
+      for (let index = resultIndex; index < event.results.length; index += 1) {
+        resultSegments[index] = {
+          isFinal: event.results[index]?.isFinal === true,
+          text: event.results[index]?.[0]?.transcript || "",
+        };
       }
-      applyTranscript(transcript);
+      applyTranscript(composeSpeechSegments(resultSegments));
       resetSilenceTimer();
     };
     recognition.onerror = (event) => {

@@ -63,6 +63,19 @@ describe("pi-app controls", () => {
       ],
     });
     expect(prompt.value).toBe("기존 PR 올려");
+    recognition.onresult({
+      resultIndex: 1,
+      results: [
+        { 0: { transcript: "PR" }, isFinal: true },
+        { 0: { transcript: " 올려" }, isFinal: true },
+      ],
+    });
+    expect(prompt.value).toBe("기존 PR 올려");
+    recognition.onresult({
+      resultIndex: 0,
+      results: [{ 0: { transcript: "다시" }, isFinal: false }],
+    });
+    expect(prompt.value).toBe("기존 다시");
     expect(app.querySelector(".send-btn").disabled).toBe(false);
 
     mic.click();
