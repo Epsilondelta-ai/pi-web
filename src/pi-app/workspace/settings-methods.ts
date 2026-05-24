@@ -38,6 +38,13 @@ function customInputFor(control) {
 }
 
 export const settingsMethods = {
+  async loadWorkspaceSettingsState(workspaceId = this.dataset.activeWorkspaceId) {
+    if (!workspaceId || !this.apiConnected) return;
+    const { settings } = await getWorkspaceSettings(workspaceId);
+    this.settingsState = parseWorkspaceSettings(settings);
+    this.syncSettingsStateToApp();
+  },
+
   async openSettingsModal() {
     const workspaceId = this.dataset.activeWorkspaceId;
     this.settingsModal?.removeAttribute("hidden");
@@ -79,7 +86,7 @@ export const settingsMethods = {
       this.fillFallbackModelControls();
     }
     this.fillSettingsForm();
-    this.syncReadAloudFromSettingsState();
+    this.syncSettingsStateToApp();
     const errors = [authResult, oauthResult, modelsResult]
       .filter((result) => result.status === "rejected")
       .map((result) => result.reason instanceof Error ? result.reason.message : String(result.reason));
@@ -157,6 +164,7 @@ export const settingsMethods = {
   fillSettingsForm() {
     const form = this.querySelector("[data-settings-form]");
     if (!form || !this.settingsState) return;
+    this.syncSecureContextSettingsControls();
     const scope = form.querySelector("[name='scope']")?.value || "project";
     const scopedSettings = this.settingsState[scope] || {};
     const effective = this.settingsState.effective || {};
@@ -287,7 +295,7 @@ export const settingsMethods = {
       const { settings } = await saveWorkspaceSettings(workspaceId, scope, patch);
       this.settingsState = parseWorkspaceSettings(settings);
       this.fillSettingsForm();
-      this.syncReadAloudFromSettingsState();
+      this.syncSettingsStateToApp();
       this.setSettingsStatus("saved");
       void this.loadRuntimeStatus?.(workspaceId);
     } catch (error) {
@@ -296,15 +304,33 @@ export const settingsMethods = {
     }
   },
 
-  syncReadAloudFromSettingsState() {
+  syncSettingsStateToApp() {
+    const allowSpeechInput = this.speechInputAllowed?.() === true;
     this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
+    this.enableSpeechInput = allowSpeechInput && this.settingsState?.effective?.enableSpeechInput === true;
+    if (!this.enableSpeechInput) this.stopSpeechInput?.();
     this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
     this.syncReadAloudControls?.();
+    this.syncSecureContextSettingsControls();
+    this.syncSpeechInputControls?.();
+  },
+
+  syncReadAloudFromSettingsState() {
+    this.syncSettingsStateToApp();
+  },
+
+  syncSecureContextSettingsControls() {
+    const allowSpeechInput = this.speechInputAllowed?.() === true;
+    for (const field of this.querySelectorAll("[data-secure-context-only='https']")) {
+      field.hidden = !allowSpeechInput;
+    }
   },
 
   settingsPatchFromForm(form) {
     const patch = {};
+    const allowSpeechInput = this.speechInputAllowed?.() === true;
     for (const field of SETTINGS_FIELDS) {
+      if (field.path === "enableSpeechInput" && !allowSpeechInput) continue;
       const control = form.querySelector(`[data-setting='${field.path}']`);
       if (!control) continue;
       setPatchValue(patch, field.path, this.settingValueFromControl(control, field));

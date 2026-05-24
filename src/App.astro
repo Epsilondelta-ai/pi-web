@@ -9,6 +9,7 @@ import {
   Folder,
   GitBranch,
   Menu,
+  Mic,
   Paperclip,
   Play,
   Plus,
@@ -234,7 +235,7 @@ function isToolCollapsed(msg) {
       <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><Paperclip size={14} strokeWidth={1.5} aria-hidden="true" /></button>
       <input type="file" multiple hidden data-file-input />
       <div class="prompt-input-col"><div class="attach-chips" hidden></div><textarea class="prompt-textarea" placeholder="ask pi to do something…" rows="1"></textarea></div>
-      <div class="prompt-actions"><button class="stop-btn" type="button" aria-label="stop" title="stop" hidden><Square size={13} strokeWidth={2} aria-hidden="true" /></button><button class="send-btn" type="button" aria-label="send" title="send" disabled><SendHorizontal size={14} strokeWidth={2} aria-hidden="true" /></button></div>
+      <div class="prompt-actions"><button class="stop-btn" type="button" aria-label="stop" title="stop" hidden><Square size={13} strokeWidth={2} aria-hidden="true" /></button><button class="mic-btn" type="button" data-action="toggle-speech-input" aria-label="start voice input" title="voice input" hidden><Mic size={14} strokeWidth={2} aria-hidden="true" /></button><button class="send-btn" type="button" aria-label="send" title="send" disabled><SendHorizontal size={14} strokeWidth={2} aria-hidden="true" /></button></div>
       <div class="drop-overlay" hidden><span>drop to attach</span></div>
     </div>
     <div class="prompt-meta" data-prompt-meta>— | <span class="prompt-meta-item prompt-meta-branch"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /><span>—</span></span></div>
@@ -295,7 +296,11 @@ function isToolCollapsed(msg) {
         </details>
         <div class="settings-grid">
           {settingsFields.map((field) => (
-            <label class="settings-field">
+            <label
+              class="settings-field"
+              data-secure-context-only={field.path === "enableSpeechInput" ? "https" : undefined}
+              hidden={field.path === "enableSpeechInput"}
+            >
               <span>{field.label}</span>
                 {field.type === "text" ? (
                 <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
