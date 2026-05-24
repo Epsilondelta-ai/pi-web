@@ -324,12 +324,18 @@ function isToolCollapsed(msg) {
         </details>
         <div class="settings-groups">
           {settingsGroups.map((group) => (
-            <section class="settings-group">
+            <section class:list={["settings-group", group.title === "Speech" && "settings-group-speech"]}>
               <div class="settings-group-head">
-                <strong>{group.title}</strong>
-                <small>{group.description}</small>
+                <div>
+                  <strong>{group.title}</strong>
+                  <small>{group.description}</small>
+                </div>
+                {group.title === "Speech" && <span class="settings-group-badge">browser + local</span>}
               </div>
-              <div class="settings-grid">
+              {group.title === "Speech" && (
+                <p class="settings-group-note">Enable the mic, choose recognition language, then optionally cache a local Whisper model for offline transcription.</p>
+              )}
+              <div class:list={["settings-grid", group.title === "Speech" && "settings-speech-grid"]}>
                 {group.fields.map((field) => (
                   <label
                     class="settings-field"

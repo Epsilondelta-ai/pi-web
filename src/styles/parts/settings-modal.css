@@ -229,23 +229,57 @@
 }
 .settings-group-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--space-2);
   padding: 10px 12px 0;
 }
 .settings-group-head strong {
+  display: block;
   color: var(--fg-0);
   font-size: var(--text-sm);
 }
 .settings-group-head small {
+  display: block;
   color: var(--fg-3);
   font-size: var(--text-xs);
+}
+.settings-group-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-dim);
+  border-radius: 999px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+.settings-group-note {
+  margin: 8px 12px 0;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  line-height: 1.4;
 }
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
   padding: 12px;
+}
+.settings-group-speech {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent), var(--bg-0) 38%);
+}
+.settings-speech-grid .settings-field {
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-1);
+  background: color-mix(in srgb, var(--bg-1) 62%, transparent);
+  padding: 10px;
+}
+.settings-speech-grid .settings-field:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-focus) 45%, transparent);
 }
 .settings-whisper-actions {
   grid-column: 1 / -1;
@@ -282,6 +316,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.settings-speech-grid .settings-field small {
+  line-height: 1.35;
+  white-space: normal;
 }
 .settings-checkbox {
   min-height: 34px;
@@ -374,6 +412,7 @@
 @media (max-width: 520px) {
   .settings-grid { grid-template-columns: 1fr; }
   .settings-group-head { display: block; }
+  .settings-group-badge { display: inline-block; margin-top: 8px; }
   .settings-toolbar { grid-template-columns: 1fr; }
   .auth-login-actions { justify-content: flex-end; }
 }
