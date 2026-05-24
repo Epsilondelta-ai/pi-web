@@ -511,6 +511,14 @@ describe("pi-app controls", () => {
       "이 디바이스에서 사용하기에 너무 큰 Whisper 모델입니다. 더 작은 모델을 선택하세요.",
       "speech-input:whisper",
     );
+    app.loadWhisperPipeline = vi.fn(async () => { throw new Error("An error occurred during model execution"); });
+    await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect(app.showSystemToast).toHaveBeenCalledWith(
+      "warning",
+      "Whisper 변환 오류",
+      "이 디바이스에서 사용하기에 너무 큰 Whisper 모델입니다. 더 작은 모델을 선택하세요.",
+      "speech-input:whisper",
+    );
     app.loadWhisperPipeline = vi.fn(async () => { throw new Error("model failed"); });
     await app.transcribeWhisperRecording([new Blob(["x"])]);
     expect(app.showSystemToast).toHaveBeenCalledWith("warning", "Whisper 변환 오류", "model failed", "speech-input:whisper");

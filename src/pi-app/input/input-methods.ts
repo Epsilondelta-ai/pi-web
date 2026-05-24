@@ -531,7 +531,7 @@ export const inputMethods = {
 
   whisperErrorMessage(error) {
     const message = error instanceof Error ? error.message : String(error);
-    if (/OrtRun\(\)|ERROR_CODE:\s*1/i.test(message)) {
+    if (/OrtRun\(\)|ERROR_CODE:\s*1|model execution/i.test(message)) {
       return "이 디바이스에서 사용하기에 너무 큰 Whisper 모델입니다. 더 작은 모델을 선택하세요.";
     }
     return message;
