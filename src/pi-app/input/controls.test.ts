@@ -332,7 +332,9 @@ describe("pi-app controls", () => {
     vi.stubGlobal("AudioContext", MockAudioContext);
     pipelineMock.mockImplementation(async (_task, _model, options) => {
       options.progress_callback();
-      options.progress_callback({ status: "progress", progress: 42.4 });
+      options.progress_callback({ status: "progress", file: "a", progress: 80, loaded: 80, total: 100 });
+      options.progress_callback({ status: "progress", file: "b", progress: 10, loaded: 10, total: 100 });
+      options.progress_callback({ status: "progress", file: "a", progress: 60, loaded: 60, total: 100 });
       options.progress_callback({ status: "ready" });
       return transcriber;
     });
@@ -348,6 +350,11 @@ describe("pi-app controls", () => {
       "onnx-community/whisper-tiny",
       expect.objectContaining({ dtype: "q4", device: "webgpu" }),
     );
+    expect(app.whisperProgressLoaded).toBe(90);
+    expect(app.whisperProgressText({ status: "progress", name: "c", progress: 30 })).toBe("downloading unknown: 45%");
+    expect(app.whisperProgressText({ status: "progress", url: "d", progress: 120 })).toBe("downloading unknown: 45%");
+    app.resetWhisperProgress();
+    expect(app.whisperProgressText({ status: "progress", progress: 120 })).toBe("downloading unknown: 100%");
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~31MB");
     await app.updateWhisperCacheStatus();
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloaded: unknown ~31MB");

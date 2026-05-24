@@ -534,6 +534,7 @@ export const inputMethods = {
     this.whisperLoadingKey = key;
     this.whisperLoadingPromise = (async () => {
       const { pipeline } = await import("@huggingface/transformers");
+      this.resetWhisperProgress();
       const options: any = {
         progress_callback: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
       };
@@ -553,10 +554,30 @@ export const inputMethods = {
     }
   },
 
+  resetWhisperProgress() {
+    this.whisperProgressByFile = new Map();
+    this.whisperProgressLoaded = 0;
+    this.whisperProgressTotal = 0;
+  },
+
   whisperProgressText(progress) {
     if (!progress) return `downloading ${this.whisperModel}…`;
     if (progress.status === "progress" && Number.isFinite(progress.progress)) {
-      return `downloading ${this.whisperModel}: ${Math.round(progress.progress)}%`;
+      const file = progress.file || progress.name || progress.url || "model";
+      const previous = this.whisperProgressByFile.get(file) || { loaded: 0, total: 0 };
+      const loaded = Math.max(previous.loaded, Number(progress.loaded) || 0);
+      const total = Math.max(previous.total, Number(progress.total) || 0);
+      this.whisperProgressByFile.set(file, { loaded, total });
+      this.whisperProgressLoaded = 0;
+      this.whisperProgressTotal = 0;
+      for (const item of this.whisperProgressByFile.values()) {
+        this.whisperProgressLoaded += item.loaded;
+        this.whisperProgressTotal += item.total;
+      }
+      const percent = this.whisperProgressTotal > 0
+        ? Math.round(this.whisperProgressLoaded * 100 / this.whisperProgressTotal)
+        : Math.round(Math.max(Number(progress.progress), Number(this.whisperProgressLoaded) || 0));
+      return `downloading ${this.whisperModel}: ${Math.min(100, percent)}%`;
     }
     return `${progress.status || "loading"} ${this.whisperModel}`;
   },
