@@ -18,7 +18,7 @@ type discordNotificationSettings struct {
 	ChannelID string
 }
 
-func notifyDiscordResponseCompleted(root string, session Session) error {
+func notifyDiscordResponseCompleted(root string, session Session, messages []Message) error {
 	settings, err := WorkspaceSettings(root)
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func notifyDiscordResponseCompleted(root string, session Session) error {
 	if !discord.Enabled || discord.Token == "" || discord.ChannelID == "" {
 		return nil
 	}
-	return sendDiscordMessage(discord, discordCompletionMessage(session))
+	return sendDiscordMessage(discord, discordCompletionMessage(session, latestUserQuestion(messages)))
 }
 
 func discordCompletionSettings(settings map[string]any) discordNotificationSettings {
@@ -65,16 +65,36 @@ func sendDiscordMessage(settings discordNotificationSettings, content string) er
 	return nil
 }
 
-func discordCompletionMessage(session Session) string {
+func discordCompletionMessage(session Session, question string) string {
 	title := strings.TrimSpace(session.Title)
 	if title == "" {
 		title = session.ID
 	}
-	content := "✅ 답변 완료: " + sanitizeDiscordContent(title)
+	content := "✅ 답변 완료: " + truncateDiscordSessionTitle(sanitizeDiscordContent(title))
+	if question = sanitizeDiscordContent(question); question != "" {
+		content += "\n질문: " + question
+	}
 	if len(content) > 1900 {
 		content = content[:1900]
 	}
 	return content
+}
+
+func latestUserQuestion(messages []Message) string {
+	for index := len(messages) - 1; index >= 0; index-- {
+		if messages[index].Kind == "user" && strings.TrimSpace(messages[index].Text) != "" {
+			return messages[index].Text
+		}
+	}
+	return ""
+}
+
+func truncateDiscordSessionTitle(title string) string {
+	runes := []rune(title)
+	if len(runes) <= 8 {
+		return title
+	}
+	return string(runes[:8]) + "..."
 }
 
 func sanitizeDiscordContent(value string) string {

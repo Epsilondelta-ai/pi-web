@@ -37,7 +37,11 @@ func TestNotifyDiscordResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	discordAPIBaseURL = server.URL
 	defer func() { discordAPIBaseURL = previousBaseURL }()
 
-	err := notifyDiscordResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "done @everyone\nnow"})
+	err := notifyDiscordResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "done @everyone\nnow"}, []Message{
+		{Kind: "user", Text: "first question"},
+		{Kind: "pi", Text: "answer"},
+		{Kind: "user", Text: "latest @here\nquestion"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,8 +51,12 @@ func TestNotifyDiscordResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	if gotAuth != "Bot secret-token" {
 		t.Fatalf("unexpected auth %q", gotAuth)
 	}
-	if content := gotBody["content"]; !strings.Contains(content, "답변 완료: done @\u200beveryone now") {
-		t.Fatalf("unexpected content %q", content)
+	content := gotBody["content"]
+	if !strings.Contains(content, "답변 완료: done @\u200be...") {
+		t.Fatalf("unexpected title content %q", content)
+	}
+	if !strings.Contains(content, "질문: latest @\u200bhere question") {
+		t.Fatalf("unexpected question content %q", content)
 	}
 }
 
@@ -72,7 +80,7 @@ func TestNotifyDiscordResponseCompletedSkipsIncompleteSettings(t *testing.T) {
 	discordAPIBaseURL = server.URL
 	defer func() { discordAPIBaseURL = previousBaseURL }()
 
-	if err := notifyDiscordResponseCompleted(root, Session{ID: "8e7c-44ff"}); err != nil {
+	if err := notifyDiscordResponseCompleted(root, Session{ID: "8e7c-44ff"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if called {
