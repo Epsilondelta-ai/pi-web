@@ -60,6 +60,81 @@ func TestNotifyDiscordResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	}
 }
 
+func TestNotifyTelegramResponseCompletedSendsConfiguredMessage(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotPath string
+	var gotBody map[string]string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	previousBaseURL := telegramAPIBaseURL
+	telegramAPIBaseURL = server.URL
+	defer func() { telegramAPIBaseURL = previousBaseURL }()
+
+	err := notifyTelegramResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "done @everyone\nnow"}, []Message{
+		{Kind: "user", Text: "latest @here\nquestion"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/bottelegram-token/sendMessage" {
+		t.Fatalf("unexpected path %q", gotPath)
+	}
+	if gotBody["chat_id"] != "456789" {
+		t.Fatalf("unexpected chat_id %q", gotBody["chat_id"])
+	}
+	content := gotBody["text"]
+	if !strings.Contains(content, "답변 완료: done @\u200be...") {
+		t.Fatalf("unexpected title content %q", content)
+	}
+	if !strings.Contains(content, "질문: latest @\u200bhere question") {
+		t.Fatalf("unexpected question content %q", content)
+	}
+}
+
+func TestNotifyTelegramResponseCompletedSkipsIncompleteSettings(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"remoteNotifications":{"telegram":{"enabled":true}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousBaseURL := telegramAPIBaseURL
+	telegramAPIBaseURL = server.URL
+	defer func() { telegramAPIBaseURL = previousBaseURL }()
+
+	if err := notifyTelegramResponseCompleted(root, Session{ID: "8e7c-44ff"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("telegram API should not be called without token and chat ID")
+	}
+}
+
 func TestNotifyDiscordResponseCompletedSkipsIncompleteSettings(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()

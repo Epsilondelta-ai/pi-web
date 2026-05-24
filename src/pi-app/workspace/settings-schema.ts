@@ -16,6 +16,9 @@ export const SETTINGS_FIELDS = [
   { path: "remoteNotifications.discord.enabled", label: "Discord enabled", type: "checkbox" },
   { path: "remoteNotifications.discord.token", label: "Discord token", type: "password", hint: "bot token" },
   { path: "remoteNotifications.discord.channelId", label: "Discord channel ID", type: "text", hint: "channel id" },
+  { path: "remoteNotifications.telegram.enabled", label: "Telegram enabled", type: "checkbox" },
+  { path: "remoteNotifications.telegram.token", label: "Telegram bot token", type: "password", hint: "BotFather token" },
+  { path: "remoteNotifications.telegram.chatId", label: "Telegram chat ID", type: "text", hint: "chat_id" },
   { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
 ] as const;
 
@@ -86,6 +89,11 @@ const settingsObjectSchema = z.object({
       token: z.string().optional(),
       channelId: z.string().optional(),
     }).partial().passthrough().optional(),
+    telegram: z.object({
+      enabled: z.boolean().optional(),
+      token: z.string().optional(),
+      chatId: z.string().optional(),
+    }).partial().passthrough().optional(),
   }).partial().passthrough().optional(),
   warnings: z.object({ anthropicExtraUsage: z.boolean().optional() }).partial().passthrough().optional(),
 }).partial().passthrough();
@@ -139,6 +147,11 @@ export const settingsPatchSchema = z.object({
       enabled: nullishBoolean,
       token: nullishString,
       channelId: nullishString,
+    }).partial().passthrough().optional(),
+    telegram: z.object({
+      enabled: nullishBoolean,
+      token: nullishString,
+      chatId: nullishString,
     }).partial().passthrough().optional(),
   }).partial().passthrough().optional(),
   warnings: z.object({ anthropicExtraUsage: nullishBoolean }).partial().passthrough().optional(),

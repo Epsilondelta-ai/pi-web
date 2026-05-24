@@ -111,6 +111,9 @@ func defaultSettings() map[string]any {
 			"discord": map[string]any{
 				"enabled": false,
 			},
+			"telegram": map[string]any{
+				"enabled": false,
+			},
 		},
 	}
 }

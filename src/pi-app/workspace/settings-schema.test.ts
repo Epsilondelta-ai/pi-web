@@ -15,6 +15,9 @@ describe("settings schema", () => {
     expect(paths).toContain("remoteNotifications.discord.enabled");
     expect(paths).toContain("remoteNotifications.discord.token");
     expect(paths).toContain("remoteNotifications.discord.channelId");
+    expect(paths).toContain("remoteNotifications.telegram.enabled");
+    expect(paths).toContain("remoteNotifications.telegram.token");
+    expect(paths).toContain("remoteNotifications.telegram.chatId");
     expect(paths).not.toContain("voice.engine");
     expect(paths).not.toContain("theme");
     expect(paths).not.toContain("terminal.imageWidthCells");
@@ -32,7 +35,10 @@ describe("settings schema", () => {
         voice: { language: "ko-KR" },
         enableSpeechInput: true,
         speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "large-v3" },
-        remoteNotifications: { discord: { enabled: true, token: "bot-token", channelId: "123" } },
+        remoteNotifications: {
+          discord: { enabled: true, token: "bot-token", channelId: "123" },
+          telegram: { enabled: true, token: "telegram-token", chatId: "456" },
+        },
         terminal: { imageWidthCells: 80 },
       },
       paths: { global: "/home/me/.pi/agent/settings.json", project: "/repo/.pi/settings.json" },
@@ -44,7 +50,10 @@ describe("settings schema", () => {
         voice: { language: "ko-KR" },
         enableSpeechInput: true,
         speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "large-v3" },
-        remoteNotifications: { discord: { enabled: true, token: "bot-token", channelId: "123" } },
+        remoteNotifications: {
+          discord: { enabled: true, token: "bot-token", channelId: "123" },
+          telegram: { enabled: true, token: "telegram-token", chatId: "456" },
+        },
       },
     });
   });
@@ -67,11 +76,17 @@ describe("settings schema", () => {
       voice: { language: "ja-JP" },
       enableSpeechInput: true,
       speechInput: { language: "ja-JP", useLocalWhisper: true, whisperModel: "large-v3-q5" },
-      remoteNotifications: { discord: { enabled: true, token: "bot-token", channelId: "123" } },
+      remoteNotifications: {
+        discord: { enabled: true, token: "bot-token", channelId: "123" },
+        telegram: { enabled: true, token: "telegram-token", chatId: "456" },
+      },
       terminal: { imageWidthCells: 120, showImages: false },
     })).toMatchObject({
       transport: "sse",
-      remoteNotifications: { discord: { enabled: true, channelId: "123" } },
+      remoteNotifications: {
+        discord: { enabled: true, channelId: "123" },
+        telegram: { enabled: true, chatId: "456" },
+      },
       terminal: { showImages: false },
     });
 
