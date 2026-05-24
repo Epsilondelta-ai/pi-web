@@ -409,8 +409,11 @@ describe("pi-app controls", () => {
     expect(app.whisperPipeline).toBeNull();
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("browser-whisper cache is managed by the browser");
     app.whisperPipelineKey = "whisper-tiny";
-    expect(await app.isWhisperModelCached("tiny")).toBe(true);
+    expect(app.isWhisperModelCached("tiny")).toBe(true);
     app.whisperPipelineKey = "";
+    app.markWhisperModelCached("tiny");
+    expect(app.isWhisperModelCached("tiny")).toBe(true);
+    app.clearWhisperModelCached("tiny");
     app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     await app.updateWhisperCacheStatus();
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("download required before saving");

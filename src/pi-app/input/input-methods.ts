@@ -40,6 +40,10 @@ function whisperTranscriptionOptions(model, speechLanguage) {
   };
 }
 
+function whisperCacheMarkerKey(model) {
+  return `pi-web:whisper-model:${whisperPreset(model).id}`;
+}
+
 function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
   const cleanTranscript = String(transcript || "").trimStart();
   const needsSpace = basePrompt
@@ -514,6 +518,7 @@ export const inputMethods = {
       this.resetWhisperProgress();
       this.whisperPipeline = new BrowserWhisper({ model: preset.id });
       this.whisperPipelineKey = key;
+      this.markWhisperModelCached?.(this.whisperModel);
       this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
       return this.whisperPipeline;
     })();
@@ -547,6 +552,7 @@ export const inputMethods = {
     try {
       const whisper = await this.loadWhisperPipeline();
       await whisper.downloadModel?.(whisperPreset(this.whisperModel).id);
+      this.markWhisperModelCached?.(this.whisperModel);
       await this.updateWhisperCacheStatus();
     } catch (error) {
       this.setWhisperStatus("download failed", true);
@@ -557,6 +563,7 @@ export const inputMethods = {
   async deleteWhisperModel() {
     if (this.whisperLoadingPromise) return;
     this.whisperPipeline = null;
+    this.clearWhisperModelCached?.(this.whisperModel);
     this.whisperPipelineKey = "";
     this.setWhisperStatus("browser-whisper cache is managed by the browser");
   },
@@ -577,7 +584,24 @@ export const inputMethods = {
   },
 
   isWhisperModelCached(model) {
-    return this.whisperPipelineKey === whisperPreset(model).id;
+    if (this.whisperPipelineKey === whisperPreset(model).id) return true;
+    try {
+      return window.localStorage?.getItem(whisperCacheMarkerKey(model)) === "1";
+    } catch {
+      return false;
+    }
+  },
+
+  markWhisperModelCached(model) {
+    try {
+      window.localStorage?.setItem(whisperCacheMarkerKey(model), "1");
+    } catch {}
+  },
+
+  clearWhisperModelCached(model) {
+    try {
+      window.localStorage?.removeItem(whisperCacheMarkerKey(model));
+    } catch {}
   },
 
   refreshWhisperModelRequirement() {
