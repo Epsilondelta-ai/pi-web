@@ -102,9 +102,9 @@ export function installPiAppFixture() {
           ${settingsSelect("followUpMode", ["inherit", "all"])}
           ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
           ${settingsCheckbox("readResponsesAloud")}
-          ${settingsSelect("voice.language", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"])}
+          ${settingsLanguageInput("voice.language")}
           ${settingsCheckbox("enableSpeechInput")}
-          ${settingsSelect("speechInput.language", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"], false, true)}
+          ${settingsLanguageInput("speechInput.language", true)}
           <details data-speech-advanced data-secure-context-only="https" hidden>
             ${settingsCheckbox("speechInput.useLocalWhisper")}
             ${settingsSelect("speechInput.whisperModel", [
@@ -135,6 +135,12 @@ export function installPiAppFixture() {
 function settingsField(tag, name) {
   if (tag === "input") return `<label class="settings-field"><input data-setting="${name}" /><small></small></label>`;
   return "";
+}
+
+function settingsLanguageInput(name, secure = false) {
+  const id = `language-options-${name.replace(/[^a-z0-9_-]/gi, "-")}`;
+  const secureOnly = secure ? " data-secure-context-only=\"https\" hidden" : "";
+  return `<label class="settings-field"${secureOnly}><input data-setting="${name}" list="${id}" /><datalist id="${id}"><option value="System default" label="system" data-language-value="system"></option><option value="English" label="en" data-language-value="en"></option><option value="한국어(Korean)" label="ko" data-language-value="ko"></option><option value="日本語(Japanese)" label="ja" data-language-value="ja"></option><option value="中文(Chinese)" label="zh" data-language-value="zh"></option></datalist><small></small></label>`;
 }
 
 function settingsSelect(name, values, custom = false, secure = false) {

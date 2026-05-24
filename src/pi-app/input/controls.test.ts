@@ -622,6 +622,14 @@ describe("pi-app controls", () => {
         return { workspaces: [] };
       },
     }));
+    vi.stubGlobal("speechSynthesis", {
+      getVoices: vi.fn(() => [
+        { lang: "en-US", name: "English" },
+        { lang: "ko-KR", name: "Korean" },
+        { lang: "ja-JP", name: "Japanese" },
+      ]),
+      addEventListener: vi.fn(),
+    });
     const app = await connectPiApp();
     app.speechInputAllowed = () => true;
     app.apiConnected = true;
@@ -635,10 +643,10 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
     expect(app.querySelector("[data-setting='readResponsesAloud']").checked).toBe(true);
     expect(app.querySelector("[data-setting='voice.engine']")).toBeNull();
-    expect(app.querySelector("[data-setting='voice.language']").value).toBe("ko-KR");
+    expect(app.querySelector("[data-setting='voice.language']").value).toBe("한국어(Korean)");
     expect(app.querySelector("[data-setting='voice.piperModelPath']")).toBeNull();
     expect(app.querySelector("[data-setting='enableSpeechInput']").checked).toBe(true);
-    expect(app.querySelector("[data-setting='speechInput.language']").value).toBe("ko-KR");
+    expect(app.querySelector("[data-setting='speechInput.language']").value).toBe("한국어(Korean)");
     expect(app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked).toBe(true);
     expect(app.querySelector("[data-setting='speechInput.whisperModel']").value).toBe("base");
     app.refreshWhisperModelRequirement = vi.fn();
@@ -685,12 +693,12 @@ describe("pi-app controls", () => {
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
     app.querySelector("[data-setting='readResponsesAloud']").checked = true;
-    app.querySelector("[data-setting='voice.language']").value = "ja-JP";
+    app.querySelector("[data-setting='voice.language']").value = "日本語(Japanese)";
     app.querySelector("[data-setting='enableSpeechInput']").checked = true;
     app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     app.querySelector("[data-setting='speechInput.whisperModel']").value = "tiny";
     app.whisperPipelineKey = "whisper-tiny";
-    app.querySelector("[data-setting='speechInput.language']").value = "ja-JP";
+    app.querySelector("[data-setting='speechInput.language']").value = "日本語(Japanese)";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({
@@ -699,7 +707,7 @@ describe("pi-app controls", () => {
         defaultModel: "my-model",
         compaction: { enabled: false },
         voice: { language: "ja-JP" },
-        speechInput: { language: "ja-JP", whisperModel: "tiny" },
+        speechInput: { language: "ja", whisperModel: "tiny" },
       },
     });
   });

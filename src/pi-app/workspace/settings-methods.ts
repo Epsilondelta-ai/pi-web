@@ -7,7 +7,13 @@ import {
   saveAPIKey,
   saveWorkspaceSettings,
 } from "../../lib/api";
-import { SETTINGS_FIELDS, parseSettingsPatch, parseWorkspaceSettings, settingsScopeSchema } from "./settings-schema";
+import {
+  SETTINGS_FIELDS,
+  SPEECH_LANGUAGE_OPTIONS,
+  parseSettingsPatch,
+  parseWorkspaceSettings,
+  settingsScopeSchema,
+} from "./settings-schema";
 
 function valueAt(settings, path) {
   return path.split(".").reduce((value, part) => value?.[part], settings);
@@ -25,6 +31,51 @@ function setPatchValue(patch, path, value) {
 
 function settingLabel(path) {
   return path.replace(/([A-Z])/g, " $1").replace(/\./g, " · ").replace(/^./, (char) => char.toUpperCase());
+}
+
+function baseLanguageCode(value) {
+  return String(value || "").trim().split("-")[0].toLowerCase();
+}
+
+function languageOptionFromList(control, value) {
+  const text = String(value || "").trim();
+  const list = control?.list;
+  if (!text || !list) return null;
+  return [...list.options].find((option) => (
+    option.value.toLowerCase() === text.toLowerCase()
+    || option.dataset.languageValue?.toLowerCase() === text.toLowerCase()
+  ));
+}
+
+function speechLanguageOption(value) {
+  const text = String(value || "").trim();
+  if (!text) return SPEECH_LANGUAGE_OPTIONS[0];
+  const lower = text.toLowerCase();
+  const aliases = { "en-us": "en", "ko-kr": "ko", "ja-jp": "ja", "zh-cn": "zh" };
+  const normalized = aliases[lower] || lower;
+  return SPEECH_LANGUAGE_OPTIONS.find((language) => (
+    language.value.toLowerCase() === normalized || language.label.toLowerCase() === lower
+  ));
+}
+
+function speechLanguageValue(value, control) {
+  const text = String(value || "").trim();
+  if (!text) return "system";
+  const listed = languageOptionFromList(control, text)?.dataset.languageValue;
+  return listed || speechLanguageOption(text)?.value || text;
+}
+
+function speechLanguageLabel(value, control) {
+  const text = String(value || "").trim();
+  if (!text) return "System default";
+  const listed = languageOptionFromList(control, text);
+  if (listed) return listed.value;
+  return speechLanguageOption(text)?.label || text;
+}
+
+function browserVoiceLanguageLabel(lang) {
+  if (lang === "system") return "System default";
+  return speechLanguageOption(baseLanguageCode(lang))?.label || lang;
 }
 
 function describeEffective(value) {
@@ -78,6 +129,7 @@ export const settingsMethods = {
       return;
     }
     this.settingsState = parseWorkspaceSettings(settingsResult.value.settings);
+    this.populateBrowserVoiceLanguageOptions();
     if (authResult.status === "fulfilled") {
       this.authState = authResult.value;
       this.fillAuthForm();
@@ -105,6 +157,34 @@ export const settingsMethods = {
 
   closeSettingsModal() {
     this.settingsModal?.setAttribute("hidden", "");
+  },
+
+  populateBrowserVoiceLanguageOptions() {
+    const control = this.querySelector("[data-setting='voice.language']");
+    const list = control?.list;
+    if (!list) return;
+    const selected = speechLanguageValue(control.value, control);
+    const voices = globalThis.speechSynthesis?.getVoices?.() || [];
+    const languagesByBase = new Map();
+    for (const voice of voices) {
+      if (!voice.lang) continue;
+      const base = baseLanguageCode(voice.lang);
+      const previous = languagesByBase.get(base);
+      const preferVoice = !previous || voice.lang === selected || (!previous.default && voice.default === true);
+      if (preferVoice) languagesByBase.set(base, voice);
+    }
+    const languages = [...languagesByBase.values()]
+      .map((voice) => voice.lang)
+      .sort((a, b) => browserVoiceLanguageLabel(a).localeCompare(browserVoiceLanguageLabel(b)));
+    const options = ["system", ...languages].map((language) => {
+      const option = document.createElement("option");
+      option.value = browserVoiceLanguageLabel(language);
+      option.label = language;
+      option.dataset.languageValue = language;
+      return option;
+    });
+    list.replaceChildren(...options);
+    control.value = speechLanguageLabel(selected, control);
   },
 
   setModelControlsLoading(message = "loading models…") {
@@ -241,7 +321,8 @@ export const settingsMethods = {
       return;
     }
     if (field.type === "speechLanguage") {
-      control.value = explicitValue === undefined ? String(effectiveValue || "system") : String(explicitValue || "system");
+      const value = explicitValue === undefined ? effectiveValue || "system" : explicitValue || "system";
+      control.value = speechLanguageLabel(value, control);
       return;
     }
     if (field.type === "whisperModel") {
@@ -388,7 +469,7 @@ export const settingsMethods = {
     }
     for (const control of form.querySelectorAll("[data-setting^='speechInput.']")) {
       if (!allowSpeechInput) continue;
-      const type = control.type === "checkbox" ? "checkbox" : "select";
+      const type = control.type === "checkbox" ? "checkbox" : control.dataset.settingType || "select";
       addChangedValue(control.dataset.setting, this.settingValueFromControl(control, { type }));
     }
     return patch;
@@ -412,7 +493,10 @@ export const settingsMethods = {
       return control.value;
     }
     if (field.type === "checkbox") return control.checked === true;
-    if (field.type === "speechLanguage") return control.value === "system" ? null : control.value;
+    if (field.type === "speechLanguage") {
+      const value = speechLanguageValue(control.value, control);
+      return value === "system" ? null : value;
+    }
     if (control.value === "inherit") return null;
     if (field.type === "boolean") return control.value === "true";
     if (field.type === "numberSelect") return Number(control.value);

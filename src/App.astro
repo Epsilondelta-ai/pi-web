@@ -23,7 +23,10 @@ import {
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./lib/renderers";
 import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "./pi-app/constants";
-import { SETTINGS_FIELDS as settingsFields } from "./pi-app/workspace/settings-schema";
+import {
+  SETTINGS_FIELDS as settingsFields,
+  SPEECH_LANGUAGE_OPTIONS as speechLanguageOptions,
+} from "./pi-app/workspace/settings-schema";
 
 const {
   initialRoute = "workspace",
@@ -110,6 +113,10 @@ function toolStatus(msg) {
 
 function isToolCollapsed(msg) {
   return msg.collapsedByDefault !== false;
+}
+
+function speechLanguageListId(path) {
+  return `speech-language-options-${path.replace(/[^a-z0-9_-]/gi, "-")}`;
 }
 
 ---
@@ -375,13 +382,19 @@ function isToolCollapsed(msg) {
                     ) : field.type === "checkbox" ? (
                       <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span>Enabled</span></span>
                     ) : field.type === "speechLanguage" ? (
-                      <select data-setting={field.path}>
-                        <option value="system">System default</option>
-                        <option value="en-US">English (en-US)</option>
-                        <option value="ko-KR">Korean (ko-KR)</option>
-                        <option value="ja-JP">Japanese (ja-JP)</option>
-                        <option value="zh-CN">Chinese (zh-CN)</option>
-                      </select>
+                      <>
+                        <input
+                          data-setting={field.path}
+                          list={speechLanguageListId(field.path)}
+                          autocomplete="off"
+                          placeholder="Search language…"
+                        />
+                        <datalist id={speechLanguageListId(field.path)}>
+                          {speechLanguageOptions.map((language) => (
+                            <option value={language.label} label={language.value} data-language-value={language.value} />
+                          ))}
+                        </datalist>
+                      </>
                     ) : (
                       <select data-setting={field.path}>
                         <option value="inherit">inherit</option>
