@@ -70,6 +70,27 @@
   overflow-x: hidden;
   overflow-y: auto;
 }
+.settings-language-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  padding: 10px 12px 0;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
+.settings-language-row label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+.settings-language-row small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .settings-toolbar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -444,6 +465,8 @@
   .settings-grid { grid-template-columns: 1fr; }
   .settings-group-head { display: block; }
   .settings-group-badge { display: inline-block; margin-top: 8px; }
-  .settings-toolbar { grid-template-columns: 1fr; }
+  .settings-toolbar,
+  .settings-language-row { grid-template-columns: 1fr; }
+  .settings-language-row small { white-space: normal; }
   .auth-login-actions { justify-content: flex-end; }
 }
