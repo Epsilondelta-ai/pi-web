@@ -72,8 +72,13 @@ const settingsGroups = [
   },
   {
     title: "Voice",
-    description: "read aloud and browser speech input",
-    paths: ["readResponsesAloud", "enableSpeechInput", "speechLanguage"],
+    description: "read aloud output",
+    paths: ["readResponsesAloud", "voice.language"],
+  },
+  {
+    title: "Speech",
+    description: "speech input and transcription",
+    paths: ["enableSpeechInput", "speechInput.language"],
   },
   {
     title: "Warnings",
@@ -328,8 +333,8 @@ function isToolCollapsed(msg) {
                 {group.fields.map((field) => (
                   <label
                     class="settings-field"
-                    data-secure-context-only={field.path === "enableSpeechInput" || field.path === "speechLanguage" ? "https" : undefined}
-                    hidden={field.path === "enableSpeechInput" || field.path === "speechLanguage"}
+                    data-secure-context-only={field.path === "enableSpeechInput" ? "https" : undefined}
+                    hidden={field.path === "enableSpeechInput"}
                   >
                     <span>{field.label}</span>
                       {field.type === "text" ? (
@@ -366,7 +371,7 @@ function isToolCollapsed(msg) {
                     <small>effective: not set</small>
                   </label>
                 ))}
-                {group.title === "Voice" && (
+                {group.title === "Speech" && (
                   <>
                     <label class="settings-field" data-speech-advanced data-secure-context-only="https" hidden>
                       <span>Use local Whisper</span>

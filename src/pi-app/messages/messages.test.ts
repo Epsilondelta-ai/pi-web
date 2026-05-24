@@ -138,7 +138,7 @@ describe("pi-app messages", () => {
     expect(speak).not.toHaveBeenCalled();
     expect(app.querySelector("[data-action='read-response']")).toBeNull();
 
-    app.settingsState = { effective: { readResponsesAloud: true, speechLanguage: "ja-JP" } };
+    app.settingsState = { effective: { readResponsesAloud: true, voice: { engine: "browser", language: "ja-JP" } } };
     app.syncReadAloudFromSettingsState();
     const replay = app.querySelector("[data-action='read-response']");
     expect(replay.getAttribute("aria-label")).toBe("Read response aloud");

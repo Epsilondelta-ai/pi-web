@@ -16,67 +16,27 @@ function composeSpeechSegments(segments) {
 }
 
 const WHISPER_MODELS = {
-  "tiny-q5": { id: "onnx-community/whisper-tiny", size: "~31MB", dtype: "q4" },
-  tiny: { id: "onnx-community/whisper-tiny", size: "~75MB", dtype: undefined },
-  "base-q5": { id: "onnx-community/whisper-base", size: "~57MB", dtype: "q4" },
-  base: { id: "onnx-community/whisper-base", size: "~142MB", dtype: undefined },
-  "small-q5": { id: "onnx-community/whisper-small-ONNX", size: "~181MB", dtype: "q4" },
-  small: { id: "onnx-community/whisper-small-ONNX", size: "~466MB", dtype: undefined },
-  "medium-q5": { id: "onnx-community/whisper-medium_timestamped", size: "~582MB", dtype: "q4" },
-  medium: { id: "onnx-community/whisper-medium_timestamped", size: "~1.5GB", dtype: undefined },
-  "large-v3-q5": { id: "onnx-community/whisper-large-v3-ONNX", size: "~1.2GB", dtype: "q4" },
-  "large-v3": { id: "onnx-community/whisper-large-v3-ONNX", size: "~3GB+", dtype: undefined },
+  "tiny-q5": { id: "whisper-tiny", size: "~30MB" },
+  tiny: { id: "whisper-tiny", size: "~30MB" },
+  "base-q5": { id: "whisper-base", size: "~70MB" },
+  base: { id: "whisper-base", size: "~70MB" },
+  "small-q5": { id: "whisper-small", size: "~240MB" },
+  small: { id: "whisper-small", size: "~240MB" },
+  "medium-q5": { id: "whisper-small", size: "~240MB" },
+  medium: { id: "whisper-small", size: "~240MB" },
+  "large-v3-q5": { id: "whisper-large", size: "~1.5GB" },
+  "large-v3": { id: "whisper-large", size: "~1.5GB" },
 };
 
 function whisperPreset(name) {
   return WHISPER_MODELS[name] || WHISPER_MODELS["tiny-q5"];
 }
 
-function whisperCacheNeedles(model) {
-  const repo = whisperPreset(model).id.toLowerCase();
-  return [repo, repo.replace("/", "%2f")];
-}
-
-function requestUrl(request) {
-  return typeof request === "string" ? request : request?.url || "";
-}
-
-async function blobToWhisperAudio(blob) {
-  const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
-  if (!AudioContextCtor || typeof blob?.arrayBuffer !== "function") return blob;
-  const context = new AudioContextCtor();
-  try {
-    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
-    return audioBufferToMono16k(buffer);
-  } finally {
-    await context.close?.();
-  }
-}
-
-function audioBufferToMono16k(buffer) {
-  const channels = Math.max(1, buffer.numberOfChannels || 1);
-  const mono = new Float32Array(buffer.length);
-  for (let channel = 0; channel < channels; channel += 1) {
-    const data = buffer.getChannelData(channel);
-    for (let index = 0; index < mono.length; index += 1) mono[index] += data[index] / channels;
-  }
-  if (buffer.sampleRate === 16000) return mono;
-  const length = Math.max(1, Math.round(mono.length * 16000 / buffer.sampleRate));
-  const resampled = new Float32Array(length);
-  for (let index = 0; index < length; index += 1) {
-    const source = index * (mono.length - 1) / Math.max(1, length - 1);
-    const left = Math.floor(source);
-    const right = Math.min(mono.length - 1, left + 1);
-    const ratio = source - left;
-    resampled[index] = mono[left] * (1 - ratio) + mono[right] * ratio;
-  }
-  return resampled;
-}
-
-function whisperTranscriptionOptions(_model, speechLanguage) {
+function whisperTranscriptionOptions(model, speechLanguage) {
   return {
+    model: whisperPreset(model).id,
     language: speechLanguage === "system" ? undefined : speechLanguage.slice(0, 2),
-    task: "transcribe",
+    onProgress: undefined,
   };
 }
 
@@ -516,8 +476,12 @@ export const inputMethods = {
     this.setWhisperStatus("transcribing…");
     try {
       const transcriber = await this.loadWhisperPipeline();
-      const audio = await blobToWhisperAudio(new Blob(chunks, { type: chunks[0]?.type || "audio/webm" }));
-      const result = await transcriber(audio, whisperTranscriptionOptions(this.whisperModel, this.speechLanguage));
+      const audio = new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
+      const stream = transcriber.transcribe(audio, {
+        ...whisperTranscriptionOptions(this.whisperModel, this.speechLanguage),
+        onProgress: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
+      });
+      const result = typeof stream?.collect === "function" ? await stream.collect() : stream;
       const text = Array.isArray(result) ? result.map((item) => item.text || "").join(" ") : result?.text;
       appendTranscriptToPrompt(this.prompt, basePrompt, text || "");
       this.updatePrompt();
@@ -539,21 +503,16 @@ export const inputMethods = {
 
   async loadWhisperPipeline() {
     const preset = whisperPreset(this.whisperModel);
-    const key = `${preset.id}:${preset.dtype || "fp32"}`;
+    const key = preset.id;
     if (this.whisperPipeline && this.whisperPipelineKey === key) return this.whisperPipeline;
     if (this.whisperLoadingPromise && this.whisperLoadingKey === key) return this.whisperLoadingPromise;
     this.setWhisperModelButtons(true);
     this.setWhisperStatus(`loading ${this.whisperModel} ${preset.size}…`);
     this.whisperLoadingKey = key;
     this.whisperLoadingPromise = (async () => {
-      const { pipeline } = await import("@huggingface/transformers");
+      const { BrowserWhisper } = await import("browser-whisper");
       this.resetWhisperProgress();
-      const options: any = {
-        progress_callback: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
-      };
-      if (preset.dtype) options.dtype = preset.dtype;
-      if (navigator.gpu) options.device = "webgpu";
-      this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
+      this.whisperPipeline = new BrowserWhisper({ model: preset.id });
       this.whisperPipelineKey = key;
       this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
       return this.whisperPipeline;
@@ -575,29 +534,19 @@ export const inputMethods = {
 
   whisperProgressText(progress) {
     if (!progress) return `downloading ${this.whisperModel}…`;
-    if (progress.status === "progress" && Number.isFinite(progress.progress)) {
-      const file = progress.file || progress.name || progress.url || "model";
-      const previous = this.whisperProgressByFile.get(file) || { loaded: 0, total: 0 };
-      const loaded = Math.max(previous.loaded, Number(progress.loaded) || 0);
-      const total = Math.max(previous.total, Number(progress.total) || 0);
-      this.whisperProgressByFile.set(file, { loaded, total });
-      this.whisperProgressLoaded = 0;
-      this.whisperProgressTotal = 0;
-      for (const item of this.whisperProgressByFile.values()) {
-        this.whisperProgressLoaded += item.loaded;
-        this.whisperProgressTotal += item.total;
-      }
-      const percent = this.whisperProgressTotal > 0
-        ? Math.round(this.whisperProgressLoaded * 100 / this.whisperProgressTotal)
-        : Math.round(Math.max(Number(progress.progress), Number(this.whisperProgressLoaded) || 0));
-      return `downloading ${this.whisperModel}: ${Math.min(100, percent)}%`;
+    const rawProgress = Number(progress.progress);
+    if ((progress.status === "progress" || progress.stage) && Number.isFinite(rawProgress)) {
+      const percent = Math.min(100, Math.round(rawProgress <= 1 ? rawProgress * 100 : rawProgress));
+      const stage = progress.stage || "downloading";
+      return `${stage} ${this.whisperModel}: ${percent}%`;
     }
-    return `${progress.status || "loading"} ${this.whisperModel}`;
+    return `${progress.stage || progress.status || "loading"} ${this.whisperModel}`;
   },
 
   async downloadWhisperModel() {
     try {
-      await this.loadWhisperPipeline();
+      const whisper = await this.loadWhisperPipeline();
+      await whisper.downloadModel?.(whisperPreset(this.whisperModel).id);
       await this.updateWhisperCacheStatus();
     } catch (error) {
       this.setWhisperStatus("download failed", true);
@@ -609,50 +558,20 @@ export const inputMethods = {
     if (this.whisperLoadingPromise) return;
     this.whisperPipeline = null;
     this.whisperPipelineKey = "";
-    if (globalThis.caches) {
-      const needles = whisperCacheNeedles(this.whisperModel);
-      const keys = await caches.keys();
-      await Promise.all(keys.map(async (key) => {
-        const cache = await caches.open(key);
-        const requests = await cache.keys();
-        await Promise.all(requests
-          .filter((request) => needles.some((needle) => requestUrl(request).toLowerCase().includes(needle)))
-          .map((request) => cache.delete(request)));
-      }));
-    }
-    this.setWhisperStatus("model cache cleared");
+    this.setWhisperStatus("browser-whisper cache is managed by the browser");
   },
 
   async updateWhisperCacheStatus() {
     if (this.whisperLoadingPromise) return;
-    if (this.whisperPipeline && this.whisperPipelineKey === `${whisperPreset(this.whisperModel).id}:${whisperPreset(this.whisperModel).dtype || "fp32"}`) {
-      this.setWhisperStatus(`downloaded: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}`);
+    if (this.whisperPipeline && this.whisperPipelineKey === whisperPreset(this.whisperModel).id) {
+      this.setWhisperStatus(`ready: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}`);
       return;
     }
-    if (!globalThis.caches) {
-      this.setWhisperStatus("cache status unavailable");
-      return;
-    }
-    this.setWhisperStatus("checking cache…");
-    const cached = await this.isWhisperModelCached(this.whisperModel);
-    this.setWhisperStatus(cached ? `downloaded: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}` : "not downloaded");
+    this.setWhisperStatus("not loaded");
   },
 
   async isWhisperModelCached(model) {
-    if (!globalThis.caches) return false;
-    const needles = whisperCacheNeedles(model);
-    try {
-      for (const key of await caches.keys()) {
-        if (needles.some((needle) => key.toLowerCase().includes(needle))) return true;
-        const cache = await caches.open(key);
-        for (const request of await cache.keys()) {
-          if (needles.some((needle) => requestUrl(request).toLowerCase().includes(needle))) return true;
-        }
-      }
-    } catch {
-      return false;
-    }
-    return false;
+    return this.whisperPipelineKey === whisperPreset(model).id;
   },
 
   /* v8 ignore start -- animation-frame throttling is exercised through integration behavior */

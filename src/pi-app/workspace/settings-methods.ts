@@ -37,6 +37,14 @@ function customInputFor(control) {
   return control.closest(".settings-field")?.querySelector(`[data-custom-setting='${control.dataset.setting}']`);
 }
 
+function settingsValueChanged(scopedSettings, effective, path, value) {
+  const explicitValue = valueAt(scopedSettings, path);
+  if (explicitValue !== undefined) return explicitValue !== value;
+  if (value === null) return false;
+  const effectiveValue = valueAt(effective, path);
+  return effectiveValue !== value;
+}
+
 export const settingsMethods = {
   async loadWorkspaceSettingsState(workspaceId = this.dataset.activeWorkspaceId) {
     if (!workspaceId || !this.apiConnected) return;
@@ -214,7 +222,7 @@ export const settingsMethods = {
       this.syncCustomSettingInput(control);
       return;
     }
-    if (field.type === "text") {
+    if (field.type === "text" || field.type === "numberText") {
       control.value = explicitValue === undefined ? "" : String(explicitValue);
       control.placeholder = describeEffective(effectiveValue);
       return;
@@ -225,6 +233,10 @@ export const settingsMethods = {
     }
     if (field.type === "checkbox") {
       control.checked = explicitValue === undefined ? effectiveValue === true : explicitValue === true;
+      return;
+    }
+    if (field.type === "voiceEngine") {
+      control.value = explicitValue === undefined ? String(effectiveValue || "browser") : String(explicitValue || "browser");
       return;
     }
     if (field.type === "speechLanguage") {
@@ -329,12 +341,15 @@ export const settingsMethods = {
   syncSettingsStateToApp() {
     const allowSpeechInput = this.speechInputAllowed?.() === true;
     const speechInput = this.settingsState?.effective?.speechInput || {};
+    const voice = this.settingsState?.effective?.voice || {};
     this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
+    this.voiceEngine = "browser";
     this.enableSpeechInput = allowSpeechInput && this.settingsState?.effective?.enableSpeechInput === true;
     this.useLocalWhisper = allowSpeechInput && speechInput.useLocalWhisper === true;
     this.whisperModel = speechInput.whisperModel || "tiny-q5";
     if (!this.enableSpeechInput) this.stopSpeechInput?.();
-    this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
+    this.voiceLanguage = voice.language || this.settingsState?.effective?.speechLanguage || "system";
+    this.speechLanguage = speechInput.language || this.settingsState?.effective?.speechLanguage || "system";
     this.syncReadAloudControls?.();
     this.syncSecureContextSettingsControls();
     this.syncSpeechInputControls?.();
@@ -353,17 +368,23 @@ export const settingsMethods = {
 
   settingsPatchFromForm(form) {
     const patch = {};
+    const scope = form.querySelector("[name='scope']")?.value || "project";
+    const scopedSettings = this.settingsState?.[scope] || {};
+    const effective = this.settingsState?.effective || {};
     const allowSpeechInput = this.speechInputAllowed?.() === true;
+    const addChangedValue = (path, value) => {
+      if (settingsValueChanged(scopedSettings, effective, path, value)) setPatchValue(patch, path, value);
+    };
     for (const field of SETTINGS_FIELDS) {
-      if (field.path === "enableSpeechInput" && !allowSpeechInput) continue;
+      if ((field.path === "enableSpeechInput" || field.path.startsWith("speechInput.")) && !allowSpeechInput) continue;
       const control = form.querySelector(`[data-setting='${field.path}']`);
       if (!control) continue;
-      setPatchValue(patch, field.path, this.settingValueFromControl(control, field));
+      addChangedValue(field.path, this.settingValueFromControl(control, field));
     }
     for (const control of form.querySelectorAll("[data-setting^='speechInput.']")) {
       if (!allowSpeechInput) continue;
       const type = control.type === "checkbox" ? "checkbox" : "select";
-      setPatchValue(patch, control.dataset.setting, this.settingValueFromControl(control, { type }));
+      addChangedValue(control.dataset.setting, this.settingValueFromControl(control, { type }));
     }
     return patch;
   },
@@ -372,6 +393,10 @@ export const settingsMethods = {
     if (field.type === "text") {
       const value = control.value.trim();
       return value ? value : null;
+    }
+    if (field.type === "numberText") {
+      const value = control.value.trim();
+      return value ? Number(value) : null;
     }
     if (field.type === "providerSelect" || field.type === "modelSelect") {
       if (control.value === "inherit") return null;

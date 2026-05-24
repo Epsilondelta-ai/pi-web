@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PROMPT_DRAFT_STORAGE_KEY } from "../constants";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
 
-const pipelineMock = vi.hoisted(() => vi.fn());
-vi.mock("@huggingface/transformers", () => ({ pipeline: pipelineMock }));
+const browserWhisperMock = vi.hoisted(() => vi.fn(function BrowserWhisperMock() {}));
+vi.mock("browser-whisper", () => ({ BrowserWhisper: browserWhisperMock }));
 
 describe("pi-app controls", () => {
   beforeEach(installPiAppFixture);
@@ -300,7 +300,7 @@ describe("pi-app controls", () => {
     app.speechInputAllowed = () => true;
     app.enableSpeechInput = true;
     app.useLocalWhisper = true;
-    app.loadWhisperPipeline = vi.fn(async () => vi.fn(async () => ({ text: "로컬 위스퍼" })));
+    app.loadWhisperPipeline = vi.fn(async () => ({ transcribe: () => ({ collect: async () => [{ text: "로컬 위스퍼" }] }) }));
     app.prompt.value = "기존";
 
     app.startSpeechInput();
@@ -316,105 +316,48 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("transcribed");
   });
 
-  it("loads local Whisper models and reports progress", async () => {
-    const transcriber = vi.fn(async () => [{ text: "배열" }, { text: "" }, { text: "결과" }]);
-    class MockAudioContext {
-      async decodeAudioData() {
-        return {
-          length: 2,
-          numberOfChannels: 2,
-          sampleRate: 8000,
-          getChannelData: (channel) => channel === 0 ? new Float32Array([0.2, 0.4]) : new Float32Array([0.6, 0.8]),
-        };
-      }
-      close = vi.fn(async () => undefined);
-    }
-    vi.stubGlobal("AudioContext", MockAudioContext);
-    pipelineMock.mockImplementation(async (_task, _model, options) => {
-      options.progress_callback();
-      options.progress_callback({ status: "progress", file: "a", progress: 80, loaded: 80, total: 100 });
-      options.progress_callback({ status: "progress", file: "b", progress: 10, loaded: 10, total: 100 });
-      options.progress_callback({ status: "progress", file: "a", progress: 60, loaded: 60, total: 100 });
-      options.progress_callback({ status: "ready" });
-      return transcriber;
-    });
-    Object.defineProperty(navigator, "gpu", { configurable: true, value: {} });
+  it("loads browser-whisper models and reports progress", async () => {
+    const transcriber = { transcribe: vi.fn(() => ({ collect: async () => [{ text: "배열" }, { text: "" }, { text: "결과" }] })) };
+    browserWhisperMock.mockImplementation(function BrowserWhisperMock() { return transcriber; });
     const app = await connectPiApp();
     app.whisperModel = "unknown";
     app.prompt.value = "기존";
 
     const loaded = await app.loadWhisperPipeline();
     expect(loaded).toBe(transcriber);
-    expect(pipelineMock).toHaveBeenCalledWith(
-      "automatic-speech-recognition",
-      "onnx-community/whisper-tiny",
-      expect.objectContaining({ dtype: "q4", device: "webgpu" }),
-    );
-    expect(app.whisperProgressLoaded).toBe(90);
-    expect(app.whisperProgressText({ status: "progress", name: "c", progress: 30 })).toBe("downloading unknown: 45%");
-    expect(app.whisperProgressText({ status: "progress", url: "d", progress: 120 })).toBe("downloading unknown: 45%");
-    app.resetWhisperProgress();
+    expect(browserWhisperMock).toHaveBeenCalledWith({ model: "whisper-tiny" });
+    expect(app.whisperProgressText({ stage: "loading", progress: 0.3 })).toBe("loading unknown: 30%");
     expect(app.whisperProgressText({ status: "progress", progress: 120 })).toBe("downloading unknown: 100%");
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~31MB");
+    expect(app.whisperProgressText()).toBe("downloading unknown…");
+    expect(app.whisperProgressText({})).toBe("loading unknown");
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~30MB");
     await app.updateWhisperCacheStatus();
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloaded: unknown ~31MB");
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~30MB");
     expect(await app.loadWhisperPipeline()).toBe(transcriber);
-    expect(pipelineMock).toHaveBeenCalledTimes(1);
-    app.whisperLoadingKey = app.whisperPipelineKey;
-    app.whisperLoadingPromise = Promise.resolve("loading-pipeline");
-    expect(await app.loadWhisperPipeline()).toBe(transcriber);
+    expect(browserWhisperMock).toHaveBeenCalledTimes(1);
     app.whisperPipeline = null;
+    app.whisperLoadingKey = "whisper-tiny";
+    app.whisperLoadingPromise = Promise.resolve("loading-pipeline");
     expect(await app.loadWhisperPipeline()).toBe("loading-pipeline");
     app.whisperLoadingPromise = null;
     app.whisperLoadingKey = "";
 
     app.speechLanguage = "ko-KR";
     await app.transcribeWhisperRecording([new Blob(["x"])]);
-    expect(transcriber).toHaveBeenLastCalledWith(expect.any(Float32Array), { language: "ko", task: "transcribe" });
-    expect([...transcriber.mock.calls.at(-1)[0]]).toEqual([
-      expect.closeTo(0.4),
-      expect.closeTo(0.4666667),
-      expect.closeTo(0.5333333),
-      expect.closeTo(0.6),
-    ]);
+    expect(transcriber.transcribe).toHaveBeenLastCalledWith(expect.any(Blob), expect.objectContaining({ model: "whisper-tiny", language: "ko" }));
+    transcriber.transcribe.mock.calls.at(-1)[1].onProgress({ stage: "transcribing", progress: 0.5 });
     expect(app.prompt.value).toBe("기존 배열  결과");
-    app.whisperModel = "medium";
+    transcriber.transcribe = vi.fn(() => ({ text: "객체 결과" }));
     await app.transcribeWhisperRecording([new Blob(["x"])]);
-    expect(transcriber).toHaveBeenLastCalledWith(expect.any(Float32Array), { language: "ko", task: "transcribe" });
-    class MockAudioContext16k {
-      async decodeAudioData() {
-        return {
-          length: 1,
-          numberOfChannels: 0,
-          sampleRate: 16000,
-          getChannelData: () => new Float32Array([0.25]),
-        };
-      }
-      close = vi.fn(async () => undefined);
-    }
-    vi.stubGlobal("AudioContext", MockAudioContext16k);
+    expect(app.prompt.value).toBe("기존 배열  결과 객체 결과");
+    transcriber.transcribe = vi.fn(() => ({ text: "" }));
     await app.transcribeWhisperRecording([new Blob(["x"])]);
-    expect([...transcriber.mock.calls.at(-1)[0]]).toEqual([expect.closeTo(0.25)]);
-    pipelineMock.mockImplementationOnce(async () => vi.fn(async () => ({})));
-    app.whisperPipeline = null;
-    app.whisperPipelineKey = "";
-    app.whisperModel = "tiny";
-    await app.loadWhisperPipeline();
-    await app.transcribeWhisperRecording([new Blob(["x"], { type: "audio/webm" })]);
-    Object.defineProperty(navigator, "gpu", { configurable: true, value: undefined });
-    app.whisperPipeline = null;
-    app.whisperPipelineKey = "";
+    expect(app.prompt.value).toBe("기존 배열  결과 객체 결과");
     app.whisperModel = "base";
-    pipelineMock.mockImplementationOnce(async (_task, _model, options) => {
-      options.progress_callback({});
-      return vi.fn(async () => ({ text: "" }));
-    });
+    app.whisperPipeline = null;
+    app.whisperPipelineKey = "";
     await app.loadWhisperPipeline();
-    expect(pipelineMock).toHaveBeenLastCalledWith(
-      "automatic-speech-recognition",
-      "onnx-community/whisper-base",
-      expect.not.objectContaining({ dtype: expect.anything(), device: expect.anything() }),
-    );
+    expect(browserWhisperMock).toHaveBeenLastCalledWith({ model: "whisper-base" });
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -441,54 +384,35 @@ describe("pi-app controls", () => {
   it("handles local Whisper model actions", async () => {
     const app = await connectPiApp();
     app.whisperModel = "tiny";
-    app.whisperPipeline = vi.fn();
-    app.whisperPipelineKey = "old";
-    app.loadWhisperPipeline = vi.fn(async () => "pipeline");
+    const originalDeleteWhisperModel = app.deleteWhisperModel;
+    app.deleteWhisperModel = undefined;
+    app.querySelector("[data-action='delete-whisper-model']").click();
+    app.deleteWhisperModel = originalDeleteWhisperModel;
+    const downloadModel = vi.fn(async () => undefined);
+    app.loadWhisperPipeline = vi.fn(async () => ({ downloadModel }));
 
     app.querySelector("[data-action='download-whisper-model']").click();
     await Promise.resolve();
+    await Promise.resolve();
     expect(app.loadWhisperPipeline).toHaveBeenCalled();
+    expect(downloadModel).toHaveBeenCalledWith("whisper-tiny");
+    app.loadWhisperPipeline = vi.fn(async () => ({}));
+    await app.downloadWhisperModel();
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not loaded");
 
-    app.querySelector("[data-action='delete-whisper-model']").click();
-    app.whisperPipeline = vi.fn();
     app.whisperLoadingPromise = Promise.resolve("loading");
     await app.deleteWhisperModel();
     await app.updateWhisperCacheStatus();
-    expect(app.whisperPipeline).not.toBeNull();
+    expect(app.querySelector("[data-whisper-status]").textContent).not.toBe("browser-whisper cache is managed by the browser");
     app.whisperLoadingPromise = null;
     await app.deleteWhisperModel();
-    const modelRequest = { url: "https://huggingface.co/onnx-community/whisper-tiny/resolve/main/model.onnx" };
-    const otherRequest = { url: "https://example.test/other" };
-    const cache = {
-      keys: vi.fn(async () => [modelRequest, otherRequest]),
-      delete: vi.fn(async () => true),
-    };
-    globalThis.caches = {
-      keys: vi.fn(async () => ["transformers-cache", "other"]),
-      open: vi.fn(async () => cache),
-    };
-    await app.deleteWhisperModel();
     expect(app.whisperPipeline).toBeNull();
-    expect(cache.delete).toHaveBeenCalledWith(modelRequest);
-    expect(cache.delete).not.toHaveBeenCalledWith(otherRequest);
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("model cache cleared");
-    await app.updateWhisperCacheStatus();
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloaded: tiny ~75MB");
-    globalThis.caches.keys = vi.fn(async () => ["other"]);
-    cache.keys = vi.fn(async () => [otherRequest, null]);
-    await app.updateWhisperCacheStatus();
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not downloaded");
-    globalThis.caches.keys = vi.fn(async () => { throw new Error("blocked"); });
-    expect(await app.isWhisperModelCached("tiny")).toBe(false);
-    globalThis.caches.keys = vi.fn(async () => ["onnx-community/whisper-tiny-cache"]);
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("browser-whisper cache is managed by the browser");
+    app.whisperPipelineKey = "whisper-tiny";
     expect(await app.isWhisperModelCached("tiny")).toBe(true);
-    globalThis.caches.keys = vi.fn(async () => ["other"]);
-    cache.keys = vi.fn(async () => ["https://huggingface.co/onnx-community/whisper-tiny/resolve/main/tokenizer.json"]);
-    expect(await app.isWhisperModelCached("tiny")).toBe(true);
-    delete globalThis.caches;
-    expect(await app.isWhisperModelCached("tiny")).toBe(false);
+    app.whisperPipelineKey = "";
     await app.updateWhisperCacheStatus();
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("cache status unavailable");
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not loaded");
   });
 
   it("handles local Whisper failures", async () => {
@@ -654,9 +578,9 @@ describe("pi-app controls", () => {
                 defaultModel: "gpt-5.5",
                 compaction: { enabled: true },
                 readResponsesAloud: true,
+                voice: { language: "ko-KR" },
                 enableSpeechInput: true,
-                speechInput: { useLocalWhisper: true, whisperModel: "base" },
-                speechLanguage: "ko-KR",
+                speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "base" },
               },
               paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
             },
@@ -677,8 +601,11 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
     expect(app.querySelector("[data-setting='readResponsesAloud']").checked).toBe(true);
+    expect(app.querySelector("[data-setting='voice.engine']")).toBeNull();
+    expect(app.querySelector("[data-setting='voice.language']").value).toBe("ko-KR");
+    expect(app.querySelector("[data-setting='voice.piperModelPath']")).toBeNull();
     expect(app.querySelector("[data-setting='enableSpeechInput']").checked).toBe(true);
-    expect(app.querySelector("[data-setting='speechLanguage']").value).toBe("ko-KR");
+    expect(app.querySelector("[data-setting='speechInput.language']").value).toBe("ko-KR");
     expect(app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked).toBe(true);
     expect(app.querySelector("[data-setting='speechInput.whisperModel']").value).toBe("base");
     app.updateWhisperCacheStatus = vi.fn();
@@ -698,6 +625,7 @@ describe("pi-app controls", () => {
     expect(app.useLocalWhisper).toBe(true);
     expect(app.whisperModel).toBe("base");
     expect(app.querySelector(".mic-btn").hidden).toBe(false);
+    expect(app.voiceLanguage).toBe("ko-KR");
     expect(app.speechLanguage).toBe("ko-KR");
     expect(app.querySelector("[data-setting='theme']")).toBeNull();
     expect(app.querySelector("[data-setting='transport']")).toBeNull();
@@ -721,10 +649,11 @@ describe("pi-app controls", () => {
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
     app.querySelector("[data-setting='readResponsesAloud']").checked = true;
+    app.querySelector("[data-setting='voice.language']").value = "ja-JP";
     app.querySelector("[data-setting='enableSpeechInput']").checked = true;
     app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     app.querySelector("[data-setting='speechInput.whisperModel']").value = "tiny";
-    app.querySelector("[data-setting='speechLanguage']").value = "ja-JP";
+    app.querySelector("[data-setting='speechInput.language']").value = "ja-JP";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
     expect(JSON.parse(putCall[1].body)).toMatchObject({
@@ -732,10 +661,8 @@ describe("pi-app controls", () => {
       settings: {
         defaultModel: "my-model",
         compaction: { enabled: false },
-        readResponsesAloud: true,
-        enableSpeechInput: true,
-        speechInput: { useLocalWhisper: true, whisperModel: "tiny" },
-        speechLanguage: "ja-JP",
+        voice: { language: "ja-JP" },
+        speechInput: { language: "ja-JP", whisperModel: "tiny" },
       },
     });
   });

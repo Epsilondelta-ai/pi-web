@@ -241,25 +241,11 @@
   color: var(--fg-3);
   font-size: var(--text-xs);
 }
-.settings-grid,
-.settings-advanced-grid {
+.settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
   padding: 12px;
-}
-.settings-advanced {
-  margin: 0 12px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-1);
-  background: var(--bg-0);
-}
-.settings-advanced summary {
-  cursor: pointer;
-  padding: 10px 12px 0;
-  color: var(--fg-1);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
 }
 .settings-whisper-actions {
   grid-column: 1 / -1;
@@ -354,18 +340,15 @@
 .settings-foot [data-settings-status].err { color: var(--danger); }
 
 @media (min-width: 980px) {
-  .settings-grid,
-  .settings-advanced-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .settings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (min-width: 720px) and (max-width: 979px) {
-  .settings-grid,
-  .settings-advanced-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .settings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (min-width: 521px) and (max-width: 719px) {
-  .settings-grid,
-  .settings-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
@@ -389,8 +372,7 @@
 }
 
 @media (max-width: 520px) {
-  .settings-grid,
-  .settings-advanced-grid { grid-template-columns: 1fr; }
+  .settings-grid { grid-template-columns: 1fr; }
   .settings-group-head { display: block; }
   .settings-toolbar { grid-template-columns: 1fr; }
   .auth-login-actions { justify-content: flex-end; }
