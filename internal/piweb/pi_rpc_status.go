@@ -94,6 +94,7 @@ func parseStateModelStatusRPCLine(line string) (RuntimeStatus, bool, error) {
 				Name     string `json:"name"`
 				Provider string `json:"provider"`
 			} `json:"model"`
+			ThinkingLevel string `json:"thinkingLevel"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal([]byte(line), &response); err != nil {
@@ -118,5 +119,9 @@ func parseStateModelStatusRPCLine(line string) (RuntimeStatus, bool, error) {
 	if model == "" {
 		model = strings.TrimSpace(response.Data.Model.Provider)
 	}
-	return RuntimeStatus{Model: model, ModelProvider: strings.TrimSpace(response.Data.Model.Provider)}, true, nil
+	return RuntimeStatus{
+		Model:         model,
+		ModelProvider: strings.TrimSpace(response.Data.Model.Provider),
+		ThinkingLevel: strings.TrimSpace(response.Data.ThinkingLevel),
+	}, true, nil
 }

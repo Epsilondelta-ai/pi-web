@@ -371,8 +371,10 @@ class PiApp extends HTMLElement {
       currentBranch: status.currentBranch || status.branch || this.runtimeStatus?.currentBranch,
     };
     const model = this.runtimeStatus.model || "—";
+    const thinkingLevel = this.runtimeStatus.thinkingLevel;
     const currentBranch = this.runtimeStatus.currentBranch || "—";
     const parts = [escapeHtml(model)];
+    if (thinkingLevel) parts.push(this.thinkingLabel(thinkingLevel));
     const fiveHour = this.quotaLabel("5h", this.runtimeStatus.fiveHourQuota);
     const weekly = this.quotaLabel("Week", this.runtimeStatus.weeklyQuota);
     if (fiveHour) parts.push(fiveHour);
@@ -383,6 +385,11 @@ class PiApp extends HTMLElement {
 
   branchLabel(branch) {
     return `<span class="prompt-meta-item prompt-meta-branch">${this.promptMetaIcon("git-branch")}<span>${escapeHtml(branch)}</span></span>`;
+  }
+
+  thinkingLabel(level) {
+    const label = level === "off" ? "thinking off" : `thinking ${level}`;
+    return `<span class="prompt-meta-item prompt-meta-thinking">${escapeHtml(label)}</span>`;
   }
 
   quotaLabel(label, quota) {

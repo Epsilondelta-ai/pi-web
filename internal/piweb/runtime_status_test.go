@@ -9,13 +9,20 @@ import (
 )
 
 func TestParseStateModelRPCLineUsesDisplayName(t *testing.T) {
-	line := `{"id":"state","type":"response","command":"get_state","success":true,"data":{"model":{"id":"gpt-5.5","name":"GPT-5.5","provider":"openai-codex"}}}`
+	line := `{"id":"state","type":"response","command":"get_state","success":true,"data":{"model":{"id":"gpt-5.5","name":"GPT-5.5","provider":"openai-codex"},"thinkingLevel":"high"}}`
 	model, matched, err := parseStateModelRPCLine(line)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !matched || model != "GPT-5.5" {
 		t.Fatalf("expected GPT-5.5, got matched=%v model=%q", matched, model)
+	}
+	status, matched, err := parseStateModelStatusRPCLine(line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !matched || status.ThinkingLevel != "high" {
+		t.Fatalf("expected high thinking level, got matched=%v status=%+v", matched, status)
 	}
 }
 
