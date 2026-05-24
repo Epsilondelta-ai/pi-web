@@ -580,13 +580,14 @@ export const inputMethods = {
   },
 
   selectedWhisperModel() {
-    return this.querySelector?.("[data-setting='speechInput.whisperModel']")?.value || this.whisperModel || "tiny-q5";
+    const control = this.querySelector("[data-setting='speechInput.whisperModel']");
+    return control?.value || this.whisperModel || "tiny-q5";
   },
 
   isWhisperModelCached(model) {
     if (this.whisperPipelineKey === whisperPreset(model).id) return true;
     try {
-      return window.localStorage?.getItem(whisperCacheMarkerKey(model)) === "1";
+      return window.localStorage.getItem(whisperCacheMarkerKey(model)) === "1";
     } catch {
       return false;
     }
@@ -594,13 +595,13 @@ export const inputMethods = {
 
   markWhisperModelCached(model) {
     try {
-      window.localStorage?.setItem(whisperCacheMarkerKey(model), "1");
+      window.localStorage.setItem(whisperCacheMarkerKey(model), "1");
     } catch {}
   },
 
   clearWhisperModelCached(model) {
     try {
-      window.localStorage?.removeItem(whisperCacheMarkerKey(model));
+      window.localStorage.removeItem(whisperCacheMarkerKey(model));
     } catch {}
   },
 
