@@ -77,6 +77,11 @@ describe("pi-app input actions coverage", () => {
     spanAction.dataset.action = "route-picker";
     app.append(spanAction);
     app.handleAppClick({ target: spanAction });
+    const fileTreeNode = document.createElement("div");
+    fileTreeNode.dataset.action = "open-file";
+    fileTreeNode.dataset.filePath = "src/tree.ts";
+    app.append(fileTreeNode);
+    app.handleAppClick({ target: fileTreeNode });
     const fallbackButton = document.createElement("button");
     fallbackButton.dataset.action = "fallback-choice";
     fallbackButton.dataset.choiceId = "c";
