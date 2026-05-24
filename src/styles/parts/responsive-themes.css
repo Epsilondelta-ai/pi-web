@@ -34,6 +34,19 @@
   .topbar .brand { display: none; }
   .tree-title { display: none; }
   .prompt-region { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
+  .topbar .hamburger,
+  .topbar .iconbtn,
+  .attach-btn,
+  .send-btn,
+  .stop-btn,
+  .mic-btn {
+    width: var(--hit-min);
+    min-width: var(--hit-min);
+    height: var(--hit-min);
+  }
+  .shell-row button { width: var(--hit-min); height: 40px; }
+  .shell-row input { height: 40px; }
+  .prompt-textarea { min-height: var(--hit-min); }
   .tree-row-menu { opacity: 1; }
   .tree-node { min-height: 38px; }
   .session-row { min-height: 44px; }

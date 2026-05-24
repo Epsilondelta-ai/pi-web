@@ -88,6 +88,23 @@ function customInputFor(control) {
   return control.closest(".settings-field")?.querySelector(`[data-custom-setting='${control.dataset.setting}']`);
 }
 
+const SETTINGS_FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "summary",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function visibleSettingsFocusables(root) {
+  return [...root.querySelectorAll(SETTINGS_FOCUSABLE_SELECTOR)]
+    .filter((element): element is HTMLElement => (
+      element instanceof HTMLElement && element.getClientRects().length > 0 && !element.closest("[hidden]")
+    ));
+}
+
 function settingsValueChanged(scopedSettings, effective, path, value) {
   const explicitValue = valueAt(scopedSettings, path);
   if (explicitValue !== undefined) return explicitValue !== value;
@@ -106,7 +123,12 @@ export const settingsMethods = {
 
   async openSettingsModal() {
     const workspaceId = this.dataset.activeWorkspaceId;
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement && !this.settingsModal?.contains(activeElement)) {
+      this.settingsReturnFocus = activeElement;
+    }
     this.settingsModal?.removeAttribute("hidden");
+    window.requestAnimationFrame(() => this.focusSettingsModal?.());
     if (!workspaceId) {
       this.setSettingsStatus("open a workspace first", true);
       return;
@@ -153,10 +175,49 @@ export const settingsMethods = {
     if (modelsResult.status === "fulfilled" && modelsResult.value?.error) errors.push(modelsResult.value.error);
     this.setSettingsStatus(errors[0] || "blank fields inherit from effective settings", errors.length > 0);
     if (errors.length > 0) this.setConnection("err");
+    this.focusSettingsModal?.();
   },
 
   closeSettingsModal() {
+    const wasOpen = this.settingsModal && !this.settingsModal.hidden;
     this.settingsModal?.setAttribute("hidden", "");
+    if (!wasOpen) return;
+    const returnFocus = this.settingsReturnFocus;
+    this.settingsReturnFocus = undefined;
+    if (returnFocus?.isConnected) returnFocus.focus();
+    else this.prompt?.focus?.();
+  },
+
+  focusSettingsModal() {
+    if (!this.settingsModal || this.settingsModal.hidden) return;
+    if (document.activeElement && this.settingsModal.contains(document.activeElement)) return;
+    const target = this.settingsModal.querySelector("[data-action='close-settings']")
+      || visibleSettingsFocusables(this.settingsModal)[0]
+      || this.settingsModal.querySelector(".settings-dialog");
+    target?.focus?.();
+  },
+
+  trapSettingsFocus(event) {
+    if (!this.settingsModal || this.settingsModal.hidden || event.key !== "Tab") return;
+    const focusables = visibleSettingsFocusables(this.settingsModal);
+    if (!focusables.length) {
+      event.preventDefault();
+      this.settingsModal.querySelector(".settings-dialog")?.focus?.();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables.at(-1);
+    const activeElement = document.activeElement;
+    if (!this.settingsModal.contains(activeElement)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   },
 
   populateBrowserVoiceLanguageOptions() {

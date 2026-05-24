@@ -343,7 +343,7 @@ function piEditorTheme() {
       ".cm-line": { padding: "0 10px" },
       ".cm-gutters": {
         backgroundColor: "var(--bg-0)",
-        color: "var(--fg-4)",
+        color: "var(--fg-3)",
         borderRight: "1px solid var(--border-dim)",
       },
       ".cm-activeLineGutter, .cm-activeLine": { backgroundColor: "rgba(255,255,255,0.045)" },

@@ -418,6 +418,16 @@
 }
 
 @media (max-width: 680px) {
+  .settings-dialog input,
+  .settings-dialog select,
+  .settings-dialog button,
+  .settings-checkbox {
+    min-height: var(--hit-min);
+  }
+  .settings-dialog input,
+  .settings-dialog select {
+    height: var(--hit-min);
+  }
   .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
   .auth-login-title { white-space: normal; }
   .auth-login-title em { display: none; }

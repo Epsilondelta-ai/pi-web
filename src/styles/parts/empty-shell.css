@@ -51,7 +51,7 @@
   color: var(--fg-2);
   padding: 0;
 }
-.empty-tips .dim { color: var(--fg-4); }
+.empty-tips .dim { color: var(--fg-3); }
 
 .slash-pop {
   position: absolute;

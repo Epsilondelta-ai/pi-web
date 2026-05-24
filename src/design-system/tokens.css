@@ -23,7 +23,7 @@
 }
 
 :root {
-  --bg-0: #000000;          --bg-1: #0a0a0a;          --bg-2: #111111;          --bg-3: #1a1a1a;          --bg-4: #232323;          --border-dim: #1f1f1f;    --border:     #2a2a2a;    --border-hi:  #3a3a3a;    --border-focus: #00ff88;  --fg-0:  #f5f5f5;         --fg-1:  #d4d4d4;         --fg-2:  #8b8b8b;         --fg-3:  #5a5a5a;         --fg-4:  #3a3a3a;         --ansi-black:    #1a1a1a;
+  --bg-0: #000000;          --bg-1: #0a0a0a;          --bg-2: #111111;          --bg-3: #1a1a1a;          --bg-4: #232323;          --border-dim: #1f1f1f;    --border:     #2a2a2a;    --border-hi:  #3a3a3a;    --border-focus: #00ff88;  --fg-0:  #f5f5f5;         --fg-1:  #d4d4d4;         --fg-2:  #a3a3a3;         --fg-3:  #8b8b8b;         --fg-4:  #5a5a5a;         --ansi-black:    #1a1a1a;
   --ansi-red:      #ff6b6b;
   --ansi-green:    #00ff88;   --ansi-yellow:   #fae870;
   --ansi-blue:     #82aaff;
@@ -31,7 +31,7 @@
   --ansi-cyan:     #5af2ff;
   --ansi-white:    #e6e6e6;
 
-  --ansi-bright-black:   #5a5a5a;
+  --ansi-bright-black:   #8b8b8b;
   --ansi-bright-red:     #ff8b8b;
   --ansi-bright-green:   #5cffaf;
   --ansi-bright-yellow:  #fff09a;
@@ -53,7 +53,7 @@
   --font-mono: "Fira Code", "JetBrains Mono", "Monaspace Neon", "SF Mono",
                "Cascadia Code", "Menlo", "Consolas",
                ui-monospace, monospace;
-  --font-sans: var(--font-mono); --text-xs:   11px;   --text-sm:   12px;   --text-base: 14px;   --text-md:   15px;   --text-lg:   17px;   --text-xl:   20px;   --text-2xl:  26px;   --leading-tight:  1.2;
+  --font-sans: var(--font-mono); --text-xs:   12px;   --text-sm:   13px;   --text-base: 14px;   --text-md:   15px;   --text-lg:   17px;   --text-xl:   20px;   --text-2xl:  26px;   --leading-tight:  1.2;
   --leading-normal: 1.4;   --leading-loose:  1.6;   --tracking-tight: -0.01em;
   --tracking-normal: 0;
   --tracking-wide:   0.04em; --space-0:  0;

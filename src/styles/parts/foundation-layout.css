@@ -122,7 +122,7 @@ button.tc-head {
   min-width: 0;
   flex: 1;
 }
-.topbar .crumb .sep { color: var(--fg-4); padding: 0 2px; }
+.topbar .crumb .sep { color: var(--fg-3); padding: 0 2px; }
 .topbar .crumb .ws { color: var(--fg-1); }
 .topbar .crumb .session { color: var(--accent); overflow: hidden; text-overflow: ellipsis; }
 
