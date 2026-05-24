@@ -161,7 +161,11 @@ describe("pi-app controls", () => {
       "음성 입력을 시작하지 못했습니다.",
       "speech-input:error",
     );
+    vi.advanceTimersByTime(2999);
+    expect(recognition.stop).not.toHaveBeenCalled();
     recognition.onspeechstart();
+    vi.advanceTimersByTime(3000);
+    expect(recognition.stop).not.toHaveBeenCalled();
     recognition.onspeechend();
     vi.advanceTimersByTime(3000);
     expect(recognition.stop).toHaveBeenCalled();

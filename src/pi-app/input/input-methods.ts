@@ -333,8 +333,13 @@ export const inputMethods = {
     const recognition = new SpeechRecognition();
     const basePrompt = this.prompt.value;
     const resultSegments = [];
+    const clearSilenceTimer = () => {
+      if (!this.speechSilenceTimer) return;
+      clearTimeout(this.speechSilenceTimer);
+      this.speechSilenceTimer = null;
+    };
     const resetSilenceTimer = () => {
-      if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
+      clearSilenceTimer();
       this.speechSilenceTimer = setTimeout(() => this.stopSpeechInput(), 3000);
     };
     const applyTranscript = (transcript = "") => {
@@ -355,7 +360,7 @@ export const inputMethods = {
       this.syncSpeechInputControls();
       resetSilenceTimer();
     };
-    recognition.onspeechstart = resetSilenceTimer;
+    recognition.onspeechstart = clearSilenceTimer;
     recognition.onspeechend = resetSilenceTimer;
     recognition.onresult = (event) => {
       const resultIndex = Number.isInteger(event.resultIndex) ? event.resultIndex : 0;
@@ -367,7 +372,6 @@ export const inputMethods = {
         };
       }
       applyTranscript(composeSpeechSegments(resultSegments));
-      resetSilenceTimer();
     };
     recognition.onerror = (event) => {
       if (!recognition.piManualStop && event.error !== "no-speech" && event.error !== "aborted") {
