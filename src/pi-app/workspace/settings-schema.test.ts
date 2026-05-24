@@ -25,7 +25,7 @@ describe("settings schema", () => {
         transport: "auto",
         readResponsesAloud: true,
         enableSpeechInput: true,
-        speechInput: { useLocalWhisper: true, whisperModel: "base-q5" },
+        speechInput: { useLocalWhisper: true, whisperModel: "large-v3" },
         speechLanguage: "ko-KR",
         terminal: { imageWidthCells: 80 },
       },
@@ -36,7 +36,7 @@ describe("settings schema", () => {
         transport: "auto",
         readResponsesAloud: true,
         enableSpeechInput: true,
-        speechInput: { useLocalWhisper: true, whisperModel: "base-q5" },
+        speechInput: { useLocalWhisper: true, whisperModel: "large-v3" },
         speechLanguage: "ko-KR",
       },
     });
@@ -58,7 +58,7 @@ describe("settings schema", () => {
       transport: "sse",
       readResponsesAloud: true,
       enableSpeechInput: true,
-      speechInput: { useLocalWhisper: true, whisperModel: "tiny-q5" },
+      speechInput: { useLocalWhisper: true, whisperModel: "large-v3-q5" },
       speechLanguage: "ja-JP",
       terminal: { imageWidthCells: 120, showImages: false },
     })).toMatchObject({ transport: "sse", terminal: { showImages: false } });

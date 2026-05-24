@@ -106,7 +106,18 @@ export function installPiAppFixture() {
           ${settingsSelect("speechLanguage", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"], false, true)}
           <details data-speech-advanced data-secure-context-only="https" hidden>
             ${settingsCheckbox("speechInput.useLocalWhisper")}
-            ${settingsSelect("speechInput.whisperModel", ["tiny-q5", "tiny", "base-q5", "base"])}
+            ${settingsSelect("speechInput.whisperModel", [
+              "tiny-q5",
+              "tiny",
+              "base-q5",
+              "base",
+              "small-q5",
+              "small",
+              "medium-q5",
+              "medium",
+              "large-v3-q5",
+              "large-v3",
+            ])}
             <span data-whisper-status></span>
             <button type="button" data-action="download-whisper-model">download model</button>
             <button type="button" data-action="delete-whisper-model">delete model</button>

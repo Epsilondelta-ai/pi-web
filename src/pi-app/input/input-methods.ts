@@ -20,6 +20,12 @@ const WHISPER_MODELS = {
   tiny: { id: "onnx-community/whisper-tiny", size: "~75MB", dtype: undefined },
   "base-q5": { id: "onnx-community/whisper-base", size: "~57MB", dtype: "q4" },
   base: { id: "onnx-community/whisper-base", size: "~142MB", dtype: undefined },
+  "small-q5": { id: "onnx-community/whisper-small-ONNX", size: "~181MB", dtype: "q4" },
+  small: { id: "onnx-community/whisper-small-ONNX", size: "~466MB", dtype: undefined },
+  "medium-q5": { id: "onnx-community/whisper-medium.en_timestamped", size: "~582MB", dtype: "q4" },
+  medium: { id: "onnx-community/whisper-medium.en_timestamped", size: "~1.5GB", dtype: undefined },
+  "large-v3-q5": { id: "onnx-community/whisper-large-v3-ONNX", size: "~1.2GB", dtype: "q4" },
+  "large-v3": { id: "onnx-community/whisper-large-v3-ONNX", size: "~3GB+", dtype: undefined },
 };
 
 function whisperPreset(name) {
