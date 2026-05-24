@@ -81,6 +81,15 @@ const settingsGroups = [
     paths: ["enableSpeechInput", "speechInput.language"],
   },
   {
+    title: "Remote notifications",
+    description: "Discord answer-complete alerts",
+    paths: [
+      "remoteNotifications.discord.enabled",
+      "remoteNotifications.discord.token",
+      "remoteNotifications.discord.channelId",
+    ],
+  },
+  {
     title: "Warnings",
     description: "usage and safety notices",
     paths: ["warnings.anthropicExtraUsage"],
@@ -345,6 +354,8 @@ function isToolCollapsed(msg) {
                     <span>{field.label}</span>
                       {field.type === "text" ? (
                       <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
+                    ) : field.type === "password" ? (
+                      <input data-setting={field.path} type="password" autocomplete="off" placeholder={field.hint} />
                     ) : field.type === "providerSelect" || field.type === "modelSelect" ? (
                       <>
                         <select data-setting={field.path} disabled>

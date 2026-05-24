@@ -13,6 +13,9 @@ export const SETTINGS_FIELDS = [
   { path: "voice.language", label: "Voice language", type: "speechLanguage" },
   { path: "enableSpeechInput", label: "Speech input", type: "checkbox" },
   { path: "speechInput.language", label: "Speech language", type: "speechLanguage" },
+  { path: "remoteNotifications.discord.enabled", label: "Discord enabled", type: "checkbox" },
+  { path: "remoteNotifications.discord.token", label: "Discord token", type: "password", hint: "bot token" },
+  { path: "remoteNotifications.discord.channelId", label: "Discord channel ID", type: "text", hint: "channel id" },
   { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
 ] as const;
 
@@ -77,6 +80,13 @@ const settingsObjectSchema = z.object({
   enableInstallTelemetry: z.boolean().optional(),
   doubleEscapeAction: doubleEscapeActionSchema.optional(),
   treeFilterMode: treeFilterModeSchema.optional(),
+  remoteNotifications: z.object({
+    discord: z.object({
+      enabled: z.boolean().optional(),
+      token: z.string().optional(),
+      channelId: z.string().optional(),
+    }).partial().passthrough().optional(),
+  }).partial().passthrough().optional(),
   warnings: z.object({ anthropicExtraUsage: z.boolean().optional() }).partial().passthrough().optional(),
 }).partial().passthrough();
 
@@ -124,6 +134,13 @@ export const settingsPatchSchema = z.object({
   enableInstallTelemetry: nullishBoolean,
   doubleEscapeAction: doubleEscapeActionSchema.nullable().optional(),
   treeFilterMode: treeFilterModeSchema.nullable().optional(),
+  remoteNotifications: z.object({
+    discord: z.object({
+      enabled: nullishBoolean,
+      token: nullishString,
+      channelId: nullishString,
+    }).partial().passthrough().optional(),
+  }).partial().passthrough().optional(),
   warnings: z.object({ anthropicExtraUsage: nullishBoolean }).partial().passthrough().optional(),
 }).partial().passthrough();
 

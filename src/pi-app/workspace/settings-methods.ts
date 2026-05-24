@@ -183,7 +183,8 @@ export const settingsMethods = {
       const explicitValue = valueAt(scopedSettings, field.path);
       const effectiveValue = valueAt(effective, field.path);
       const hint = control.closest(".settings-field")?.querySelector("small");
-      hint?.replaceChildren(`effective: ${describeEffective(effectiveValue)}`);
+      const effectiveLabel = field.type === "password" && effectiveValue ? "set" : describeEffective(effectiveValue);
+      hint?.replaceChildren(`effective: ${effectiveLabel}`);
       this.fillSettingsControl(control, field, explicitValue, effectiveValue);
       if (field.path === "defaultProvider") this.fillModelControls();
     }
@@ -222,9 +223,9 @@ export const settingsMethods = {
       this.syncCustomSettingInput(control);
       return;
     }
-    if (field.type === "text" || field.type === "numberText") {
+    if (field.type === "text" || field.type === "password" || field.type === "numberText") {
       control.value = explicitValue === undefined ? "" : String(explicitValue);
-      control.placeholder = describeEffective(effectiveValue);
+      control.placeholder = field.type === "password" && effectiveValue ? "set" : describeEffective(effectiveValue);
       return;
     }
     if (field.type === "boolean") {
@@ -394,7 +395,7 @@ export const settingsMethods = {
   },
 
   settingValueFromControl(control, field) {
-    if (field.type === "text") {
+    if (field.type === "text" || field.type === "password") {
       const value = control.value.trim();
       return value ? value : null;
     }
