@@ -380,7 +380,7 @@ describe("pi-app controls", () => {
     expect(app.prompt.value).toBe("기존 배열  결과");
     app.whisperModel = "medium";
     await app.transcribeWhisperRecording([new Blob(["x"])]);
-    expect(transcriber).toHaveBeenLastCalledWith(expect.any(Float32Array), {});
+    expect(transcriber).toHaveBeenLastCalledWith(expect.any(Float32Array), { language: "ko", task: "transcribe" });
     class MockAudioContext16k {
       async decodeAudioData() {
         return {
