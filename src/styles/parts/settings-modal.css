@@ -204,12 +204,41 @@
   font-size: var(--text-xs);
 }
 .oauth-login-fields small.err { color: var(--danger); }
-.settings-grid {
+.settings-grid,
+.settings-advanced-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   padding: 12px;
 }
+.settings-advanced {
+  border-top: 1px solid var(--border);
+}
+.settings-advanced summary {
+  cursor: pointer;
+  padding: 10px 12px 0;
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.settings-whisper-actions {
+  grid-column: 1 / -1;
+}
+.settings-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-inline-actions button {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+.settings-inline-actions button:hover { border-color: var(--accent); color: var(--accent); }
 .settings-field {
   display: flex;
   flex-direction: column;

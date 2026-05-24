@@ -15,6 +15,26 @@ function composeSpeechSegments(segments) {
   return segments.reduce((text, segment) => mergeSpeechTranscript(text, segment?.text), "");
 }
 
+const WHISPER_MODELS = {
+  "tiny-q5": { id: "onnx-community/whisper-tiny", size: "~31MB", dtype: "q4" },
+  tiny: { id: "onnx-community/whisper-tiny", size: "~75MB", dtype: undefined },
+  "base-q5": { id: "onnx-community/whisper-base", size: "~57MB", dtype: "q4" },
+  base: { id: "onnx-community/whisper-base", size: "~142MB", dtype: undefined },
+};
+
+function whisperPreset(name) {
+  return WHISPER_MODELS[name] || WHISPER_MODELS["tiny-q5"];
+}
+
+function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
+  const cleanTranscript = String(transcript || "").trimStart();
+  const needsSpace = basePrompt
+    && cleanTranscript
+    && !/\s$/.test(basePrompt)
+    && !/^[\s.,!?;:)]/.test(cleanTranscript);
+  prompt.value = `${basePrompt}${needsSpace ? " " : ""}${cleanTranscript}`;
+}
+
 export const inputMethods = {
   async submitPrompt() {
     this.stopSpeechInput?.();
@@ -249,6 +269,8 @@ export const inputMethods = {
     if (action === "open-settings") this.openSettingsModal?.();
     if (action === "close-settings") this.closeSettingsModal?.();
     if (action === "toggle-speech-input") this.toggleSpeechInput?.();
+    if (action === "download-whisper-model") this.downloadWhisperModel?.();
+    if (action === "delete-whisper-model") this.deleteWhisperModel?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
     if (action === "save-auth-provider") this.saveAuthForm?.(event);
     if (action === "logout-auth-provider") this.logoutAuthProvider?.();
@@ -319,6 +341,14 @@ export const inputMethods = {
       );
       return;
     }
+    if (this.useLocalWhisper) {
+      void this.startLocalWhisperInput();
+      return;
+    }
+    this.startWebSpeechInput();
+  },
+
+  startWebSpeechInput() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       this.showSystemToast?.(
@@ -343,12 +373,7 @@ export const inputMethods = {
       this.speechSilenceTimer = setTimeout(() => this.stopSpeechInput(), 3000);
     };
     const applyTranscript = (transcript = "") => {
-      const cleanTranscript = transcript.trimStart();
-      const needsSpace = basePrompt
-        && cleanTranscript
-        && !/\s$/.test(basePrompt)
-        && !/^[\s.,!?;:)]/.test(cleanTranscript);
-      this.prompt.value = `${basePrompt}${needsSpace ? " " : ""}${cleanTranscript}`;
+      appendTranscriptToPrompt(this.prompt, basePrompt, transcript);
       this.updatePrompt();
     };
     recognition.lang = this.speechLanguage === "system" ? navigator.language : this.speechLanguage;
@@ -398,7 +423,116 @@ export const inputMethods = {
     }
   },
 
+  async startLocalWhisperInput() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      this.showSystemToast?.("warning", "Whisper 녹음 미지원", "이 브라우저는 로컬 녹음을 지원하지 않습니다.", "speech-input:recorder");
+      return;
+    }
+    this.stopSpeechInput();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+      this.speechRecorder = recorder;
+      this.speechRecordingChunks = chunks;
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        this.speechRecorder = null;
+        this.speechListening = false;
+        this.syncSpeechInputControls();
+        void this.transcribeWhisperRecording(chunks);
+      };
+      recorder.start();
+      this.speechListening = true;
+      this.syncSpeechInputControls();
+    } catch (error) {
+      this.speechRecorder = null;
+      this.speechListening = false;
+      this.syncSpeechInputControls();
+      this.showSystemToast?.("warning", "Whisper 녹음 오류", error instanceof Error ? error.message : String(error), "speech-input:record");
+    }
+  },
+
+  async transcribeWhisperRecording(chunks) {
+    if (!chunks?.length || !this.prompt) return;
+    const basePrompt = this.prompt.value;
+    this.setWhisperStatus("transcribing…");
+    try {
+      const transcriber = await this.loadWhisperPipeline();
+      const audio = new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
+      const result = await transcriber(audio, {
+        language: this.speechLanguage === "system" ? undefined : this.speechLanguage.slice(0, 2),
+        task: "transcribe",
+      });
+      const text = Array.isArray(result) ? result.map((item) => item.text || "").join(" ") : result?.text;
+      appendTranscriptToPrompt(this.prompt, basePrompt, text || "");
+      this.updatePrompt();
+      this.setWhisperStatus("transcribed");
+    } catch (error) {
+      this.setWhisperStatus("transcription failed", true);
+      this.showSystemToast?.("warning", "Whisper 변환 오류", error instanceof Error ? error.message : String(error), "speech-input:whisper");
+    }
+  },
+
+  async loadWhisperPipeline() {
+    const preset = whisperPreset(this.whisperModel);
+    const key = `${preset.id}:${preset.dtype || "fp32"}`;
+    if (this.whisperPipeline && this.whisperPipelineKey === key) return this.whisperPipeline;
+    this.setWhisperStatus(`loading ${this.whisperModel} ${preset.size}…`);
+    const { pipeline } = await import("@huggingface/transformers");
+    const options: any = {
+      progress_callback: (progress) => this.setWhisperStatus(this.whisperProgressText(progress)),
+    };
+    if (preset.dtype) options.dtype = preset.dtype;
+    if (navigator.gpu) options.device = "webgpu";
+    this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
+    this.whisperPipelineKey = key;
+    this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
+    return this.whisperPipeline;
+  },
+
+  whisperProgressText(progress) {
+    if (!progress) return `downloading ${this.whisperModel}…`;
+    if (progress.status === "progress" && Number.isFinite(progress.progress)) {
+      return `downloading ${this.whisperModel}: ${Math.round(progress.progress)}%`;
+    }
+    return `${progress.status || "loading"} ${this.whisperModel}`;
+  },
+
+  async downloadWhisperModel() {
+    try {
+      await this.loadWhisperPipeline();
+    } catch (error) {
+      this.setWhisperStatus("download failed", true);
+      this.showSystemToast?.("warning", "Whisper 다운로드 오류", error instanceof Error ? error.message : String(error), "speech-input:download");
+    }
+  },
+
+  async deleteWhisperModel() {
+    this.whisperPipeline = null;
+    this.whisperPipelineKey = "";
+    if (globalThis.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((key) => /transformers|huggingface|whisper/i.test(key)).map((key) => caches.delete(key)));
+    }
+    this.setWhisperStatus("cached model cleared");
+  },
+
+  setWhisperStatus(message, error = false) {
+    const status = this.querySelector?.("[data-whisper-status]");
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle("err", error);
+  },
+
   stopSpeechInput() {
+    if (this.speechRecorder && this.speechRecorder.state !== "inactive") {
+      this.speechRecorder.stop();
+      return;
+    }
     if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
     this.speechSilenceTimer = null;
     if (!this.speechRecognition) {

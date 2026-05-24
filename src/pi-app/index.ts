@@ -28,10 +28,16 @@ class PiApp extends HTMLElement {
     this.attachButton = this.querySelector(".attach-btn");
     this.readResponsesAloud = false;
     this.enableSpeechInput = false;
+    this.useLocalWhisper = false;
+    this.whisperModel = "tiny-q5";
+    this.whisperPipeline = null;
+    this.whisperPipelineKey = "";
     this.speechLanguage = "system";
     this.speechRecognition = null;
     this.speechListening = false;
     this.speechSilenceTimer = null;
+    this.speechRecorder = null;
+    this.speechRecordingChunks = [];
     this.fileInput = this.querySelector("[data-file-input]");
     this.attachments = this.querySelector(".attach-chips");
     this.slashPopover = this.querySelector(".slash-pop");
