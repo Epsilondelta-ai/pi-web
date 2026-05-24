@@ -22,8 +22,8 @@ const WHISPER_MODELS = {
   base: { id: "onnx-community/whisper-base", size: "~142MB", dtype: undefined },
   "small-q5": { id: "onnx-community/whisper-small-ONNX", size: "~181MB", dtype: "q4" },
   small: { id: "onnx-community/whisper-small-ONNX", size: "~466MB", dtype: undefined },
-  "medium-q5": { id: "onnx-community/whisper-medium.en_timestamped", size: "~582MB", dtype: "q4" },
-  medium: { id: "onnx-community/whisper-medium.en_timestamped", size: "~1.5GB", dtype: undefined },
+  "medium-q5": { id: "onnx-community/whisper-medium.en_timestamped", size: "~582MB", dtype: "q4", englishOnly: true },
+  medium: { id: "onnx-community/whisper-medium.en_timestamped", size: "~1.5GB", dtype: undefined, englishOnly: true },
   "large-v3-q5": { id: "onnx-community/whisper-large-v3-ONNX", size: "~1.2GB", dtype: "q4" },
   "large-v3": { id: "onnx-community/whisper-large-v3-ONNX", size: "~3GB+", dtype: undefined },
 };
@@ -71,6 +71,15 @@ function audioBufferToMono16k(buffer) {
     resampled[index] = mono[left] * (1 - ratio) + mono[right] * ratio;
   }
   return resampled;
+}
+
+function whisperTranscriptionOptions(model, speechLanguage) {
+  const preset = whisperPreset(model);
+  if (preset.englishOnly) return {};
+  return {
+    language: speechLanguage === "system" ? undefined : speechLanguage.slice(0, 2),
+    task: "transcribe",
+  };
 }
 
 function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
@@ -510,10 +519,7 @@ export const inputMethods = {
     try {
       const transcriber = await this.loadWhisperPipeline();
       const audio = await blobToWhisperAudio(new Blob(chunks, { type: chunks[0]?.type || "audio/webm" }));
-      const result = await transcriber(audio, {
-        language: this.speechLanguage === "system" ? undefined : this.speechLanguage.slice(0, 2),
-        task: "transcribe",
-      });
+      const result = await transcriber(audio, whisperTranscriptionOptions(this.whisperModel, this.speechLanguage));
       const text = Array.isArray(result) ? result.map((item) => item.text || "").join(" ") : result?.text;
       appendTranscriptToPrompt(this.prompt, basePrompt, text || "");
       this.updatePrompt();

@@ -378,6 +378,9 @@ describe("pi-app controls", () => {
       expect.closeTo(0.6),
     ]);
     expect(app.prompt.value).toBe("기존 배열  결과");
+    app.whisperModel = "medium";
+    await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect(transcriber).toHaveBeenLastCalledWith(expect.any(Float32Array), {});
     class MockAudioContext16k {
       async decodeAudioData() {
         return {
