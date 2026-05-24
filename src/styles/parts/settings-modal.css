@@ -28,7 +28,7 @@
   background: rgba(0, 0, 0, 0.62);
 }
 .settings-dialog {
-  width: min(820px, 94vw);
+  width: min(1120px, 94vw);
   max-height: min(760px, 88vh);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-2);
@@ -204,15 +204,43 @@
   font-size: var(--text-xs);
 }
 .oauth-login-fields small.err { color: var(--danger); }
+.settings-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+}
+.settings-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 10px 12px 0;
+}
+.settings-group-head strong {
+  color: var(--fg-0);
+  font-size: var(--text-sm);
+}
+.settings-group-head small {
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
 .settings-grid,
 .settings-advanced-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
   padding: 12px;
 }
 .settings-advanced {
-  border-top: 1px solid var(--border);
+  margin: 0 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
 }
 .settings-advanced summary {
   cursor: pointer;
@@ -312,8 +340,25 @@
 }
 .settings-foot [data-settings-status].err { color: var(--danger); }
 
-@media (max-width: 680px) {
-  .settings-grid { grid-template-columns: 1fr; }
+@media (min-width: 980px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 720px) and (max-width: 979px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 521px) and (max-width: 719px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: 1fr; }
+  .settings-group-head { display: block; }
   .settings-toolbar { grid-template-columns: 1fr; }
   .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
   .auth-login summary small { grid-column: 1 / -1; text-align: left; }

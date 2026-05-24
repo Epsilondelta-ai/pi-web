@@ -58,6 +58,29 @@ const workspaceHidden = !workspaceVisible;
 const sessionHidden = !sessionVisible;
 const emptyHidden = !emptyVisible;
 const compactionHidden = !showCompaction;
+const settingsFieldByPath = Object.fromEntries(settingsFields.map((field) => [field.path, field]));
+const settingsGroups = [
+  {
+    title: "Model",
+    description: "provider, model, thinking",
+    paths: ["defaultProvider", "defaultModel", "defaultThinkingLevel"],
+  },
+  {
+    title: "Conversation",
+    description: "prompt flow and transcript behavior",
+    paths: ["compaction.enabled", "enableSkillCommands", "steeringMode", "followUpMode", "hideThinkingBlock"],
+  },
+  {
+    title: "Voice",
+    description: "read aloud and browser speech input",
+    paths: ["readResponsesAloud", "enableSpeechInput", "speechLanguage"],
+  },
+  {
+    title: "Warnings",
+    description: "usage and safety notices",
+    paths: ["warnings.anthropicExtraUsage"],
+  },
+].map((group) => ({ ...group, fields: group.paths.map((path) => settingsFieldByPath[path]).filter(Boolean) }));
 const treeHidden = !treeOpen;
 const statusColor = showDisconnect ? "var(--danger)" : "var(--fg-3)";
 const statusTitle = showDisconnect ? "disconnected" : "connecting";
@@ -294,47 +317,57 @@ function isToolCollapsed(msg) {
             <small data-oauth-status>OAuth supports Claude, Codex, and Copilot subscriptions.</small>
           </div>
         </details>
-        <div class="settings-grid">
-          {settingsFields.map((field) => (
-            <label
-              class="settings-field"
-              data-secure-context-only={field.path === "enableSpeechInput" || field.path === "speechLanguage" ? "https" : undefined}
-              hidden={field.path === "enableSpeechInput" || field.path === "speechLanguage"}
-            >
-              <span>{field.label}</span>
-                {field.type === "text" ? (
-                <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
-              ) : field.type === "providerSelect" || field.type === "modelSelect" ? (
-                <>
-                  <select data-setting={field.path} disabled>
-                    <option value="inherit">loading models…</option>
-                  </select>
-                  <input data-custom-setting={field.path} autocomplete="off" placeholder={`custom ${field.label}`} hidden />
-                </>
-              ) : field.type === "boolean" ? (
-                <select data-setting={field.path}>
-                  <option value="inherit">inherit</option>
-                  <option value="true">on</option>
-                  <option value="false">off</option>
-                </select>
-              ) : field.type === "checkbox" ? (
-                <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span>Enabled</span></span>
-              ) : field.type === "speechLanguage" ? (
-                <select data-setting={field.path}>
-                  <option value="system">System default</option>
-                  <option value="en-US">English (en-US)</option>
-                  <option value="ko-KR">Korean (ko-KR)</option>
-                  <option value="ja-JP">Japanese (ja-JP)</option>
-                  <option value="zh-CN">Chinese (zh-CN)</option>
-                </select>
-              ) : (
-                <select data-setting={field.path}>
-                  <option value="inherit">inherit</option>
-                  {field.values.map((value) => <option value={value}>{value}</option>)}
-                </select>
-              )}
-              <small>effective: not set</small>
-            </label>
+        <div class="settings-groups">
+          {settingsGroups.map((group) => (
+            <section class="settings-group">
+              <div class="settings-group-head">
+                <strong>{group.title}</strong>
+                <small>{group.description}</small>
+              </div>
+              <div class="settings-grid">
+                {group.fields.map((field) => (
+                  <label
+                    class="settings-field"
+                    data-secure-context-only={field.path === "enableSpeechInput" || field.path === "speechLanguage" ? "https" : undefined}
+                    hidden={field.path === "enableSpeechInput" || field.path === "speechLanguage"}
+                  >
+                    <span>{field.label}</span>
+                      {field.type === "text" ? (
+                      <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
+                    ) : field.type === "providerSelect" || field.type === "modelSelect" ? (
+                      <>
+                        <select data-setting={field.path} disabled>
+                          <option value="inherit">loading models…</option>
+                        </select>
+                        <input data-custom-setting={field.path} autocomplete="off" placeholder={`custom ${field.label}`} hidden />
+                      </>
+                    ) : field.type === "boolean" ? (
+                      <select data-setting={field.path}>
+                        <option value="inherit">inherit</option>
+                        <option value="true">on</option>
+                        <option value="false">off</option>
+                      </select>
+                    ) : field.type === "checkbox" ? (
+                      <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span>Enabled</span></span>
+                    ) : field.type === "speechLanguage" ? (
+                      <select data-setting={field.path}>
+                        <option value="system">System default</option>
+                        <option value="en-US">English (en-US)</option>
+                        <option value="ko-KR">Korean (ko-KR)</option>
+                        <option value="ja-JP">Japanese (ja-JP)</option>
+                        <option value="zh-CN">Chinese (zh-CN)</option>
+                      </select>
+                    ) : (
+                      <select data-setting={field.path}>
+                        <option value="inherit">inherit</option>
+                        {field.values.map((value) => <option value={value}>{value}</option>)}
+                      </select>
+                    )}
+                    <small>effective: not set</small>
+                  </label>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
         <details class="settings-advanced" data-speech-advanced data-secure-context-only="https" hidden>
