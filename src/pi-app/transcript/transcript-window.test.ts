@@ -138,6 +138,48 @@ describe("pi-app transcript window", () => {
     expect(heightChanged).toHaveBeenCalled();
   });
 
+  it("keeps expanded live tool output pinned when it grows at the bottom", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    let itemHeight = 80;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function () {
+      const height = this.classList?.contains("transcript-item") ? itemHeight : 0;
+      return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
+    });
+    const app = await connectPiApp();
+    let scrollHeight = 1000;
+    let scrollTop = 900;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+    app.renderMessages([]);
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    app.appendMessage({ kind: "tool", tool: "bash", status: "running", collapsedByDefault: false });
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    app.toggleTool(app.querySelector(".tc-head"));
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    scrollHeight = 1200;
+    itemHeight = 280;
+    app.appendToolOutput({ tool: "bash", chunk: "streaming output" });
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollTop).toBe(1200);
+  });
+
   it("notifies the virtual scroller after streamed assistant markup changes height", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
