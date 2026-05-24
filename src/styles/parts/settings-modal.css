@@ -281,24 +281,45 @@
   border-color: var(--border-focus);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-focus) 45%, transparent);
 }
-.settings-whisper-actions {
-  grid-column: 1 / -1;
+.settings-whisper-model {
+  grid-column: span 2;
 }
-.settings-inline-actions {
+.settings-label-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
-.settings-inline-actions button {
-  min-height: 34px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-1);
-  background: var(--bg-0);
-  color: var(--fg-1);
+.settings-label-row em {
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: 999px;
+  color: var(--accent);
   font-family: var(--font-mono);
-  cursor: pointer;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+  padding: 3px 7px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
 }
-.settings-inline-actions button:hover { border-color: var(--accent); color: var(--accent); }
+.settings-select-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.settings-select-action button {
+  min-height: 34px;
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+  color: var(--accent);
+  white-space: nowrap;
+}
+.settings-select-action button[data-missing="true"] {
+  animation: whisper-download-pulse 1.1s ease-in-out infinite;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 38%, transparent);
+}
+@keyframes whisper-download-pulse {
+  0%, 100% { filter: brightness(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 34%, transparent); }
+  50% { filter: brightness(1.35); box-shadow: 0 0 0 4px transparent; }
+}
 .settings-field {
   display: flex;
   flex-direction: column;

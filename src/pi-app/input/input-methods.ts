@@ -565,13 +565,34 @@ export const inputMethods = {
     if (this.whisperLoadingPromise) return;
     if (this.whisperPipeline && this.whisperPipelineKey === whisperPreset(this.whisperModel).id) {
       this.setWhisperStatus(`ready: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}`);
+      this.refreshWhisperModelRequirement?.();
       return;
     }
-    this.setWhisperStatus("not loaded");
+    this.setWhisperStatus("download required before saving");
+    this.refreshWhisperModelRequirement?.();
   },
 
-  async isWhisperModelCached(model) {
+  selectedWhisperModel() {
+    return this.querySelector?.("[data-setting='speechInput.whisperModel']")?.value || this.whisperModel || "tiny-q5";
+  },
+
+  isWhisperModelCached(model) {
     return this.whisperPipelineKey === whisperPreset(model).id;
+  },
+
+  refreshWhisperModelRequirement() {
+    const useLocalControl = this.querySelector?.("[data-setting='speechInput.useLocalWhisper']");
+    const model = this.selectedWhisperModel();
+    const missing = useLocalControl?.checked === true && !this.isWhisperModelCached(model);
+    const button = this.querySelector?.("[data-action='download-whisper-model']");
+    const saveButton = this.querySelector?.("[data-settings-form] button[type='submit']");
+    if (button) {
+      button.hidden = !missing;
+      button.dataset.missing = missing ? "true" : "false";
+      button.textContent = `download ${model}`;
+    }
+    if (saveButton) saveButton.disabled = missing;
+    return !missing;
   },
 
   /* v8 ignore start -- animation-frame throttling is exercised through integration behavior */
@@ -607,7 +628,7 @@ export const inputMethods = {
   },
 
   setWhisperModelButtons(disabled) {
-    for (const button of this.querySelectorAll?.("[data-action='download-whisper-model'], [data-action='delete-whisper-model']") || []) {
+    for (const button of this.querySelectorAll?.("[data-action='download-whisper-model']") || []) {
       button.disabled = disabled;
     }
   },

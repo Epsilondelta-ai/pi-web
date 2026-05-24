@@ -398,7 +398,7 @@ describe("pi-app controls", () => {
     expect(downloadModel).toHaveBeenCalledWith("whisper-tiny");
     app.loadWhisperPipeline = vi.fn(async () => ({}));
     await app.downloadWhisperModel();
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not loaded");
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("download required before saving");
 
     app.whisperLoadingPromise = Promise.resolve("loading");
     await app.deleteWhisperModel();
@@ -411,8 +411,11 @@ describe("pi-app controls", () => {
     app.whisperPipelineKey = "whisper-tiny";
     expect(await app.isWhisperModelCached("tiny")).toBe(true);
     app.whisperPipelineKey = "";
+    app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     await app.updateWhisperCacheStatus();
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not loaded");
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("download required before saving");
+    expect(app.querySelector("[data-action='download-whisper-model']").hidden).toBe(false);
+    expect(app.querySelector("[data-settings-form] button[type='submit']").disabled).toBe(true);
   });
 
   it("handles local Whisper failures", async () => {
@@ -653,6 +656,7 @@ describe("pi-app controls", () => {
     app.querySelector("[data-setting='enableSpeechInput']").checked = true;
     app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     app.querySelector("[data-setting='speechInput.whisperModel']").value = "tiny";
+    app.whisperPipelineKey = "whisper-tiny";
     app.querySelector("[data-setting='speechInput.language']").value = "ja-JP";
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");

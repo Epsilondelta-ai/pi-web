@@ -380,34 +380,29 @@ function isToolCollapsed(msg) {
                 {group.title === "Speech" && (
                   <>
                     <label class="settings-field" data-speech-advanced data-secure-context-only="https" hidden>
-                      <span>Use local Whisper</span>
+                      <span class="settings-label-row">Use local Whisper <em>Enhanced</em></span>
                       <span class="settings-checkbox"><input type="checkbox" data-setting="speechInput.useLocalWhisper" /> <span>Enabled</span></span>
                       <small>effective: not set</small>
                     </label>
-                    <label class="settings-field" data-speech-advanced data-secure-context-only="https" hidden>
+                    <label class="settings-field settings-whisper-model" data-speech-advanced data-secure-context-only="https" hidden>
                       <span>Whisper model</span>
-                      <select data-setting="speechInput.whisperModel">
-                        <option value="tiny-q5">tiny-q5 · compact · ~31MB</option>
-                        <option value="tiny">tiny · balanced · ~75MB</option>
-                        <option value="base-q5">base-q5 · compact quality · ~57MB</option>
-                        <option value="base">base · better quality · ~142MB</option>
-                        <option value="small-q5">small-q5 · high quality compact · ~181MB</option>
-                        <option value="small">small · high quality · ~466MB</option>
-                        <option value="medium-q5">medium-q5 · very high quality compact · ~582MB</option>
-                        <option value="medium">medium · very high quality · ~1.5GB</option>
-                        <option value="large-v3-q5">large-v3-q5 · best compact · ~1.2GB</option>
-                        <option value="large-v3">large-v3 · best quality · ~3GB+</option>
-                      </select>
-                      <small>effective: tiny-q5</small>
-                    </label>
-                    <div class="settings-field settings-whisper-actions" data-speech-advanced data-secure-context-only="https" hidden>
-                      <span>Whisper model cache</span>
-                      <div class="settings-inline-actions">
-                        <button type="button" data-action="download-whisper-model">download model</button>
-                        <button type="button" data-action="delete-whisper-model">delete cached model</button>
-                      </div>
+                      <span class="settings-select-action">
+                        <select data-setting="speechInput.whisperModel">
+                          <option value="tiny-q5">tiny-q5 · compact · ~31MB</option>
+                          <option value="tiny">tiny · balanced · ~75MB</option>
+                          <option value="base-q5">base-q5 · compact quality · ~57MB</option>
+                          <option value="base">base · better quality · ~142MB</option>
+                          <option value="small-q5">small-q5 · high quality compact · ~181MB</option>
+                          <option value="small">small · high quality · ~466MB</option>
+                          <option value="medium-q5">medium-q5 · very high quality compact · ~582MB</option>
+                          <option value="medium">medium · very high quality · ~1.5GB</option>
+                          <option value="large-v3-q5">large-v3-q5 · best compact · ~1.2GB</option>
+                          <option value="large-v3">large-v3 · best quality · ~3GB+</option>
+                        </select>
+                        <button type="button" data-action="download-whisper-model" hidden>download</button>
+                      </span>
                       <small data-whisper-status>not checked</small>
-                    </div>
+                    </label>
                   </>
                 )}
               </div>

@@ -322,6 +322,10 @@ export const settingsMethods = {
     const workspaceId = this.dataset.activeWorkspaceId;
     if (!form || !workspaceId || !this.apiConnected) return;
     const scopeValue = form.querySelector("[name='scope']")?.value || "project";
+    if (this.refreshWhisperModelRequirement?.() === false) {
+      this.setSettingsStatus("download selected Whisper model before saving", true);
+      return;
+    }
     this.setSettingsStatus("saving…");
     try {
       const scope = settingsScopeSchema.parse(scopeValue);
