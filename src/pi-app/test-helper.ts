@@ -102,8 +102,9 @@ export function installPiAppFixture() {
           ${settingsSelect("followUpMode", ["inherit", "all"])}
           ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
           ${settingsCheckbox("readResponsesAloud")}
+          ${settingsSelect("voice.language", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"])}
           ${settingsCheckbox("enableSpeechInput")}
-          ${settingsSelect("speechLanguage", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"], false, true)}
+          ${settingsSelect("speechInput.language", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"], false, true)}
           <details data-speech-advanced data-secure-context-only="https" hidden>
             ${settingsCheckbox("speechInput.useLocalWhisper")}
             ${settingsSelect("speechInput.whisperModel", [

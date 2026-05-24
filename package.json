@@ -57,6 +57,7 @@
     "@huggingface/transformers": "^4.2.0",
     "@lucide/astro": "^1.16.0",
     "astro": "6.3.3",
+    "browser-whisper": "^1.0.2",
     "markdown-it": "^14.1.1",
     "material-icon-theme": "5.35.0",
     "notyf": "^3.10.0",

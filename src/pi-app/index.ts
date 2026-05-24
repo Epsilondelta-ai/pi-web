@@ -40,6 +40,7 @@ class PiApp extends HTMLElement {
     this.whisperProgressByFile = new Map();
     this.whisperProgressLoaded = 0;
     this.whisperProgressTotal = 0;
+    this.voiceLanguage = "system";
     this.speechLanguage = "system";
     this.speechRecognition = null;
     this.speechListening = false;

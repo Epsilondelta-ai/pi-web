@@ -9,8 +9,10 @@ describe("settings schema", () => {
     expect(paths).toContain("compaction.enabled");
     expect(paths).toContain("enableSkillCommands");
     expect(paths).toContain("readResponsesAloud");
+    expect(paths).toContain("voice.language");
     expect(paths).toContain("enableSpeechInput");
-    expect(paths).toContain("speechLanguage");
+    expect(paths).toContain("speechInput.language");
+    expect(paths).not.toContain("voice.engine");
     expect(paths).not.toContain("theme");
     expect(paths).not.toContain("terminal.imageWidthCells");
     expect(paths).not.toContain("transport");
@@ -24,9 +26,9 @@ describe("settings schema", () => {
       effective: {
         transport: "auto",
         readResponsesAloud: true,
+        voice: { language: "ko-KR" },
         enableSpeechInput: true,
-        speechInput: { useLocalWhisper: true, whisperModel: "large-v3" },
-        speechLanguage: "ko-KR",
+        speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "large-v3" },
         terminal: { imageWidthCells: 80 },
       },
       paths: { global: "/home/me/.pi/agent/settings.json", project: "/repo/.pi/settings.json" },
@@ -35,9 +37,9 @@ describe("settings schema", () => {
       effective: {
         transport: "auto",
         readResponsesAloud: true,
+        voice: { language: "ko-KR" },
         enableSpeechInput: true,
-        speechInput: { useLocalWhisper: true, whisperModel: "large-v3" },
-        speechLanguage: "ko-KR",
+        speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "large-v3" },
       },
     });
   });
@@ -57,9 +59,9 @@ describe("settings schema", () => {
       defaultProvider: null,
       transport: "sse",
       readResponsesAloud: true,
+      voice: { language: "ja-JP" },
       enableSpeechInput: true,
-      speechInput: { useLocalWhisper: true, whisperModel: "large-v3-q5" },
-      speechLanguage: "ja-JP",
+      speechInput: { language: "ja-JP", useLocalWhisper: true, whisperModel: "large-v3-q5" },
       terminal: { imageWidthCells: 120, showImages: false },
     })).toMatchObject({ transport: "sse", terminal: { showImages: false } });
 

@@ -456,11 +456,13 @@ export const messageMethods = {
 
   speakAssistantText(text) {
     const content = this.speechTextFromAssistantText(text);
+    if (!content) return;
     const synth = globalThis.speechSynthesis;
-    if (!content || !synth || typeof SpeechSynthesisUtterance === "undefined") return;
+    if (!synth || typeof SpeechSynthesisUtterance === "undefined") return;
     synth.cancel?.();
     const utterance = new SpeechSynthesisUtterance(content);
-    utterance.lang = this.speechLanguage === "system" ? navigator.language || "en-US" : this.speechLanguage || "en-US";
+    const language = this.voiceLanguage || this.speechLanguage || "system";
+    utterance.lang = language === "system" ? navigator.language || "en-US" : language || "en-US";
     synth.speak?.(utterance);
   },
 

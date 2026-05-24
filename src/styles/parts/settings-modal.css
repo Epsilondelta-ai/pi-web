@@ -249,6 +249,7 @@
   padding: 12px;
 }
 .settings-advanced {
+  grid-column: 1 / -1;
   margin: 0 12px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-1);

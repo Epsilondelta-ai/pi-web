@@ -10,8 +10,9 @@ export const SETTINGS_FIELDS = [
   { path: "followUpMode", label: "Follow-up mode", type: "select", values: ["one-at-a-time", "all"] },
   { path: "hideThinkingBlock", label: "Hide thinking", type: "boolean" },
   { path: "readResponsesAloud", label: "Read responses aloud", type: "checkbox" },
-  { path: "enableSpeechInput", label: "Voice input", type: "checkbox" },
-  { path: "speechLanguage", label: "Speech language", type: "speechLanguage" },
+  { path: "voice.language", label: "Voice language", type: "speechLanguage" },
+  { path: "enableSpeechInput", label: "Speech input", type: "checkbox" },
+  { path: "speechInput.language", label: "Speech language", type: "speechLanguage" },
   { path: "warnings.anthropicExtraUsage", label: "Anthropic extra usage warning", type: "boolean" },
 ] as const;
 
@@ -61,8 +62,12 @@ const settingsObjectSchema = z.object({
   transport: transportSchema.optional(),
   hideThinkingBlock: z.boolean().optional(),
   readResponsesAloud: z.boolean().optional(),
+  voice: z.object({
+    language: speechLanguageSchema.optional(),
+  }).partial().passthrough().optional(),
   enableSpeechInput: z.boolean().optional(),
   speechInput: z.object({
+    language: speechLanguageSchema.optional(),
     useLocalWhisper: z.boolean().optional(),
     whisperModel: whisperModelSchema.optional(),
   }).partial().passthrough().optional(),
@@ -104,8 +109,12 @@ export const settingsPatchSchema = z.object({
   transport: transportSchema.nullable().optional(),
   hideThinkingBlock: nullishBoolean,
   readResponsesAloud: nullishBoolean,
+  voice: z.object({
+    language: speechLanguageSchema.nullable().optional(),
+  }).partial().passthrough().optional(),
   enableSpeechInput: nullishBoolean,
   speechInput: z.object({
+    language: speechLanguageSchema.nullable().optional(),
     useLocalWhisper: nullishBoolean,
     whisperModel: whisperModelSchema.nullable().optional(),
   }).partial().passthrough().optional(),
