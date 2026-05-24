@@ -104,7 +104,7 @@
 .auth-login summary {
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto max-content minmax(0, 1fr) auto;
   gap: var(--space-3);
   align-items: center;
   padding: 10px 12px;
@@ -147,8 +147,10 @@
   gap: 8px;
   align-items: center;
   min-width: 0;
+  white-space: nowrap;
 }
 .auth-login-title em {
+  flex-shrink: 0;
   border: 1px solid var(--border-dim);
   border-radius: 999px;
   color: var(--fg-3);
@@ -355,14 +357,19 @@
   .settings-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+@media (max-width: 680px) {
+  .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
+  .auth-login-title { white-space: normal; }
+  .auth-login-title em { display: none; }
+  .auth-login summary small { grid-column: 1 / -1; text-align: left; white-space: normal; }
+  .auth-login summary::after { display: none; }
+}
+
 @media (max-width: 520px) {
   .settings-grid,
   .settings-advanced-grid { grid-template-columns: 1fr; }
   .settings-group-head { display: block; }
   .settings-toolbar { grid-template-columns: 1fr; }
-  .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
-  .auth-login summary small { grid-column: 1 / -1; text-align: left; }
-  .auth-login summary::after { display: none; }
   .auth-login-fields,
   .oauth-login-fields { grid-template-columns: 1fr; }
   .auth-login-actions { justify-content: flex-end; }
