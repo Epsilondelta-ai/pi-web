@@ -42,7 +42,7 @@
   user-select: none;
   white-space: nowrap;
 }
-.sidebar .sb-head .count { color: var(--fg-4); }
+.sidebar .sb-head .count { color: var(--fg-3); }
 .sidebar .sb-head .add,
 .sidebar .sb-head .refresh {
   display: inline-flex;

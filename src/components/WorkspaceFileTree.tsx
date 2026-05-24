@@ -240,7 +240,7 @@ function FileTreeRow({ node, style, dragHandle }: any) {
   const glyph = isDir ? (node.isOpen ? "▾" : "▸") : "";
   const icon = resolveMaterialFileIcon({ name: item.name, path: item.path, kind: item.kind, open: node.isOpen });
 
-  const onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const onClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if ((event.target as Element).closest(".tree-row-menu")) return;
     if (isDir) {
       event.preventDefault();
@@ -249,7 +249,13 @@ function FileTreeRow({ node, style, dragHandle }: any) {
     }
     node.select();
   };
-  const onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((event.target as Element).closest(".tree-row-menu")) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.currentTarget.click();
+  };
+  const onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     setMenu({ x: event.clientX, y: event.clientY, path: item.path, kind: isDir ? "dir" : "file" });
   };
@@ -261,10 +267,11 @@ function FileTreeRow({ node, style, dragHandle }: any) {
   };
 
   return (
-    <button
+    <div
       ref={dragHandle}
       style={style}
-      type="button"
+      role="treeitem"
+      tabIndex={0}
       className={classes}
       data-action={isDir ? undefined : "open-file"}
       data-file-path={item.path}
@@ -272,6 +279,7 @@ function FileTreeRow({ node, style, dragHandle }: any) {
       aria-current={node.isSelected ? "true" : undefined}
       title={item.path}
       onClick={onClick}
+      onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
     >
       <span className="glyph">{glyph}</span>
@@ -280,8 +288,8 @@ function FileTreeRow({ node, style, dragHandle }: any) {
       </span>
       <span className="name">{item.name}</span>
       <StatusBadge status={status} />
-      <span className="tree-row-menu" role="button" tabIndex={0} aria-label={`actions for ${item.name}`} onClick={onMenuClick}>⋯</span>
-    </button>
+      <button className="tree-row-menu" type="button" aria-label={`actions for ${item.name}`} onClick={onMenuClick}>⋯</button>
+    </div>
   );
 }
 
@@ -289,12 +297,12 @@ function TreeActionMenu({ target, onAction }: { target: MenuTarget; onAction: (a
   const canTarget = target.kind !== "root";
   const style = menuPosition(target);
   return (
-    <div className="tree-action-menu" style={style} onClick={(event) => event.stopPropagation()}>
-      <button type="button" onClick={() => onAction("new-file")}>new file</button>
-      <button type="button" onClick={() => onAction("new-folder")}>new folder</button>
-      <button type="button" onClick={() => onAction("upload")}>upload here</button>
-      <button type="button" disabled={!canTarget} onClick={() => onAction("rename")}>rename</button>
-      <button type="button" disabled={!canTarget} className="danger" onClick={() => onAction("delete")}>delete</button>
+    <div className="tree-action-menu" role="menu" style={style} onClick={(event) => event.stopPropagation()}>
+      <button type="button" role="menuitem" onClick={() => onAction("new-file")}>new file</button>
+      <button type="button" role="menuitem" onClick={() => onAction("new-folder")}>new folder</button>
+      <button type="button" role="menuitem" onClick={() => onAction("upload")}>upload here</button>
+      <button type="button" role="menuitem" disabled={!canTarget} onClick={() => onAction("rename")}>rename</button>
+      <button type="button" role="menuitem" disabled={!canTarget} className="danger" onClick={() => onAction("delete")}>delete</button>
     </div>
   );
 }

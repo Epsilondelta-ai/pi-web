@@ -63,57 +63,71 @@ export const inputMethods = {
       await this.submitSteeringPrompt(text);
       return;
     }
-    const workspaceId = this.dataset.activeWorkspaceId;
-    let sessionId = this.dataset.activeSessionId;
-    if (sessionId && workspaceId && !this.activeSessionBelongsToWorkspace(sessionId, workspaceId)) {
-      sessionId = "";
-    }
-    if (!sessionId && this.apiConnected && workspaceId) {
-      try {
-        const { session } = await createSession(workspaceId);
-        this.activateCreatedSession(workspaceId, session);
-        sessionId = session.id;
-      } catch {
-        this.setConnection("err");
-        return;
+    if (this.promptSubmitting) return;
+    this.promptSubmitting = true;
+    try {
+      const workspaceId = this.dataset.activeWorkspaceId;
+      let sessionId = this.dataset.activeSessionId;
+      if (sessionId && workspaceId && !this.activeSessionBelongsToWorkspace(sessionId, workspaceId)) {
+        sessionId = "";
       }
-    }
-    this.showSessionMain();
-    this.finalizeStreamingMessages();
-    const waitForServerEcho = this.apiConnected && sessionId;
-    const useAguiPrompt = waitForServerEcho && typeof EventSource !== "undefined";
-    this.writeLastSessionPrompt(sessionId, text);
-    if (text) {
-      if (!waitForServerEcho || useAguiPrompt) this.appendMessage({ kind: "user", text });
-      this.appendLoadingMessage();
-      this.autonameActiveSession(text);
-    }
-    if (this.prompt) this.prompt.value = "";
-    const attachments = this.attachmentContents.filter(Boolean);
-    this.attachmentContents = [];
-    this.attachments?.replaceChildren();
-    if (this.attachments) this.attachments.hidden = true;
-    this.updatePrompt();
-    if (waitForServerEcho) {
-      this.eventSource?.close();
-      this.eventSource = null;
-      this.setMode("running");
-      try {
-        const completedInAguiStream = await runAguiSessionPrompt(sessionId, text, attachments, this.aguiSubscriber(sessionId));
-        if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
+      if (!sessionId && this.apiConnected && workspaceId) {
+        try {
+          const { session } = await createSession(workspaceId);
+          this.activateCreatedSession(workspaceId, session);
+          sessionId = session.id;
+        } catch {
+          this.setConnection("err");
+          return;
+        }
+      }
+      this.showSessionMain();
+      this.finalizeStreamingMessages();
+      const waitForServerEcho = this.apiConnected && sessionId;
+      const useAguiPrompt = waitForServerEcho && typeof EventSource !== "undefined";
+      const attachments = this.attachmentContents.filter(Boolean);
+      const hasVisiblePrompt = !!text || attachments.length > 0;
+      this.writeLastSessionPrompt(sessionId, text);
+      if (hasVisiblePrompt) {
+        if (!waitForServerEcho || useAguiPrompt) this.appendMessage({ kind: "user", text, attachments });
+        this.appendLoadingMessage();
+        if (text) this.autonameActiveSession(text);
+      }
+      if (this.prompt) this.prompt.value = "";
+      this.attachmentContents = [];
+      this.attachments?.replaceChildren();
+      if (this.attachments) this.attachments.hidden = true;
+      this.updatePrompt();
+      if (waitForServerEcho) {
+        this.eventSource?.close();
+        this.eventSource = null;
+        this.setMode("running");
+        let replayEventsOnReconnect = true;
+        try {
+          const completedInAguiStream = await runAguiSessionPrompt(
+            sessionId,
+            text,
+            attachments,
+            this.aguiSubscriber(sessionId),
+          );
+          replayEventsOnReconnect = !completedInAguiStream;
+          if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
+            this.setMode("idle");
+            this.finalizeStreamingMessages();
+            this.removeLoadingMessage();
+          }
+        } catch {
           this.setMode("idle");
-          this.finalizeStreamingMessages();
           this.removeLoadingMessage();
-        }
-      } catch {
-        this.setMode("idle");
-        this.removeLoadingMessage();
-        this.setConnection("err");
-      } finally {
-        if (this.dataset.activeSessionId === sessionId && typeof EventSource !== "undefined") {
-          this.connectEvents(sessionId, { replay: false });
+          this.setConnection("err");
+        } finally {
+          if (this.dataset.activeSessionId === sessionId && typeof EventSource !== "undefined") {
+            this.connectEvents(sessionId, { replay: replayEventsOnReconnect });
+          }
         }
       }
+    } finally {
+      this.promptSubmitting = false;
     }
   },
 

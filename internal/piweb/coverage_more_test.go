@@ -90,6 +90,11 @@ func TestCoverageStoreWorkspaceFilesAndCommands(t *testing.T) {
 	if err != nil || res.ExitCode != 7 || res.Output != "bad" {
 		t.Fatalf("shell exit=%+v err=%v", res, err)
 	}
+	res, err = RunWorkspaceShellCommand(context.Background(), store, workspace.ID, "yes x | head -c 300000")
+	if err != nil || res.ExitCode != 0 || !strings.Contains(res.Output, shellOutputTruncatedMarker) ||
+		len(res.Output) > maxShellOutputBytes+len(shellOutputTruncatedMarker) {
+		t.Fatalf("shell capped output=%d exit=%d err=%v", len(res.Output), res.ExitCode, err)
+	}
 	if _, err := RunWorkspaceShellCommand(context.Background(), store, workspace.ID, " "); err == nil {
 		t.Fatal("expected blank command error")
 	}
@@ -244,6 +249,12 @@ func TestCoverageServerHandlers(t *testing.T) {
 		{http.MethodGet, "/api/workspaces/" + workspace.ID + "/git/status", "", http.StatusOK},
 		{http.MethodGet, "/api/workspaces/missing/git/status", "", http.StatusNotFound},
 		{http.MethodPost, "/api/workspaces/" + workspace.ID + "/shell", `{bad`, http.StatusBadRequest},
+		{
+			http.MethodPost,
+			"/api/workspaces/" + workspace.ID + "/shell",
+			`{"command":"printf ok"} {"command":"printf bad"}`,
+			http.StatusBadRequest,
+		},
 		{http.MethodPost, "/api/workspaces/" + workspace.ID + "/shell", `{"command":"printf ok"}`, http.StatusOK},
 		{http.MethodPost, "/api/workspaces/missing/shell", `{"command":"true"}`, http.StatusNotFound},
 	} {
@@ -255,6 +266,18 @@ func TestCoverageServerHandlers(t *testing.T) {
 				t.Fatalf("expected %d, got %d: %s", tc.code, res.Code, res.Body.String())
 			}
 		})
+	}
+
+	oversizedBody := `{"command":"` + strings.Repeat("x", int(maxJSONBodyBytes)+1) + `"}`
+	oversizedReq := httptest.NewRequest(
+		http.MethodPost,
+		"/api/workspaces/"+workspace.ID+"/shell",
+		strings.NewReader(oversizedBody),
+	)
+	oversizedRes := httptest.NewRecorder()
+	h.ServeHTTP(oversizedRes, oversizedReq)
+	if oversizedRes.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected oversized request 413, got %d: %s", oversizedRes.Code, oversizedRes.Body.String())
 	}
 
 	delReq := httptest.NewRequest(http.MethodDelete, "/api/workspaces/"+workspace.ID, nil)

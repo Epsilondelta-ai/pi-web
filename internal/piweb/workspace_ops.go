@@ -15,6 +15,40 @@ import (
 
 const commandTimeout = 30 * time.Second
 const cloneTimeout = 5 * time.Minute
+const maxShellOutputBytes = 256 * 1024
+
+const shellOutputTruncatedMarker = "\n[output truncated]"
+
+type cappedOutputBuffer struct {
+	buf       bytes.Buffer
+	limit     int
+	truncated bool
+}
+
+func (b *cappedOutputBuffer) Write(p []byte) (int, error) {
+	if b.limit <= 0 {
+		return len(p), nil
+	}
+	remaining := b.limit - b.buf.Len()
+	if remaining > 0 {
+		if remaining > len(p) {
+			remaining = len(p)
+		}
+		_, _ = b.buf.Write(p[:remaining])
+	}
+	if remaining < len(p) {
+		b.truncated = true
+	}
+	return len(p), nil
+}
+
+func (b *cappedOutputBuffer) Result() string {
+	output := b.buf.String()
+	if b.truncated {
+		return output + shellOutputTruncatedMarker
+	}
+	return output
+}
 
 func CloneGitWorkspace(ctx context.Context, store *Store, req CloneWorkspaceRequest) (Workspace, string, error) {
 	parent, err := ValidateWorkspacePath(req.ParentPath)
@@ -72,11 +106,15 @@ func RunWorkspaceShellCommand(ctx context.Context, store *Store, workspaceID str
 	cmd := exec.CommandContext(cmdCtx, "sh", "-lc", command)
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "TERM=dumb")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+	out := &cappedOutputBuffer{limit: maxShellOutputBytes}
+	cmd.Stdout = out
+	cmd.Stderr = out
 	err = cmd.Run()
-	result := ShellCommandResult{Command: command, Output: out.String(), DurationMs: int(time.Since(started).Milliseconds())}
+	result := ShellCommandResult{
+		Command:    command,
+		Output:     out.Result(),
+		DurationMs: int(time.Since(started).Milliseconds()),
+	}
 	if exitErr, ok := err.(*exec.ExitError); ok {
 		result.ExitCode = exitErr.ExitCode()
 		return result, nil

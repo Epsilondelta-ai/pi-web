@@ -174,6 +174,48 @@ describe("pi-app input methods coverage", () => {
     expect(urls.some((url) => url.includes("/sessions/s-b/"))).toBe(false);
   });
 
+  it("prevents duplicate initial submits while a session is being created", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "";
+    let resolveCreate = () => undefined;
+    globalThis.EventSource = undefined;
+    globalThis.fetch = vi.fn(async (url) => {
+      if (String(url).includes("/workspaces/w1/sessions")) {
+        return new Promise((resolve) => {
+          resolveCreate = () => resolve(ok({ session: { id: "s-new", title: "new" } }));
+        });
+      }
+      return ok({ accepted: true });
+    });
+    app.activateCreatedSession = vi.fn((workspaceId, session) => { app.dataset.activeSessionId = session.id; });
+    app.prompt.value = "create once";
+
+    const firstSubmit = app.submitPrompt();
+    const secondSubmit = app.submitPrompt();
+    await Promise.resolve();
+    const createCalls = globalThis.fetch.mock.calls.filter(([url]) => String(url).includes("/workspaces/w1/sessions"));
+    expect(createCalls).toHaveLength(1);
+    resolveCreate();
+    await Promise.all([firstSubmit, secondSubmit]);
+  });
+
+  it("renders attachment-only prompts in the transcript", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = false;
+    app.prompt.value = "";
+    app.attachmentContents = [{ type: "image", dataUrl: "data:image/png;base64,aa", name: "shot.png" }];
+    app.attachments.append(document.createElement("span"));
+    app.attachments.hidden = false;
+
+    await app.submitPrompt();
+
+    expect(app.querySelector(".msg[data-kind='user'] .msg-image")).toBeTruthy();
+    expect(app.querySelector(".msg.loading")).toBeTruthy();
+    expect(app.attachments.hidden).toBe(true);
+  });
+
   it("submits prompts and steering with attachments", async () => {
     const app = await connectPiApp();
     app.apiConnected = true;
@@ -220,6 +262,21 @@ describe("pi-app input methods coverage", () => {
     expect(app.running).toBe(false);
     expect(app.querySelector(".msg.loading")).toBeNull();
     expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: false });
+
+    globalThis.fetch = vi.fn(async (url) => {
+      if (String(url).includes("/ag-ui")) throw new Error("Failed to getReader");
+      return ok({ accepted: true });
+    });
+    app.connectEvents = vi.fn();
+    app.prompt.value = "fallback prompt";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      await app.submitPrompt();
+    } finally {
+      consoleError.mockRestore();
+    }
+    expect(String(globalThis.fetch.mock.calls.at(-1)[0])).toContain("/api/sessions/s1/prompt");
+    expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: true });
 
     const panel = document.createElement("div");
     panel.innerHTML = `<button></button><input>`;

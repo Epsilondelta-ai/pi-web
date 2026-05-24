@@ -6,6 +6,7 @@ vi.mock("../../lib/api", async () => {
   const actual = await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
   return {
     ...actual,
+    getWorkspaceFile: vi.fn(),
     saveWorkspaceFile: vi.fn(),
   };
 });
@@ -124,6 +125,36 @@ describe("file preview CodeMirror editor", () => {
     expect(app.filePreview.originalContent).toBe("let x = 1;");
     expect(app.querySelector(".cm-git-modified")).toBeTruthy();
     expect(app.querySelector("[data-action='save-file-preview']").disabled).toBe(true);
+  });
+
+  it("does not save a preview after the active workspace changes", async () => {
+    const app = mountPreview();
+    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    dispatchEditorChange(app, "let x = 2;");
+    app.dataset.activeWorkspaceId = "workspace-2";
+
+    await app.saveFilePreview();
+
+    expect(api.saveWorkspaceFile).not.toHaveBeenCalled();
+    expect(app.filePreview.dirty).toBe(true);
+    expect(app.querySelector("[data-action='save-file-preview']").textContent).toBe("workspace changed");
+  });
+
+  it("ignores file previews that finish loading after a workspace switch", async () => {
+    const app = mountPreview();
+    vi.mocked(api.getWorkspaceFile).mockResolvedValueOnce({
+      path: "demo.js",
+      mime: "text/javascript",
+      previewKind: "text",
+      content: "let x = 1;",
+    });
+
+    const loading = app.openFilePath("demo.js");
+    app.dataset.activeWorkspaceId = "workspace-2";
+    await loading;
+
+    expect(api.getWorkspaceFile).toHaveBeenCalledWith("workspace-1", "demo.js");
+    expect(app.filePreview.file.previewKind).toBe("loading");
   });
 
   it("saves current CodeMirror document and keeps edits after save failure", async () => {

@@ -19,6 +19,7 @@ function storeSidebarWidth(width) {
 
 export const layoutMethods = {
   shortcut(event) {
+    if (event.key === "Tab") this.trapSettingsFocus?.(event);
     if (event.key === "Escape") this.closeModals();
   },
 
@@ -90,8 +91,9 @@ export const layoutMethods = {
     if (!body) return;
     const tree = this.dataset.tree === "on";
     const collapsed = this.dataset.sidebar === "collapsed";
-    const expandedColumns = tree ? `${width}px 1fr 260px` : `${width}px 1fr`;
-    const collapsedColumns = tree ? "1fr 260px" : "1fr";
+    const treeWidth = 320;
+    const expandedColumns = tree ? `${width}px 1fr ${treeWidth}px` : `${width}px 1fr`;
+    const collapsedColumns = tree ? `1fr ${treeWidth}px` : "1fr";
     body.style.gridTemplateColumns = collapsed ? collapsedColumns : expandedColumns;
   },
 

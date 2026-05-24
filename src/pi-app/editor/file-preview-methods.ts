@@ -17,6 +17,7 @@ export const filePreviewMethods = {
       }));
       this.renderFilePreview({ path, previewKind: "loading" });
       const file = await getWorkspaceFile(workspaceId, path);
+      if (this.dataset.activeWorkspaceId !== workspaceId) return;
       this.renderFilePreview(file);
     } catch (error) {
       this.renderFilePreview({ path, previewKind: "error", content: errorMessage(error) });
@@ -31,6 +32,7 @@ export const filePreviewMethods = {
     this.destroyFilePreviewEditor?.();
     preview.hidden = false;
     this.filePreview = {
+      workspaceId: this.dataset.activeWorkspaceId,
       file,
       mode: defaultPreviewMode(file),
       cleanContent: file.content || "",
@@ -90,6 +92,11 @@ export const filePreviewMethods = {
     const state = this.filePreview;
     const file = state?.file;
     if (!workspaceId || !file?.path || !state?.editor || !this.apiConnected) return;
+    if (state.workspaceId && state.workspaceId !== workspaceId) {
+      state.saveStatus = "workspace changed";
+      updatePreviewActions(this.querySelector("[data-file-preview]"), state);
+      return;
+    }
     const save = this.querySelector("[data-action='save-file-preview']");
     if (save) save.disabled = true;
     try {
@@ -108,6 +115,7 @@ export const filePreviewMethods = {
       }
       this.destroyFilePreviewEditor?.();
       this.filePreview = {
+        workspaceId,
         file: next,
         mode: defaultPreviewMode(next),
         cleanContent: next.content || content,
@@ -172,9 +180,12 @@ function updatePreviewActions(preview, state) {
   const canToggle = file.mime === "image/svg+xml" && file.dataUrl && file.content;
   const save = preview.querySelector("[data-action='save-file-preview']");
   const toggle = preview.querySelector("[data-action='toggle-file-preview-mode']");
+  const workspaceChanged = state.saveStatus === "workspace changed";
   save.hidden = !canEdit || mode !== "text";
-  save.disabled = !state.dirty;
-  save.textContent = state.dirty ? "save *" : state.saveStatus === "saved" ? "saved" : "save";
+  save.disabled = !state.dirty || workspaceChanged;
+  save.textContent = workspaceChanged
+    ? "workspace changed"
+    : state.dirty ? "save *" : state.saveStatus === "saved" ? "saved" : "save";
   save.title = state.saveStatus && state.saveStatus !== "saved" ? state.saveStatus : "";
   toggle.hidden = !canToggle;
   toggle.textContent = mode === "image" ? "text" : "image";
