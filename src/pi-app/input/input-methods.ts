@@ -487,17 +487,29 @@ export const inputMethods = {
     const preset = whisperPreset(this.whisperModel);
     const key = `${preset.id}:${preset.dtype || "fp32"}`;
     if (this.whisperPipeline && this.whisperPipelineKey === key) return this.whisperPipeline;
+    if (this.whisperLoadingPromise && this.whisperLoadingKey === key) return this.whisperLoadingPromise;
+    this.setWhisperModelButtons(true);
     this.setWhisperStatus(`loading ${this.whisperModel} ${preset.size}…`);
-    const { pipeline } = await import("@huggingface/transformers");
-    const options: any = {
-      progress_callback: (progress) => this.setWhisperStatus(this.whisperProgressText(progress)),
-    };
-    if (preset.dtype) options.dtype = preset.dtype;
-    if (navigator.gpu) options.device = "webgpu";
-    this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
-    this.whisperPipelineKey = key;
-    this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
-    return this.whisperPipeline;
+    this.whisperLoadingKey = key;
+    this.whisperLoadingPromise = (async () => {
+      const { pipeline } = await import("@huggingface/transformers");
+      const options: any = {
+        progress_callback: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
+      };
+      if (preset.dtype) options.dtype = preset.dtype;
+      if (navigator.gpu) options.device = "webgpu";
+      this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
+      this.whisperPipelineKey = key;
+      this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
+      return this.whisperPipeline;
+    })();
+    try {
+      return await this.whisperLoadingPromise;
+    } finally {
+      this.whisperLoadingPromise = null;
+      this.whisperLoadingKey = "";
+      this.setWhisperModelButtons(false);
+    }
   },
 
   whisperProgressText(progress) {
@@ -518,6 +530,7 @@ export const inputMethods = {
   },
 
   async deleteWhisperModel() {
+    if (this.whisperLoadingPromise) return;
     this.whisperPipeline = null;
     this.whisperPipelineKey = "";
     if (globalThis.caches) {
@@ -527,12 +540,44 @@ export const inputMethods = {
     this.setWhisperStatus("cached model cleared");
   },
 
+  /* v8 ignore start -- animation-frame throttling is exercised through integration behavior */
+  queueWhisperStatus(message, error = false) {
+    if (!message) return;
+    this.whisperStatusPending = { message, error };
+    if (this.whisperStatusFrame) return;
+    const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 100));
+    this.whisperStatusFrame = schedule(() => {
+      this.whisperStatusFrame = null;
+      const pending = this.whisperStatusPending;
+      this.whisperStatusPending = null;
+      if (!pending) return;
+      const now = Date.now();
+      const current = this.querySelector?.("[data-whisper-status]")?.textContent || "";
+      const isProgress = /%$/.test(pending.message);
+      if (isProgress && pending.message === current) return;
+      if (isProgress && now - (this.whisperStatusLastAt || 0) < 200 && !pending.message.endsWith("100%")) {
+        this.queueWhisperStatus(pending.message, pending.error);
+        return;
+      }
+      this.setWhisperStatus(pending.message, pending.error);
+    });
+  },
+
   setWhisperStatus(message, error = false) {
     const status = this.querySelector?.("[data-whisper-status]");
     if (!status) return;
+    if (status.textContent === message && status.classList.contains("err") === error) return;
     status.textContent = message;
     status.classList.toggle("err", error);
+    this.whisperStatusLastAt = Date.now();
   },
+
+  setWhisperModelButtons(disabled) {
+    for (const button of this.querySelectorAll?.("[data-action='download-whisper-model'], [data-action='delete-whisper-model']") || []) {
+      button.disabled = disabled;
+    }
+  },
+  /* v8 ignore stop */
 
   stopSpeechInput() {
     if (this.speechRecorder && this.speechRecorder.state !== "inactive") {

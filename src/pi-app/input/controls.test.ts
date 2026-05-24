@@ -339,6 +339,13 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~31MB");
     expect(await app.loadWhisperPipeline()).toBe(transcriber);
     expect(pipelineMock).toHaveBeenCalledTimes(1);
+    app.whisperLoadingKey = app.whisperPipelineKey;
+    app.whisperLoadingPromise = Promise.resolve("loading-pipeline");
+    expect(await app.loadWhisperPipeline()).toBe(transcriber);
+    app.whisperPipeline = null;
+    expect(await app.loadWhisperPipeline()).toBe("loading-pipeline");
+    app.whisperLoadingPromise = null;
+    app.whisperLoadingKey = "";
 
     app.speechLanguage = "ko-KR";
     await app.transcribeWhisperRecording([new Blob(["x"])]);
@@ -363,6 +370,25 @@ describe("pi-app controls", () => {
       "onnx-community/whisper-base",
       expect.not.objectContaining({ dtype: expect.anything(), device: expect.anything() }),
     );
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    app.whisperStatusFrame = null;
+    app.whisperStatusPending = null;
+    app.setWhisperStatus("downloading base: 1%");
+    app.queueWhisperStatus("downloading base: 1%");
+    frames.shift()?.(Date.now());
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloading base: 1%");
+    app.whisperStatusLastAt = Date.now();
+    app.queueWhisperStatus("downloading base: 2%");
+    frames.shift()?.(Date.now());
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloading base: 1%");
+    app.whisperStatusLastAt = 0;
+    while (frames.length) frames.shift()?.(Date.now() + 250);
+    app.setWhisperStatus("downloading base: 2%");
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloading base: 2%");
     app.querySelector("[data-whisper-status]").remove();
     expect(() => app.setWhisperStatus("hidden")).not.toThrow();
   });
@@ -379,6 +405,11 @@ describe("pi-app controls", () => {
     expect(app.loadWhisperPipeline).toHaveBeenCalled();
 
     app.querySelector("[data-action='delete-whisper-model']").click();
+    app.whisperPipeline = vi.fn();
+    app.whisperLoadingPromise = Promise.resolve("loading");
+    await app.deleteWhisperModel();
+    expect(app.whisperPipeline).not.toBeNull();
+    app.whisperLoadingPromise = null;
     await app.deleteWhisperModel();
     globalThis.caches = {
       keys: vi.fn(async () => ["transformers-cache", "other"]),

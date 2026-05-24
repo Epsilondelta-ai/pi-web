@@ -32,6 +32,11 @@ class PiApp extends HTMLElement {
     this.whisperModel = "tiny-q5";
     this.whisperPipeline = null;
     this.whisperPipelineKey = "";
+    this.whisperLoadingPromise = null;
+    this.whisperLoadingKey = "";
+    this.whisperStatusFrame = null;
+    this.whisperStatusPending = null;
+    this.whisperStatusLastAt = 0;
     this.speechLanguage = "system";
     this.speechRecognition = null;
     this.speechListening = false;
