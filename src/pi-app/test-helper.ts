@@ -103,7 +103,25 @@ export function installPiAppFixture() {
           ${settingsSelect("hideThinkingBlock", ["inherit", "true", "false"])}
           ${settingsCheckbox("readResponsesAloud")}
           ${settingsCheckbox("enableSpeechInput")}
-          ${settingsSelect("speechLanguage", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"])}
+          ${settingsSelect("speechLanguage", ["system", "en-US", "ko-KR", "ja-JP", "zh-CN"], false, true)}
+          <details data-speech-advanced data-secure-context-only="https" hidden>
+            ${settingsCheckbox("speechInput.useLocalWhisper")}
+            ${settingsSelect("speechInput.whisperModel", [
+              "tiny-q5",
+              "tiny",
+              "base-q5",
+              "base",
+              "small-q5",
+              "small",
+              "medium-q5",
+              "medium",
+              "large-v3-q5",
+              "large-v3",
+            ])}
+            <span data-whisper-status></span>
+            <button type="button" data-action="download-whisper-model">download model</button>
+            <button type="button" data-action="delete-whisper-model">delete model</button>
+          </details>
           ${settingsSelect("warnings.anthropicExtraUsage", ["inherit", "true", "false"])}
           <span data-settings-status></span>
           <button type="submit">save</button>
@@ -118,10 +136,11 @@ function settingsField(tag, name) {
   return "";
 }
 
-function settingsSelect(name, values, custom = false) {
+function settingsSelect(name, values, custom = false, secure = false) {
   const options = values.map((value) => `<option value="${value}">${value}</option>`).join("");
   const customInput = custom ? `<input data-custom-setting="${name}" hidden />` : "";
-  return `<label class="settings-field"><select data-setting="${name}">${options}</select>${customInput}<small></small></label>`;
+  const secureOnly = secure ? " data-secure-context-only=\"https\" hidden" : "";
+  return `<label class="settings-field"${secureOnly}><select data-setting="${name}">${options}</select>${customInput}<small></small></label>`;
 }
 
 function settingsCheckbox(name) {

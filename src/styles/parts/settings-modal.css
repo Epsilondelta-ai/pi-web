@@ -28,7 +28,7 @@
   background: rgba(0, 0, 0, 0.62);
 }
 .settings-dialog {
-  width: min(820px, 94vw);
+  width: min(1120px, 94vw);
   max-height: min(760px, 88vh);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-2);
@@ -67,6 +67,7 @@
 }
 .settings-body {
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 .settings-toolbar {
@@ -104,7 +105,7 @@
 .auth-login summary {
   cursor: pointer;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto max-content minmax(0, 1fr) auto;
   gap: var(--space-3);
   align-items: center;
   padding: 10px 12px;
@@ -147,8 +148,10 @@
   gap: 8px;
   align-items: center;
   min-width: 0;
+  white-space: nowrap;
 }
 .auth-login-title em {
+  flex-shrink: 0;
   border: 1px solid var(--border-dim);
   border-radius: 999px;
   color: var(--fg-3);
@@ -169,13 +172,12 @@
 .auth-login-fields,
 .oauth-login-fields {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(220px, 2fr) auto;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: var(--space-2);
   align-items: end;
   padding: 0 12px 12px;
 }
 .oauth-login-fields {
-  grid-template-columns: minmax(180px, 1fr) auto minmax(160px, auto) minmax(220px, 2fr) auto;
   border-top: 1px solid var(--border-dim);
   padding-top: 12px;
 }
@@ -191,12 +193,22 @@
 }
 .auth-login-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+}
+.auth-login-actions button,
+.oauth-login-fields button {
+  min-height: 34px;
+  white-space: nowrap;
 }
 .oauth-login-fields a {
   color: var(--accent);
   font-size: var(--text-xs);
+  min-width: 0;
+  overflow: hidden;
   padding: 7px 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .oauth-login-fields small {
   grid-column: 1 / -1;
@@ -204,17 +216,75 @@
   font-size: var(--text-xs);
 }
 .oauth-login-fields small.err { color: var(--danger); }
-.settings-grid {
+.settings-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+.settings-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+}
+.settings-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 10px 12px 0;
+}
+.settings-group-head strong {
+  color: var(--fg-0);
+  font-size: var(--text-sm);
+}
+.settings-group-head small {
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
+.settings-grid,
+.settings-advanced-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
   padding: 12px;
 }
+.settings-advanced {
+  margin: 0 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+}
+.settings-advanced summary {
+  cursor: pointer;
+  padding: 10px 12px 0;
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.settings-whisper-actions {
+  grid-column: 1 / -1;
+}
+.settings-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-inline-actions button {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+.settings-inline-actions button:hover { border-color: var(--accent); color: var(--accent); }
 .settings-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  overflow: hidden;
 }
 .settings-field span {
   color: var(--fg-1);
@@ -283,13 +353,45 @@
 }
 .settings-foot [data-settings-status].err { color: var(--danger); }
 
+@media (min-width: 980px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 720px) and (max-width: 979px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 521px) and (max-width: 719px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .auth-login-fields,
+  .oauth-login-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .auth-login-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .oauth-login-fields small { grid-column: 1 / -1; }
+}
+
 @media (max-width: 680px) {
-  .settings-grid { grid-template-columns: 1fr; }
-  .settings-toolbar { grid-template-columns: 1fr; }
   .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
-  .auth-login summary small { grid-column: 1 / -1; text-align: left; }
+  .auth-login-title { white-space: normal; }
+  .auth-login-title em { display: none; }
+  .auth-login summary small { grid-column: 1 / -1; text-align: left; white-space: normal; }
   .auth-login summary::after { display: none; }
   .auth-login-fields,
   .oauth-login-fields { grid-template-columns: 1fr; }
+  .oauth-login-fields button,
+  .oauth-login-fields a,
+  .oauth-login-fields input { width: 100%; }
+}
+
+@media (max-width: 520px) {
+  .settings-grid,
+  .settings-advanced-grid { grid-template-columns: 1fr; }
+  .settings-group-head { display: block; }
+  .settings-toolbar { grid-template-columns: 1fr; }
   .auth-login-actions { justify-content: flex-end; }
 }

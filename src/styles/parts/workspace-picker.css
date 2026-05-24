@@ -23,7 +23,6 @@
 .prompt-meta-battery-full { color: var(--accent); }
 .prompt-meta-battery-medium { color: var(--warn); }
 .prompt-meta-battery-low { color: var(--danger); }
-.prompt-meta-thinking { color: var(--thinking); }
 .prompt-meta-branch { color: var(--fg-2); }
 
 .picker-shell {

@@ -23,6 +23,18 @@ const transportSchema = z.enum(["sse", "websocket", "websocket-cached", "auto"])
 const doubleEscapeActionSchema = z.enum(["tree", "fork", "none"]);
 const treeFilterModeSchema = z.enum(["default", "no-tools", "user-only", "labeled-only", "all"]);
 const speechLanguageSchema = z.enum(["system", "en-US", "ko-KR", "ja-JP", "zh-CN"]);
+const whisperModelSchema = z.enum([
+  "tiny-q5",
+  "tiny",
+  "base-q5",
+  "base",
+  "small-q5",
+  "small",
+  "medium-q5",
+  "medium",
+  "large-v3-q5",
+  "large-v3",
+]);
 
 const settingsObjectSchema = z.object({
   defaultProvider: z.string().optional(),
@@ -50,6 +62,10 @@ const settingsObjectSchema = z.object({
   hideThinkingBlock: z.boolean().optional(),
   readResponsesAloud: z.boolean().optional(),
   enableSpeechInput: z.boolean().optional(),
+  speechInput: z.object({
+    useLocalWhisper: z.boolean().optional(),
+    whisperModel: whisperModelSchema.optional(),
+  }).partial().passthrough().optional(),
   speechLanguage: speechLanguageSchema.optional(),
   collapseChangelog: z.boolean().optional(),
   quietStartup: z.boolean().optional(),
@@ -89,6 +105,10 @@ export const settingsPatchSchema = z.object({
   hideThinkingBlock: nullishBoolean,
   readResponsesAloud: nullishBoolean,
   enableSpeechInput: nullishBoolean,
+  speechInput: z.object({
+    useLocalWhisper: nullishBoolean,
+    whisperModel: whisperModelSchema.nullable().optional(),
+  }).partial().passthrough().optional(),
   speechLanguage: speechLanguageSchema.nullable().optional(),
   collapseChangelog: nullishBoolean,
   quietStartup: nullishBoolean,

@@ -21,11 +21,24 @@ describe("settings schema", () => {
     expect(parseWorkspaceSettings({
       global: { theme: "dark", customSetting: "keep" },
       project: { terminal: { showImages: true } },
-      effective: { transport: "auto", readResponsesAloud: true, enableSpeechInput: true, speechLanguage: "ko-KR", terminal: { imageWidthCells: 80 } },
+      effective: {
+        transport: "auto",
+        readResponsesAloud: true,
+        enableSpeechInput: true,
+        speechInput: { useLocalWhisper: true, whisperModel: "large-v3" },
+        speechLanguage: "ko-KR",
+        terminal: { imageWidthCells: 80 },
+      },
       paths: { global: "/home/me/.pi/agent/settings.json", project: "/repo/.pi/settings.json" },
     })).toMatchObject({
       global: { customSetting: "keep" },
-      effective: { transport: "auto", readResponsesAloud: true, enableSpeechInput: true, speechLanguage: "ko-KR" },
+      effective: {
+        transport: "auto",
+        readResponsesAloud: true,
+        enableSpeechInput: true,
+        speechInput: { useLocalWhisper: true, whisperModel: "large-v3" },
+        speechLanguage: "ko-KR",
+      },
     });
   });
 
@@ -45,10 +58,12 @@ describe("settings schema", () => {
       transport: "sse",
       readResponsesAloud: true,
       enableSpeechInput: true,
+      speechInput: { useLocalWhisper: true, whisperModel: "large-v3-q5" },
       speechLanguage: "ja-JP",
       terminal: { imageWidthCells: 120, showImages: false },
     })).toMatchObject({ transport: "sse", terminal: { showImages: false } });
 
+    expect(() => parseSettingsPatch({ speechInput: { whisperModel: "huge" } })).toThrow("invalid settings patch");
     expect(() => parseSettingsPatch({ doubleEscapeAction: "explode" })).toThrow("invalid settings patch");
   });
 });

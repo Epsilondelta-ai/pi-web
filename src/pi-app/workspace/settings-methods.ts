@@ -179,6 +179,24 @@ export const settingsMethods = {
       this.fillSettingsControl(control, field, explicitValue, effectiveValue);
       if (field.path === "defaultProvider") this.fillModelControls();
     }
+    this.fillSpeechInputAdvancedControls(scopedSettings, effective);
+  },
+
+  fillSpeechInputAdvancedControls(scopedSettings, effective) {
+    const fields = [
+      { path: "speechInput.useLocalWhisper", type: "checkbox" },
+      { path: "speechInput.whisperModel", type: "whisperModel" },
+    ];
+    for (const field of fields) {
+      const control = this.querySelector(`[data-setting='${field.path}']`);
+      if (!control) continue;
+      const explicitValue = valueAt(scopedSettings, field.path);
+      const effectiveValue = valueAt(effective, field.path) || (field.path === "speechInput.whisperModel" ? "tiny-q5" : undefined);
+      const hint = control.closest(".settings-field")?.querySelector("small");
+      hint?.replaceChildren(`effective: ${describeEffective(effectiveValue)}`);
+      this.fillSettingsControl(control, field, explicitValue, effectiveValue);
+    }
+    void this.updateWhisperCacheStatus?.();
   },
 
   fillSettingsControl(control, field, explicitValue, effectiveValue) {
@@ -211,6 +229,10 @@ export const settingsMethods = {
     }
     if (field.type === "speechLanguage") {
       control.value = explicitValue === undefined ? String(effectiveValue || "system") : String(explicitValue || "system");
+      return;
+    }
+    if (field.type === "whisperModel") {
+      control.value = explicitValue === undefined ? String(effectiveValue || "tiny-q5") : String(explicitValue || "tiny-q5");
       return;
     }
     control.value = explicitValue === undefined ? "inherit" : String(explicitValue);
@@ -306,8 +328,11 @@ export const settingsMethods = {
 
   syncSettingsStateToApp() {
     const allowSpeechInput = this.speechInputAllowed?.() === true;
+    const speechInput = this.settingsState?.effective?.speechInput || {};
     this.readResponsesAloud = this.settingsState?.effective?.readResponsesAloud === true;
     this.enableSpeechInput = allowSpeechInput && this.settingsState?.effective?.enableSpeechInput === true;
+    this.useLocalWhisper = allowSpeechInput && speechInput.useLocalWhisper === true;
+    this.whisperModel = speechInput.whisperModel || "tiny-q5";
     if (!this.enableSpeechInput) this.stopSpeechInput?.();
     this.speechLanguage = this.settingsState?.effective?.speechLanguage || "system";
     this.syncReadAloudControls?.();
@@ -334,6 +359,11 @@ export const settingsMethods = {
       const control = form.querySelector(`[data-setting='${field.path}']`);
       if (!control) continue;
       setPatchValue(patch, field.path, this.settingValueFromControl(control, field));
+    }
+    for (const control of form.querySelectorAll("[data-setting^='speechInput.']")) {
+      if (!allowSpeechInput) continue;
+      const type = control.type === "checkbox" ? "checkbox" : "select";
+      setPatchValue(patch, control.dataset.setting, this.settingValueFromControl(control, { type }));
     }
     return patch;
   },

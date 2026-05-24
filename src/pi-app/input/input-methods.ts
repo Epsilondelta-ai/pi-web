@@ -15,6 +15,80 @@ function composeSpeechSegments(segments) {
   return segments.reduce((text, segment) => mergeSpeechTranscript(text, segment?.text), "");
 }
 
+const WHISPER_MODELS = {
+  "tiny-q5": { id: "onnx-community/whisper-tiny", size: "~31MB", dtype: "q4" },
+  tiny: { id: "onnx-community/whisper-tiny", size: "~75MB", dtype: undefined },
+  "base-q5": { id: "onnx-community/whisper-base", size: "~57MB", dtype: "q4" },
+  base: { id: "onnx-community/whisper-base", size: "~142MB", dtype: undefined },
+  "small-q5": { id: "onnx-community/whisper-small-ONNX", size: "~181MB", dtype: "q4" },
+  small: { id: "onnx-community/whisper-small-ONNX", size: "~466MB", dtype: undefined },
+  "medium-q5": { id: "onnx-community/whisper-medium_timestamped", size: "~582MB", dtype: "q4" },
+  medium: { id: "onnx-community/whisper-medium_timestamped", size: "~1.5GB", dtype: undefined },
+  "large-v3-q5": { id: "onnx-community/whisper-large-v3-ONNX", size: "~1.2GB", dtype: "q4" },
+  "large-v3": { id: "onnx-community/whisper-large-v3-ONNX", size: "~3GB+", dtype: undefined },
+};
+
+function whisperPreset(name) {
+  return WHISPER_MODELS[name] || WHISPER_MODELS["tiny-q5"];
+}
+
+function whisperCacheNeedles(model) {
+  const repo = whisperPreset(model).id.toLowerCase();
+  return [repo, repo.replace("/", "%2f")];
+}
+
+function requestUrl(request) {
+  return typeof request === "string" ? request : request?.url || "";
+}
+
+async function blobToWhisperAudio(blob) {
+  const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
+  if (!AudioContextCtor || typeof blob?.arrayBuffer !== "function") return blob;
+  const context = new AudioContextCtor();
+  try {
+    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+    return audioBufferToMono16k(buffer);
+  } finally {
+    await context.close?.();
+  }
+}
+
+function audioBufferToMono16k(buffer) {
+  const channels = Math.max(1, buffer.numberOfChannels || 1);
+  const mono = new Float32Array(buffer.length);
+  for (let channel = 0; channel < channels; channel += 1) {
+    const data = buffer.getChannelData(channel);
+    for (let index = 0; index < mono.length; index += 1) mono[index] += data[index] / channels;
+  }
+  if (buffer.sampleRate === 16000) return mono;
+  const length = Math.max(1, Math.round(mono.length * 16000 / buffer.sampleRate));
+  const resampled = new Float32Array(length);
+  for (let index = 0; index < length; index += 1) {
+    const source = index * (mono.length - 1) / Math.max(1, length - 1);
+    const left = Math.floor(source);
+    const right = Math.min(mono.length - 1, left + 1);
+    const ratio = source - left;
+    resampled[index] = mono[left] * (1 - ratio) + mono[right] * ratio;
+  }
+  return resampled;
+}
+
+function whisperTranscriptionOptions(_model, speechLanguage) {
+  return {
+    language: speechLanguage === "system" ? undefined : speechLanguage.slice(0, 2),
+    task: "transcribe",
+  };
+}
+
+function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
+  const cleanTranscript = String(transcript || "").trimStart();
+  const needsSpace = basePrompt
+    && cleanTranscript
+    && !/\s$/.test(basePrompt)
+    && !/^[\s.,!?;:)]/.test(cleanTranscript);
+  prompt.value = `${basePrompt}${needsSpace ? " " : ""}${cleanTranscript}`;
+}
+
 export const inputMethods = {
   async submitPrompt() {
     this.stopSpeechInput?.();
@@ -249,6 +323,8 @@ export const inputMethods = {
     if (action === "open-settings") this.openSettingsModal?.();
     if (action === "close-settings") this.closeSettingsModal?.();
     if (action === "toggle-speech-input") this.toggleSpeechInput?.();
+    if (action === "download-whisper-model") this.downloadWhisperModel?.();
+    if (action === "delete-whisper-model") this.deleteWhisperModel?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
     if (action === "save-auth-provider") this.saveAuthForm?.(event);
     if (action === "logout-auth-provider") this.logoutAuthProvider?.();
@@ -319,6 +395,14 @@ export const inputMethods = {
       );
       return;
     }
+    if (this.useLocalWhisper) {
+      void this.startLocalWhisperInput();
+      return;
+    }
+    this.startWebSpeechInput();
+  },
+
+  startWebSpeechInput() {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       this.showSystemToast?.(
@@ -343,12 +427,7 @@ export const inputMethods = {
       this.speechSilenceTimer = setTimeout(() => this.stopSpeechInput(), 3000);
     };
     const applyTranscript = (transcript = "") => {
-      const cleanTranscript = transcript.trimStart();
-      const needsSpace = basePrompt
-        && cleanTranscript
-        && !/\s$/.test(basePrompt)
-        && !/^[\s.,!?;:)]/.test(cleanTranscript);
-      this.prompt.value = `${basePrompt}${needsSpace ? " " : ""}${cleanTranscript}`;
+      appendTranscriptToPrompt(this.prompt, basePrompt, transcript);
       this.updatePrompt();
     };
     recognition.lang = this.speechLanguage === "system" ? navigator.language : this.speechLanguage;
@@ -398,7 +477,228 @@ export const inputMethods = {
     }
   },
 
+  async startLocalWhisperInput() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      this.showSystemToast?.("warning", "Whisper 녹음 미지원", "이 브라우저는 로컬 녹음을 지원하지 않습니다.", "speech-input:recorder");
+      return;
+    }
+    this.stopSpeechInput();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+      this.speechRecorder = recorder;
+      this.speechRecordingChunks = chunks;
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        this.speechRecorder = null;
+        this.speechListening = false;
+        this.syncSpeechInputControls();
+        void this.transcribeWhisperRecording(chunks);
+      };
+      recorder.start();
+      this.speechListening = true;
+      this.syncSpeechInputControls();
+    } catch (error) {
+      this.speechRecorder = null;
+      this.speechListening = false;
+      this.syncSpeechInputControls();
+      this.showSystemToast?.("warning", "Whisper 녹음 오류", error instanceof Error ? error.message : String(error), "speech-input:record");
+    }
+  },
+
+  async transcribeWhisperRecording(chunks) {
+    if (!chunks?.length || !this.prompt) return;
+    const basePrompt = this.prompt.value;
+    this.setWhisperStatus("transcribing…");
+    try {
+      const transcriber = await this.loadWhisperPipeline();
+      const audio = await blobToWhisperAudio(new Blob(chunks, { type: chunks[0]?.type || "audio/webm" }));
+      const result = await transcriber(audio, whisperTranscriptionOptions(this.whisperModel, this.speechLanguage));
+      const text = Array.isArray(result) ? result.map((item) => item.text || "").join(" ") : result?.text;
+      appendTranscriptToPrompt(this.prompt, basePrompt, text || "");
+      this.updatePrompt();
+      this.setWhisperStatus("transcribed");
+    } catch (error) {
+      const message = this.whisperErrorMessage(error);
+      this.setWhisperStatus(message, true);
+      this.showSystemToast?.("warning", "Whisper 변환 오류", message, "speech-input:whisper");
+    }
+  },
+
+  whisperErrorMessage(error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/OrtRun\(\)|ERROR_CODE:\s*1|model execution/i.test(message)) {
+      return "이 디바이스에서 사용하기에 너무 큰 Whisper 모델입니다. 더 작은 모델을 선택하세요.";
+    }
+    return message;
+  },
+
+  async loadWhisperPipeline() {
+    const preset = whisperPreset(this.whisperModel);
+    const key = `${preset.id}:${preset.dtype || "fp32"}`;
+    if (this.whisperPipeline && this.whisperPipelineKey === key) return this.whisperPipeline;
+    if (this.whisperLoadingPromise && this.whisperLoadingKey === key) return this.whisperLoadingPromise;
+    this.setWhisperModelButtons(true);
+    this.setWhisperStatus(`loading ${this.whisperModel} ${preset.size}…`);
+    this.whisperLoadingKey = key;
+    this.whisperLoadingPromise = (async () => {
+      const { pipeline } = await import("@huggingface/transformers");
+      this.resetWhisperProgress();
+      const options: any = {
+        progress_callback: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
+      };
+      if (preset.dtype) options.dtype = preset.dtype;
+      if (navigator.gpu) options.device = "webgpu";
+      this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
+      this.whisperPipelineKey = key;
+      this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
+      return this.whisperPipeline;
+    })();
+    try {
+      return await this.whisperLoadingPromise;
+    } finally {
+      this.whisperLoadingPromise = null;
+      this.whisperLoadingKey = "";
+      this.setWhisperModelButtons(false);
+    }
+  },
+
+  resetWhisperProgress() {
+    this.whisperProgressByFile = new Map();
+    this.whisperProgressLoaded = 0;
+    this.whisperProgressTotal = 0;
+  },
+
+  whisperProgressText(progress) {
+    if (!progress) return `downloading ${this.whisperModel}…`;
+    if (progress.status === "progress" && Number.isFinite(progress.progress)) {
+      const file = progress.file || progress.name || progress.url || "model";
+      const previous = this.whisperProgressByFile.get(file) || { loaded: 0, total: 0 };
+      const loaded = Math.max(previous.loaded, Number(progress.loaded) || 0);
+      const total = Math.max(previous.total, Number(progress.total) || 0);
+      this.whisperProgressByFile.set(file, { loaded, total });
+      this.whisperProgressLoaded = 0;
+      this.whisperProgressTotal = 0;
+      for (const item of this.whisperProgressByFile.values()) {
+        this.whisperProgressLoaded += item.loaded;
+        this.whisperProgressTotal += item.total;
+      }
+      const percent = this.whisperProgressTotal > 0
+        ? Math.round(this.whisperProgressLoaded * 100 / this.whisperProgressTotal)
+        : Math.round(Math.max(Number(progress.progress), Number(this.whisperProgressLoaded) || 0));
+      return `downloading ${this.whisperModel}: ${Math.min(100, percent)}%`;
+    }
+    return `${progress.status || "loading"} ${this.whisperModel}`;
+  },
+
+  async downloadWhisperModel() {
+    try {
+      await this.loadWhisperPipeline();
+      await this.updateWhisperCacheStatus();
+    } catch (error) {
+      this.setWhisperStatus("download failed", true);
+      this.showSystemToast?.("warning", "Whisper 다운로드 오류", error instanceof Error ? error.message : String(error), "speech-input:download");
+    }
+  },
+
+  async deleteWhisperModel() {
+    if (this.whisperLoadingPromise) return;
+    this.whisperPipeline = null;
+    this.whisperPipelineKey = "";
+    if (globalThis.caches) {
+      const needles = whisperCacheNeedles(this.whisperModel);
+      const keys = await caches.keys();
+      await Promise.all(keys.map(async (key) => {
+        const cache = await caches.open(key);
+        const requests = await cache.keys();
+        await Promise.all(requests
+          .filter((request) => needles.some((needle) => requestUrl(request).toLowerCase().includes(needle)))
+          .map((request) => cache.delete(request)));
+      }));
+    }
+    this.setWhisperStatus("model cache cleared");
+  },
+
+  async updateWhisperCacheStatus() {
+    if (this.whisperLoadingPromise) return;
+    if (this.whisperPipeline && this.whisperPipelineKey === `${whisperPreset(this.whisperModel).id}:${whisperPreset(this.whisperModel).dtype || "fp32"}`) {
+      this.setWhisperStatus(`downloaded: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}`);
+      return;
+    }
+    if (!globalThis.caches) {
+      this.setWhisperStatus("cache status unavailable");
+      return;
+    }
+    this.setWhisperStatus("checking cache…");
+    const cached = await this.isWhisperModelCached(this.whisperModel);
+    this.setWhisperStatus(cached ? `downloaded: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}` : "not downloaded");
+  },
+
+  async isWhisperModelCached(model) {
+    if (!globalThis.caches) return false;
+    const needles = whisperCacheNeedles(model);
+    try {
+      for (const key of await caches.keys()) {
+        if (needles.some((needle) => key.toLowerCase().includes(needle))) return true;
+        const cache = await caches.open(key);
+        for (const request of await cache.keys()) {
+          if (needles.some((needle) => requestUrl(request).toLowerCase().includes(needle))) return true;
+        }
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  },
+
+  /* v8 ignore start -- animation-frame throttling is exercised through integration behavior */
+  queueWhisperStatus(message, error = false) {
+    if (!message) return;
+    this.whisperStatusPending = { message, error };
+    if (this.whisperStatusFrame) return;
+    const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 100));
+    this.whisperStatusFrame = schedule(() => {
+      this.whisperStatusFrame = null;
+      const pending = this.whisperStatusPending;
+      this.whisperStatusPending = null;
+      if (!pending) return;
+      const now = Date.now();
+      const current = this.querySelector?.("[data-whisper-status]")?.textContent || "";
+      const isProgress = /%$/.test(pending.message);
+      if (isProgress && pending.message === current) return;
+      if (isProgress && now - (this.whisperStatusLastAt || 0) < 200 && !pending.message.endsWith("100%")) {
+        this.queueWhisperStatus(pending.message, pending.error);
+        return;
+      }
+      this.setWhisperStatus(pending.message, pending.error);
+    });
+  },
+
+  setWhisperStatus(message, error = false) {
+    const status = this.querySelector?.("[data-whisper-status]");
+    if (!status) return;
+    if (status.textContent === message && status.classList.contains("err") === error) return;
+    status.textContent = message;
+    status.classList.toggle("err", error);
+    this.whisperStatusLastAt = Date.now();
+  },
+
+  setWhisperModelButtons(disabled) {
+    for (const button of this.querySelectorAll?.("[data-action='download-whisper-model'], [data-action='delete-whisper-model']") || []) {
+      button.disabled = disabled;
+    }
+  },
+  /* v8 ignore stop */
+
   stopSpeechInput() {
+    if (this.speechRecorder && this.speechRecorder.state !== "inactive") {
+      this.speechRecorder.stop();
+      return;
+    }
     if (this.speechSilenceTimer) clearTimeout(this.speechSilenceTimer);
     this.speechSilenceTimer = null;
     if (!this.speechRecognition) {
