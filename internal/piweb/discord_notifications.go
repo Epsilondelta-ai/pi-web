@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,11 +12,25 @@ import (
 )
 
 var discordAPIBaseURL = "https://discord.com/api/v10"
+var telegramAPIBaseURL = "https://api.telegram.org"
 
 type discordNotificationSettings struct {
 	Enabled   bool
 	Token     string
 	ChannelID string
+}
+
+type telegramNotificationSettings struct {
+	Enabled bool
+	Token   string
+	ChatID  string
+}
+
+func notifyRemoteResponseCompleted(root string, session Session, messages []Message) error {
+	return errors.Join(
+		notifyDiscordResponseCompleted(root, session, messages),
+		notifyTelegramResponseCompleted(root, session, messages),
+	)
 }
 
 func notifyDiscordResponseCompleted(root string, session Session, messages []Message) error {
@@ -30,6 +45,18 @@ func notifyDiscordResponseCompleted(root string, session Session, messages []Mes
 	return sendDiscordMessage(discord, discordCompletionMessage(session, latestUserQuestion(messages)))
 }
 
+func notifyTelegramResponseCompleted(root string, session Session, messages []Message) error {
+	settings, err := WorkspaceSettings(root)
+	if err != nil {
+		return err
+	}
+	telegram := telegramCompletionSettings(settings.Effective)
+	if !telegram.Enabled || telegram.Token == "" || telegram.ChatID == "" {
+		return nil
+	}
+	return sendTelegramMessage(telegram, telegramCompletionMessage(session, latestUserQuestion(messages)))
+}
+
 func discordCompletionSettings(settings map[string]any) discordNotificationSettings {
 	remote, _ := settings["remoteNotifications"].(map[string]any)
 	discord, _ := remote["discord"].(map[string]any)
@@ -37,6 +64,16 @@ func discordCompletionSettings(settings map[string]any) discordNotificationSetti
 		Enabled:   boolSetting(discord, "enabled"),
 		Token:     stringSetting(discord, "token"),
 		ChannelID: stringSetting(discord, "channelId"),
+	}
+}
+
+func telegramCompletionSettings(settings map[string]any) telegramNotificationSettings {
+	remote, _ := settings["remoteNotifications"].(map[string]any)
+	telegram, _ := remote["telegram"].(map[string]any)
+	return telegramNotificationSettings{
+		Enabled: boolSetting(telegram, "enabled"),
+		Token:   stringSetting(telegram, "token"),
+		ChatID:  stringSetting(telegram, "chatId"),
 	}
 }
 
@@ -65,7 +102,47 @@ func sendDiscordMessage(settings discordNotificationSettings, content string) er
 	return nil
 }
 
+func sendTelegramMessage(settings telegramNotificationSettings, content string) error {
+	payload, err := json.Marshal(map[string]string{"chat_id": settings.ChatID, "text": content})
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	url := strings.TrimRight(telegramAPIBaseURL, "/") + "/bot" + settings.Token + "/sendMessage"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("telegram notification failed: %s", res.Status)
+	}
+	return nil
+}
+
 func discordCompletionMessage(session Session, question string) string {
+	content := completionMessage(session, question)
+	if len(content) > 1900 {
+		content = content[:1900]
+	}
+	return content
+}
+
+func telegramCompletionMessage(session Session, question string) string {
+	content := completionMessage(session, question)
+	if len(content) > 3900 {
+		content = content[:3900]
+	}
+	return content
+}
+
+func completionMessage(session Session, question string) string {
 	title := strings.TrimSpace(session.Title)
 	if title == "" {
 		title = session.ID
@@ -73,9 +150,6 @@ func discordCompletionMessage(session Session, question string) string {
 	content := "✅ 답변 완료: " + truncateDiscordSessionTitle(sanitizeDiscordContent(title))
 	if question = sanitizeDiscordContent(question); question != "" {
 		content += "\n질문: " + question
-	}
-	if len(content) > 1900 {
-		content = content[:1900]
 	}
 	return content
 }
