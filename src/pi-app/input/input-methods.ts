@@ -32,6 +32,47 @@ function whisperPreset(name) {
   return WHISPER_MODELS[name] || WHISPER_MODELS["tiny-q5"];
 }
 
+function whisperCacheNeedles(model) {
+  const repo = whisperPreset(model).id.toLowerCase();
+  return [repo, repo.replace("/", "%2f")];
+}
+
+function requestUrl(request) {
+  return typeof request === "string" ? request : request?.url || "";
+}
+
+async function blobToWhisperAudio(blob) {
+  const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
+  if (!AudioContextCtor || typeof blob?.arrayBuffer !== "function") return blob;
+  const context = new AudioContextCtor();
+  try {
+    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+    return audioBufferToMono16k(buffer);
+  } finally {
+    await context.close?.();
+  }
+}
+
+function audioBufferToMono16k(buffer) {
+  const channels = Math.max(1, buffer.numberOfChannels || 1);
+  const mono = new Float32Array(buffer.length);
+  for (let channel = 0; channel < channels; channel += 1) {
+    const data = buffer.getChannelData(channel);
+    for (let index = 0; index < mono.length; index += 1) mono[index] += data[index] / channels;
+  }
+  if (buffer.sampleRate === 16000) return mono;
+  const length = Math.max(1, Math.round(mono.length * 16000 / buffer.sampleRate));
+  const resampled = new Float32Array(length);
+  for (let index = 0; index < length; index += 1) {
+    const source = index * (mono.length - 1) / Math.max(1, length - 1);
+    const left = Math.floor(source);
+    const right = Math.min(mono.length - 1, left + 1);
+    const ratio = source - left;
+    resampled[index] = mono[left] * (1 - ratio) + mono[right] * ratio;
+  }
+  return resampled;
+}
+
 function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
   const cleanTranscript = String(transcript || "").trimStart();
   const needsSpace = basePrompt
@@ -468,7 +509,7 @@ export const inputMethods = {
     this.setWhisperStatus("transcribing…");
     try {
       const transcriber = await this.loadWhisperPipeline();
-      const audio = new Blob(chunks, { type: chunks[0]?.type || "audio/webm" });
+      const audio = await blobToWhisperAudio(new Blob(chunks, { type: chunks[0]?.type || "audio/webm" }));
       const result = await transcriber(audio, {
         language: this.speechLanguage === "system" ? undefined : this.speechLanguage.slice(0, 2),
         task: "transcribe",
@@ -523,6 +564,7 @@ export const inputMethods = {
   async downloadWhisperModel() {
     try {
       await this.loadWhisperPipeline();
+      await this.updateWhisperCacheStatus();
     } catch (error) {
       this.setWhisperStatus("download failed", true);
       this.showSystemToast?.("warning", "Whisper 다운로드 오류", error instanceof Error ? error.message : String(error), "speech-input:download");
@@ -534,10 +576,49 @@ export const inputMethods = {
     this.whisperPipeline = null;
     this.whisperPipelineKey = "";
     if (globalThis.caches) {
+      const needles = whisperCacheNeedles(this.whisperModel);
       const keys = await caches.keys();
-      await Promise.all(keys.filter((key) => /transformers|huggingface|whisper/i.test(key)).map((key) => caches.delete(key)));
+      await Promise.all(keys.map(async (key) => {
+        const cache = await caches.open(key);
+        const requests = await cache.keys();
+        await Promise.all(requests
+          .filter((request) => needles.some((needle) => requestUrl(request).toLowerCase().includes(needle)))
+          .map((request) => cache.delete(request)));
+      }));
     }
-    this.setWhisperStatus("cached model cleared");
+    this.setWhisperStatus("model cache cleared");
+  },
+
+  async updateWhisperCacheStatus() {
+    if (this.whisperLoadingPromise) return;
+    if (this.whisperPipeline && this.whisperPipelineKey === `${whisperPreset(this.whisperModel).id}:${whisperPreset(this.whisperModel).dtype || "fp32"}`) {
+      this.setWhisperStatus(`downloaded: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}`);
+      return;
+    }
+    if (!globalThis.caches) {
+      this.setWhisperStatus("cache status unavailable");
+      return;
+    }
+    this.setWhisperStatus("checking cache…");
+    const cached = await this.isWhisperModelCached(this.whisperModel);
+    this.setWhisperStatus(cached ? `downloaded: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}` : "not downloaded");
+  },
+
+  async isWhisperModelCached(model) {
+    if (!globalThis.caches) return false;
+    const needles = whisperCacheNeedles(model);
+    try {
+      for (const key of await caches.keys()) {
+        if (needles.some((needle) => key.toLowerCase().includes(needle))) return true;
+        const cache = await caches.open(key);
+        for (const request of await cache.keys()) {
+          if (needles.some((needle) => requestUrl(request).toLowerCase().includes(needle))) return true;
+        }
+      }
+    } catch {
+      return false;
+    }
+    return false;
   },
 
   /* v8 ignore start -- animation-frame throttling is exercised through integration behavior */

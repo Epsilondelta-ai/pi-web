@@ -318,6 +318,18 @@ describe("pi-app controls", () => {
 
   it("loads local Whisper models and reports progress", async () => {
     const transcriber = vi.fn(async () => [{ text: "배열" }, { text: "" }, { text: "결과" }]);
+    class MockAudioContext {
+      async decodeAudioData() {
+        return {
+          length: 2,
+          numberOfChannels: 2,
+          sampleRate: 8000,
+          getChannelData: (channel) => channel === 0 ? new Float32Array([0.2, 0.4]) : new Float32Array([0.6, 0.8]),
+        };
+      }
+      close = vi.fn(async () => undefined);
+    }
+    vi.stubGlobal("AudioContext", MockAudioContext);
     pipelineMock.mockImplementation(async (_task, _model, options) => {
       options.progress_callback();
       options.progress_callback({ status: "progress", progress: 42.4 });
@@ -337,6 +349,8 @@ describe("pi-app controls", () => {
       expect.objectContaining({ dtype: "q4", device: "webgpu" }),
     );
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~31MB");
+    await app.updateWhisperCacheStatus();
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloaded: unknown ~31MB");
     expect(await app.loadWhisperPipeline()).toBe(transcriber);
     expect(pipelineMock).toHaveBeenCalledTimes(1);
     app.whisperLoadingKey = app.whisperPipelineKey;
@@ -349,7 +363,28 @@ describe("pi-app controls", () => {
 
     app.speechLanguage = "ko-KR";
     await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect(transcriber).toHaveBeenLastCalledWith(expect.any(Float32Array), { language: "ko", task: "transcribe" });
+    expect([...transcriber.mock.calls.at(-1)[0]]).toEqual([
+      expect.closeTo(0.4),
+      expect.closeTo(0.4666667),
+      expect.closeTo(0.5333333),
+      expect.closeTo(0.6),
+    ]);
     expect(app.prompt.value).toBe("기존 배열  결과");
+    class MockAudioContext16k {
+      async decodeAudioData() {
+        return {
+          length: 1,
+          numberOfChannels: 0,
+          sampleRate: 16000,
+          getChannelData: () => new Float32Array([0.25]),
+        };
+      }
+      close = vi.fn(async () => undefined);
+    }
+    vi.stubGlobal("AudioContext", MockAudioContext16k);
+    await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect([...transcriber.mock.calls.at(-1)[0]]).toEqual([expect.closeTo(0.25)]);
     pipelineMock.mockImplementationOnce(async () => vi.fn(async () => ({})));
     app.whisperPipeline = null;
     app.whisperPipelineKey = "";
@@ -408,19 +443,42 @@ describe("pi-app controls", () => {
     app.whisperPipeline = vi.fn();
     app.whisperLoadingPromise = Promise.resolve("loading");
     await app.deleteWhisperModel();
+    await app.updateWhisperCacheStatus();
     expect(app.whisperPipeline).not.toBeNull();
     app.whisperLoadingPromise = null;
     await app.deleteWhisperModel();
+    const modelRequest = { url: "https://huggingface.co/onnx-community/whisper-tiny/resolve/main/model.onnx" };
+    const otherRequest = { url: "https://example.test/other" };
+    const cache = {
+      keys: vi.fn(async () => [modelRequest, otherRequest]),
+      delete: vi.fn(async () => true),
+    };
     globalThis.caches = {
       keys: vi.fn(async () => ["transformers-cache", "other"]),
-      delete: vi.fn(async () => true),
+      open: vi.fn(async () => cache),
     };
     await app.deleteWhisperModel();
     expect(app.whisperPipeline).toBeNull();
-    expect(globalThis.caches.delete).toHaveBeenCalledWith("transformers-cache");
-    expect(globalThis.caches.delete).not.toHaveBeenCalledWith("other");
-    expect(app.querySelector("[data-whisper-status]").textContent).toBe("cached model cleared");
+    expect(cache.delete).toHaveBeenCalledWith(modelRequest);
+    expect(cache.delete).not.toHaveBeenCalledWith(otherRequest);
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("model cache cleared");
+    await app.updateWhisperCacheStatus();
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("downloaded: tiny ~75MB");
+    globalThis.caches.keys = vi.fn(async () => ["other"]);
+    cache.keys = vi.fn(async () => [otherRequest, null]);
+    await app.updateWhisperCacheStatus();
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not downloaded");
+    globalThis.caches.keys = vi.fn(async () => { throw new Error("blocked"); });
+    expect(await app.isWhisperModelCached("tiny")).toBe(false);
+    globalThis.caches.keys = vi.fn(async () => ["onnx-community/whisper-tiny-cache"]);
+    expect(await app.isWhisperModelCached("tiny")).toBe(true);
+    globalThis.caches.keys = vi.fn(async () => ["other"]);
+    cache.keys = vi.fn(async () => ["https://huggingface.co/onnx-community/whisper-tiny/resolve/main/tokenizer.json"]);
+    expect(await app.isWhisperModelCached("tiny")).toBe(true);
     delete globalThis.caches;
+    expect(await app.isWhisperModelCached("tiny")).toBe(false);
+    await app.updateWhisperCacheStatus();
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("cache status unavailable");
   });
 
   it("handles local Whisper failures", async () => {
@@ -597,6 +655,18 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='speechLanguage']").value).toBe("ko-KR");
     expect(app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked).toBe(true);
     expect(app.querySelector("[data-setting='speechInput.whisperModel']").value).toBe("base");
+    app.updateWhisperCacheStatus = vi.fn();
+    const whisperSelect = app.querySelector("[data-setting='speechInput.whisperModel']");
+    whisperSelect.value = "tiny";
+    whisperSelect.dispatchEvent(new Event("change"));
+    expect(app.whisperModel).toBe("tiny");
+    expect(app.updateWhisperCacheStatus).toHaveBeenCalled();
+    whisperSelect.prepend(new Option("", ""));
+    whisperSelect.value = "";
+    whisperSelect.dispatchEvent(new Event("change"));
+    expect(app.whisperModel).toBe("tiny-q5");
+    app.querySelector("[data-setting='speechInput.whisperModel']").value = "base";
+    app.whisperModel = "base";
     expect(app.readResponsesAloud).toBe(true);
     expect(app.enableSpeechInput).toBe(true);
     expect(app.useLocalWhisper).toBe(true);

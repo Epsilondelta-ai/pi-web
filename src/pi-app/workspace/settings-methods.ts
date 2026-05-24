@@ -196,6 +196,7 @@ export const settingsMethods = {
       hint?.replaceChildren(`effective: ${describeEffective(effectiveValue)}`);
       this.fillSettingsControl(control, field, explicitValue, effectiveValue);
     }
+    void this.updateWhisperCacheStatus?.();
   },
 
   fillSettingsControl(control, field, explicitValue, effectiveValue) {

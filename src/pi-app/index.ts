@@ -136,6 +136,10 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-setting='defaultModel']")?.addEventListener("change", (event) => {
       this.syncCustomSettingInput(event.currentTarget);
     });
+    this.querySelector("[data-setting='speechInput.whisperModel']")?.addEventListener("change", (event) => {
+      this.whisperModel = event.currentTarget.value || "tiny-q5";
+      void this.updateWhisperCacheStatus?.();
+    });
     this.sendButton?.addEventListener("click", () => this.submitPrompt());
     this.stopButton?.addEventListener("click", () => this.cancelActiveSession());
     this.prompt?.addEventListener("input", () => this.updatePrompt());
