@@ -413,6 +413,10 @@ describe("pi-app controls", () => {
     app.whisperPipelineKey = "";
     app.markWhisperModelCached("tiny");
     expect(app.isWhisperModelCached("tiny")).toBe(true);
+    const originalGetItem = window.localStorage.getItem;
+    window.localStorage.getItem = vi.fn(() => { throw new Error("storage blocked"); });
+    expect(app.isWhisperModelCached("tiny")).toBe(false);
+    window.localStorage.getItem = originalGetItem;
     app.clearWhisperModelCached("tiny");
     app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     await app.updateWhisperCacheStatus();
@@ -614,6 +618,9 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='speechInput.language']").value).toBe("ko-KR");
     expect(app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked).toBe(true);
     expect(app.querySelector("[data-setting='speechInput.whisperModel']").value).toBe("base");
+    app.refreshWhisperModelRequirement = vi.fn();
+    app.querySelector("[data-setting='speechInput.useLocalWhisper']").dispatchEvent(new Event("change"));
+    expect(app.refreshWhisperModelRequirement).toHaveBeenCalled();
     app.updateWhisperCacheStatus = vi.fn();
     const whisperSelect = app.querySelector("[data-setting='speechInput.whisperModel']");
     whisperSelect.value = "tiny";
