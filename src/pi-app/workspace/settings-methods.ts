@@ -75,8 +75,7 @@ function speechLanguageLabel(value, control) {
 
 function browserVoiceLanguageLabel(lang) {
   if (lang === "system") return "System default";
-  const baseLabel = speechLanguageOption(baseLanguageCode(lang))?.label || lang;
-  return `${baseLabel} (${lang})`;
+  return speechLanguageOption(baseLanguageCode(lang))?.label || lang;
 }
 
 function describeEffective(value) {
@@ -166,7 +165,17 @@ export const settingsMethods = {
     if (!list) return;
     const selected = speechLanguageValue(control.value, control);
     const voices = globalThis.speechSynthesis?.getVoices?.() || [];
-    const languages = [...new Set(voices.map((voice) => voice.lang).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const languagesByBase = new Map();
+    for (const voice of voices) {
+      if (!voice.lang) continue;
+      const base = baseLanguageCode(voice.lang);
+      const previous = languagesByBase.get(base);
+      const preferVoice = !previous || voice.lang === selected || (!previous.default && voice.default === true);
+      if (preferVoice) languagesByBase.set(base, voice);
+    }
+    const languages = [...languagesByBase.values()]
+      .map((voice) => voice.lang)
+      .sort((a, b) => browserVoiceLanguageLabel(a).localeCompare(browserVoiceLanguageLabel(b)));
     const options = ["system", ...languages].map((language) => {
       const option = document.createElement("option");
       option.value = browserVoiceLanguageLabel(language);

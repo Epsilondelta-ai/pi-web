@@ -643,7 +643,7 @@ describe("pi-app controls", () => {
     expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
     expect(app.querySelector("[data-setting='readResponsesAloud']").checked).toBe(true);
     expect(app.querySelector("[data-setting='voice.engine']")).toBeNull();
-    expect(app.querySelector("[data-setting='voice.language']").value).toBe("한국어(Korean) (ko-KR)");
+    expect(app.querySelector("[data-setting='voice.language']").value).toBe("한국어(Korean)");
     expect(app.querySelector("[data-setting='voice.piperModelPath']")).toBeNull();
     expect(app.querySelector("[data-setting='enableSpeechInput']").checked).toBe(true);
     expect(app.querySelector("[data-setting='speechInput.language']").value).toBe("한국어(Korean)");
@@ -693,7 +693,7 @@ describe("pi-app controls", () => {
     app.querySelector("[data-custom-setting='defaultModel']").value = "my-model";
     app.querySelector("[data-setting='compaction.enabled']").value = "false";
     app.querySelector("[data-setting='readResponsesAloud']").checked = true;
-    app.querySelector("[data-setting='voice.language']").value = "日本語(Japanese) (ja-JP)";
+    app.querySelector("[data-setting='voice.language']").value = "日本語(Japanese)";
     app.querySelector("[data-setting='enableSpeechInput']").checked = true;
     app.querySelector("[data-setting='speechInput.useLocalWhisper']").checked = true;
     app.querySelector("[data-setting='speechInput.whisperModel']").value = "tiny";
