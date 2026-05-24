@@ -391,7 +391,7 @@ function speechLanguageListId(path) {
                         />
                         <datalist id={speechLanguageListId(field.path)}>
                           {speechLanguageOptions.map((language) => (
-                            <option value={language.label}>{language.value}</option>
+                            <option value={language.label} label={language.value} data-language-value={language.value} />
                           ))}
                         </datalist>
                       </>

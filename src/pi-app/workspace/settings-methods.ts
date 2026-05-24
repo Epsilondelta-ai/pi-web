@@ -33,6 +33,20 @@ function settingLabel(path) {
   return path.replace(/([A-Z])/g, " $1").replace(/\./g, " · ").replace(/^./, (char) => char.toUpperCase());
 }
 
+function baseLanguageCode(value) {
+  return String(value || "").trim().split("-")[0].toLowerCase();
+}
+
+function languageOptionFromList(control, value) {
+  const text = String(value || "").trim();
+  const list = control?.list;
+  if (!text || !list) return null;
+  return [...list.options].find((option) => (
+    option.value.toLowerCase() === text.toLowerCase()
+    || option.dataset.languageValue?.toLowerCase() === text.toLowerCase()
+  ));
+}
+
 function speechLanguageOption(value) {
   const text = String(value || "").trim();
   if (!text) return SPEECH_LANGUAGE_OPTIONS[0];
@@ -44,14 +58,25 @@ function speechLanguageOption(value) {
   ));
 }
 
-function speechLanguageValue(value) {
+function speechLanguageValue(value, control) {
   const text = String(value || "").trim();
   if (!text) return "system";
-  return speechLanguageOption(text)?.value || text;
+  const listed = languageOptionFromList(control, text)?.dataset.languageValue;
+  return listed || speechLanguageOption(text)?.value || text;
 }
 
-function speechLanguageLabel(value) {
-  return speechLanguageOption(value)?.label || String(value || "System default");
+function speechLanguageLabel(value, control) {
+  const text = String(value || "").trim();
+  if (!text) return "System default";
+  const listed = languageOptionFromList(control, text);
+  if (listed) return listed.value;
+  return speechLanguageOption(text)?.label || text;
+}
+
+function browserVoiceLanguageLabel(lang) {
+  if (lang === "system") return "System default";
+  const baseLabel = speechLanguageOption(baseLanguageCode(lang))?.label || lang;
+  return `${baseLabel} (${lang})`;
 }
 
 function describeEffective(value) {
@@ -105,6 +130,7 @@ export const settingsMethods = {
       return;
     }
     this.settingsState = parseWorkspaceSettings(settingsResult.value.settings);
+    this.populateBrowserVoiceLanguageOptions();
     if (authResult.status === "fulfilled") {
       this.authState = authResult.value;
       this.fillAuthForm();
@@ -132,6 +158,24 @@ export const settingsMethods = {
 
   closeSettingsModal() {
     this.settingsModal?.setAttribute("hidden", "");
+  },
+
+  populateBrowserVoiceLanguageOptions() {
+    const control = this.querySelector("[data-setting='voice.language']");
+    const list = control?.list;
+    if (!list) return;
+    const selected = speechLanguageValue(control.value, control);
+    const voices = globalThis.speechSynthesis?.getVoices?.() || [];
+    const languages = [...new Set(voices.map((voice) => voice.lang).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const options = ["system", ...languages].map((language) => {
+      const option = document.createElement("option");
+      option.value = browserVoiceLanguageLabel(language);
+      option.label = language;
+      option.dataset.languageValue = language;
+      return option;
+    });
+    list.replaceChildren(...options);
+    control.value = speechLanguageLabel(selected, control);
   },
 
   setModelControlsLoading(message = "loading models…") {
@@ -269,7 +313,7 @@ export const settingsMethods = {
     }
     if (field.type === "speechLanguage") {
       const value = explicitValue === undefined ? effectiveValue || "system" : explicitValue || "system";
-      control.value = speechLanguageLabel(value);
+      control.value = speechLanguageLabel(value, control);
       return;
     }
     if (field.type === "whisperModel") {
@@ -441,7 +485,7 @@ export const settingsMethods = {
     }
     if (field.type === "checkbox") return control.checked === true;
     if (field.type === "speechLanguage") {
-      const value = speechLanguageValue(control.value);
+      const value = speechLanguageValue(control.value, control);
       return value === "system" ? null : value;
     }
     if (control.value === "inherit") return null;

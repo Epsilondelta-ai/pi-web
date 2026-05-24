@@ -140,6 +140,7 @@ const speechLanguageSchema = z.union([
   z.enum(speechLanguageValues),
   z.enum(["en-US", "ko-KR", "ja-JP", "zh-CN"]),
 ]);
+const voiceLanguageSchema = z.string();
 const whisperModelSchema = z.enum([
   "tiny-q5",
   "tiny",
@@ -179,7 +180,7 @@ const settingsObjectSchema = z.object({
   hideThinkingBlock: z.boolean().optional(),
   readResponsesAloud: z.boolean().optional(),
   voice: z.object({
-    language: speechLanguageSchema.optional(),
+    language: voiceLanguageSchema.optional(),
   }).partial().passthrough().optional(),
   enableSpeechInput: z.boolean().optional(),
   speechInput: z.object({
@@ -238,7 +239,7 @@ export const settingsPatchSchema = z.object({
   hideThinkingBlock: nullishBoolean,
   readResponsesAloud: nullishBoolean,
   voice: z.object({
-    language: speechLanguageSchema.nullable().optional(),
+    language: voiceLanguageSchema.nullable().optional(),
   }).partial().passthrough().optional(),
   enableSpeechInput: nullishBoolean,
   speechInput: z.object({
