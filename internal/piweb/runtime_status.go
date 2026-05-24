@@ -8,6 +8,7 @@ import (
 type RuntimeStatus struct {
 	Model         string `json:"model,omitempty"`
 	ModelProvider string `json:"modelProvider,omitempty"`
+	ThinkingLevel string `json:"thinkingLevel,omitempty"`
 	FiveHourQuota *int   `json:"fiveHourQuota,omitempty"`
 	WeeklyQuota   *int   `json:"weeklyQuota,omitempty"`
 	CurrentBranch string `json:"currentBranch,omitempty"`
