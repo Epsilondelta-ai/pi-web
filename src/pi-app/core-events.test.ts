@@ -61,9 +61,15 @@ describe("pi-app core events", () => {
   it("binds DOM and window events to current methods", async () => {
     const app = await connectPiApp();
     const calls = [];
+    let voicesChanged;
+    vi.stubGlobal("speechSynthesis", {
+      addEventListener: vi.fn((event, callback) => {
+        if (event === "voiceschanged") voicesChanged = callback;
+      }),
+    });
     ["submitWorkspacePath", "submitCloneWorkspace", "submitShellCommand", "saveSettingsForm", "fillSettingsForm", "fillModelControls", "syncCustomSettingInput", "setModelControlsLoading",
       "submitPrompt", "cancelActiveSession", "handlePromptPaste", "navigateList", "pickSlash", "addFiles", "startResize",
-      "shortcut", "closeSessionMenus"].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
+      "shortcut", "closeSessionMenus", "populateBrowserVoiceLanguageOptions"].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
     app.slashPopover.hidden = false;
     app.slashPopover.removeAttribute("hidden");
     const pathForm = document.createElement("form");
@@ -97,6 +103,7 @@ describe("pi-app core events", () => {
     resizer.dispatchEvent(new PointerEvent("pointerdown"));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     window.dispatchEvent(new Event("click"));
+    voicesChanged();
 
     const tweaks = document.createElement("div");
     tweaks.dataset.tweaks = "";
@@ -108,6 +115,7 @@ describe("pi-app core events", () => {
     expect(tweaks.hidden).toBe(true);
     expect(calls.map(([name]) => name)).toContain("submitWorkspacePath");
     expect(calls.map(([name]) => name)).toContain("navigateList");
+    expect(calls.map(([name]) => name)).toContain("populateBrowserVoiceLanguageOptions");
   });
 
   it("keeps settings controls usable when model discovery fails", async () => {
