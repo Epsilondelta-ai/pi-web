@@ -348,9 +348,8 @@ describe("pi-app controls", () => {
     expect(pipelineMock).toHaveBeenCalledWith(
       "automatic-speech-recognition",
       "onnx-community/whisper-tiny",
-      expect.objectContaining({ dtype: "q4" }),
+      expect.objectContaining({ dtype: "q4", device: "webgpu" }),
     );
-    expect(pipelineMock.mock.calls[0][2]).not.toHaveProperty("device");
     expect(app.whisperProgressLoaded).toBe(90);
     expect(app.whisperProgressText({ status: "progress", name: "c", progress: 30 })).toBe("downloading unknown: 45%");
     expect(app.whisperProgressText({ status: "progress", url: "d", progress: 120 })).toBe("downloading unknown: 45%");
@@ -504,6 +503,14 @@ describe("pi-app controls", () => {
     await app.downloadWhisperModel();
     expect(app.showSystemToast).toHaveBeenCalledWith("warning", "Whisper 다운로드 오류", "download failed", "speech-input:download");
 
+    app.loadWhisperPipeline = vi.fn(async () => { throw new Error("failed to call OrtRun(). ERROR_CODE: 1"); });
+    await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect(app.showSystemToast).toHaveBeenCalledWith(
+      "warning",
+      "Whisper 변환 오류",
+      "이 디바이스에서 사용하기에 너무 큰 Whisper 모델입니다. 더 작은 모델을 선택하세요.",
+      "speech-input:whisper",
+    );
     app.loadWhisperPipeline = vi.fn(async () => { throw new Error("model failed"); });
     await app.transcribeWhisperRecording([new Blob(["x"])]);
     expect(app.showSystemToast).toHaveBeenCalledWith("warning", "Whisper 변환 오류", "model failed", "speech-input:whisper");

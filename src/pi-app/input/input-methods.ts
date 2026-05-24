@@ -523,9 +523,18 @@ export const inputMethods = {
       this.updatePrompt();
       this.setWhisperStatus("transcribed");
     } catch (error) {
-      this.setWhisperStatus("transcription failed", true);
-      this.showSystemToast?.("warning", "Whisper 변환 오류", error instanceof Error ? error.message : String(error), "speech-input:whisper");
+      const message = this.whisperErrorMessage(error);
+      this.setWhisperStatus(message, true);
+      this.showSystemToast?.("warning", "Whisper 변환 오류", message, "speech-input:whisper");
     }
+  },
+
+  whisperErrorMessage(error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/OrtRun\(\)|ERROR_CODE:\s*1/i.test(message)) {
+      return "이 디바이스에서 사용하기에 너무 큰 Whisper 모델입니다. 더 작은 모델을 선택하세요.";
+    }
+    return message;
   },
 
   async loadWhisperPipeline() {
@@ -543,6 +552,7 @@ export const inputMethods = {
         progress_callback: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
       };
       if (preset.dtype) options.dtype = preset.dtype;
+      if (navigator.gpu) options.device = "webgpu";
       this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
       this.whisperPipelineKey = key;
       this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
