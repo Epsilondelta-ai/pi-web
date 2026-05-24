@@ -40,6 +40,10 @@ function whisperTranscriptionOptions(model, speechLanguage) {
   };
 }
 
+function whisperCacheMarkerKey(model) {
+  return `pi-web:whisper-model:${whisperPreset(model).id}`;
+}
+
 function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
   const cleanTranscript = String(transcript || "").trimStart();
   const needsSpace = basePrompt
@@ -514,6 +518,7 @@ export const inputMethods = {
       this.resetWhisperProgress();
       this.whisperPipeline = new BrowserWhisper({ model: preset.id });
       this.whisperPipelineKey = key;
+      this.markWhisperModelCached?.(this.whisperModel);
       this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);
       return this.whisperPipeline;
     })();
@@ -547,6 +552,7 @@ export const inputMethods = {
     try {
       const whisper = await this.loadWhisperPipeline();
       await whisper.downloadModel?.(whisperPreset(this.whisperModel).id);
+      this.markWhisperModelCached?.(this.whisperModel);
       await this.updateWhisperCacheStatus();
     } catch (error) {
       this.setWhisperStatus("download failed", true);
@@ -557,6 +563,7 @@ export const inputMethods = {
   async deleteWhisperModel() {
     if (this.whisperLoadingPromise) return;
     this.whisperPipeline = null;
+    this.clearWhisperModelCached?.(this.whisperModel);
     this.whisperPipelineKey = "";
     this.setWhisperStatus("browser-whisper cache is managed by the browser");
   },
@@ -565,13 +572,52 @@ export const inputMethods = {
     if (this.whisperLoadingPromise) return;
     if (this.whisperPipeline && this.whisperPipelineKey === whisperPreset(this.whisperModel).id) {
       this.setWhisperStatus(`ready: ${this.whisperModel} ${whisperPreset(this.whisperModel).size}`);
+      this.refreshWhisperModelRequirement?.();
       return;
     }
-    this.setWhisperStatus("not loaded");
+    this.setWhisperStatus("download required before saving");
+    this.refreshWhisperModelRequirement?.();
   },
 
-  async isWhisperModelCached(model) {
-    return this.whisperPipelineKey === whisperPreset(model).id;
+  selectedWhisperModel() {
+    const control = this.querySelector("[data-setting='speechInput.whisperModel']");
+    return control?.value || this.whisperModel || "tiny-q5";
+  },
+
+  isWhisperModelCached(model) {
+    if (this.whisperPipelineKey === whisperPreset(model).id) return true;
+    try {
+      return window.localStorage.getItem(whisperCacheMarkerKey(model)) === "1";
+    } catch {
+      return false;
+    }
+  },
+
+  markWhisperModelCached(model) {
+    try {
+      window.localStorage.setItem(whisperCacheMarkerKey(model), "1");
+    } catch {}
+  },
+
+  clearWhisperModelCached(model) {
+    try {
+      window.localStorage.removeItem(whisperCacheMarkerKey(model));
+    } catch {}
+  },
+
+  refreshWhisperModelRequirement() {
+    const useLocalControl = this.querySelector?.("[data-setting='speechInput.useLocalWhisper']");
+    const model = this.selectedWhisperModel();
+    const missing = useLocalControl?.checked === true && !this.isWhisperModelCached(model);
+    const button = this.querySelector?.("[data-action='download-whisper-model']");
+    const saveButton = this.querySelector?.("[data-settings-form] button[type='submit']");
+    if (button) {
+      button.hidden = !missing;
+      button.dataset.missing = missing ? "true" : "false";
+      button.textContent = `download ${model}`;
+    }
+    if (saveButton) saveButton.disabled = missing;
+    return !missing;
   },
 
   /* v8 ignore start -- animation-frame throttling is exercised through integration behavior */
@@ -607,7 +653,7 @@ export const inputMethods = {
   },
 
   setWhisperModelButtons(disabled) {
-    for (const button of this.querySelectorAll?.("[data-action='download-whisper-model'], [data-action='delete-whisper-model']") || []) {
+    for (const button of this.querySelectorAll?.("[data-action='download-whisper-model']") || []) {
       button.disabled = disabled;
     }
   },
