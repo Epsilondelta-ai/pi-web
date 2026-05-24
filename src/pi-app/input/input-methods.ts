@@ -345,7 +345,7 @@ export const inputMethods = {
   },
 
   speechInputAllowed() {
-    return window.location?.protocol === "https:";
+    return window.isSecureContext === true;
   },
 
   startSpeechInput() {
@@ -353,8 +353,8 @@ export const inputMethods = {
     if (this.speechInputAllowed?.() !== true) {
       this.showSystemToast?.(
         "warning",
-        "음성 입력 HTTPS 필요",
-        "음성 입력은 HTTPS에서만 사용할 수 있습니다.",
+        "음성 입력 보안 컨텍스트 필요",
+        "음성 입력은 HTTPS 또는 localhost 같은 보안 컨텍스트에서만 사용할 수 있습니다.",
         "speech-input:insecure-context",
       );
       return;

@@ -112,7 +112,7 @@ describe("pi-app controls", () => {
     expect(app.speechInputAllowed).not.toHaveBeenCalled();
   });
 
-  it("blocks speech input outside HTTPS", async () => {
+  it("blocks speech input outside secure contexts", async () => {
     const app = await connectPiApp();
     app.speechInputAllowed = () => false;
     app.enableSpeechInput = true;
@@ -122,8 +122,8 @@ describe("pi-app controls", () => {
 
     expect(app.showSystemToast).toHaveBeenCalledWith(
       "warning",
-      "음성 입력 HTTPS 필요",
-      "음성 입력은 HTTPS에서만 사용할 수 있습니다.",
+      "음성 입력 보안 컨텍스트 필요",
+      "음성 입력은 HTTPS 또는 localhost 같은 보안 컨텍스트에서만 사용할 수 있습니다.",
       "speech-input:insecure-context",
     );
   });
@@ -144,6 +144,9 @@ describe("pi-app controls", () => {
     });
     const app = await connectPiApp();
     expect(app.speechInputAllowed()).toBe(false);
+    Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+    expect(app.speechInputAllowed()).toBe(true);
+    Object.defineProperty(window, "isSecureContext", { configurable: true, value: false });
     app.speechInputAllowed = () => true;
     app.enableSpeechInput = true;
     app.speechLanguage = "system";
@@ -701,7 +704,7 @@ describe("pi-app controls", () => {
     });
   });
 
-  it("hides voice input setting and skips saving it outside https", async () => {
+  it("hides voice input setting and skips saving it outside secure contexts", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async (url, options = {}) => ({
       ok: true,
