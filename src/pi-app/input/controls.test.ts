@@ -328,6 +328,8 @@ describe("pi-app controls", () => {
     expect(browserWhisperMock).toHaveBeenCalledWith({ model: "whisper-tiny" });
     expect(app.whisperProgressText({ stage: "loading", progress: 0.3 })).toBe("loading unknown: 30%");
     expect(app.whisperProgressText({ status: "progress", progress: 120 })).toBe("downloading unknown: 100%");
+    expect(app.whisperProgressText()).toBe("downloading unknown…");
+    expect(app.whisperProgressText({})).toBe("loading unknown");
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~30MB");
     await app.updateWhisperCacheStatus();
     expect(app.querySelector("[data-whisper-status]").textContent).toBe("ready: unknown ~30MB");
@@ -343,7 +345,14 @@ describe("pi-app controls", () => {
     app.speechLanguage = "ko-KR";
     await app.transcribeWhisperRecording([new Blob(["x"])]);
     expect(transcriber.transcribe).toHaveBeenLastCalledWith(expect.any(Blob), expect.objectContaining({ model: "whisper-tiny", language: "ko" }));
+    transcriber.transcribe.mock.calls.at(-1)[1].onProgress({ stage: "transcribing", progress: 0.5 });
     expect(app.prompt.value).toBe("기존 배열  결과");
+    transcriber.transcribe = vi.fn(() => ({ text: "객체 결과" }));
+    await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect(app.prompt.value).toBe("기존 배열  결과 객체 결과");
+    transcriber.transcribe = vi.fn(() => ({ text: "" }));
+    await app.transcribeWhisperRecording([new Blob(["x"])]);
+    expect(app.prompt.value).toBe("기존 배열  결과 객체 결과");
     app.whisperModel = "base";
     app.whisperPipeline = null;
     app.whisperPipelineKey = "";
@@ -375,6 +384,10 @@ describe("pi-app controls", () => {
   it("handles local Whisper model actions", async () => {
     const app = await connectPiApp();
     app.whisperModel = "tiny";
+    const originalDeleteWhisperModel = app.deleteWhisperModel;
+    app.deleteWhisperModel = undefined;
+    app.querySelector("[data-action='delete-whisper-model']").click();
+    app.deleteWhisperModel = originalDeleteWhisperModel;
     const downloadModel = vi.fn(async () => undefined);
     app.loadWhisperPipeline = vi.fn(async () => ({ downloadModel }));
 
@@ -383,9 +396,13 @@ describe("pi-app controls", () => {
     await Promise.resolve();
     expect(app.loadWhisperPipeline).toHaveBeenCalled();
     expect(downloadModel).toHaveBeenCalledWith("whisper-tiny");
+    app.loadWhisperPipeline = vi.fn(async () => ({}));
+    await app.downloadWhisperModel();
+    expect(app.querySelector("[data-whisper-status]").textContent).toBe("not loaded");
 
     app.whisperLoadingPromise = Promise.resolve("loading");
     await app.deleteWhisperModel();
+    await app.updateWhisperCacheStatus();
     expect(app.querySelector("[data-whisper-status]").textContent).not.toBe("browser-whisper cache is managed by the browser");
     app.whisperLoadingPromise = null;
     await app.deleteWhisperModel();

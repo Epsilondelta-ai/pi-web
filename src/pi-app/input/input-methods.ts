@@ -481,7 +481,7 @@ export const inputMethods = {
         ...whisperTranscriptionOptions(this.whisperModel, this.speechLanguage),
         onProgress: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
       });
-      const result = typeof stream?.collect === "function" ? await stream.collect() : [];
+      const result = typeof stream?.collect === "function" ? await stream.collect() : stream;
       const text = Array.isArray(result) ? result.map((item) => item.text || "").join(" ") : result?.text;
       appendTranscriptToPrompt(this.prompt, basePrompt, text || "");
       this.updatePrompt();
