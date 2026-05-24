@@ -543,7 +543,6 @@ export const inputMethods = {
         progress_callback: (progress) => this.queueWhisperStatus(this.whisperProgressText(progress)),
       };
       if (preset.dtype) options.dtype = preset.dtype;
-      if (navigator.gpu) options.device = "webgpu";
       this.whisperPipeline = await pipeline("automatic-speech-recognition", preset.id, options);
       this.whisperPipelineKey = key;
       this.setWhisperStatus(`ready: ${this.whisperModel} ${preset.size}`);

@@ -348,8 +348,9 @@ describe("pi-app controls", () => {
     expect(pipelineMock).toHaveBeenCalledWith(
       "automatic-speech-recognition",
       "onnx-community/whisper-tiny",
-      expect.objectContaining({ dtype: "q4", device: "webgpu" }),
+      expect.objectContaining({ dtype: "q4" }),
     );
+    expect(pipelineMock.mock.calls[0][2]).not.toHaveProperty("device");
     expect(app.whisperProgressLoaded).toBe(90);
     expect(app.whisperProgressText({ status: "progress", name: "c", progress: 30 })).toBe("downloading unknown: 45%");
     expect(app.whisperProgressText({ status: "progress", url: "d", progress: 120 })).toBe("downloading unknown: 45%");
