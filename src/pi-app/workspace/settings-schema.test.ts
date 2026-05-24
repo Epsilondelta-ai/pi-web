@@ -12,6 +12,9 @@ describe("settings schema", () => {
     expect(paths).toContain("voice.language");
     expect(paths).toContain("enableSpeechInput");
     expect(paths).toContain("speechInput.language");
+    expect(paths).toContain("remoteNotifications.discord.enabled");
+    expect(paths).toContain("remoteNotifications.discord.token");
+    expect(paths).toContain("remoteNotifications.discord.channelId");
     expect(paths).not.toContain("voice.engine");
     expect(paths).not.toContain("theme");
     expect(paths).not.toContain("terminal.imageWidthCells");
@@ -29,6 +32,7 @@ describe("settings schema", () => {
         voice: { language: "ko-KR" },
         enableSpeechInput: true,
         speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "large-v3" },
+        remoteNotifications: { discord: { enabled: true, token: "bot-token", channelId: "123" } },
         terminal: { imageWidthCells: 80 },
       },
       paths: { global: "/home/me/.pi/agent/settings.json", project: "/repo/.pi/settings.json" },
@@ -40,6 +44,7 @@ describe("settings schema", () => {
         voice: { language: "ko-KR" },
         enableSpeechInput: true,
         speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "large-v3" },
+        remoteNotifications: { discord: { enabled: true, token: "bot-token", channelId: "123" } },
       },
     });
   });
@@ -62,8 +67,13 @@ describe("settings schema", () => {
       voice: { language: "ja-JP" },
       enableSpeechInput: true,
       speechInput: { language: "ja-JP", useLocalWhisper: true, whisperModel: "large-v3-q5" },
+      remoteNotifications: { discord: { enabled: true, token: "bot-token", channelId: "123" } },
       terminal: { imageWidthCells: 120, showImages: false },
-    })).toMatchObject({ transport: "sse", terminal: { showImages: false } });
+    })).toMatchObject({
+      transport: "sse",
+      remoteNotifications: { discord: { enabled: true, channelId: "123" } },
+      terminal: { showImages: false },
+    });
 
     expect(() => parseSettingsPatch({ speechInput: { whisperModel: "huge" } })).toThrow("invalid settings patch");
     expect(() => parseSettingsPatch({ doubleEscapeAction: "explode" })).toThrow("invalid settings patch");
