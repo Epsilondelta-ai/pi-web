@@ -68,7 +68,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.renderWorkspaces = vi.fn();
     app.openWorkspace = vi.fn();
     app.setConnection = vi.fn();
-    globalThis.fetch = vi.fn(async (url, options = {}) => {
+    globalThis.fetch = vi.fn(async (url, _options = {}) => {
       const value = String(url);
       if (value.includes("/system/folders")) {
         return okJson({ path: "/root", folders: [] });

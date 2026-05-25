@@ -30,13 +30,14 @@
     "build-storybook": "storybook build",
     "backend": "go run .",
     "backend:mock": "go run . --mock",
-    "backend:test": "go test ./...",
-    "backend:test:coverage": "go test ./... -coverprofile=/tmp/piweb-cover.out -covermode=count >/tmp/piweb-go-test.log && go tool cover -func=/tmp/piweb-cover.out | tail -1 | grep '100.0%'",
+    "backend:test": "go test $(go list ./... | grep -v '/node_modules/')",
+    "backend:test:coverage": "go test $(go list ./... | grep -v '/node_modules/') -coverprofile=/tmp/piweb-cover.out -covermode=count >/tmp/piweb-go-test.log && go tool cover -func=/tmp/piweb-cover.out | tail -1 | grep '100.0%'",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
+    "check": "bun run lint && bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.53",
@@ -68,6 +69,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@storybook-astro/framework": "1.2.0",
     "@storybook/addon-docs": "10.4.0",
     "@storybook/builder-vite": "10.4.0",
@@ -76,9 +78,13 @@
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "4.1.6",
+    "eslint": "^10.4.0",
+    "eslint-plugin-astro": "^1.7.0",
+    "globals": "^17.6.0",
     "jsdom": "29.1.1",
     "storybook": "10.4.0",
     "typescript": "6.0.3",
+    "typescript-eslint": "^8.59.4",
     "vitest": "4.1.6"
   }
 }

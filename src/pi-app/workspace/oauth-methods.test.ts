@@ -63,7 +63,7 @@ describe("oauth methods", () => {
     app.dataset.activeWorkspaceId = "w1";
     app.querySelector("[data-oauth-provider]").innerHTML = `<option value="openai-codex">Codex</option>`;
     let sessionPolls = 0;
-    globalThis.fetch = vi.fn(async (url, options = {}) => {
+    globalThis.fetch = vi.fn(async (url, _options = {}) => {
       const value = String(url);
       if (value.endsWith("/auth/oauth/start")) {
         return ok({ session: { id: "oauth-1", provider: "openai-codex", status: "running", progress: ["started"] } });
