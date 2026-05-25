@@ -473,6 +473,32 @@ func TestSteerPublishesQueuedUserMessage(t *testing.T) {
 	}
 }
 
+func TestPromptAcceptsMultipleInlineAttachments(t *testing.T) {
+	server := NewServer(Config{}, NewMockStore(), NewBroker())
+	body, err := json.Marshal(PromptRequest{
+		Text: "review these files",
+		Attachments: []PromptAttachment{
+			{Type: "file", Name: "one.txt", Content: strings.Repeat("a", 300*1024)},
+			{Type: "file", Name: "two.txt", Content: strings.Repeat("b", 300*1024)},
+			{Type: "file", Name: "three.txt", Content: strings.Repeat("c", 300*1024)},
+			{Type: "file", Name: "four.txt", Content: strings.Repeat("d", 300*1024)},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(body) <= 1<<20 {
+		t.Fatalf("test body should exceed the previous 1 MiB limit, got %d", len(body))
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/sessions/8e7c-44ff/prompt", bytes.NewReader(body))
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusAccepted {
+		t.Fatalf("expected prompt 202, got %d: %s", res.Code, res.Body.String())
+	}
+}
+
 func TestPromptPublishesSSE(t *testing.T) {
 	broker := NewBroker()
 	broker.heartbeat = time.Hour

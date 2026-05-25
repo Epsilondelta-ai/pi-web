@@ -1,0 +1,109 @@
+.design-deck-panel {
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  margin: 12px 0 18px;
+  max-width: 1120px;
+}
+
+.design-deck-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
+  border-bottom: 1px solid var(--border-dim);
+}
+.design-deck-head span {
+  color: var(--accent);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.design-deck-head strong {
+  color: var(--fg-0);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.design-slide {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-dim);
+}
+.design-slide:first-of-type { border-top: 0; }
+.design-slide-title {
+  color: var(--fg-0);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.design-slide-context {
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  margin: 4px 0 12px;
+}
+
+.design-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: var(--space-3);
+}
+.design-option-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+  display: flex;
+  flex-direction: column;
+}
+.design-option-card[data-recommended="true"] {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.design-option-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
+  border-bottom: 1px solid var(--border-dim);
+}
+.design-option-meta strong {
+  display: block;
+  color: var(--fg-0);
+  font-size: var(--text-sm);
+}
+.design-option-meta p {
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  margin: 4px 0 0;
+}
+.design-option-meta span {
+  flex-shrink: 0;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: var(--tracking-wide);
+  padding: 2px 5px;
+  text-transform: uppercase;
+}
+.design-preview-frame {
+  display: block;
+  width: 100%;
+  height: 360px;
+  border: 0;
+  background: var(--bg-0);
+}
+.design-option-aside {
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px var(--space-3);
+  border-top: 1px solid var(--border-dim);
+  white-space: pre-wrap;
+}
+
+@media (max-width: 880px) {
+  .design-deck-panel {
+    margin-right: calc(-1 * var(--space-2));
+  }
+  .design-slide { padding: var(--space-2); }
+  .design-preview-frame { height: 420px; }
+}

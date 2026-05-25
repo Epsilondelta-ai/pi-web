@@ -1,4 +1,5 @@
 import { escapeHtml, renderBannerBody, renderPiBody, renderUserBody } from "../../lib/renderers";
+import { parseDesignDecks, stripDesignDecks } from "../input/design-decks";
 import {
   parseFallbackChoiceAnswer,
   parseFallbackChoices,
@@ -11,6 +12,7 @@ export const messageMethods = {
   renderMessages(messages) {
     if (!this.termInner) return;
     this.piDeltaBuffer = "";
+    this.piStreamText = "";
     this.streamingRows = {};
     this.termInner.replaceChildren();
     this.resetTranscriptWindow();
@@ -83,6 +85,7 @@ export const messageMethods = {
     this.removeLoadingMessage();
     let delta = payload.delta;
     if (kind === "pi") {
+      this.piStreamText = `${this.piStreamText || ""}${payload.delta}`;
       const filtered = streamVisibleChoiceText(this.piDeltaBuffer + payload.delta);
       this.piDeltaBuffer = filtered.pending;
       delta = filtered.visible;
@@ -176,7 +179,10 @@ export const messageMethods = {
 
   clearStreamingState(kind) {
     this.flushStreamingRender();
-    if (kind === "pi") this.piDeltaBuffer = "";
+    if (kind === "pi") {
+      this.piDeltaBuffer = "";
+      this.piStreamText = "";
+    }
     if (this.streamingRows?.[kind]) this.streamingRows = { ...(this.streamingRows || {}), [kind]: undefined };
     if (this.pendingStreamingRow?.matches?.(`.msg.streaming[data-kind='${kind}']`)) this.pendingStreamingRow = undefined;
   },
@@ -253,12 +259,22 @@ export const messageMethods = {
       ".msg.streaming[data-kind='pi']",
       ".msg[data-kind='pi']",
       ".fallback-choice-list",
+      ".design-deck-panel",
     ].join(", "));
   },
 
   finalizeStreamingMessages() {
     this.flushStreamingRender();
+    const piText = this.piStreamText || "";
+    const piRows = this.streamingRowsForKind("pi");
+    if (piText && piRows.length) {
+      const finalNode = this.messageNode({ kind: "pi", text: piText });
+      const replaced = this.replaceTranscriptNode(piRows[0], finalNode);
+      for (const row of piRows.slice(replaced ? 1 : 0)) this.removeTranscriptNode(row);
+      this.notifyPiMessageCommitted({ kind: "pi", text: piText });
+    }
     this.piDeltaBuffer = "";
+    this.piStreamText = "";
     Object.values(this.streamingRows || {}).forEach((row: Element) => row?.classList?.remove("streaming"));
     this.streamingRows = {};
     this.termInner?.querySelectorAll(".msg.streaming").forEach((row) => row.classList.remove("streaming"));
@@ -298,17 +314,19 @@ export const messageMethods = {
 
   assistantMessageNode(message) {
     const choices = parseFallbackChoices(message.text);
-    const text = stripFallbackChoices(message.text);
+    const decks = parseDesignDecks(message.text);
+    const text = stripDesignDecks(stripFallbackChoices(message.text));
     const messageRow = this.simpleMessage("pi", "pi >", "");
     const body = messageRow.querySelector(".body");
     messageRow.dataset.rawText = message.text;
     body.classList.add("markdown-body");
-    body.innerHTML = renderPiBody(choices.length ? text : message.text);
+    body.innerHTML = renderPiBody(choices.length || decks.length ? text : message.text);
     this.syncReadAloudButton(messageRow);
-    if (!choices.length) return messageRow;
+    if (!choices.length && !decks.length) return messageRow;
 
     const fragment = document.createDocumentFragment();
-    fragment.append(messageRow);
+    if (text) fragment.append(messageRow);
+    for (const deck of decks) fragment.append(this.designDeckPanel(deck));
     for (const choice of choices) fragment.append(this.choicePanel(choice));
     return fragment;
   },
@@ -332,6 +350,65 @@ export const messageMethods = {
     }
     body?.append(list);
     return messageRow;
+  },
+
+  designDeckPanel(deck) {
+    const panel = document.createElement("section");
+    panel.className = "design-deck-panel";
+    panel.dataset.deckId = deck.id;
+    const header = document.createElement("div");
+    header.className = "design-deck-head";
+    header.innerHTML = `<span>design</span><strong></strong>`;
+    header.querySelector("strong").textContent = deck.title;
+    panel.append(header);
+
+    for (const slide of deck.slides) {
+      const slideElement = document.createElement("div");
+      slideElement.className = "design-slide";
+      const title = document.createElement("div");
+      title.className = "design-slide-title";
+      title.textContent = slide.title;
+      slideElement.append(title);
+      if (slide.context) {
+        const context = document.createElement("p");
+        context.className = "design-slide-context";
+        context.textContent = slide.context;
+        slideElement.append(context);
+      }
+      const options = document.createElement("div");
+      options.className = "design-options";
+      for (const option of slide.options) options.append(this.designOptionCard(option));
+      slideElement.append(options);
+      panel.append(slideElement);
+    }
+    return panel;
+  },
+
+  designOptionCard(option) {
+    const card = document.createElement("article");
+    card.className = "design-option-card";
+    if (option.recommended) card.dataset.recommended = "true";
+    const meta = document.createElement("div");
+    meta.className = "design-option-meta";
+    meta.innerHTML = `<div><strong></strong>${option.description ? `<p></p>` : ""}</div>${option.recommended ? `<span>recommended</span>` : ""}`;
+    meta.querySelector("strong").textContent = option.label;
+    if (option.description) meta.querySelector("p").textContent = option.description;
+    card.append(meta);
+
+    const frame = document.createElement("iframe");
+    frame.className = "design-preview-frame";
+    frame.title = `${option.label} preview`;
+    frame.setAttribute("sandbox", "");
+    frame.srcdoc = option.previewHtml;
+    card.append(frame);
+
+    if (option.aside) {
+      const aside = document.createElement("p");
+      aside.className = "design-option-aside";
+      aside.textContent = option.aside;
+      card.append(aside);
+    }
+    return card;
   },
 
   choicePanel(choice) {
@@ -467,7 +544,7 @@ export const messageMethods = {
   },
 
   speechTextFromAssistantText(text) {
-    const visibleText = stripFallbackChoices(text || "").trim();
+    const visibleText = stripDesignDecks(stripFallbackChoices(text || "")).trim();
     if (!visibleText) return "";
     const scratch = document.createElement("div");
     scratch.innerHTML = renderPiBody(visibleText);
