@@ -223,6 +223,46 @@ describe("file preview CodeMirror editor", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("covers file open guards, errors, svg toggle, read-only labels, and save guards", async () => {
+    const app = mountPreview();
+    vi.mocked(api.getWorkspaceFile).mockClear();
+    app.apiConnected = false;
+    await app.openFilePath("skip.txt");
+    expect(api.getWorkspaceFile).not.toHaveBeenCalled();
+    app.apiConnected = true;
+    app.confirmCleanFilePreview = vi.fn(() => false);
+    await app.openFilePath("skip.txt");
+    expect(api.getWorkspaceFile).not.toHaveBeenCalled();
+
+    app.confirmCleanFilePreview = vi.fn(() => true);
+    vi.mocked(api.getWorkspaceFile).mockRejectedValueOnce(new Error("read failed"));
+    app.setConnection = vi.fn();
+    const button = document.createElement("button");
+    button.className = "tree-node selected";
+    button.dataset.filePath = "bad.txt";
+    app.append(button);
+    await app.openFile(button);
+    expect(button.classList.contains("selected")).toBe(true);
+    expect(app.querySelector(".fp-body").textContent).toBe("read failed");
+    expect(app.setConnection).toHaveBeenCalledWith("err");
+
+    app.renderFilePreview({ path: "icon.svg", mime: "image/svg+xml", previewKind: "image", dataUrl: "data:image/svg+xml;base64,x", content: "<svg/>" });
+    expect(app.querySelector("[data-action='toggle-file-preview-mode']").hidden).toBe(false);
+    expect(app.querySelector(".fp-body img").alt).toBe("icon.svg");
+    app.toggleFilePreviewMode();
+    expect(app.querySelector("[data-file-preview-editor]").getAttribute("aria-label")).toBe("edit icon.svg");
+    app.toggleFilePreviewMode();
+    expect(app.querySelector(".fp-body img")).toBeTruthy();
+
+    app.renderFilePreview({ path: "loading.txt", previewKind: "loading" });
+    expect(app.querySelector(".fp-body").textContent).toBe("loading preview…");
+    app.renderFilePreview({ path: "readonly.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
+    expect(app.querySelector("[data-file-preview-editor]").getAttribute("aria-label")).toBe("view readonly.txt");
+    app.filePreview = undefined;
+    expect(app.hasDirtyFilePreview()).toBe(false);
+    await app.saveFilePreview();
+  });
+
   it("keeps image, large, and unsupported files on preview fallback paths", () => {
     const app = mountPreview();
     app.renderFilePreview({ path: "logo.png", mime: "image/png", previewKind: "image", dataUrl: "data:image/png;base64,aa" });
