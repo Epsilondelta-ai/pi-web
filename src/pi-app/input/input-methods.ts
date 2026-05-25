@@ -265,7 +265,7 @@ export const inputMethods = {
         detail: { x: rect?.left || 24, y: rect?.bottom || 88 },
       }));
     }
-    if (action === "open-file") this.openFile(button);
+    if (action === "open-file") this.openFile(actionTarget);
     if (action === "close-file-preview") this.closeFilePreview();
     if (action === "toggle-file-preview-mode") this.toggleFilePreviewMode();
     if (action === "save-file-preview") this.saveFilePreview();

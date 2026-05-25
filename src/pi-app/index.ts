@@ -1,3 +1,5 @@
+import { applyUiLocale, currentUiLocale, setUiLocale } from "../i18n/client";
+import { normalizeUiLocale } from "../i18n/locales";
 import { sessionEvents } from "../lib/api";
 import { escapeHtml } from "../lib/renderers";
 import { SPINNER_FRAME_COUNT } from "./constants";
@@ -61,6 +63,7 @@ class PiApp extends HTMLElement {
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
     this.runtimeStatus = {};
+    applyUiLocale(currentUiLocale(), this);
     this.restorePromptDraft();
     this.installViewportSizing();
     this.installFilePreviewUnloadGuard();
@@ -133,6 +136,10 @@ class PiApp extends HTMLElement {
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
     this.querySelector("[data-settings-form]")?.addEventListener("submit", (event) => this.saveSettingsForm(event));
     this.querySelector("[data-settings-scope]")?.addEventListener("change", () => this.fillSettingsForm());
+    this.querySelector("[data-ui-language]")?.addEventListener("change", (event) => {
+      const locale = normalizeUiLocale((event.currentTarget as HTMLSelectElement).value);
+      if (locale) setUiLocale(locale, this);
+    });
     globalThis.speechSynthesis?.addEventListener?.("voiceschanged", () => {
       this.populateBrowserVoiceLanguageOptions?.();
       this.fillSettingsForm?.();

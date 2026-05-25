@@ -21,6 +21,7 @@ import {
   X,
 } from "@lucide/astro";
 import WorkspaceFileTree from "./components/WorkspaceFileTree";
+import { UI_LOCALES } from "./i18n/locales";
 import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./lib/renderers";
 import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import {
@@ -65,27 +66,37 @@ const settingsFieldByPath = Object.fromEntries(settingsFields.map((field) => [fi
 const settingsGroups = [
   {
     title: "Model",
+    titleKey: "model",
     description: "provider, model, thinking",
+    descriptionKey: "modelDescription",
     paths: ["defaultProvider", "defaultModel", "defaultThinkingLevel"],
   },
   {
     title: "Conversation",
+    titleKey: "conversation",
     description: "prompt flow and transcript behavior",
+    descriptionKey: "conversationDescription",
     paths: ["compaction.enabled", "enableSkillCommands", "steeringMode", "followUpMode", "hideThinkingBlock"],
   },
   {
     title: "Voice",
+    titleKey: "voice",
     description: "read aloud output",
+    descriptionKey: "voiceDescription",
     paths: ["readResponsesAloud", "voice.language"],
   },
   {
     title: "Speech",
+    titleKey: "speech",
     description: "speech input and transcription",
+    descriptionKey: "speechDescription",
     paths: ["enableSpeechInput", "speechInput.language"],
   },
   {
     title: "Remote notifications",
+    titleKey: "remoteNotifications",
     description: "Discord and Telegram answer-complete alerts",
+    descriptionKey: "remoteNotificationsDescription",
     paths: [
       "remoteNotifications.discord.enabled",
       "remoteNotifications.discord.token",
@@ -97,7 +108,9 @@ const settingsGroups = [
   },
   {
     title: "Warnings",
+    titleKey: "warnings",
     description: "usage and safety notices",
+    descriptionKey: "warningsDescription",
     paths: ["warnings.anthropicExtraUsage"],
   },
 ].map((group) => ({ ...group, fields: group.paths.map((path) => settingsFieldByPath[path]).filter(Boolean) }));
@@ -296,48 +309,56 @@ function speechLanguageListId(path) {
   <div class="settings-modal" data-settings-modal hidden>
     <form class="settings-dialog" data-settings-form role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
       <div class="settings-head">
-        <div><strong id="settings-title">pi settings</strong><small>same files used by <code>/settings</code></small></div>
-        <button type="button" data-action="close-settings" aria-label="close settings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+        <div><strong id="settings-title" data-i18n="settingsTitle">pi settings</strong><small data-i18n="settingsSubtitle">same files used by settings command</small></div>
+        <button type="button" data-action="close-settings" aria-label="close settings" data-i18n-aria-label="closeSettings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       </div>
       <div class="settings-body">
+        <div class="settings-language-row">
+          <label><span data-i18n="language">Language</span>
+            <select name="uiLanguage" data-ui-language>
+              {UI_LOCALES.map((locale) => <option value={locale.code}>{locale.label}</option>)}
+            </select>
+          </label>
+          <small data-i18n="languageHint">Changes apply immediately and are saved on this device.</small>
+        </div>
         <div class="settings-toolbar">
-          <label>scope
+          <label><span data-i18n="scope">scope</span>
             <select name="scope" data-settings-scope>
-              <option value="project">project</option>
-              <option value="global">global</option>
+              <option value="project" data-i18n="project">project</option>
+              <option value="global" data-i18n="global">global</option>
             </select>
           </label>
           <span data-settings-path>—</span>
         </div>
         <details class="auth-login" data-auth-form>
           <summary>
-            <span class="auth-login-title">Authentication <em>API key login</em></span>
+            <span class="auth-login-title"><span data-i18n="authTitle">Authentication</span> <em data-i18n="authMode">API key login</em></span>
             <small data-auth-status>API key is stored in ~/.pi/agent/auth.json</small>
           </summary>
           <div class="auth-login-fields">
-            <label>provider
+            <label><span data-i18n="provider">provider</span>
               <select data-auth-provider>
                 <option value="">loading providers…</option>
               </select>
             </label>
-            <label>API key
-              <input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" />
+            <label><span data-i18n="apiKey">API key</span>
+              <input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" data-i18n-placeholder="pasteApiKey" />
             </label>
             <div class="auth-login-actions">
-              <button type="button" data-action="save-auth-provider">save key</button>
-              <button type="button" data-action="logout-auth-provider">logout</button>
+              <button type="button" data-action="save-auth-provider" data-i18n="saveKey">save key</button>
+              <button type="button" data-action="logout-auth-provider" data-i18n="logout">logout</button>
             </div>
           </div>
           <div class="oauth-login-fields">
-            <label>OAuth provider
+            <label><span data-i18n="oauthProvider">OAuth provider</span>
               <select data-oauth-provider>
-                <option value="">loading OAuth providers…</option>
+                <option value="" data-i18n="loadingOAuthProviders">loading OAuth providers…</option>
               </select>
             </label>
-            <button type="button" data-action="start-oauth-login">login with OAuth</button>
-            <a data-oauth-link href="#" target="_blank" rel="noreferrer" hidden>open login page</a>
-            <input data-oauth-input autocomplete="off" placeholder="prompt input or redirect URL" hidden />
-            <button type="button" data-action="send-oauth-input" hidden>send</button>
+            <button type="button" data-action="start-oauth-login" data-i18n="loginWithOAuth">login with OAuth</button>
+            <a data-oauth-link href="#" target="_blank" rel="noreferrer" hidden data-i18n="openLoginPage">open login page</a>
+            <input data-oauth-input autocomplete="off" placeholder="prompt input or redirect URL" data-i18n-placeholder="oauthInput" hidden />
+            <button type="button" data-action="send-oauth-input" hidden data-i18n="send">send</button>
             <small data-oauth-status>OAuth supports Claude, Codex, and Copilot subscriptions.</small>
           </div>
         </details>
@@ -346,13 +367,13 @@ function speechLanguageListId(path) {
             <section class:list={["settings-group", group.title === "Speech" && "settings-group-speech"]}>
               <div class="settings-group-head">
                 <div>
-                  <strong>{group.title}</strong>
-                  <small>{group.description}</small>
+                  <strong data-i18n={group.titleKey}>{group.title}</strong>
+                  <small data-i18n={group.descriptionKey}>{group.description}</small>
                 </div>
-                {group.title === "Speech" && <span class="settings-group-badge">browser + local</span>}
+                {group.title === "Speech" && <span class="settings-group-badge" data-i18n="browserLocal">browser + local</span>}
               </div>
               {group.title === "Speech" && (
-                <p class="settings-group-note">Enable the mic, choose recognition language, then optionally cache a local Whisper model for offline transcription.</p>
+                <p class="settings-group-note" data-i18n="speechNote">Enable the mic, choose recognition language, then optionally cache a local Whisper model for offline transcription.</p>
               )}
               <div class:list={["settings-grid", group.title === "Speech" && "settings-speech-grid"]}>
                 {group.fields.map((field) => (
@@ -380,7 +401,7 @@ function speechLanguageListId(path) {
                         <option value="false">off</option>
                       </select>
                     ) : field.type === "checkbox" ? (
-                      <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span>Enabled</span></span>
+                      <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span data-i18n="enabled">Enabled</span></span>
                     ) : field.type === "speechLanguage" ? (
                       <>
                         <input
@@ -388,6 +409,7 @@ function speechLanguageListId(path) {
                           list={speechLanguageListId(field.path)}
                           autocomplete="off"
                           placeholder="Search language…"
+                          data-i18n-placeholder="searchLanguage"
                         />
                         <datalist id={speechLanguageListId(field.path)}>
                           {speechLanguageOptions.map((language) => (
@@ -407,12 +429,12 @@ function speechLanguageListId(path) {
                 {group.title === "Speech" && (
                   <>
                     <label class="settings-field" data-speech-advanced data-secure-context-only="https" hidden>
-                      <span class="settings-label-row">Use local Whisper <em>Enhanced</em></span>
-                      <span class="settings-checkbox"><input type="checkbox" data-setting="speechInput.useLocalWhisper" /> <span>Enabled</span></span>
+                      <span class="settings-label-row"><span data-i18n="useLocalWhisper">Use local Whisper</span> <em data-i18n="enhanced">Enhanced</em></span>
+                      <span class="settings-checkbox"><input type="checkbox" data-setting="speechInput.useLocalWhisper" /> <span data-i18n="enabled">Enabled</span></span>
                       <small>effective: not set</small>
                     </label>
                     <label class="settings-field settings-whisper-model" data-speech-advanced data-secure-context-only="https" hidden>
-                      <span>Whisper model</span>
+                      <span data-i18n="whisperModel">Whisper model</span>
                       <span class="settings-select-action">
                         <select data-setting="speechInput.whisperModel">
                           <option value="tiny-q5">tiny-q5 · compact · ~31MB</option>
@@ -426,7 +448,7 @@ function speechLanguageListId(path) {
                           <option value="large-v3-q5">large-v3-q5 · best compact · ~1.2GB</option>
                           <option value="large-v3">large-v3 · best quality · ~3GB+</option>
                         </select>
-                        <button type="button" data-action="download-whisper-model" hidden>download</button>
+                        <button type="button" data-action="download-whisper-model" hidden data-i18n="download">download</button>
                       </span>
                       <small data-whisper-status>not checked</small>
                     </label>
@@ -440,8 +462,8 @@ function speechLanguageListId(path) {
       </div>
       <div class="settings-foot">
         <span data-settings-status>blank fields inherit from effective settings</span>
-        <button type="button" data-action="close-settings">cancel</button>
-        <button type="submit">save</button>
+        <button type="button" data-action="close-settings" data-i18n="cancel">cancel</button>
+        <button type="submit" data-i18n="save">save</button>
       </div>
     </form>
   </div>

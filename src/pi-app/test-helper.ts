@@ -75,6 +75,11 @@ export function installPiAppFixture() {
       </div>
       <div class="settings-modal" data-settings-modal hidden>
         <form data-settings-form>
+          <select name="uiLanguage" data-ui-language>
+            <option value="en">English</option>
+            <option value="ko">한국어</option>
+          </select>
+          <strong data-i18n="settingsTitle">pi settings</strong>
           <select name="scope" data-settings-scope>
             <option value="project">project</option>
             <option value="global">global</option>
