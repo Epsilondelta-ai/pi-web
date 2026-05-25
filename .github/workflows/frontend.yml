@@ -2,9 +2,33 @@ name: Frontend CI
 
 on:
   pull_request:
+    paths:
+      - '.github/workflows/frontend.yml'
+      - 'astro.config.ts'
+      - 'bun.lock'
+      - 'eslint.config.js'
+      - 'package.json'
+      - 'public/**'
+      - 'src/**'
+      - '.storybook/**'
+      - 'tsconfig.json'
+      - 'vitest.config.ts'
+      - 'vitest.setup.ts'
   push:
     branches:
       - main
+    paths:
+      - '.github/workflows/frontend.yml'
+      - 'astro.config.ts'
+      - 'bun.lock'
+      - 'eslint.config.js'
+      - 'package.json'
+      - 'public/**'
+      - 'src/**'
+      - '.storybook/**'
+      - 'tsconfig.json'
+      - 'vitest.config.ts'
+      - 'vitest.setup.ts'
 
 concurrency:
   group: frontend-ci-${{ github.workflow }}-${{ github.ref }}
