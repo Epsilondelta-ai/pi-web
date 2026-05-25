@@ -137,11 +137,6 @@ export function installPiAppFixture() {
   `;
 }
 
-function settingsField(tag, name) {
-  if (tag === "input") return `<label class="settings-field"><input data-setting="${name}" /><small></small></label>`;
-  return "";
-}
-
 function settingsLanguageInput(name, secure = false) {
   const id = `language-options-${name.replace(/[^a-z0-9_-]/gi, "-")}`;
   const secureOnly = secure ? " data-secure-context-only=\"https\" hidden" : "";
