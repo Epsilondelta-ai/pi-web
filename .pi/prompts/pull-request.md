@@ -1,5 +1,5 @@
 ---
-description: PR: create, CI, review, merge, cleanup
+description: "PR: create, CI, review, merge, cleanup"
 argument-hint: "[base-branch]"
 ---
 Create/update PR from current work → CI + review loop → merge → cleanup.
