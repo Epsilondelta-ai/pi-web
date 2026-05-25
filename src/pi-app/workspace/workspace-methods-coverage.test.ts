@@ -255,6 +255,63 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.applyLoadedSession({ id: "s-default", title: "default" }, undefined, "");
   });
 
+  it("covers git panel guards, errors, empty state, details, refs, and escaping", async () => {
+    const app = await connectPiApp();
+    app.dataset.activeWorkspaceId = "w1";
+    app.querySelector("[data-git-panel]")?.remove();
+    expect(app.gitPanelOpen()).toBe(true);
+    await app.showGitHistory();
+
+    const panel = document.createElement("div");
+    panel.dataset.gitPanel = "";
+    const tree = document.createElement("div");
+    tree.className = "tree-list";
+    const show = document.createElement("button");
+    show.dataset.action = "show-git-history";
+    const file = document.createElement("button");
+    file.dataset.action = "show-file-tree";
+    app.append(panel, tree, show, file);
+
+    globalThis.fetch = vi.fn(async () => failJson("git <bad>"));
+    await app.showGitHistory();
+    expect(panel.innerHTML).toContain("git &lt;bad&gt;");
+    app.showFileTreePanel();
+    expect(panel.hidden).toBe(true);
+    expect(tree.hidden).toBe(false);
+    await app.refreshGitHistory();
+
+    panel.hidden = false;
+    globalThis.fetch = vi.fn(async () => okJson({ commits: [] }));
+    await app.showGitHistory();
+    expect(panel.textContent).toContain("no commits found");
+
+    app.renderGitHistory([{ hash: "h1", shortHash: "h1", subject: "<subject>", authorName: "", date: "not-date", files: [{ status: "renamed", oldPath: "old.js", path: "new.js", additions: 1, deletions: 2 }] }]);
+    expect(panel.textContent).toContain("<subject>");
+    expect(panel.innerHTML).toContain("not-date");
+    globalThis.fetch = vi.fn(async () => failJson("commit <bad>"));
+    await app.selectGitCommit("h1");
+    expect(panel.innerHTML).toContain("commit &lt;bad&gt;");
+    await app.selectGitCommit("");
+    app.dataset.activeWorkspaceId = "";
+    await app.selectGitCommit("h1");
+
+    app.dataset.activeWorkspaceId = "w1";
+    app.renderGitCommitDetail({ commit: { refs: ["main", "tag"], files: [{ oldPath: "a", path: "b", status: "renamed" }] }, truncated: true });
+    expect(panel.querySelector(".git-refs")?.textContent).toContain("main");
+    expect(panel.textContent).toContain("diff truncated");
+    expect(panel.textContent).toContain("no diff");
+
+    app.gitHistoryHasMore = false;
+    await app.loadMoreGitHistory();
+    app.gitHistoryHasMore = true;
+    app.dataset.activeWorkspaceId = "";
+    await app.loadMoreGitHistory();
+    app.dataset.activeWorkspaceId = "w1";
+    globalThis.fetch = vi.fn(async () => failJson("more failed"));
+    await app.loadMoreGitHistory();
+    expect(panel.textContent).toContain("more failed");
+  });
+
   it("renders git history as a commit-only list", async () => {
     const app = await connectPiApp();
     const panel = document.createElement("div");

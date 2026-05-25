@@ -286,7 +286,25 @@ describe("pi-app transcript window", () => {
     expect(() => app.removeTranscriptNode(loading)).not.toThrow();
     app.transcriptItems = [{ message: { kind: "pi", text: "not materialized" } }, { nodes: [loading] }];
     expect(app.replaceTranscriptNode(loading, replacement)).toBe(true);
+    expect(app.replaceTranscriptNode(document.createElement("div"), document.createTextNode("no element"))).toBe(false);
+    expect(app.transcriptElementNodes(document.createTextNode("text"))).toEqual([]);
+    const fragment = document.createDocumentFragment();
+    const span = document.createElement("span");
+    fragment.append("text", span);
+    expect(app.transcriptElementNodes(fragment)).toEqual([span]);
+    expect(app.transcriptItemNodes(0)[0].textContent).toContain("not materialized");
+    expect(app.transcriptItemNodes(99)).toEqual([]);
+    expect(app.transcriptRangeHeight(0, 2)).toBeGreaterThan(0);
     expect(app.transcriptItemHeight(9)).toBe(80);
+    expect(app.isTranscriptVirtualized()).toBe(Boolean(app.transcriptVirtualScroller));
+    app.transcriptVirtualScroller = { virtualScroller: { updateLayout: vi.fn() } };
+    app.scheduleTranscriptWindowRender();
+    expect(app.transcriptVirtualScroller.virtualScroller.updateLayout).toHaveBeenCalled();
+    app.destroyTranscriptVirtualScroller();
+    app.destroyTranscriptVirtualScroller();
+    app.transcriptItems = [];
+    app.renderTranscriptWindow();
+    expect(app.termInner.children).toHaveLength(0);
   });
 
   it("covers tool card default and expanded paths", async () => {
