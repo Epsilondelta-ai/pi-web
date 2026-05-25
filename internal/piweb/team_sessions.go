@@ -125,3 +125,28 @@ func teamSessionFiles(teamDir string, config teamConfigFile) []string {
 	})
 	return files
 }
+
+func removeTeamSessionDir(sessionID string) error {
+	teamsDir := DefaultPiTeamsDir()
+	entries, err := os.ReadDir(teamsDir)
+	if err != nil {
+		return nil
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() || strings.HasPrefix(entry.Name(), "_") {
+			continue
+		}
+		teamDir := filepath.Join(teamsDir, entry.Name())
+		config := readTeamConfig(filepath.Join(teamDir, "config.json"))
+		teamID := config.TeamID
+		if teamID == "" {
+			teamID = entry.Name()
+		}
+		if teamID == sessionID {
+			if err := os.RemoveAll(teamDir); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}

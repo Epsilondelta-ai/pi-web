@@ -157,6 +157,55 @@ func TestNewPiStoreAddsTeamChildSessions(t *testing.T) {
 	}
 }
 
+func TestDeleteSessionRemovesChildAgents(t *testing.T) {
+	root := t.TempDir()
+	teamsRoot := t.TempDir()
+	t.Setenv("PI_TEAMS_ROOT_DIR", teamsRoot)
+	sessionDir := filepath.Join(root, "--tmp-project--")
+	if err := os.MkdirAll(sessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	parentFile := writeTestSessionFile(t, sessionDir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	parentChildDir := filepath.Join(sessionDir, strings.TrimSuffix(filepath.Base(parentFile), filepath.Ext(parentFile)), "run-1")
+	if err := os.MkdirAll(parentChildDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	subagentFile := writeTestSessionFile(t, parentChildDir, "subagent-child", "2026-01-01T00:00:01.000Z", "/tmp/project")
+	teamDir := filepath.Join(teamsRoot, "team-parent")
+	teamSessionDir := filepath.Join(teamDir, "sessions")
+	if err := os.MkdirAll(teamSessionDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	teamSessionFile := writeTestSessionFile(t, teamSessionDir, "team-child", "2026-01-01T00:00:02.000Z", "/tmp/project-worker")
+	config := fmt.Sprintf(
+		`{"version":1,"teamId":"parent","taskListId":"parent","leadName":"team-lead","createdAt":"now","updatedAt":"now","members":[{"name":"alice","role":"worker","status":"online","addedAt":"now","sessionFile":%q}]}`,
+		teamSessionFile,
+	)
+	if err := os.WriteFile(filepath.Join(teamDir, "config.json"), []byte(config), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	store, err := NewPiStore(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DeleteSession("parent"); err != nil {
+		t.Fatal(err)
+	}
+	workspaces := store.Workspaces()
+	if len(workspaces) != 1 || len(workspaces[0].Sessions) != 0 {
+		t.Fatalf("expected parent and child sessions deleted, got %#v", workspaces)
+	}
+	for _, file := range []string{parentFile, subagentFile, teamSessionFile} {
+		if _, err := os.Stat(file); !os.IsNotExist(err) {
+			t.Fatalf("expected %s to be deleted, stat err=%v", file, err)
+		}
+	}
+	if _, err := os.Stat(teamDir); !os.IsNotExist(err) {
+		t.Fatalf("expected team dir to be deleted, stat err=%v", err)
+	}
+}
+
 func TestNewPiStoreSeparatesSameBasenameWorkspaces(t *testing.T) {
 	root := t.TempDir()
 	firstDir := filepath.Join(root, "first")
