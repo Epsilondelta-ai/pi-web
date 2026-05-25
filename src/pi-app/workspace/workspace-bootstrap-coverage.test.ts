@@ -62,6 +62,69 @@ describe("workspace bootstrap coverage", () => {
     await app.loadRuntimeQuota("w1", "m");
   });
 
+  it("covers settings form language, auth, focus, and patch branches", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.settingsState = {
+      project: { defaultProvider: "custom-provider", voice: { language: "ko-KR" }, speechInput: { language: "ja-JP", useLocalWhisper: true } },
+      global: {},
+      effective: { defaultProvider: "anthropic", defaultModel: "claude", readResponsesAloud: true, enableSpeechInput: true, voice: { language: "en-US" }, speechInput: { language: "ko", whisperModel: "base" } },
+      paths: { project: "/p", global: "/g" },
+    };
+    app.speechInputAllowed = vi.fn(() => true);
+    app.updateWhisperCacheStatus = vi.fn();
+    app.stopSpeechInput = vi.fn();
+    app.syncReadAloudControls = vi.fn();
+    app.syncSpeechInputControls = vi.fn();
+    vi.stubGlobal("speechSynthesis", { getVoices: () => [{ lang: "en-US", default: true }, { lang: "ko-KR" }] });
+    app.modelState = { providers: [{ id: "anthropic", models: [{ id: "claude" }] }, { id: "openai", models: [{ id: "gpt" }] }] };
+    app.populateBrowserVoiceLanguageOptions();
+    app.fillModelControls();
+    app.fillSettingsForm();
+    expect(app.querySelector("[data-settings-path]").textContent).toBe("/p");
+    expect(app.querySelector("[data-custom-setting='defaultProvider']").value).toBe("custom-provider");
+    expect(app.querySelector("[data-setting='voice.language']").value).toMatch(/Korean|한국어|ko/i);
+    app.fillFallbackModelControls();
+    expect(app.settingsFieldLabel("speechInput.whisperModel")).toBe("Speech Input · whisper Model");
+
+    const provider = app.querySelector("[data-auth-provider]");
+    provider.innerHTML = `<option value="anthropic">anthropic</option>`;
+    provider.value = "anthropic";
+    app.authState = { providers: [{ id: "anthropic", name: "Anthropic", configured: true }] };
+    app.fillAuthForm();
+    expect(provider.textContent).toContain("✓");
+    app.setAuthStatus("bad", true);
+    expect(app.querySelector("[data-auth-status]").classList.contains("err")).toBe(true);
+    await app.saveAuthForm({ preventDefault: vi.fn() });
+    expect(app.querySelector("[data-auth-status]").textContent).toContain("required");
+    app.querySelector("[data-auth-api-key]").value = "key";
+    globalThis.fetch = vi.fn(async (url) => String(url).includes("api-key") ? okJson({}) : okJson({ providers: [] }));
+    app.loadRuntimeStatus = vi.fn();
+    await app.saveAuthForm({ preventDefault: vi.fn() });
+    expect(app.querySelector("[data-auth-api-key]").value).toBe("");
+    app.authState = { providers: [{ id: "anthropic", name: "Anthropic", configured: true }] };
+    app.fillAuthForm();
+    globalThis.fetch = vi.fn(async (url) => String(url).includes("/api/auth/") ? okJson({}) : okJson({ providers: [] }));
+    await app.logoutAuthProvider();
+    expect(app.querySelector("[data-auth-status]").textContent).toContain("removed");
+
+    app.refreshWhisperModelRequirement = vi.fn(() => false);
+    await app.saveSettingsForm({ preventDefault: vi.fn() });
+    expect(app.querySelector("[data-settings-status]").textContent).toContain("download selected Whisper");
+    app.refreshWhisperModelRequirement = vi.fn(() => true);
+    globalThis.fetch = vi.fn(async () => okJson({ settings: { global: {}, project: {}, effective: { readResponsesAloud: false }, paths: {} } }));
+    await app.saveSettingsForm({ preventDefault: vi.fn() });
+    expect(app.querySelector("[data-settings-status]").textContent).toBe("saved");
+
+    app.settingsModal.hidden = false;
+    app.focusSettingsModal();
+    const event = { key: "Tab", shiftKey: false, preventDefault: vi.fn() };
+    app.trapSettingsFocus(event);
+    app.closeSettingsModal();
+    expect(app.settingsModal.hidden).toBe(true);
+  });
+
   it("covers workspace API fallback branches", async () => {
     const app = await connectPiApp();
     app.apiConnected = true;
