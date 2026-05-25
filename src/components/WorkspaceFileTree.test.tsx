@@ -20,6 +20,7 @@ describe("WorkspaceFileTree", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("renders files, status badges, expansion, and activation contract", async () => {
@@ -184,6 +185,51 @@ describe("WorkspaceFileTree", () => {
 
     expect(uploadWorkspaceFile).toHaveBeenNthCalledWith(1, "workspace-1", "src/note.txt", "aGVsbG8=", false);
     expect(uploadWorkspaceFile).toHaveBeenNthCalledWith(2, "workspace-1", "src/note.txt", "aGVsbG8=", true);
+    await cleanup(root, host);
+  });
+
+  it("creates folders, clamps menus, ignores missing workspaces, and reports action errors", async () => {
+    const { host, root } = await renderTree();
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    vi.spyOn(window, "prompt").mockReturnValueOnce("docs").mockReturnValueOnce(null).mockReturnValueOnce("src/same.ts");
+    vi.mocked(createWorkspaceFile).mockRejectedValueOnce(new Error("create failed"));
+
+    await act(async () => {
+      host.querySelector("[data-testid='workspace-file-tree']")?.dispatchEvent(
+        new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 9999, clientY: -10 }),
+      );
+    });
+    const menu = host.querySelector<HTMLElement>(".tree-action-menu")!;
+    expect(Number(menu.style.left.replace("px", ""))).toBeLessThanOrEqual(window.innerWidth);
+    await act(async () => {
+      [...host.querySelectorAll<HTMLButtonElement>(".tree-action-menu button")]
+        .find((button) => button.textContent === "new folder")?.click();
+    });
+    expect(createWorkspaceFile).not.toHaveBeenCalled();
+
+    const app = document.createElement("pi-app");
+    app.dataset.activeWorkspaceId = "workspace-1";
+    document.body.append(app);
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("pi-workspace-tree:root-menu", { detail: {} }));
+    });
+    await act(async () => {
+      [...host.querySelectorAll<HTMLButtonElement>(".tree-action-menu button")]
+        .find((button) => button.textContent === "new folder")?.click();
+    });
+    expect(alert).toHaveBeenCalledWith("create failed");
+
+    await updateTree();
+    const folder = host.querySelector<HTMLButtonElement>(".tree-node.dir");
+    await act(async () => folder?.click());
+    const file = [...host.querySelectorAll<HTMLButtonElement>(".tree-node.file")]
+      .find((button) => button.dataset.filePath === "src/main.ts")!;
+    await act(async () => file.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })));
+    await act(async () => {
+      [...host.querySelectorAll<HTMLButtonElement>(".tree-action-menu button")]
+        .find((button) => button.textContent === "rename")?.click();
+    });
+    expect(renameWorkspaceFile).not.toHaveBeenCalled();
     await cleanup(root, host);
   });
 
