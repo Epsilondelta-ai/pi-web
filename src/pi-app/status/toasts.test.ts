@@ -89,8 +89,13 @@ describe("pi-app toast notifications", () => {
     expect(warnings[1].textContent).toContain("pi 업데이트 가능");
     expect(warnings[1].textContent).toContain("pi update");
     expect(warnings[1].textContent).toContain("security fix");
-    expect(warnings[2].textContent).toContain("인증 경고");
-    expect(warnings[2].textContent).toContain("Settings에서 다시 로그인");
+    expect(warnings[2].textContent).toContain("인증 경고: GitHub Copilot");
+    expect(warnings[2].textContent).toContain("대상: GitHub Copilot (github-copilot)");
+    expect(warnings[2].textContent).toContain("방식: OAuth");
+    expect(warnings[2].textContent).toContain("문제: 토큰/인증 정보 만료 가능");
+    expect(warnings[2].textContent).toContain(
+      "원본: Authentication failed for github-copilot. Credentials may have expired.",
+    );
   });
 
   it("shows auth warnings instead of generic response errors for credential failures", async () => {
@@ -101,7 +106,10 @@ describe("pi-app toast notifications", () => {
     app.notifyResponseFailure({ message: "No API key found for provider github-copilot" });
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
 
-    expect(document.querySelector(".session-toast.warning").textContent).toContain("인증 경고");
+    const warningText = document.querySelector(".session-toast.warning").textContent;
+    expect(warningText).toContain("인증 경고: GitHub Copilot");
+    expect(warningText).toContain("방식: API 키");
+    expect(warningText).toContain("문제: API 키가 저장되어 있지 않음");
     expect(document.querySelector(".session-toast.error")).toBeNull();
     expect(document.querySelector(".session-toast.success")).toBeNull();
   });

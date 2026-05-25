@@ -66,11 +66,70 @@ function isAuthCredentialError(detail) {
   return AUTH_CREDENTIAL_ERROR_PATTERNS.some((pattern) => pattern.test(message));
 }
 
-function authWarningDetail(detail) {
+const AUTH_PROVIDER_LABELS = {
+  anthropic: "Anthropic",
+  "github-copilot": "GitHub Copilot",
+  "openai-codex": "OpenAI Codex",
+  openai: "OpenAI",
+};
+
+const OAUTH_PROVIDER_IDS = new Set(["anthropic", "github-copilot", "openai-codex"]);
+
+function authProviderFromMessage(message) {
+  const match = message.match(/(?:for provider|for)\s+([a-z0-9][\w.-]*)/i);
+  return match?.[1]?.replace(/[.,:;)]$/, "") || "";
+}
+
+function authProviderLabel(provider) {
+  if (!provider) return "알 수 없음";
+  return AUTH_PROVIDER_LABELS[provider] || provider;
+}
+
+function authMethodLabel(message, provider) {
+  const lower = message.toLowerCase();
+  if (lower.includes("no api key") || lower.includes("api key")) return "API 키";
+  if (
+    lower.includes("oauth") ||
+    lower.includes("invalid_grant") ||
+    lower.includes("token") ||
+    OAUTH_PROVIDER_IDS.has(provider)
+  ) {
+    return "OAuth";
+  }
+  return "API 키 또는 OAuth";
+}
+
+function authProblemLabel(message) {
+  const lower = message.toLowerCase();
+  if (lower.includes("no api key")) return "API 키가 저장되어 있지 않음";
+  if (lower.includes("invalid_grant")) return "OAuth grant가 거부됨";
+  if (lower.includes("token expired") || lower.includes("credentials may have expired")) {
+    return "토큰/인증 정보 만료 가능";
+  }
+  if (lower.includes("unauthorized")) return "인증 거부됨";
+  if (lower.includes("authentication failed")) return "인증 실패";
+  if (lower.includes("no models available") || lower.includes("no model selected")) {
+    return "사용 가능한 모델/선택된 모델 없음";
+  }
+  if (lower.includes("models.json error")) return "모델 설정 파일 오류";
+  return "인증 상태 확인 필요";
+}
+
+function authWarningSummary(detail) {
   const message = detailMessage(detail).trim();
-  return message
-    ? `OAuth/API 키 인증이 끊겼을 수 있습니다. Settings에서 다시 로그인하세요. (${message})`
-    : "OAuth/API 키 인증이 끊겼을 수 있습니다. Settings에서 다시 로그인하세요.";
+  const provider = authProviderFromMessage(message);
+  const target = provider ? `${authProviderLabel(provider)} (${provider})` : "알 수 없음";
+  const method = authMethodLabel(message, provider);
+  const problem = authProblemLabel(message);
+  const action =
+    method === "API 키"
+      ? "Settings → Authentication에서 API 키를 다시 저장하세요."
+      : "Settings → Authentication에서 다시 로그인하세요.";
+  const source = message ? ` 원본: ${message}` : "";
+  return {
+    title: provider ? `인증 경고: ${authProviderLabel(provider)}` : "인증 경고",
+    detail: `대상: ${target} · 방식: ${method} · 문제: ${problem} · 조치: ${action}${source}`,
+  };
 }
 
 function toastText(kind, detail, context) {
@@ -206,8 +265,8 @@ export const toastMethods = {
   },
 
   notifyRuntimeWarning(detail) {
-    const message = authWarningDetail(detail);
-    this.showSystemToast("warning", "인증 경고", message, `auth:${message}`);
+    const message = authWarningSummary(detail);
+    this.showSystemToast("warning", message.title, message.detail, `auth:${message.title}:${message.detail}`);
   },
 
   dismissToast(toast) {
