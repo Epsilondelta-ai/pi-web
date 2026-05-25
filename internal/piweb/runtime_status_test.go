@@ -2,6 +2,8 @@ package piweb
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,30 +46,24 @@ func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeQuotaStatusWritesProjectStatus(t *testing.T) {
+func TestWorkspaceRuntimeQuotaStatusFallsBackToEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("PI_WEB_5H_QUOTA", "33")
 	t.Setenv("PI_WEB_WEEKLY_QUOTA", "44")
-	status := WorkspaceRuntimeQuotaStatus(context.Background(), root, "GPT-5.5")
+	status := WorkspaceRuntimeQuotaStatus(context.Background(), root, "unknown")
 	if status.FiveHourQuota == nil || *status.FiveHourQuota != 33 || status.WeeklyQuota == nil || *status.WeeklyQuota != 44 {
 		t.Fatalf("unexpected quota status: %+v", status)
 	}
-	data, err := os.ReadFile(filepath.Join(root, ".pi", "web-status.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := string(data)
-	if !strings.Contains(body, `"fiveHourQuota": 33`) || !strings.Contains(body, `"weeklyQuota": 44`) {
-		t.Fatalf("quota was not written: %s", body)
-	}
 }
 
-func TestRuntimeQuotaLoadsProjectFileAndClamps(t *testing.T) {
+func TestRuntimeQuotaIgnoresProjectFileAndClampsEnv(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("PI_WEB_5H_QUOTA", "120")
+	t.Setenv("PI_WEB_WEEKLY_QUOTA", "14")
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":120,"weeklyQuota":14}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":1,"weeklyQuota":2}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	fiveHour, weekly := RuntimeQuota(root)
@@ -76,5 +72,34 @@ func TestRuntimeQuotaLoadsProjectFileAndClamps(t *testing.T) {
 	}
 	if weekly == nil || *weekly != 14 {
 		t.Fatalf("expected weekly 14, got %v", weekly)
+	}
+}
+
+func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectFile(t *testing.T) {
+	oldClient := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = oldClient })
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "auth.json"), []byte(`{"openai-codex":{"access":"oa","accountId":"acct"}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":86,"weeklyQuota":54}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		body := `{"rate_limit":{"primary_window":{"used_percent":8},"secondary_window":{"used_percent":13}}}`
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+	})}
+
+	status := WorkspaceRuntimeQuotaStatus(context.Background(), root, "GPT-5.5")
+	if status.FiveHourQuota == nil || *status.FiveHourQuota != 92 || status.WeeklyQuota == nil || *status.WeeklyQuota != 87 {
+		t.Fatalf("expected live quota, got %+v", status)
 	}
 }

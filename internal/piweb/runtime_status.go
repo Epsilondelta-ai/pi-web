@@ -114,10 +114,9 @@ func anthropicSubscriptionAuthWarning(status RuntimeStatus) string {
 }
 
 func WorkspaceRuntimeQuotaStatus(ctx context.Context, root string, model string) RuntimeStatus {
-	fiveHour, weekly := RuntimeQuota(root)
+	fiveHour, weekly := LiveQuotaForModel(ctx, model)
 	if fiveHour == nil && weekly == nil {
-		fiveHour, weekly = LiveQuotaForModel(ctx, model)
+		fiveHour, weekly = RuntimeQuota(root)
 	}
-	writeQuotaStatus(root, fiveHour, weekly)
 	return RuntimeStatus{FiveHourQuota: fiveHour, WeeklyQuota: weekly}
 }

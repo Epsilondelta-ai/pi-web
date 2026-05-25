@@ -25,15 +25,9 @@ func LiveQuotaForModel(ctx context.Context, model string) (*int, *int) {
 	}
 }
 
-func RuntimeQuota(root string) (*int, *int) {
-	fiveHour, weekly := quotaFromFile(root)
-	if fiveHour == nil {
-		fiveHour = quotaFromEnv("PI_WEB_5H_QUOTA_PERCENT", "PI_WEB_5H_QUOTA")
-	}
-	if weekly == nil {
-		weekly = quotaFromEnv("PI_WEB_WEEKLY_QUOTA_PERCENT", "PI_WEB_WEEKLY_QUOTA")
-	}
-	return fiveHour, weekly
+func RuntimeQuota(_ string) (*int, *int) {
+	return quotaFromEnv("PI_WEB_5H_QUOTA_PERCENT", "PI_WEB_5H_QUOTA"),
+		quotaFromEnv("PI_WEB_WEEKLY_QUOTA_PERCENT", "PI_WEB_WEEKLY_QUOTA")
 }
 
 func fetchCodexQuota(ctx context.Context) (*int, *int) {
@@ -99,56 +93,6 @@ func fetchZaiQuota(ctx context.Context) (*int, *int) {
 		var payload zaiQuotaPayload
 		if getJSON(ctx, url, bearerHeaders(token), &payload) {
 			return zaiWindow(&payload, "5H:"), zaiWindow(&payload, "7D:")
-		}
-	}
-	return nil, nil
-}
-
-func writeQuotaStatus(root string, fiveHour *int, weekly *int) {
-	if fiveHour == nil && weekly == nil {
-		return
-	}
-	statusPath := filepath.Join(root, ".pi", "web-status.json")
-	if err := os.MkdirAll(filepath.Dir(statusPath), 0o700); err != nil {
-		return
-	}
-	payload := map[string]any{}
-	if data, err := os.ReadFile(statusPath); err == nil {
-		_ = json.Unmarshal(data, &payload)
-	}
-	if fiveHour != nil {
-		payload["fiveHourQuota"] = *normalizePercent(fiveHour)
-	}
-	if weekly != nil {
-		payload["weeklyQuota"] = *normalizePercent(weekly)
-	}
-	data, err := json.MarshalIndent(payload, "", "  ")
-	if err != nil {
-		return
-	}
-	tmp := statusPath + ".tmp"
-	if err := os.WriteFile(tmp, append(data, '\n'), 0o600); err != nil {
-		return
-	}
-	_ = os.Rename(tmp, statusPath)
-}
-
-func quotaFromFile(root string) (*int, *int) {
-	paths := []string{filepath.Join(root, ".pi", "web-status.json")}
-	if home, err := os.UserHomeDir(); err == nil {
-		paths = append(paths, filepath.Join(home, ".pi", "agent", "web-status.json"))
-	}
-	for _, path := range paths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			continue
-		}
-		var payload struct {
-			FiveHourQuota *int `json:"fiveHourQuota"`
-			WeeklyQuota   *int `json:"weeklyQuota"`
-		}
-		if json.Unmarshal(data, &payload) == nil {
-			return normalizePercent(payload.FiveHourQuota), normalizePercent(payload.WeeklyQuota)
 		}
 	}
 	return nil, nil
