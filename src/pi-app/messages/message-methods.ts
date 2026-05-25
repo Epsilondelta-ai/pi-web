@@ -12,6 +12,7 @@ export const messageMethods = {
   renderMessages(messages) {
     if (!this.termInner) return;
     this.piDeltaBuffer = "";
+    this.piStreamText = "";
     this.streamingRows = {};
     this.termInner.replaceChildren();
     this.resetTranscriptWindow();
@@ -84,6 +85,7 @@ export const messageMethods = {
     this.removeLoadingMessage();
     let delta = payload.delta;
     if (kind === "pi") {
+      this.piStreamText = `${this.piStreamText || ""}${payload.delta}`;
       const filtered = streamVisibleChoiceText(this.piDeltaBuffer + payload.delta);
       this.piDeltaBuffer = filtered.pending;
       delta = filtered.visible;
@@ -177,7 +179,10 @@ export const messageMethods = {
 
   clearStreamingState(kind) {
     this.flushStreamingRender();
-    if (kind === "pi") this.piDeltaBuffer = "";
+    if (kind === "pi") {
+      this.piDeltaBuffer = "";
+      this.piStreamText = "";
+    }
     if (this.streamingRows?.[kind]) this.streamingRows = { ...(this.streamingRows || {}), [kind]: undefined };
     if (this.pendingStreamingRow?.matches?.(`.msg.streaming[data-kind='${kind}']`)) this.pendingStreamingRow = undefined;
   },
@@ -254,12 +259,22 @@ export const messageMethods = {
       ".msg.streaming[data-kind='pi']",
       ".msg[data-kind='pi']",
       ".fallback-choice-list",
+      ".design-deck-panel",
     ].join(", "));
   },
 
   finalizeStreamingMessages() {
     this.flushStreamingRender();
+    const piText = this.piStreamText || "";
+    const piRows = this.streamingRowsForKind("pi");
+    if (piText && piRows.length) {
+      const finalNode = this.messageNode({ kind: "pi", text: piText });
+      const replaced = this.replaceTranscriptNode(piRows[0], finalNode);
+      for (const row of piRows.slice(replaced ? 1 : 0)) this.removeTranscriptNode(row);
+      this.notifyPiMessageCommitted({ kind: "pi", text: piText });
+    }
     this.piDeltaBuffer = "";
+    this.piStreamText = "";
     Object.values(this.streamingRows || {}).forEach((row: Element) => row?.classList?.remove("streaming"));
     this.streamingRows = {};
     this.termInner?.querySelectorAll(".msg.streaming").forEach((row) => row.classList.remove("streaming"));

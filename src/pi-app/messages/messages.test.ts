@@ -95,6 +95,30 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".design-preview-frame").srcdoc).toBe("<div>mockup</div>");
   });
 
+  it("renders streamed pi-web design deck when the response completes", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    const deck = {
+      type: "piweb_design_deck",
+      id: "streamed-design",
+      title: "Streamed design",
+      options: [{ label: "A", previewHtml: "<div>A</div>" }],
+    };
+    const text = ["Mockups incoming", "```json", JSON.stringify(deck), "```"].join("\n");
+
+    app.appendDelta({ kind: "pi", delta: text.slice(0, 24) });
+    app.appendDelta({ kind: "pi", delta: text.slice(24) });
+    app.flushStreamingRender();
+    expect(app.querySelector(".design-deck-panel")).toBeNull();
+
+    app.finalizeStreamingMessages();
+
+    expect(app.querySelector(".msg.streaming")).toBeNull();
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).toContain("Mockups incoming");
+    expect(app.querySelector(".design-deck-panel .design-deck-head strong").textContent).toBe("Streamed design");
+    expect(app.querySelector(".design-preview-frame").srcdoc).toBe("<div>A</div>");
+  });
+
   it("handles streaming and tool cleanup nodes with missing child elements", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
