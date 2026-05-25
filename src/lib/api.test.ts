@@ -15,6 +15,7 @@ import {
   createWorkspaceFile,
   deleteSession,
   deleteWorkspace,
+  deleteWorkspaceFile,
   deleteWorkspaceSessions,
   getGitCommit,
   getGitHistory,
@@ -31,6 +32,7 @@ import {
   getWorkspaceRuntimeModel,
   getWorkspaceRuntimeQuota,
   getWorkspaceRuntimeStatus,
+  getWorkspaceSessions,
   getWorkspaceSettings,
   getWorkspaces,
   health,
@@ -136,6 +138,8 @@ describe("api adapter", () => {
     expect(commands.url).toBe("http://backend.test/api/workspaces/w1/commands");
     const models = await getWorkspaceModels("w1");
     expect(models.url).toBe("http://backend.test/api/workspaces/w1/models");
+    const sessions = await getWorkspaceSessions("w/1");
+    expect(sessions.url).toBe("http://backend.test/api/workspaces/w%2F1/sessions");
     const files = await getWorkspaceFiles("w/1");
     expect(files.url).toBe("http://backend.test/api/workspaces/w%2F1/files");
     const search = await searchWorkspaceFiles("w/1", "hello world");
@@ -185,12 +189,17 @@ describe("api adapter", () => {
     const created = await createWorkspaceFile("w/1", "src/new.txt", "file", "hello");
     expect(created.url).toBe("http://backend.test/api/workspaces/w%2F1/files/create");
     expect(JSON.parse(created.options.body)).toEqual({ path: "src/new.txt", kind: "file", content: "hello" });
+    expect(JSON.parse((await createWorkspaceFile("w/1", "empty")).options.body)).toEqual({ path: "empty", kind: "file", content: "" });
     const renamed = await renameWorkspaceFile("w/1", "old", "new");
     expect(renamed.options.method).toBe("PATCH");
     expect(JSON.parse(renamed.options.body)).toEqual({ oldPath: "old", newPath: "new" });
+    const deleted = await deleteWorkspaceFile("w/1", "old");
+    expect(deleted.options.method).toBe("DELETE");
+    expect(JSON.parse(deleted.options.body)).toEqual({ path: "old" });
     const uploaded = await uploadWorkspaceFile("w/1", "asset.png", "base64", true);
     expect(uploaded.url).toBe("http://backend.test/api/workspaces/w%2F1/files/upload");
     expect(JSON.parse(uploaded.options.body)).toEqual({ path: "asset.png", content: "base64", overwrite: true });
+    expect(JSON.parse((await uploadWorkspaceFile("w/1", "asset.png", "base64")).options.body)).toEqual({ path: "asset.png", content: "base64", overwrite: false });
   });
 
   it("posts prompts as json", async () => {
@@ -285,6 +294,12 @@ describe("api adapter", () => {
     globalThis.EventSource = class {};
     agui.runAgent.mockRejectedValueOnce(new Error("Failed to getReader"));
     expect(await runAguiSessionPrompt("s1", "hello")).toBe(false);
+  });
+
+  it("rethrows non-streaming AG-UI failures", async () => {
+    globalThis.EventSource = class {};
+    agui.runAgent.mockRejectedValueOnce(new Error("agent exploded"));
+    await expect(runAguiSessionPrompt("s1", "hello")).rejects.toThrow("agent exploded");
   });
 
   it("creates EventSource connections for session streams", () => {
