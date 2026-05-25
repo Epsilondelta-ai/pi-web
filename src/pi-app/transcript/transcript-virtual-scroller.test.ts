@@ -1,0 +1,142 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const virtualScroller = vi.hoisted(() => ({ instances: [] as any[] }));
+
+vi.mock("virtual-scroller/dom", () => ({
+  default: vi.fn(function MockVirtualScroller(this: any, container, items, renderItem, options) {
+    this.container = container;
+    this.items = items;
+    this.renderItem = renderItem;
+    this.options = options;
+    this.start = vi.fn();
+    this.stop = vi.fn();
+    this.setItems = vi.fn();
+    this.onItemHeightDidChange = vi.fn();
+    this.getState = vi.fn();
+    this.virtualScroller = { updateLayout: vi.fn() };
+    virtualScroller.instances.push(this);
+  }),
+}));
+
+import {
+  DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
+  TRANSCRIPT_OVERSCAN_ITEM_COUNT,
+  createTranscriptVirtualScroller,
+  renderVirtualTranscriptItem,
+  updateTranscriptVirtualScroller,
+} from "./transcript-virtual-scroller";
+
+describe("transcript virtual scroller helpers", () => {
+  beforeEach(() => {
+    virtualScroller.instances.length = 0;
+    delete globalThis.ResizeObserver;
+  });
+
+  it("creates configured scrollers with initial bottom state and callbacks", () => {
+    const term = document.createElement("div");
+    Object.defineProperty(term, "clientHeight", { configurable: true, value: 0 });
+    const owner: any = {
+      term,
+      termInner: document.createElement("div"),
+      transcriptItems: [{ id: 1, height: 10 }, { id: 2 }, { id: 3, height: 30 }],
+      renderVirtualTranscriptItem: vi.fn((item) => document.createTextNode(String(item.id))),
+      applyTranscriptVirtualState: vi.fn(),
+    };
+
+    const scroller: any = createTranscriptVirtualScroller(owner, { stickToBottom: true });
+
+    expect(scroller.options.readyToStart).toBe(false);
+    expect(scroller.options.getScrollableContainer()).toBe(term);
+    expect(scroller.options.getEstimatedItemHeight()).toBe(DEFAULT_TRANSCRIPT_ITEM_HEIGHT);
+    expect(scroller.options.getEstimatedVisibleItemRowsCount()).toBe(TRANSCRIPT_OVERSCAN_ITEM_COUNT);
+    expect(scroller.options.getItemId({ id: "x" })).toBe("x");
+    expect(scroller.options.initialScrollPosition).toBe(0);
+    scroller.options.onStateChange({ firstShownItemIndex: 1, lastShownItemIndex: 2 });
+    expect(owner.applyTranscriptVirtualState).toHaveBeenCalledWith({ firstShownItemIndex: 1, lastShownItemIndex: 2 });
+  });
+
+  it("observes rendered items and disconnects observers on unmount", () => {
+    const disconnect = vi.fn();
+    const observe = vi.fn();
+    globalThis.ResizeObserver = vi.fn(function ResizeObserver(callback) {
+      this.callback = callback;
+      this.observe = observe;
+      this.disconnect = disconnect;
+    }) as any;
+    const owner: any = {
+      transcriptResizeObservers: new Map(),
+      notifyTranscriptItemHeightDidChange: vi.fn(),
+      transcriptElementNodes: (node) => [node],
+      messageNode: (message) => {
+        const node = document.createElement("div");
+        node.textContent = message.text;
+        return node;
+      },
+    };
+    const item: any = { id: 7, message: { text: "lazy" } };
+
+    const element = renderVirtualTranscriptItem(owner, item);
+
+    expect(element.dataset.transcriptItem).toBe("7");
+    expect(element.textContent).toBe("lazy");
+    expect(observe).toHaveBeenCalledWith(element);
+    const observer = owner.transcriptResizeObservers.get(element);
+    observer.callback();
+    expect(owner.notifyTranscriptItemHeightDidChange).toHaveBeenCalledWith(item, element);
+
+    const scrollerOwner: any = {
+      term: document.createElement("div"),
+      termInner: document.createElement("div"),
+      transcriptItems: [item],
+      renderVirtualTranscriptItem: vi.fn(),
+      applyTranscriptVirtualState: vi.fn(),
+      transcriptResizeObservers: owner.transcriptResizeObservers,
+    };
+    Object.defineProperty(scrollerOwner.term, "clientHeight", { configurable: true, value: 100 });
+    const scroller: any = createTranscriptVirtualScroller(scrollerOwner);
+    scroller.options.onItemUnmount(element);
+    expect(disconnect).toHaveBeenCalled();
+    expect(owner.transcriptResizeObservers.has(element)).toBe(false);
+  });
+
+  it("updates, restarts deferred scrollers, clears empty transcripts, and scrolls to bottom", () => {
+    const termInner = document.createElement("div");
+    termInner.append(document.createElement("span"));
+    const owner: any = {
+      term: document.createElement("div"),
+      termInner,
+      transcriptItems: [],
+      destroyTranscriptVirtualScroller: vi.fn(),
+      scrollTerm: vi.fn(),
+      syncRenderedTranscriptItemHeights: vi.fn(),
+      renderVirtualTranscriptItem: vi.fn(),
+      applyTranscriptVirtualState: vi.fn(),
+    };
+
+    updateTranscriptVirtualScroller(owner);
+    expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalled();
+    expect(termInner.children).toHaveLength(0);
+
+    owner.transcriptItems = [{ id: 1 }];
+    owner.transcriptVirtualScroller = { start: vi.fn(), setItems: vi.fn() };
+    owner.transcriptVirtualScrollerStarted = false;
+    Object.defineProperty(owner.term, "clientHeight", { configurable: true, value: 100 });
+    updateTranscriptVirtualScroller(owner, { preservePrepend: true, stickToBottom: true });
+    expect(owner.transcriptVirtualScroller.start).toHaveBeenCalled();
+    expect(owner.transcriptVirtualScrollerStarted).toBe(true);
+    expect(owner.syncRenderedTranscriptItemHeights).toHaveBeenCalled();
+    expect(owner.transcriptVirtualScroller.setItems).toHaveBeenCalledWith(owner.transcriptItems, {
+      preserveScrollPositionOnPrependItems: true,
+    });
+    expect(owner.scrollTerm).toHaveBeenCalledWith({ force: true });
+
+    owner.transcriptVirtualScrollerStarted = false;
+    Object.defineProperty(owner.term, "clientHeight", { configurable: true, value: 0 });
+    updateTranscriptVirtualScroller(owner);
+    expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalledTimes(2);
+    expect(virtualScroller.instances.at(-1).options.readyToStart).toBe(false);
+
+    owner.termInner = null;
+    expect(() => updateTranscriptVirtualScroller(owner)).not.toThrow();
+  });
+});

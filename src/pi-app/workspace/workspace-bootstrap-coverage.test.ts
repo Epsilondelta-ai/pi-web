@@ -17,6 +17,51 @@ describe("workspace bootstrap coverage", () => {
   });
   afterEach(cleanupPiAppFixture);
 
+  it("covers version and runtime status fallback branches", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.renderVersionStatus({ updateAvailable: false, currentVersion: "1", latestVersion: "2" });
+    expect(app.querySelector("[data-action='show-update-tip']").hidden).toBe(true);
+    app.notifyUpdateAvailable = vi.fn();
+    app.renderVersionStatus({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
+    expect(app.querySelector("[data-action='show-update-tip']").hidden).toBe(false);
+    app.renderVersionStatus({ updateAvailable: true, currentVersion: "2", latestVersion: "2" });
+    app.renderVersionStatus(null);
+    app.querySelector("[data-action='show-update-tip']").remove();
+    app.renderVersionStatus({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
+
+    app.notifyPiUpdateAvailable = vi.fn();
+    app.renderPiVersionStatus({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
+    app.renderPiVersionStatus({ updateAvailable: true, currentVersion: "2", latestVersion: "2" });
+    app.renderPiVersionStatus(null);
+    expect(app.notifyPiUpdateAvailable).toHaveBeenCalledTimes(1);
+
+    const tip = document.createElement("span");
+    tip.dataset.updateTip = "";
+    tip.hidden = true;
+    app.append(tip);
+    vi.spyOn(window, "setTimeout").mockImplementation((callback) => { callback(); return 1; });
+    app.showUpdateTip();
+    expect(tip.hidden).toBe(true);
+
+    app.updatePromptMeta = vi.fn();
+    app.notifyRuntimeWarning = vi.fn();
+    app.applyRuntimeStatus({ model: "m", warning: "careful" });
+    app.applyRuntimeStatus(null);
+    expect(app.notifyRuntimeWarning).toHaveBeenCalledWith("careful");
+    globalThis.fetch = vi.fn(async (url) => String(url).includes("runtime-model")
+      ? failJson("model failed")
+      : okJson({ status: { model: "fallback" } }));
+    await app.loadRuntimeStatus("w1");
+    expect(app.updatePromptMeta).toHaveBeenLastCalledWith({ model: "fallback" });
+    globalThis.fetch = vi.fn(async () => failJson("quota failed"));
+    await app.loadRuntimeQuota("w1", "m");
+    app.apiConnected = false;
+    await app.loadRuntimeStatus("w1");
+    await app.loadRuntimeQuota("w1", "m");
+  });
+
   it("covers workspace API fallback branches", async () => {
     const app = await connectPiApp();
     app.apiConnected = true;
