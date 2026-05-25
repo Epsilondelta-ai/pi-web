@@ -1,15 +1,26 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const agui = vi.hoisted(() => ({ runAgent: vi.fn() }));
+vi.mock("@ag-ui/client", () => ({
+  HttpAgent: vi.fn(function HttpAgent() {
+    this.runAgent = agui.runAgent;
+  }),
+}));
+
 import {
   cancelSession,
   cloneWorkspace,
   createSession,
+  createWorkspaceFile,
   deleteSession,
   deleteWorkspace,
   deleteWorkspaceSessions,
   getGitCommit,
   getGitHistory,
   getGitStatus,
+  getOAuthLoginSession,
+  getOAuthProviders,
   getPiVersionStatus,
   getSession,
   getVersionStatus,
@@ -23,16 +34,22 @@ import {
   getWorkspaceSettings,
   getWorkspaces,
   health,
+  logoutProvider,
   listFolders,
   openWorkspace,
   postPrompt,
   renameSession,
+  renameWorkspaceFile,
+  runAguiSessionPrompt,
   steerSession,
   runShellCommand,
   saveWorkspaceFile,
   saveWorkspaceSettings,
   searchWorkspaceFiles,
+  sendOAuthLoginInput,
   sessionEvents,
+  startOAuthLogin,
+  uploadWorkspaceFile,
 } from "./api";
 
 describe("api adapter", () => {
@@ -49,6 +66,7 @@ describe("api adapter", () => {
   afterEach(() => {
     delete globalThis.PI_WEB_API_BASE;
     vi.restoreAllMocks();
+    agui.runAgent.mockReset();
   });
 
   it("fetches workspaces from the configured backend", async () => {
@@ -138,6 +156,17 @@ describe("api adapter", () => {
     expect(quotaDefault.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota");
   });
 
+  it("manages auth and oauth requests", async () => {
+    expect((await getOAuthProviders()).url).toBe("http://backend.test/api/auth/oauth/providers");
+    expect((await startOAuthLogin("anthropic")).url).toBe("http://backend.test/api/auth/oauth/start");
+    expect(JSON.parse((await startOAuthLogin("anthropic")).options.body)).toEqual({ provider: "anthropic" });
+    expect((await getOAuthLoginSession("s/1")).url).toBe("http://backend.test/api/auth/oauth/sessions/s%2F1");
+    const input = await sendOAuthLoginInput("s/1", "code");
+    expect(input.url).toBe("http://backend.test/api/auth/oauth/sessions/s%2F1/input");
+    expect(JSON.parse(input.options.body)).toEqual({ value: "code" });
+    expect((await logoutProvider("gemini/web")).options.method).toBe("DELETE");
+  });
+
   it("reads and saves workspace settings and files", async () => {
     const settings = await getWorkspaceSettings("w1");
     expect(settings.url).toBe("http://backend.test/api/workspaces/w1/settings");
@@ -152,6 +181,16 @@ describe("api adapter", () => {
     expect(saved.url).toBe("http://backend.test/api/workspaces/w1/files/write?path=src%2Fmain.go");
     expect(saved.options.method).toBe("PUT");
     expect(JSON.parse(saved.options.body)).toEqual({ content: "package main" });
+
+    const created = await createWorkspaceFile("w/1", "src/new.txt", "file", "hello");
+    expect(created.url).toBe("http://backend.test/api/workspaces/w%2F1/files/create");
+    expect(JSON.parse(created.options.body)).toEqual({ path: "src/new.txt", kind: "file", content: "hello" });
+    const renamed = await renameWorkspaceFile("w/1", "old", "new");
+    expect(renamed.options.method).toBe("PATCH");
+    expect(JSON.parse(renamed.options.body)).toEqual({ oldPath: "old", newPath: "new" });
+    const uploaded = await uploadWorkspaceFile("w/1", "asset.png", "base64", true);
+    expect(uploaded.url).toBe("http://backend.test/api/workspaces/w%2F1/files/upload");
+    expect(JSON.parse(uploaded.options.body)).toEqual({ path: "asset.png", content: "base64", overwrite: true });
   });
 
   it("posts prompts as json", async () => {
@@ -193,6 +232,59 @@ describe("api adapter", () => {
       },
     }));
     await expect(getWorkspaces()).rejects.toThrow("500 Server Error");
+  });
+
+  it("runs AG-UI prompts with EventSource fallback and tool callbacks", async () => {
+    const originalEventSource = globalThis.EventSource;
+    // @ts-expect-error exercise fallback branch
+    delete globalThis.EventSource;
+    expect(await runAguiSessionPrompt("s1", "hello", [{ path: "a" }])).toBe(false);
+    expect(fetch).toHaveBeenLastCalledWith(
+      "http://backend.test/api/sessions/s1/prompt",
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    globalThis.EventSource = originalEventSource || class {};
+    const subscriber = {
+      onRunStarted: vi.fn(),
+      onTextDelta: vi.fn(),
+      onTextEnd: vi.fn(),
+      onThinkingDelta: vi.fn(),
+      onToolStart: vi.fn(),
+      onToolArgs: vi.fn(),
+      onToolResult: vi.fn(),
+      onToolEnd: vi.fn(),
+      onRunError: vi.fn(),
+      onRunFinished: vi.fn(),
+    };
+    const callbacks: any = {};
+    agui.runAgent.mockImplementationOnce(async (_input, cb) => {
+      Object.assign(callbacks, cb);
+      cb.onRunStartedEvent();
+      cb.onTextMessageContentEvent({ event: { delta: "a" } });
+      cb.onTextMessageEndEvent({ textMessageBuffer: "done" });
+      cb.onReasoningMessageContentEvent({ event: { delta: "think" } });
+      cb.onToolCallStartEvent({ event: { toolCallId: "t1", toolCallName: "read" } });
+      cb.onToolCallArgsEvent({ event: { toolCallId: "t1", delta: "{}" } });
+      cb.onToolCallResultEvent({ event: { toolCallId: "t1", content: "ok" } });
+      cb.onToolCallEndEvent({ event: { toolCallId: "t1" }, toolCallArgs: { path: "x" } });
+      cb.onRunErrorEvent({ event: { message: "bad" } });
+      cb.onRunFailed({ error: new Error("failed") });
+      cb.onRunFinishedEvent();
+    });
+    expect(await runAguiSessionPrompt("s1", "hello", [], subscriber)).toBe(true);
+    expect(subscriber.onToolEnd).toHaveBeenCalledWith({ id: "t1", name: "read", args: '{"path":"x"}', body: "ok" });
+    expect(subscriber.onRunFinished).toHaveBeenCalled();
+    callbacks.onToolCallArgsEvent({ event: { toolCallId: "t2", delta: "x" }, toolCallName: "write" });
+    callbacks.onToolCallResultEvent({ event: { toolCallId: "t2", content: "" } });
+    callbacks.onToolCallEndEvent({ event: { toolCallId: "t2" }, toolCallName: "write", toolCallArgs: "raw" });
+    expect(subscriber.onToolEnd).toHaveBeenLastCalledWith({ id: "t2", name: "write", args: "raw", body: "x" });
+  });
+
+  it("falls back when AG-UI reader streaming is unavailable", async () => {
+    globalThis.EventSource = class {};
+    agui.runAgent.mockRejectedValueOnce(new Error("Failed to getReader"));
+    expect(await runAguiSessionPrompt("s1", "hello")).toBe(false);
   });
 
   it("creates EventSource connections for session streams", () => {
