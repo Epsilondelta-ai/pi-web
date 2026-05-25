@@ -2,17 +2,17 @@
 
 <div align="center">
 
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
+[English](../../README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-![pi.dev web](./docs/assets/pi-web.png)
+![pi.dev web](../assets/pi-web.png)
 
 | デスクトップ |
 | --- |
-| ![ワークスペースセッション UI](docs/assets/screenshot.png) |
+| ![ワークスペースセッション UI](../assets/screenshot.png) |
 
 | タブレット | モバイル |
 | --- | --- |
-| ![タブレットのワークスペース UI](docs/assets/tablet.webp) | ![モバイルのファイルツリー UI](docs/assets/mobile.webp) |
+| ![タブレットのワークスペース UI](../assets/tablet.webp) | ![モバイルのファイルツリー UI](../assets/mobile.webp) |
 
 </div>
 

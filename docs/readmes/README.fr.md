@@ -2,17 +2,17 @@
 
 <div align="center">
 
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
+[English](../../README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-![pi.dev web](./docs/assets/pi-web.png)
+![pi.dev web](../assets/pi-web.png)
 
 | Bureau |
 | --- |
-| ![UI de session d’espace de travail](docs/assets/screenshot.png) |
+| ![UI de session d’espace de travail](../assets/screenshot.png) |
 
 | Tablette | Mobile |
 | --- | --- |
-| ![UI d’espace de travail sur tablette](docs/assets/tablet.webp) | ![UI d’arborescence de fichiers sur mobile](docs/assets/mobile.webp) |
+| ![UI d’espace de travail sur tablette](../assets/tablet.webp) | ![UI d’arborescence de fichiers sur mobile](../assets/mobile.webp) |
 
 </div>
 

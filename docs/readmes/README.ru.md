@@ -2,17 +2,17 @@
 
 <div align="center">
 
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
+[English](../../README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-![pi.dev web](./docs/assets/pi-web.png)
+![pi.dev web](../assets/pi-web.png)
 
 | Десктоп |
 | --- |
-| ![UI сессии рабочего пространства](docs/assets/screenshot.png) |
+| ![UI сессии рабочего пространства](../assets/screenshot.png) |
 
 | Планшет | Мобильный |
 | --- | --- |
-| ![UI рабочего пространства на планшете](docs/assets/tablet.webp) | ![UI дерева файлов на мобильном](docs/assets/mobile.webp) |
+| ![UI рабочего пространства на планшете](../assets/tablet.webp) | ![UI дерева файлов на мобильном](../assets/mobile.webp) |
 
 </div>
 

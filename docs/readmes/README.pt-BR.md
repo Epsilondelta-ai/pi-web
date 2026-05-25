@@ -2,17 +2,17 @@
 
 <div align="center">
 
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
+[English](../../README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-![pi.dev web](./docs/assets/pi-web.png)
+![pi.dev web](../assets/pi-web.png)
 
 | Desktop |
 | --- |
-| ![UI de sessão do workspace](docs/assets/screenshot.png) |
+| ![UI de sessão do workspace](../assets/screenshot.png) |
 
 | Tablet | Celular |
 | --- | --- |
-| ![UI de workspace no tablet](docs/assets/tablet.webp) | ![UI de árvore de arquivos no celular](docs/assets/mobile.webp) |
+| ![UI de workspace no tablet](../assets/tablet.webp) | ![UI de árvore de arquivos no celular](../assets/mobile.webp) |
 
 </div>
 

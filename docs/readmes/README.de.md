@@ -2,17 +2,17 @@
 
 <div align="center">
 
-[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
+[English](../../README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) | [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-![pi.dev web](./docs/assets/pi-web.png)
+![pi.dev web](../assets/pi-web.png)
 
 | Desktop |
 | --- |
-| ![Workspace-Session-UI](docs/assets/screenshot.png) |
+| ![Workspace-Session-UI](../assets/screenshot.png) |
 
 | Tablet | Mobil |
 | --- | --- |
-| ![Workspace-UI auf dem Tablet](docs/assets/tablet.webp) | ![Dateibaum-UI auf Mobilgeräten](docs/assets/mobile.webp) |
+| ![Workspace-UI auf dem Tablet](../assets/tablet.webp) | ![Dateibaum-UI auf Mobilgeräten](../assets/mobile.webp) |
 
 </div>
 
