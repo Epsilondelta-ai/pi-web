@@ -1,7 +1,7 @@
 const DESIGN_DECK_FENCE = /```json\s*([\s\S]*?)```/gi;
 
 function clipped(value, maxLength) {
-  return String(value ?? "").slice(0, maxLength);
+  return String(value).slice(0, maxLength);
 }
 
 function normalizeOption(option) {

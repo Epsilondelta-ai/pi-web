@@ -119,6 +119,16 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".design-preview-frame").srcdoc).toBe("<div>A</div>");
   });
 
+  it("keeps malformed design deck JSON visible", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+
+    app.appendMessage({ kind: "pi", text: "```json\n{bad\n```" });
+
+    expect(app.querySelector(".design-deck-panel")).toBeNull();
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).toContain("{bad");
+  });
+
   it("handles streaming and tool cleanup nodes with missing child elements", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);

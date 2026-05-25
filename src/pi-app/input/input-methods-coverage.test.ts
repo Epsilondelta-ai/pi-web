@@ -196,6 +196,7 @@ describe("pi-app input methods coverage", () => {
     app.dataset.activeSessionId = "s2";
     app.resetActiveSessionState();
     app.prompt.value = "second";
+    app.promptSubmitKey = undefined;
 
     await app.submitPrompt();
     resolveFirst();
