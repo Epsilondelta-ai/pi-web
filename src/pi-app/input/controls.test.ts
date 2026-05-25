@@ -10,6 +10,22 @@ describe("pi-app controls", () => {
   beforeEach(installPiAppFixture);
   afterEach(cleanupPiAppFixture);
 
+  it("applies UI language selection immediately", async () => {
+    const app = await connectPiApp();
+    const selector = app.querySelector("[data-ui-language]");
+
+    selector.value = "ko";
+    selector.dispatchEvent(new Event("change"));
+
+    expect(document.documentElement.lang).toBe("ko");
+    expect(app.querySelector("[data-i18n='settingsTitle']").textContent).toBe("pi 설정");
+    expect(localStorage.getItem("pi-web.uiLocale")).toBe("ko");
+
+    selector.value = "unsupported";
+    selector.dispatchEvent(new Event("change"));
+    expect(localStorage.getItem("pi-web.uiLocale")).toBe("ko");
+  });
+
   it("enables send and shows slash commands as the prompt changes", async () => {
     const app = await connectPiApp();
     const prompt = app.querySelector(".prompt-textarea");

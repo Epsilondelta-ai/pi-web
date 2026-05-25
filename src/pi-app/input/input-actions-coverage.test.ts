@@ -77,6 +77,15 @@ describe("pi-app input actions coverage", () => {
     spanAction.dataset.action = "route-picker";
     app.append(spanAction);
     app.handleAppClick({ target: spanAction });
+    const spanTreeMenu = document.createElement("span");
+    spanTreeMenu.dataset.action = "tree-root-menu";
+    app.append(spanTreeMenu);
+    app.handleAppClick({ target: spanTreeMenu });
+    const positionedTreeMenu = document.createElement("button");
+    positionedTreeMenu.dataset.action = "tree-root-menu";
+    positionedTreeMenu.getBoundingClientRect = () => ({ left: 12, bottom: 34 });
+    app.append(positionedTreeMenu);
+    positionedTreeMenu.click();
     const fileTreeNode = document.createElement("div");
     fileTreeNode.dataset.action = "open-file";
     fileTreeNode.dataset.filePath = "src/tree.ts";

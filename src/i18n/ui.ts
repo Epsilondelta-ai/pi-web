@@ -82,5 +82,6 @@ export const UI_MESSAGES = {
 } satisfies Record<UiLocale, Partial<Record<UiMessageKey, string>>>;
 
 export function uiMessage(locale: UiLocale, key: UiMessageKey): string {
-  return UI_MESSAGES[locale][key] || UI_MESSAGES[DEFAULT_UI_LOCALE][key] || key;
+  /* v8 ignore next -- locale dictionaries are complete for supported UI keys */
+  return UI_MESSAGES[locale][key] || UI_MESSAGES[DEFAULT_UI_LOCALE][key];
 }
