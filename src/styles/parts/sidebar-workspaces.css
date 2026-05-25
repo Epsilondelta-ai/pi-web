@@ -201,7 +201,7 @@ button.session-row:not(.new-session-row) {
 .session-row .meta { color: var(--fg-3); font-size: 11px; font-variant-numeric: tabular-nums; }
 .session-row .meta.live { color: var(--accent); }
 .session-menu-button {
-  opacity: 0;
+  opacity: 1;
   align-self: center;
   margin-right: 6px;
   width: 24px;
@@ -219,9 +219,6 @@ button.session-row:not(.new-session-row) {
 .session-menu-button svg {
   display: block;
   flex: 0 0 auto;
-}
-.session-row:hover .session-menu-button {
-  opacity: 1;
 }
 .session-menu-button[aria-expanded="true"] {
   opacity: 1;
