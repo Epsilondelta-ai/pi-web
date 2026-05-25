@@ -174,6 +174,38 @@ describe("pi-app input methods coverage", () => {
     expect(urls.some((url) => url.includes("/sessions/s-b/"))).toBe(false);
   });
 
+  it("does not let an in-flight prompt in another session block the active session", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeSessionId = "s1";
+    globalThis.EventSource = undefined;
+    let resolveFirst = () => undefined;
+    globalThis.fetch = vi.fn(async (url) => {
+      const value = String(url);
+      if (value.includes("/sessions/s1/prompt")) {
+        return new Promise((resolve) => {
+          resolveFirst = () => resolve(ok({ accepted: true }));
+        });
+      }
+      return ok({ accepted: true });
+    });
+
+    app.prompt.value = "first";
+    const firstSubmit = app.submitPrompt();
+    await Promise.resolve();
+    app.dataset.activeSessionId = "s2";
+    app.resetActiveSessionState();
+    app.prompt.value = "second";
+
+    await app.submitPrompt();
+    resolveFirst();
+    await firstSubmit;
+
+    const urls = globalThis.fetch.mock.calls.map(([url]) => String(url));
+    expect(urls.some((url) => url.includes("/sessions/s1/prompt"))).toBe(true);
+    expect(urls.some((url) => url.includes("/sessions/s2/prompt"))).toBe(true);
+  });
+
   it("prevents duplicate initial submits while a session is being created", async () => {
     const app = await connectPiApp();
     app.apiConnected = true;
