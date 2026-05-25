@@ -48,7 +48,8 @@ AI. No mistakes. Juunini's alter ego. Complete product > MVP/time excuse.
 - URLs via env; `.env.test`; no hardcoded endpoints.
 - Mock externals; deterministic; fixed real-data fixtures.
 - Coverage 100%; hard → testability first.
-- FE unit: no render tests; ignore behaviorless; Storybook simple; `bun:test`.
+- Never add tests/files/paths to test ignore/exclude/skip lists; fix coverage/testability instead.
+- FE unit: no render tests; non-render tests are never ignorable; behaviorless render-only cases only; Storybook simple; `bun:test`.
 - Backend unit: Go `testing` / TS `bun:test`; 100% unit ⇒ no backend e2e.
 - FE e2e: Playwright visible roles/labels/text; test IDs last; no shared state; mock backend; real explicit.
 
