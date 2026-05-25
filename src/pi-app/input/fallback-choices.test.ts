@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
+import { parseFallbackChoices, streamVisibleChoiceText, stripFallbackChoices } from "./fallback-choices";
 
 const fallbackChoicePayload = JSON.stringify({
   type: "piweb_choice",
@@ -72,6 +73,18 @@ describe("pi-app fallback choices", () => {
       text: "선택지 응답:\nid: runtime\nvalue: custom runtime",
       attachments: [],
     });
+  });
+
+  it("parses and streams malformed or non-choice JSON visibly", () => {
+    expect(parseFallbackChoices("```json\n{ nope\n```")).toEqual([]);
+    expect(parseFallbackChoices("```json\n{\"type\":\"piweb_choice\",\"id\":\"x\",\"question\":\"Q\",\"options\":[{}]}\n```")).toEqual([]);
+    expect(stripFallbackChoices("before\n```json\n{ nope\n```\nafter")).toContain("{ nope");
+    expect(streamVisibleChoiceText("hello``")).toEqual({ visible: "hello", pending: "``" });
+    expect(streamVisibleChoiceText("```json\n{\"type\":\"other\"}\n```tail")).toEqual({
+      visible: "```json\n{\"type\":\"other\"}\n```tail",
+      pending: "",
+    });
+    expect(streamVisibleChoiceText("```json\n{\"type\":\"piweb_design_deck\"}\n```tail")).toEqual({ visible: "tail", pending: "" });
   });
 
   it("disables already answered fallback choices on reload", async () => {

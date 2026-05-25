@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile, searchWorkspaceFiles } from "../lib/api";
+import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile, searchWorkspaceFiles, uploadWorkspaceFile } from "../lib/api";
 import WorkspaceFileTree from "./WorkspaceFileTree";
 
 vi.mock("../lib/api", () => ({
@@ -115,6 +115,75 @@ describe("WorkspaceFileTree", () => {
 
     expect(createWorkspaceFile).toHaveBeenCalledWith("workspace-1", "src/created.ts", "file");
     expect(refresh).toHaveBeenCalled();
+    await cleanup(root, host);
+  });
+
+  it("handles root menu, cancelled actions, failed search, and empty search results", async () => {
+    vi.useFakeTimers();
+    vi.mocked(searchWorkspaceFiles).mockRejectedValueOnce(new Error("search failed"));
+    const app = document.createElement("pi-app");
+    app.dataset.activeWorkspaceId = "workspace-1";
+    document.body.append(app);
+    const { host, root } = await renderTree();
+    await updateTree();
+
+    await act(async () => {
+      window.dispatchEvent(new CustomEvent("pi-workspace-tree:root-menu", { detail: { x: 0, y: 0 } }));
+    });
+    expect(host.querySelector(".tree-action-menu")).toBeTruthy();
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    });
+    expect(host.querySelector(".tree-action-menu")).toBeFalsy();
+
+    const search = host.querySelector<HTMLInputElement>(".tree-search input")!;
+    await act(async () => {
+      setInputValue(search, "missing");
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+      await Promise.resolve();
+    });
+    expect(searchWorkspaceFiles).toHaveBeenCalledWith("workspace-1", "missing");
+    await act(async () => {
+      setInputValue(search, "");
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(host.textContent).toContain("src");
+
+    await cleanup(root, host);
+  });
+
+  it("uploads files and retries overwrite after already exists errors", async () => {
+    const app = document.createElement("pi-app");
+    app.dataset.activeWorkspaceId = "workspace-1";
+    document.body.append(app);
+    vi.mocked(uploadWorkspaceFile).mockRejectedValueOnce(new Error("already exists")).mockResolvedValue({});
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { host, root } = await renderTree();
+    await updateTree();
+
+    const folder = host.querySelector<HTMLButtonElement>(".tree-node.dir");
+    await act(async () => {
+      folder?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 10, clientY: 20 }));
+    });
+    await act(async () => {
+      [...host.querySelectorAll<HTMLButtonElement>(".tree-action-menu button")]
+        .find((button) => button.textContent === "upload here")?.click();
+    });
+    const input = host.querySelector<HTMLInputElement>("input[type='file']")!;
+    const file = new File(["hello"], "note.txt", { type: "text/plain" });
+    const files = { 0: file, length: 1, item: () => file, [Symbol.iterator]: function* () { yield file; } };
+    Object.defineProperty(input, "files", { configurable: true, value: files });
+    await act(async () => {
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await Promise.resolve();
+    });
+
+    expect(uploadWorkspaceFile).toHaveBeenNthCalledWith(1, "workspace-1", "src/note.txt", "aGVsbG8=", false);
+    expect(uploadWorkspaceFile).toHaveBeenNthCalledWith(2, "workspace-1", "src/note.txt", "aGVsbG8=", true);
     await cleanup(root, host);
   });
 
