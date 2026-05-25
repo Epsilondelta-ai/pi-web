@@ -63,6 +63,38 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".fallback-choice-list button").disabled).toBe(true);
   });
 
+  it("renders pi-web design deck previews from assistant JSON", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    const deck = {
+      type: "piweb_design_deck",
+      id: "design-direction",
+      title: "Design directions",
+      slides: [{
+        id: "direction",
+        title: "Direction",
+        context: "Pick a visual direction.",
+        options: [{
+          label: "Terminal Pro",
+          description: "Keep the terminal identity.",
+          aside: "Recommended for low-risk iteration.",
+          recommended: true,
+          previewHtml: "<div>mockup</div>",
+        }],
+      }],
+    };
+
+    app.appendMessage({ kind: "pi", text: ["Here are the mockups.", "```json", JSON.stringify(deck), "```"].join("\n") });
+
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).toContain("Here are the mockups.");
+    expect(app.querySelector(".msg[data-kind='pi'] .body").textContent).not.toContain("piweb_design_deck");
+    expect(app.querySelector(".design-deck-panel .design-deck-head strong").textContent).toBe("Design directions");
+    expect(app.querySelector(".design-slide-title").textContent).toBe("Direction");
+    expect(app.querySelector(".design-option-card[data-recommended='true'] strong").textContent).toBe("Terminal Pro");
+    expect(app.querySelector(".design-preview-frame").getAttribute("sandbox")).toBe("");
+    expect(app.querySelector(".design-preview-frame").srcdoc).toBe("<div>mockup</div>");
+  });
+
   it("handles streaming and tool cleanup nodes with missing child elements", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);

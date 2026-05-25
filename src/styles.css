@@ -6,6 +6,7 @@
 @import "./styles/parts/session-toasts.css";
 @import "./styles/parts/terminal-messages.css";
 @import "./styles/parts/tool-cards.css";
+@import "./styles/parts/design-decks.css";
 @import "./styles/parts/tree-preview-status.css";
 @import "./styles/parts/prompt-composer.css";
 @import "./styles/parts/workspace-picker.css";

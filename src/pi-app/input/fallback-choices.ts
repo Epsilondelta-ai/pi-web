@@ -1,5 +1,17 @@
 const CHOICE_FENCE = /```json\s*([\s\S]*?)```/gi;
 const CHOICE_FENCE_MARKER = "```json";
+const HIDDEN_FENCE_TYPES = new Set(["piweb_choice", "piweb_design_deck"]);
+
+function hiddenFenceType(block = "") {
+  const match = block.match(/^```json\s*([\s\S]*?)```$/i);
+  if (!match) return "";
+  try {
+    const type = JSON.parse(match[1])?.type;
+    return HIDDEN_FENCE_TYPES.has(type) ? type : "";
+  } catch {
+    return "";
+  }
+}
 
 export function parseFallbackChoices(text = "") {
   const choices = [];
@@ -69,7 +81,7 @@ export function streamVisibleChoiceText(text = "") {
       break;
     }
     const block = pending.slice(fenceStart, fenceEnd + 3);
-    if (!parseFallbackChoices(block).length) visible += block;
+    if (!hiddenFenceType(block)) visible += block;
     pending = pending.slice(fenceEnd + 3);
   }
   return { visible, pending };
