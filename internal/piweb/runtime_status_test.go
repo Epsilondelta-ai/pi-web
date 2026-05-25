@@ -46,7 +46,7 @@ func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeQuotaStatusWritesProjectStatus(t *testing.T) {
+func TestWorkspaceRuntimeQuotaStatusFallsBackToEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("PI_WEB_5H_QUOTA", "33")
 	t.Setenv("PI_WEB_WEEKLY_QUOTA", "44")
@@ -54,22 +54,16 @@ func TestWorkspaceRuntimeQuotaStatusWritesProjectStatus(t *testing.T) {
 	if status.FiveHourQuota == nil || *status.FiveHourQuota != 33 || status.WeeklyQuota == nil || *status.WeeklyQuota != 44 {
 		t.Fatalf("unexpected quota status: %+v", status)
 	}
-	data, err := os.ReadFile(filepath.Join(root, ".pi", "web-status.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := string(data)
-	if !strings.Contains(body, `"fiveHourQuota": 33`) || !strings.Contains(body, `"weeklyQuota": 44`) {
-		t.Fatalf("quota was not written: %s", body)
-	}
 }
 
-func TestRuntimeQuotaLoadsProjectFileAndClamps(t *testing.T) {
+func TestRuntimeQuotaIgnoresProjectFileAndClampsEnv(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("PI_WEB_5H_QUOTA", "120")
+	t.Setenv("PI_WEB_WEEKLY_QUOTA", "14")
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":120,"weeklyQuota":14}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":1,"weeklyQuota":2}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	fiveHour, weekly := RuntimeQuota(root)
