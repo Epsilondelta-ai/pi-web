@@ -333,7 +333,7 @@ function speechLanguageListId(path) {
         <details class="auth-login" data-auth-form>
           <summary>
             <span class="auth-login-title"><span data-i18n="authTitle">Authentication</span> <em data-i18n="authMode">API key login</em></span>
-            <small data-auth-status data-i18n="authStatus">API key is stored in ~/.pi/agent/auth.json</small>
+            <small data-auth-status>API key is stored in ~/.pi/agent/auth.json</small>
           </summary>
           <div class="auth-login-fields">
             <label><span data-i18n="provider">provider</span>
@@ -359,7 +359,7 @@ function speechLanguageListId(path) {
             <a data-oauth-link href="#" target="_blank" rel="noreferrer" hidden data-i18n="openLoginPage">open login page</a>
             <input data-oauth-input autocomplete="off" placeholder="prompt input or redirect URL" data-i18n-placeholder="oauthInput" hidden />
             <button type="button" data-action="send-oauth-input" hidden data-i18n="send">send</button>
-            <small data-oauth-status data-i18n="oauthStatus">OAuth supports Claude, Codex, and Copilot subscriptions.</small>
+            <small data-oauth-status>OAuth supports Claude, Codex, and Copilot subscriptions.</small>
           </div>
         </details>
         <div class="settings-groups">
@@ -423,7 +423,7 @@ function speechLanguageListId(path) {
                         {field.values.map((value) => <option value={value}>{value}</option>)}
                       </select>
                     )}
-                    <small data-i18n="effectiveNotSet">effective: not set</small>
+                    <small>effective: not set</small>
                   </label>
                 ))}
                 {group.title === "Speech" && (
@@ -431,7 +431,7 @@ function speechLanguageListId(path) {
                     <label class="settings-field" data-speech-advanced data-secure-context-only="https" hidden>
                       <span class="settings-label-row"><span data-i18n="useLocalWhisper">Use local Whisper</span> <em data-i18n="enhanced">Enhanced</em></span>
                       <span class="settings-checkbox"><input type="checkbox" data-setting="speechInput.useLocalWhisper" /> <span data-i18n="enabled">Enabled</span></span>
-                      <small data-i18n="effectiveNotSet">effective: not set</small>
+                      <small>effective: not set</small>
                     </label>
                     <label class="settings-field settings-whisper-model" data-speech-advanced data-secure-context-only="https" hidden>
                       <span data-i18n="whisperModel">Whisper model</span>
@@ -450,7 +450,7 @@ function speechLanguageListId(path) {
                         </select>
                         <button type="button" data-action="download-whisper-model" hidden data-i18n="download">download</button>
                       </span>
-                      <small data-whisper-status data-i18n="notChecked">not checked</small>
+                      <small data-whisper-status>not checked</small>
                     </label>
                   </>
                 )}
@@ -461,7 +461,7 @@ function speechLanguageListId(path) {
 
       </div>
       <div class="settings-foot">
-        <span data-settings-status data-i18n="settingsInheritHint">blank fields inherit from effective settings</span>
+        <span data-settings-status>blank fields inherit from effective settings</span>
         <button type="button" data-action="close-settings" data-i18n="cancel">cancel</button>
         <button type="submit" data-i18n="save">save</button>
       </div>
