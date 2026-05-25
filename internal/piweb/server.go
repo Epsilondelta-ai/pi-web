@@ -209,7 +209,7 @@ func (s *Server) logoutProvider(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"provider": provider, "configured": false})
 }
 
-const maxJSONBodyBytes int64 = 1 << 20
+const maxJSONBodyBytes int64 = 16 << 20
 
 var errRequestBodyTooLarge = errors.New("request body is too large")
 
