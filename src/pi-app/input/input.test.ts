@@ -7,7 +7,7 @@ function renderApp() {
     <pi-app>
       <div class="attach-chips" hidden></div>
       <textarea class="prompt-textarea"></textarea>
-      <button class="send-btn" disabled>send</button>
+      <button class="send-btn" aria-disabled="true">send</button>
       <button class="attach-btn">attach</button>
       <input data-file-input type="file" />
     </pi-app>
@@ -63,6 +63,6 @@ describe("pi-app prompt input", () => {
       mimeType: "image/png",
     });
     expect(app.attachmentContents[0].dataUrl).toContain("data:image/png;base64,");
-    expect(app.querySelector(".send-btn").disabled).toBe(false);
+    expect(app.querySelector(".send-btn").getAttribute("aria-disabled")).toBe("false");
   });
 });
