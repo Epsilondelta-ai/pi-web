@@ -45,8 +45,23 @@ It bundles an Astro-based frontend and a Go backend into a single executable, so
 
 ## Features
 
-- **Workspace management**: Open local folders, view recent workspaces, and open workspaces after cloning Git repositories.
-- **Session UI**: Browse existing pi sessions, create new sessions, and stream prompts/responses in real time.
-- **File browsing and preview**: Browse the workspace file tree, read files, edit them, and save changes from the UI.
-- **Local command execution**: Run shell commands in the selected workspace.
-- **Single executable**: Distribute the Astro static build embedded in a Go binary.
+- **Workspace management**: Open local folders, switch recent workspaces, delete saved workspaces, and clone Git
+  repositories before opening them.
+- **Session UI**: Browse workspace sessions, create/rename/delete sessions, resume previous conversations, and stream
+  prompts/responses in real time.
+- **Prompt controls**: Send prompts with multiple attachments, keep per-session drafts, cancel or steer active runs, and
+  answer pi fallback choice prompts inline.
+- **Transcript rendering**: Render markdown, syntax-highlighted code, tool output, streamed design decks, and long
+  transcripts with virtualization.
+- **File browsing and editing**: Browse the workspace file tree with Material Icon Theme icons, search files, preview
+  supported formats, create/rename/delete/upload files, edit text files, and save changes from the UI.
+- **Git insight**: View workspace Git status, file decorations, commit history, and individual commit details.
+- **Local command execution**: Run shell commands in the selected workspace and inspect command history/results.
+- **Settings and auth**: Manage project/global pi settings, API keys, OAuth login for Claude/Codex/Copilot
+  subscriptions, runtime model/thinking settings, and quota/status checks.
+- **Voice and notifications**: Read responses aloud, use browser or local Whisper speech transcription, and configure
+  Discord/Telegram completion notifications.
+- **Internationalized UI**: Switch the browser UI across English, Korean, Chinese, Japanese, Spanish, Portuguese,
+  French, Russian, and German.
+- **AG-UI bridge**: Expose session runs through an AG-UI-compatible SSE endpoint for client integrations.
+- **Single executable**: Distribute the Astro static build embedded in a Go binary with built-in update support.
