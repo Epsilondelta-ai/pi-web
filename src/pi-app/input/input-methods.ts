@@ -56,6 +56,7 @@ function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
 export const inputMethods = {
   async submitPrompt() {
     this.stopSpeechInput?.();
+    this.updatePrompt?.();
     const text = this.prompt?.value.trim() || "";
     if (!text && !this.attachments?.children.length) return;
     this.clearPromptDraft?.();
@@ -709,7 +710,10 @@ export const inputMethods = {
     const value = this.prompt.value;
     this.savePromptDraft?.();
     const hasAttachments = !!this.attachments?.children.length;
-    this.sendButton.disabled = !value.trim() && !hasAttachments;
+    const canSend = !!value.trim() || hasAttachments;
+    this.sendButton.disabled = false;
+    this.sendButton.setAttribute("aria-disabled", canSend ? "false" : "true");
+    this.sendButton.classList.toggle("is-disabled", !canSend);
     this.slashPopover?.toggleAttribute("hidden", !(value.startsWith("/") && !value.includes("\n")));
     this.filterSlash(value);
     this.prompt.style.height = "auto";

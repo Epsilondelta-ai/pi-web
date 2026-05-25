@@ -529,6 +529,17 @@ describe("pi-app controls", () => {
     expect(() => app.savePromptDraft()).not.toThrow();
   });
 
+  it("sends current prompt text even when input state was not refreshed", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = false;
+    app.prompt.value = "send without input event";
+
+    app.sendButton.click();
+
+    expect(app.prompt.value).toBe("");
+    expect(app.sendButton.getAttribute("aria-disabled")).toBe("true");
+  });
+
   it("keeps send and stop as separate running controls", async () => {
     const app = await connectPiApp();
     const send = app.querySelector(".send-btn");
@@ -537,11 +548,12 @@ describe("pi-app controls", () => {
     app.setMode("running");
     expect(stop.hidden).toBe(false);
     expect(send.textContent).toBe("send");
-    expect(send.disabled).toBe(true);
+    expect(send.disabled).toBe(false);
+    expect(send.getAttribute("aria-disabled")).toBe("true");
 
     app.prompt.value = "one more thing";
     app.updatePrompt();
-    expect(send.disabled).toBe(false);
+    expect(send.getAttribute("aria-disabled")).toBe("false");
 
     app.setMode("idle");
     expect(stop.hidden).toBe(true);
