@@ -79,7 +79,15 @@ func TestPiUpdateEndpoints(t *testing.T) {
 		},
 	}, NewMockStore(), NewBroker())
 
+	forbiddenReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", nil)
+	forbiddenRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(forbiddenRes, forbiddenReq)
+	if forbiddenRes.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden update without app header, got %d", forbiddenRes.Code)
+	}
+
 	startReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", nil)
+	startReq.Header.Set("X-Pi-Web-Request", "pi-update")
 	startRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(startRes, startReq)
 	if startRes.Code != http.StatusAccepted || !strings.Contains(startRes.Body.String(), `"state":"updating"`) {

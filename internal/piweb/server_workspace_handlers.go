@@ -54,7 +54,11 @@ func (s *Server) piUpdateStatus(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.piUpdater.Status())
 }
 
-func (s *Server) startPiUpdate(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) startPiUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-Pi-Web-Request") != "pi-update" {
+		writeError(w, http.StatusForbidden, errors.New("pi update requires an app request header"))
+		return
+	}
 	if !s.config.EnablePiExecution {
 		writeJSON(w, http.StatusOK, PiUpdateStatus{State: PiUpdateUpdated})
 		return

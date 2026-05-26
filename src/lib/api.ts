@@ -43,7 +43,7 @@ export function getPiUpdateStatus() {
 }
 
 export function startPiUpdate() {
-  return request("/api/pi/update", { method: "POST" });
+  return request("/api/pi/update", { method: "POST", headers: { "X-Pi-Web-Request": "pi-update" } });
 }
 
 export function getWorkspaces() {

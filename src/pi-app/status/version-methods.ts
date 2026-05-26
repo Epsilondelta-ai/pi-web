@@ -33,7 +33,10 @@ export const versionMethods = {
   },
 
   renderPiUpdateStatus(status) {
-    if (status?.state === "updating") this.notifyPiUpdateRunning?.();
+    if (status?.state === "updating") {
+      this.notifyPiUpdateRunning?.();
+      this.startPiUpdatePolling?.();
+    }
     if (status?.state === "updated") this.notifyPiUpdateComplete?.();
     if (status?.state === "failed") this.notifyPiUpdateFailed?.(status.error);
   },
@@ -48,7 +51,7 @@ export const versionMethods = {
   },
 
   startPiUpdatePolling() {
-    if (this.piUpdateTimer) clearInterval(this.piUpdateTimer);
+    if (this.piUpdateTimer) return;
     this.piUpdateTimer = setInterval(async () => {
       try {
         const status = await getPiUpdateStatus();
