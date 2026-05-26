@@ -24,6 +24,8 @@ class PiApp extends HTMLElement {
     if (this.bound) return;
     this.bound = true;
     this.prompt = this.querySelector(".prompt-textarea");
+    this.promptBar = this.querySelector(".prompt-bar");
+    this.promptShellMode = false;
     this.sendButton = this.querySelector(".send-btn");
     this.stopButton = this.querySelector(".stop-btn");
     this.micButton = this.querySelector(".mic-btn");
@@ -163,7 +165,7 @@ class PiApp extends HTMLElement {
     this.prompt?.addEventListener("input", () => this.updatePrompt());
     this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event));
     this.prompt?.addEventListener("keydown", (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") this.submitPrompt();
+      this.handlePromptKeydown(event);
       const shouldNavigateSlashCommands = this.slashPopover
         && !this.slashPopover.hidden
         && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key);

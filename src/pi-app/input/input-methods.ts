@@ -15,6 +15,8 @@ function composeSpeechSegments(segments) {
   return segments.reduce((text, segment) => mergeSpeechTranscript(text, segment?.text), "");
 }
 
+const SHELL_PROMPT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg>`;
+
 const WHISPER_MODELS = {
   "tiny-q5": { id: "whisper-tiny", size: "~30MB" },
   tiny: { id: "whisper-tiny", size: "~30MB" },
@@ -58,6 +60,11 @@ export const inputMethods = {
     this.stopSpeechInput?.();
     this.updatePrompt?.();
     const text = this.prompt?.value.trim() || "";
+    if (this.promptShellMode) {
+      if (!text) return;
+      await this.submitPromptShellCommand(text);
+      return;
+    }
     if (!text && !this.attachments?.children.length) return;
     this.clearPromptDraft?.();
     if (this.running) {
@@ -175,10 +182,34 @@ export const inputMethods = {
     event.preventDefault();
     const input = event.currentTarget.querySelector("input[name='command']");
     const command = input?.value.trim();
+    const button = event.currentTarget.querySelector("button[type='submit']");
+    await this.runPromptShellCommand(command, {
+      onStart: () => { if (button) button.disabled = true; },
+      onSuccess: () => { if (input) input.value = ""; },
+      onFinish: () => { if (button) button.disabled = false; },
+    });
+  },
+
+  async submitPromptShellCommand(command) {
+    if (!this.prompt) return;
+    await this.runPromptShellCommand(command, {
+      onStart: () => { this.prompt.disabled = true; },
+      onSuccess: () => {
+        this.prompt.value = "";
+        this.exitPromptShellMode();
+      },
+      onFinish: () => {
+        if (this.prompt) this.prompt.disabled = false;
+        this.updatePrompt();
+        this.prompt?.focus();
+      },
+    });
+  },
+
+  async runPromptShellCommand(command, hooks: any = {}) {
     const workspaceId = this.dataset.activeWorkspaceId;
     if (!command || !workspaceId || !this.apiConnected) return;
-    const button = event.currentTarget.querySelector("button[type='submit']");
-    if (button) button.disabled = true;
+    hooks.onStart?.();
     this.showSessionMain();
     this.finalizeStreamingMessages();
     this.appendMessage({
@@ -199,7 +230,7 @@ export const inputMethods = {
         resultMeta: result.exitCode === 0 ? "done" : `exit ${result.exitCode}`,
         body: result.output || "[no output]",
       });
-      if (input) input.value = "";
+      hooks.onSuccess?.();
       void this.loadRuntimeStatus?.(workspaceId);
       void this.loadWorkspaceMeta?.(workspaceId);
     } catch (error) {
@@ -213,7 +244,7 @@ export const inputMethods = {
       });
       this.setConnection("err");
     } finally {
-      if (button) button.disabled = false;
+      hooks.onFinish?.();
     }
   },
 
@@ -723,6 +754,11 @@ export const inputMethods = {
   updatePrompt() {
     if (!this.prompt || !this.sendButton) return;
     const value = this.prompt.value;
+    if (!this.promptShellMode && value.startsWith("! ")) {
+      this.prompt.value = value.slice(2);
+      this.enterPromptShellMode();
+      return;
+    }
     this.savePromptDraft?.();
     const hasAttachments = !!this.attachments?.children.length;
     const canSend = !!value.trim() || hasAttachments;
@@ -733,6 +769,49 @@ export const inputMethods = {
     this.filterSlash(value);
     this.prompt.style.height = "auto";
     this.prompt.style.height = Math.min(180, this.prompt.scrollHeight) + "px";
+  },
+
+  handlePromptKeydown(event) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") this.submitPrompt();
+    if (event.key === " " && !this.promptShellMode && this.prompt?.value === "!" && this.prompt.selectionStart === 1 && this.prompt.selectionEnd === 1) {
+      event.preventDefault();
+      this.prompt.value = "";
+      this.enterPromptShellMode();
+      return;
+    }
+    if (event.key === "Backspace" && this.promptShellMode && !this.prompt?.value) {
+      event.preventDefault();
+      this.exitPromptShellMode();
+    }
+  },
+
+  enterPromptShellMode() {
+    if (this.promptShellMode) return;
+    this.promptShellMode = true;
+    this.promptBar?.classList.add("shell-mode");
+    this.prompt?.setAttribute("placeholder", "run shell command in workspace…");
+    this.attachButtonOriginalHtml ??= this.attachButton?.innerHTML || "";
+    if (this.attachButton) {
+      this.attachButton.innerHTML = SHELL_PROMPT_ICON;
+      this.attachButton.disabled = true;
+      this.attachButton.setAttribute("aria-label", "shell command mode");
+      this.attachButton.setAttribute("title", "shell command mode");
+    }
+    this.updatePrompt();
+  },
+
+  exitPromptShellMode() {
+    if (!this.promptShellMode) return;
+    this.promptShellMode = false;
+    this.promptBar?.classList.remove("shell-mode");
+    this.prompt?.setAttribute("placeholder", "ask pi to do something…");
+    if (this.attachButton) {
+      this.attachButton.innerHTML = this.attachButtonOriginalHtml || this.attachButton.innerHTML;
+      this.attachButton.disabled = false;
+      this.attachButton.setAttribute("aria-label", "attach files");
+      this.attachButton.setAttribute("title", "attach files");
+    }
+    this.updatePrompt();
   },
 
   fillPrompt(value) {

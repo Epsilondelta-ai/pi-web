@@ -154,6 +154,18 @@
   flex-shrink: 0;
 }
 .attach-btn:hover { color: var(--accent); border-color: var(--accent); }
+.attach-btn:disabled {
+  cursor: default;
+  opacity: 1;
+  color: #ffd64d;
+  border-color: color-mix(in srgb, #ffd64d 70%, var(--border));
+  pointer-events: none;
+}
+.prompt-bar.shell-mode .prompt-textarea,
+.prompt-bar.shell-mode .prompt-textarea:focus {
+  border-color: #ffd64d;
+  box-shadow: 0 0 0 1px #ffd64d;
+}
 
 .prompt-input-col {
   display: flex;
