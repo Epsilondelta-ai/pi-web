@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, expect, it, vi } from "vitest";
 import { isElement, measuredHeight, numericPixelValue, transcriptIndex } from "./transcript-window-methods";
 
@@ -10,7 +9,7 @@ describe("transcript window helper coverage", () => {
     expect(numericPixelValue("bad")).toBe(0);
     expect(numericPixelValue("12.5px")).toBe(12.5);
     const node = document.createElement("div");
-    node.getBoundingClientRect = vi.fn(() => ({ height: 5 }));
+    node.getBoundingClientRect = vi.fn(() => ({ height: 5 }) as DOMRect);
     vi.stubGlobal("getComputedStyle", () => ({ marginTop: "2px", marginBottom: "3px" }));
     expect(measuredHeight([node])).toBe(10);
     vi.unstubAllGlobals();

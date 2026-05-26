@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, expect, it, vi } from "vitest";
 import { filePreviewMethods } from "./file-preview-methods";
 
@@ -21,7 +20,7 @@ describe("file preview method direct branches", () => {
     };
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ file: { path: "x.txt", previewKind: "text", mime: "text/plain", content: "x" } }) })));
     await owner.saveFilePreview();
-    owner.filePreview = { file: { path: "", previewKind: "text", mime: "text/plain", content: "x" }, mode: "text", cleanContent: "x", originalContent: "x" };
+    owner.filePreview = { file: { path: "", previewKind: "text", mime: "text/plain", content: "x" }, mode: "text", cleanContent: "x", originalContent: "x" } as any;
     expect(() => owner.renderFilePreviewBody()).not.toThrow();
     vi.unstubAllGlobals();
   });

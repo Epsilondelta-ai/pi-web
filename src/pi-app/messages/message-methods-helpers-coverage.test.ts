@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, expect, it, vi } from "vitest";
 import { messageMethods, streamingRowsStart } from "./message-methods";
 
@@ -32,7 +31,7 @@ describe("message method direct branch coverage", () => {
     expect(owner.loadingMessageNodes()).toEqual([]);
     owner.finalizePiStream("final without row");
     expect(owner.appendTranscriptNode).toHaveBeenCalled();
-    owner.piStreamText = "stream";
+    (owner as any).piStreamText = "stream";
     owner.finalizeStreamingMessages();
     expect(owner.replaceTranscriptNode).not.toHaveBeenCalled();
     owner.syncAnsweredChoices();

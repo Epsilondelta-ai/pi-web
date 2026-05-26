@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, expect, it } from "vitest";
 import {
   baseLanguageCode,
@@ -37,7 +36,7 @@ describe("settings pure helper coverage", () => {
     const { input, option, field, custom } = languageInput();
     expect(valueAt({ a: { b: 1 } }, "a.b")).toBe(1);
     expect(valueAt(null, "a.b")).toBeUndefined();
-    expect(baseLanguageCode()).toBe("");
+    expect(baseLanguageCode(undefined)).toBe("");
     expect(baseLanguageCode("EN-us")).toBe("en");
     expect(languageOptionFromList(null, "English")).toBeNull();
     expect(languageOptionFromList(input, "")).toBeNull();
@@ -66,7 +65,7 @@ describe("settings pure helper coverage", () => {
     expect(customInputFor(input)).toBe(custom);
     expect(customInputFor(document.createElement("input"))).toBeUndefined();
 
-    input.getClientRects = () => [{ width: 1 }];
+    input.getClientRects = (() => [{ width: 1 } as DOMRect]) as any;
     expect(visibleSettingsFocusables(field)).toContain(input);
     field.hidden = true;
     expect(visibleSettingsFocusables(field)).toEqual([]);

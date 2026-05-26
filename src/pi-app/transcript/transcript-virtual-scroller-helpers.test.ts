@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, expect, it, vi } from "vitest";
 import {
   transcriptItemHeight,
@@ -20,7 +19,7 @@ describe("transcript virtual scroller helpers", () => {
       messageNode: vi.fn(() => node),
       transcriptElementNodes: vi.fn((element) => [element]),
     };
-    const item = { id: 7, message: { kind: "pi", text: "hello" } };
+    const item: any = { id: 7, message: { kind: "pi", text: "hello" } };
     expect(transcriptItemNodes(owner, item)).toEqual([node]);
     expect(item.nodes).toEqual([node]);
     expect(transcriptItemId(item)).toBe(7);
