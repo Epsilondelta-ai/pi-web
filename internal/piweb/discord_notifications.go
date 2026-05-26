@@ -33,6 +33,13 @@ func notifyRemoteResponseCompleted(root string, session Session, messages []Mess
 	)
 }
 
+func notifyRemoteChoiceQuestion(root string, session Session, messages []Message) error {
+	return errors.Join(
+		notifyDiscordChoiceQuestion(root, session, messages),
+		notifyTelegramChoiceQuestion(root, session, messages),
+	)
+}
+
 func notifyDiscordResponseCompleted(root string, session Session, messages []Message) error {
 	settings, err := WorkspaceSettings(root)
 	if err != nil {
@@ -55,6 +62,30 @@ func notifyTelegramResponseCompleted(root string, session Session, messages []Me
 		return nil
 	}
 	return sendTelegramMessage(telegram, telegramCompletionMessage(session, latestUserQuestion(messages)))
+}
+
+func notifyDiscordChoiceQuestion(root string, session Session, messages []Message) error {
+	settings, err := WorkspaceSettings(root)
+	if err != nil {
+		return err
+	}
+	discord := discordCompletionSettings(settings.Effective)
+	if !discord.Enabled || discord.Token == "" || discord.ChannelID == "" {
+		return nil
+	}
+	return sendDiscordMessage(discord, discordChoiceQuestionMessage(session, latestChoiceQuestion(messages)))
+}
+
+func notifyTelegramChoiceQuestion(root string, session Session, messages []Message) error {
+	settings, err := WorkspaceSettings(root)
+	if err != nil {
+		return err
+	}
+	telegram := telegramCompletionSettings(settings.Effective)
+	if !telegram.Enabled || telegram.Token == "" || telegram.ChatID == "" {
+		return nil
+	}
+	return sendTelegramMessage(telegram, telegramChoiceQuestionMessage(session, latestChoiceQuestion(messages)))
 }
 
 func discordCompletionSettings(settings map[string]any) discordNotificationSettings {
@@ -142,12 +173,36 @@ func telegramCompletionMessage(session Session, question string) string {
 	return content
 }
 
+func discordChoiceQuestionMessage(session Session, question string) string {
+	content := choiceQuestionMessage(session, question)
+	if len(content) > 1900 {
+		content = content[:1900]
+	}
+	return content
+}
+
+func telegramChoiceQuestionMessage(session Session, question string) string {
+	content := choiceQuestionMessage(session, question)
+	if len(content) > 3900 {
+		content = content[:3900]
+	}
+	return content
+}
+
 func completionMessage(session Session, question string) string {
+	return remoteNotificationMessage("✅ 답변 완료", session, question)
+}
+
+func choiceQuestionMessage(session Session, question string) string {
+	return remoteNotificationMessage("❓ 선택지 질문", session, question)
+}
+
+func remoteNotificationMessage(prefix string, session Session, question string) string {
 	title := strings.TrimSpace(session.Title)
 	if title == "" {
 		title = session.ID
 	}
-	content := "✅ 답변 완료: " + truncateDiscordSessionTitle(sanitizeDiscordContent(title))
+	content := prefix + ": " + truncateDiscordSessionTitle(sanitizeDiscordContent(title))
 	if question = sanitizeDiscordContent(question); question != "" {
 		content += "\n질문: " + question
 	}
@@ -161,6 +216,30 @@ func latestUserQuestion(messages []Message) string {
 		}
 	}
 	return ""
+}
+
+func latestChoiceQuestion(messages []Message) string {
+	for index := len(messages) - 1; index >= 0; index-- {
+		if messages[index].Kind == "pi" && containsFallbackChoice(messages[index].Text) {
+			return extractFallbackChoiceQuestion(messages[index].Text)
+		}
+	}
+	return ""
+}
+
+func extractFallbackChoiceQuestion(text string) string {
+	start := strings.Index(text, "{")
+	end := strings.LastIndex(text, "}")
+	if start < 0 || end <= start {
+		return ""
+	}
+	var payload struct {
+		Question string `json:"question"`
+	}
+	if err := json.Unmarshal([]byte(text[start:end+1]), &payload); err != nil {
+		return ""
+	}
+	return payload.Question
 }
 
 func truncateDiscordSessionTitle(title string) string {
