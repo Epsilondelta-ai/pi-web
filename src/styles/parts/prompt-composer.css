@@ -252,9 +252,11 @@
   min-height: 38px;
   max-height: 180px;
 }
-.prompt-textarea:focus {
+.prompt-textarea:focus,
+.prompt-textarea:focus-visible {
   border-color: var(--border-focus);
   box-shadow: none;
+  outline: none;
 }
 .prompt-textarea::placeholder { color: var(--fg-3); }
 .prompt-actions {
