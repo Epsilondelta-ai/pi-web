@@ -25,7 +25,7 @@ describe("pi-app input actions coverage", () => {
       "refreshGitHistory", "openFile", "closeFilePreview", "toggleFilePreviewMode", "saveFilePreview", "collapseSidebar",
       "toggleDrawer", "toggleTool", "showFullToolOutput", "toggleWorkspace", "deleteWorkspace", "deleteWorkspaceSessions",
       "newSession", "toggleSessionMenu", "renameSession", "deleteSession", "submitFallbackChoice", "showUpdateTip", "openSettingsModal",
-      "closeSettingsModal", "saveSettingsForm", "saveAuthForm", "logoutAuthProvider", "startOAuthLogin", "sendOAuthInput", "pickSession", "openWorkspace", "fillPrompt", "pickSlash",
+      "closeSettingsModal", "saveSettingsForm", "saveAuthForm", "logoutAuthProvider", "startOAuthLogin", "logoutOAuthProvider", "sendOAuthInput", "pickSession", "openWorkspace", "fillPrompt", "pickSlash",
     ].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
     app.currentFolder = "/cwd";
     app.currentFolderParent = "/";
@@ -35,7 +35,7 @@ describe("pi-app input actions coverage", () => {
       "toggle-file-preview-mode", "save-file-preview", "collapse-sidebar", "expand-sidebar", "open-drawer", "close-drawer",
       "toggle-tool", "show-full-tool-output", "toggle-workspace", "delete-workspace", "delete-workspace-sessions", "new-session",
       "session-menu-toggle", "rename-session", "delete-session", "show-update-tip", "open-settings", "close-settings", "save-settings",
-      "save-auth-provider", "logout-auth-provider", "start-oauth-login", "send-oauth-input",
+      "save-auth-provider", "logout-auth-provider", "start-oauth-login", "logout-oauth-provider", "send-oauth-input",
     ];
     for (const action of actions) {
       const row = document.createElement("div");
