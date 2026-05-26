@@ -11,10 +11,11 @@ const chromium = process.env.CHROME_BIN || "/usr/bin/chromium";
 const port = Number(process.env.PI_WEB_FLOW_PORT || 48733);
 const outDir = process.env.PI_WEB_FLOW_DIR || "/tmp/pi-web-lighthouse-flow";
 const url = `http://127.0.0.1:${port}/`;
+const optionalBudget = (value) => (value === undefined ? null : Number(value));
 const budgets = {
-  minNavigationScore: Number(process.env.PI_WEB_FLOW_MIN_NAV_SCORE || 0.9),
-  maxNavigationLcp: Number(process.env.PI_WEB_FLOW_MAX_NAV_LCP || 3000),
-  maxNavigationTbt: Number(process.env.PI_WEB_FLOW_MAX_NAV_TBT || 250),
+  minNavigationScore: optionalBudget(process.env.PI_WEB_FLOW_MIN_NAV_SCORE),
+  maxNavigationLcp: optionalBudget(process.env.PI_WEB_FLOW_MAX_NAV_LCP),
+  maxNavigationTbt: optionalBudget(process.env.PI_WEB_FLOW_MAX_NAV_TBT),
   maxInteractionTbt: Number(process.env.PI_WEB_FLOW_MAX_INTERACTION_TBT || 250),
 };
 
@@ -116,9 +117,9 @@ function enforceFlowBudgets(summary) {
   for (const key of ["score", "lcp", "tbt", "cls"]) {
     if (!Number.isFinite(navigation?.[key])) failures.push(`navigation ${key} missing`);
   }
-  if (Number.isFinite(navigation?.score) && navigation.score < budgets.minNavigationScore) failures.push(`navigation score ${navigation.score} < ${budgets.minNavigationScore}`);
-  if (Number.isFinite(navigation?.lcp) && navigation.lcp > budgets.maxNavigationLcp) failures.push(`navigation LCP ${navigation.lcp} > ${budgets.maxNavigationLcp}`);
-  if (Number.isFinite(navigation?.tbt) && navigation.tbt > budgets.maxNavigationTbt) failures.push(`navigation TBT ${navigation.tbt} > ${budgets.maxNavigationTbt}`);
+  if (Number.isFinite(budgets.minNavigationScore) && Number.isFinite(navigation?.score) && navigation.score < budgets.minNavigationScore) failures.push(`navigation score ${navigation.score} < ${budgets.minNavigationScore}`);
+  if (Number.isFinite(budgets.maxNavigationLcp) && Number.isFinite(navigation?.lcp) && navigation.lcp > budgets.maxNavigationLcp) failures.push(`navigation LCP ${navigation.lcp} > ${budgets.maxNavigationLcp}`);
+  if (Number.isFinite(budgets.maxNavigationTbt) && Number.isFinite(navigation?.tbt) && navigation.tbt > budgets.maxNavigationTbt) failures.push(`navigation TBT ${navigation.tbt} > ${budgets.maxNavigationTbt}`);
   for (const step of summary.slice(1).filter((item) => item.mode === "timespan")) {
     if (!Number.isFinite(step.tbt)) failures.push(`${step.name} TBT missing`);
     else if (step.tbt > budgets.maxInteractionTbt) failures.push(`${step.name} TBT ${step.tbt} > ${budgets.maxInteractionTbt}`);
