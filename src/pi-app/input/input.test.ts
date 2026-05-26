@@ -97,6 +97,53 @@ describe("pi-app prompt input", () => {
     expect(app.querySelector(".attach-chip .ac-name").textContent).toBe("note.txt");
   });
 
+  it("covers prompt drop zone enter, leave, no-file, and uninstall guards", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    const promptBar = app.querySelector(".prompt-bar");
+    const withFiles = { types: ["Files"], files: [], dropEffect: "none" };
+    const withoutFiles = { types: ["text/plain"], files: [], dropEffect: "none" };
+
+    for (const type of ["dragenter", "dragover", "dragleave", "drop"]) {
+      const ignored = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(ignored, "dataTransfer", { value: withoutFiles });
+      promptBar.dispatchEvent(ignored);
+      expect(ignored.defaultPrevented).toBe(false);
+    }
+    const missingTransfer = new Event("dragenter", { bubbles: true, cancelable: true });
+    promptBar.dispatchEvent(missingTransfer);
+    expect(missingTransfer.defaultPrevented).toBe(false);
+    expect(promptBar.classList.contains("drag-over")).toBe(false);
+
+    for (const type of ["dragenter", "dragenter"]) {
+      const enter = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(enter, "dataTransfer", { value: withFiles });
+      promptBar.dispatchEvent(enter);
+    }
+    expect(promptBar.classList.contains("drag-over")).toBe(true);
+    expect(app.querySelectorAll("[data-drop-overlay]")).toHaveLength(1);
+
+    const firstLeave = new Event("dragleave", { bubbles: true, cancelable: true });
+    Object.defineProperty(firstLeave, "dataTransfer", { value: withFiles });
+    promptBar.dispatchEvent(firstLeave);
+    expect(promptBar.classList.contains("drag-over")).toBe(true);
+
+    const secondLeave = new Event("dragleave", { bubbles: true, cancelable: true });
+    Object.defineProperty(secondLeave, "dataTransfer", { value: withFiles });
+    promptBar.dispatchEvent(secondLeave);
+    expect(promptBar.classList.contains("drag-over")).toBe(false);
+
+    app.uninstallPromptDropZone();
+    const afterUninstall = new Event("dragenter", { bubbles: true, cancelable: true });
+    Object.defineProperty(afterUninstall, "dataTransfer", { value: withFiles });
+    promptBar.dispatchEvent(afterUninstall);
+    expect(promptBar.classList.contains("drag-over")).toBe(false);
+
+    app.promptBar = null;
+    expect(() => app.installPromptDropZone()).not.toThrow();
+  });
+
   it("handles file attachments, unnamed pasted images, glyphs, sizes, and no-op guards", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
