@@ -164,7 +164,7 @@
 .prompt-bar.shell-mode .prompt-textarea,
 .prompt-bar.shell-mode .prompt-textarea:focus {
   border-color: #ffd64d;
-  box-shadow: 0 0 0 1px #ffd64d;
+  box-shadow: none;
 }
 
 .prompt-input-col {
@@ -254,7 +254,7 @@
 }
 .prompt-textarea:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 1px var(--border-focus);
+  box-shadow: none;
 }
 .prompt-textarea::placeholder { color: var(--fg-3); }
 .prompt-actions {
