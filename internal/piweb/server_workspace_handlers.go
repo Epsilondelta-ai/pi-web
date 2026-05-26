@@ -2,6 +2,7 @@ package piweb
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -50,6 +51,28 @@ func (s *Server) piVersionStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, status)
 }
 
+func (s *Server) piPackageUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	status := PiPackageUpdateStatus{}
+	if s.config.EnablePiExecution {
+		if s.config.PiPackageUpdateStatus != nil {
+			resolved, err := s.config.PiPackageUpdateStatus(r.Context())
+			if err != nil {
+				status.Error = err.Error()
+			} else {
+				status = resolved
+			}
+		} else {
+			resolved, err := DetectPiPackageUpdateStatus(r.Context())
+			if err != nil {
+				status.Error = err.Error()
+			} else {
+				status = resolved
+			}
+		}
+	}
+	writeJSON(w, http.StatusOK, status)
+}
+
 func (s *Server) piUpdateStatus(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.piUpdater.Status())
 }
@@ -59,11 +82,17 @@ func (s *Server) startPiUpdate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, errors.New("pi update requires an app request header"))
 		return
 	}
+	var req struct {
+		Source string `json:"source"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
 	if !s.config.EnablePiExecution {
 		writeJSON(w, http.StatusOK, PiUpdateStatus{State: PiUpdateUpdated})
 		return
 	}
-	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context()))
+	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context(), strings.TrimSpace(req.Source)))
 }
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")

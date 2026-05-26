@@ -13,15 +13,16 @@ import (
 )
 
 type Config struct {
-	Host              string
-	Port              string
-	AllowedOrigins    []string
-	EnablePiExecution bool
-	StaticFiles       fs.FS
-	CurrentVersion    string
-	VersionStatus     func(context.Context, string) (VersionStatus, error)
-	PiVersionStatus   func(context.Context) (PiVersionStatus, error)
-	PiUpdateRunner    PiUpdateRunner
+	Host                  string
+	Port                  string
+	AllowedOrigins        []string
+	EnablePiExecution     bool
+	StaticFiles           fs.FS
+	CurrentVersion        string
+	VersionStatus         func(context.Context, string) (VersionStatus, error)
+	PiVersionStatus       func(context.Context) (PiVersionStatus, error)
+	PiPackageUpdateStatus PiPackageUpdateDetector
+	PiUpdateRunner        PiUpdateRunner
 }
 
 type Server struct {
@@ -85,6 +86,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
 	s.mux.HandleFunc("GET /api/version", s.versionStatus)
 	s.mux.HandleFunc("GET /api/pi/version", s.piVersionStatus)
+	s.mux.HandleFunc("GET /api/pi/package-updates", s.piPackageUpdateStatus)
 	s.mux.HandleFunc("GET /api/pi/update", s.piUpdateStatus)
 	s.mux.HandleFunc("POST /api/pi/update", s.startPiUpdate)
 	s.mux.HandleFunc("GET /api/auth/providers", s.authProviders)

@@ -38,12 +38,20 @@ export function getPiVersionStatus() {
   return request("/api/pi/version");
 }
 
+export function getPiPackageUpdateStatus() {
+  return request("/api/pi/package-updates");
+}
+
 export function getPiUpdateStatus() {
   return request("/api/pi/update");
 }
 
-export function startPiUpdate() {
-  return request("/api/pi/update", { method: "POST", headers: { "X-Pi-Web-Request": "pi-update" } });
+export function startPiUpdate(source = "") {
+  return request("/api/pi/update", {
+    method: "POST",
+    headers: { "X-Pi-Web-Request": "pi-update" },
+    body: JSON.stringify({ source }),
+  });
 }
 
 export function getWorkspaces() {
