@@ -70,11 +70,14 @@ func TestPiVersionEndpoint(t *testing.T) {
 }
 
 func TestPiUpdateEndpoints(t *testing.T) {
-	done := make(chan struct{})
+	done := make(chan string, 1)
 	server := NewServer(Config{
 		EnablePiExecution: true,
-		PiUpdateRunner: func(context.Context) error {
-			close(done)
+		PiPackageUpdateStatus: func(context.Context) (PiPackageUpdateStatus, error) {
+			return PiPackageUpdateStatus{Updates: []PiPackageUpdate{{Source: "npm:@example/pkg", DisplayName: "@example/pkg"}}}, nil
+		},
+		PiUpdateRunner: func(_ context.Context, source string) error {
+			done <- source
 			return nil
 		},
 	}, NewMockStore(), NewBroker())
@@ -86,7 +89,14 @@ func TestPiUpdateEndpoints(t *testing.T) {
 		t.Fatalf("expected forbidden update without app header, got %d", forbiddenRes.Code)
 	}
 
-	startReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", nil)
+	packageReq := httptest.NewRequest(http.MethodGet, "/api/pi/package-updates", nil)
+	packageRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(packageRes, packageReq)
+	if packageRes.Code != http.StatusOK || !strings.Contains(packageRes.Body.String(), `"source":"npm:@example/pkg"`) {
+		t.Fatalf("unexpected package updates response: %d %s", packageRes.Code, packageRes.Body.String())
+	}
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", strings.NewReader(`{"source":"npm:@example/pkg"}`))
 	startReq.Header.Set("X-Pi-Web-Request", "pi-update")
 	startRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(startRes, startReq)
@@ -94,7 +104,10 @@ func TestPiUpdateEndpoints(t *testing.T) {
 		t.Fatalf("unexpected start response: %d %s", startRes.Code, startRes.Body.String())
 	}
 	select {
-	case <-done:
+	case source := <-done:
+		if source != "npm:@example/pkg" {
+			t.Fatalf("unexpected update source: %q", source)
+		}
 	case <-time.After(time.Second):
 		t.Fatal("update runner did not run")
 	}

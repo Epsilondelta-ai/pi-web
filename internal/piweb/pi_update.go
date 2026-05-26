@@ -15,7 +15,7 @@ const (
 	PiUpdateFailed   = "failed"
 )
 
-type PiUpdateRunner func(context.Context) error
+type PiUpdateRunner func(context.Context, string) error
 
 type PiUpdater struct {
 	mu     sync.Mutex
@@ -30,8 +30,12 @@ func NewPiUpdater(runner PiUpdateRunner) *PiUpdater {
 	return &PiUpdater{runner: runner, status: PiUpdateStatus{State: PiUpdateIdle}}
 }
 
-func RunPiUpdateCommand(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, "pi", "update")
+func RunPiUpdateCommand(ctx context.Context, source string) error {
+	args := []string{"update"}
+	if source != "" {
+		args = append(args, source)
+	}
+	cmd := exec.CommandContext(ctx, "pi", args...)
 	configureCommandProcessGroup(cmd)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -45,7 +49,7 @@ func (u *PiUpdater) Status() PiUpdateStatus {
 	return u.status
 }
 
-func (u *PiUpdater) Start(ctx context.Context) PiUpdateStatus {
+func (u *PiUpdater) Start(ctx context.Context, source string) PiUpdateStatus {
 	u.mu.Lock()
 	if u.status.State == PiUpdateUpdating {
 		status := u.status
@@ -57,7 +61,7 @@ func (u *PiUpdater) Start(ctx context.Context) PiUpdateStatus {
 	u.mu.Unlock()
 
 	go func() {
-		err := u.runner(ctx)
+		err := u.runner(ctx, source)
 		u.mu.Lock()
 		defer u.mu.Unlock()
 		u.status.FinishedAt = time.Now().UTC().Format(time.RFC3339)

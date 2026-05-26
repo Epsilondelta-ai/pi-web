@@ -100,6 +100,15 @@ describe("pi-app toast notifications", () => {
     app.startPiUpdateFlow = vi.fn();
     warnings[1].querySelector("[data-pi-update-confirm='yes']").click();
     expect(app.startPiUpdateFlow).toHaveBeenCalled();
+    app.notifyPiPackageUpdateAvailable([
+      { source: "npm:@example/pkg", displayName: "@example/pkg", currentVersion: "1.0.0", latestVersion: "2.0.0" },
+    ]);
+    const packageWarning = [...document.querySelectorAll(".session-toast.warning")]
+      .filter((toast) => toast.textContent.includes("Which package do you want to update?"))
+      .at(-1);
+    expect(packageWarning.textContent).toContain("@example/pkg (1.0.0 → 2.0.0)");
+    packageWarning.querySelector("[data-pi-package-update-confirm='yes']").click();
+    expect(app.startPiUpdateFlow).toHaveBeenCalledWith("npm:@example/pkg");
     app.notifyPiUpdateAvailable({ currentVersion: "0.75.0", latestVersion: "0.75.6" });
     const nextWarning = [...document.querySelectorAll(".session-toast.warning")]
       .filter((toast) => toast.textContent.includes("Do you want to update pi?"))

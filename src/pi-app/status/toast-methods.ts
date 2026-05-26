@@ -175,6 +175,38 @@ function piUpdateConfirmHtml() {
   ].join("");
 }
 
+function packageUpdateLabel(update) {
+  const name = update?.displayName || update?.source || "unknown";
+  const current = update?.currentVersion;
+  const latest = update?.latestVersion;
+  return current && latest ? `${name} (${current} → ${latest})` : name;
+}
+
+function piPackageUpdateConfirmHtml(updates) {
+  const locale = currentUiLocale();
+  const options = updates
+    .map((update) => {
+      const source = String(update?.source || "");
+      return `<option value="${escapeHtml(source)}">${escapeHtml(packageUpdateLabel(update))}</option>`;
+    })
+    .join("");
+  return [
+    `<span class="toast-dot" aria-hidden="true"></span>`,
+    `<span class="toast-copy"><strong>${escapeHtml(uiMessage(locale, "piPackageUpdateQuestion"))}</strong>`,
+    `<select data-pi-package-update-source>${options}</select>`,
+    `<span class="toast-actions">`,
+    `<button type="button" data-pi-package-update-confirm="yes">${escapeHtml(uiMessage(locale, "piUpdateYes"))}</button>`,
+    `<button type="button" data-pi-package-update-confirm="no">${escapeHtml(uiMessage(locale, "piUpdateNo"))}</button>`,
+    `</span></span>`,
+  ].join("");
+}
+
+function packageUpdateKey(updates) {
+  return updates
+    .map((update) => `${update?.source || ""}:${update?.currentVersion || ""}:${update?.latestVersion || ""}`)
+    .join("|");
+}
+
 export function toastContextWorkspace(context) {
   if (!context || typeof context === "string") return context || "워크스페이스 없음";
   return context.workspaceName || context.workspace || context.label || "워크스페이스 없음";
@@ -284,6 +316,30 @@ export const toastMethods = {
       }
       if (answer === "no") {
         this.rememberIgnoredPiUpdate?.(current, latest);
+        this.dismissToast(notification);
+      }
+    });
+    this.syncToastDismissAll();
+  },
+
+  notifyPiPackageUpdateAvailable(updates) {
+    const key = `pi-package-update-question:${packageUpdateKey(updates)}`;
+    this.systemToastKeys ??= new Set();
+    if (this.systemToastKeys.has(key) || this.isPiPackageUpdateIgnored?.(key)) return;
+    this.systemToastKeys.add(key);
+    const notification = this.ensureToastRegion().open({ type: "warning", message: piPackageUpdateConfirmHtml(updates) });
+    notification.on(NotyfEvent.Click, (payload = {}) => {
+      const event = (payload as { event?: Event }).event;
+      const target = event?.target as Element | null | undefined;
+      const answer = target?.closest?.("[data-pi-package-update-confirm]")?.getAttribute("data-pi-package-update-confirm");
+      if (answer === "yes") {
+        const toast = target?.closest?.(".notyf__toast");
+        const source = (toast?.querySelector?.("[data-pi-package-update-source]") as HTMLSelectElement | null)?.value || "";
+        this.dismissToast(notification);
+        void this.startPiUpdateFlow?.(source);
+      }
+      if (answer === "no") {
+        this.rememberIgnoredPiPackageUpdate?.(key);
         this.dismissToast(notification);
       }
     });

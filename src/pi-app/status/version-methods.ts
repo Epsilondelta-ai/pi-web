@@ -1,18 +1,27 @@
-import { getPiUpdateStatus, getPiVersionStatus, getVersionStatus, startPiUpdate } from "../../lib/api";
+import {
+  getPiPackageUpdateStatus,
+  getPiUpdateStatus,
+  getPiVersionStatus,
+  getVersionStatus,
+  startPiUpdate,
+} from "../../lib/api";
 
 const IGNORED_PI_UPDATE_KEY = "piweb:ignored-pi-update";
+const IGNORED_PI_PACKAGE_UPDATE_KEY = "piweb:ignored-pi-package-update";
 
 export const versionMethods = {
   async loadVersionStatus() {
     try {
-      const [webStatus, piStatus, updateStatus] = await Promise.allSettled([
+      const [webStatus, piStatus, packageStatus, updateStatus] = await Promise.allSettled([
         getVersionStatus(),
         getPiVersionStatus(),
+        getPiPackageUpdateStatus(),
         getPiUpdateStatus(),
       ]);
       if (webStatus.status === "fulfilled") this.renderVersionStatus(webStatus.value);
       if (updateStatus.status === "fulfilled") this.renderPiUpdateStatus(updateStatus.value);
       if (piStatus.status === "fulfilled") this.renderPiVersionStatus(piStatus.value);
+      if (packageStatus.status === "fulfilled") this.renderPiPackageUpdateStatus(packageStatus.value);
     } catch {}
   },
 
@@ -32,6 +41,12 @@ export const versionMethods = {
     this.notifyPiUpdateAvailable?.(status);
   },
 
+  renderPiPackageUpdateStatus(status) {
+    const updates = Array.isArray(status?.updates) ? status.updates : [];
+    if (!updates.length) return;
+    this.notifyPiPackageUpdateAvailable?.(updates);
+  },
+
   renderPiUpdateStatus(status) {
     if (status?.state === "updating") {
       this.notifyPiUpdateRunning?.();
@@ -41,9 +56,9 @@ export const versionMethods = {
     if (status?.state === "failed") this.notifyPiUpdateFailed?.(status.error);
   },
 
-  async startPiUpdateFlow() {
+  async startPiUpdateFlow(source = "") {
     try {
-      this.renderPiUpdateStatus(await startPiUpdate());
+      this.renderPiUpdateStatus(await startPiUpdate(source));
       this.startPiUpdatePolling?.();
     } catch (error) {
       this.notifyPiUpdateFailed?.(error?.message || String(error));
@@ -75,6 +90,20 @@ export const versionMethods = {
   rememberIgnoredPiUpdate(current, latest) {
     try {
       localStorage.setItem(IGNORED_PI_UPDATE_KEY, `${current}:${latest}`);
+    } catch {}
+  },
+
+  isPiPackageUpdateIgnored(key) {
+    try {
+      return localStorage.getItem(IGNORED_PI_PACKAGE_UPDATE_KEY) === key;
+    } catch {
+      return false;
+    }
+  },
+
+  rememberIgnoredPiPackageUpdate(key) {
+    try {
+      localStorage.setItem(IGNORED_PI_PACKAGE_UPDATE_KEY, key);
     } catch {}
   },
 
