@@ -1,6 +1,66 @@
 const LUCIDE_X_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;
 
 export const attachmentMethods = {
+  installPromptDropZone() {
+    if (!this.promptBar || this.uninstallPromptDropZone) return;
+    let dragDepth = 0;
+    const hasFiles = (event) => [...(event.dataTransfer?.types || [])].includes("Files");
+    const showDropTarget = () => {
+      this.promptBar.classList.add("drag-over");
+      this.ensureDropOverlay();
+    };
+    const hideDropTarget = () => {
+      dragDepth = 0;
+      this.promptBar.classList.remove("drag-over");
+      this.promptBar.querySelector("[data-drop-overlay]")?.remove();
+    };
+    const onDragEnter = (event) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      dragDepth += 1;
+      showDropTarget();
+    };
+    const onDragOver = (event) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      showDropTarget();
+    };
+    const onDragLeave = (event) => {
+      if (!hasFiles(event)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) hideDropTarget();
+    };
+    const onDrop = (event) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      const files = event.dataTransfer?.files;
+      hideDropTarget();
+      void this.addFiles(files);
+    };
+    this.promptBar.addEventListener("dragenter", onDragEnter);
+    this.promptBar.addEventListener("dragover", onDragOver);
+    this.promptBar.addEventListener("dragleave", onDragLeave);
+    this.promptBar.addEventListener("drop", onDrop);
+    this.uninstallPromptDropZone = () => {
+      hideDropTarget();
+      this.promptBar?.removeEventListener("dragenter", onDragEnter);
+      this.promptBar?.removeEventListener("dragover", onDragOver);
+      this.promptBar?.removeEventListener("dragleave", onDragLeave);
+      this.promptBar?.removeEventListener("drop", onDrop);
+      this.uninstallPromptDropZone = undefined;
+    };
+  },
+
+  ensureDropOverlay() {
+    if (!this.promptBar || this.promptBar.querySelector("[data-drop-overlay]")) return;
+    const overlay = document.createElement("div");
+    overlay.className = "drop-overlay";
+    overlay.dataset.dropOverlay = "";
+    overlay.textContent = "파일을 놓으면 첨부됩니다";
+    this.promptBar.append(overlay);
+  },
+
   async handlePromptPaste(event) {
     const imageFiles = this.pastedImageFiles(event.clipboardData);
     if (!imageFiles.length) return;

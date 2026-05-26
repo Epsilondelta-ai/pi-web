@@ -5,8 +5,10 @@ import "../index";
 function renderApp() {
   document.body.innerHTML = `
     <pi-app>
-      <div class="attach-chips" hidden></div>
-      <textarea class="prompt-textarea"></textarea>
+      <div class="prompt-bar">
+        <div class="attach-chips" hidden></div>
+        <textarea class="prompt-textarea"></textarea>
+      </div>
       <button class="send-btn" aria-disabled="true">send</button>
       <button class="attach-btn">attach</button>
       <input data-file-input type="file" />
@@ -64,6 +66,35 @@ describe("pi-app prompt input", () => {
     });
     expect(app.attachmentContents[0].dataUrl).toContain("data:image/png;base64,");
     expect(app.querySelector(".send-btn").getAttribute("aria-disabled")).toBe("false");
+  });
+
+  it("attaches files dropped onto the prompt bar with a visible drop target", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    const promptBar = app.querySelector(".prompt-bar");
+    const file = new File(["hello"], "note.txt", { type: "text/plain" });
+    const dataTransfer = { types: ["Files"], files: [file], dropEffect: "none" };
+
+    const drag = new Event("dragover", { bubbles: true, cancelable: true });
+    Object.defineProperty(drag, "dataTransfer", { value: dataTransfer });
+    promptBar.dispatchEvent(drag);
+
+    expect(drag.defaultPrevented).toBe(true);
+    expect(dataTransfer.dropEffect).toBe("copy");
+    expect(promptBar.classList.contains("drag-over")).toBe(true);
+    expect(app.querySelector("[data-drop-overlay]").textContent).toBe("파일을 놓으면 첨부됩니다");
+
+    const drop = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", { value: dataTransfer });
+    promptBar.dispatchEvent(drop);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(drop.defaultPrevented).toBe(true);
+    expect(promptBar.classList.contains("drag-over")).toBe(false);
+    expect(app.querySelector("[data-drop-overlay]")).toBeNull();
+    expect(app.attachmentContents[0]).toMatchObject({ type: "file", name: "note.txt", content: "hello" });
+    expect(app.querySelector(".attach-chip .ac-name").textContent).toBe("note.txt");
   });
 
   it("handles file attachments, unnamed pasted images, glyphs, sizes, and no-op guards", async () => {

@@ -82,6 +82,7 @@ class PiApp extends HTMLElement {
   disconnectedCallback() {
     this.stopSpeechInput?.();
     this.destroyFilePreviewEditor?.();
+    this.uninstallPromptDropZone?.();
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
     this.backgroundSessionWatches?.clear?.();
@@ -175,6 +176,7 @@ class PiApp extends HTMLElement {
     });
     this.attachButton?.addEventListener("click", () => this.fileInput?.click());
     this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files));
+    this.installPromptDropZone?.();
     this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
     window.addEventListener("pi-workspace-tree:refresh", (event) => {
       const workspaceId = this.dataset.activeWorkspaceId;
