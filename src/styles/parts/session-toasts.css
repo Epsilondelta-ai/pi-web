@@ -117,6 +117,22 @@
   color: var(--fg-2);
   font-size: var(--text-xs);
 }
+.toast-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.toast-actions button {
+  padding: 4px 8px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-1);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: var(--fg-0);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.toast-actions button:hover { background: color-mix(in srgb, currentColor 22%, transparent); }
 .session-toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 64%, var(--border)); }
 .session-toast.choice { color: var(--ansi-blue); border-color: color-mix(in srgb, var(--ansi-blue) 64%, var(--border)); }
 .session-toast.warning { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 64%, var(--border)); }

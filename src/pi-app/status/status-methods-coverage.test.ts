@@ -9,8 +9,10 @@ vi.mock("../../lib/api", async () => {
   const actual = await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
   return {
     ...actual,
+    getPiUpdateStatus: vi.fn(),
     getPiVersionStatus: vi.fn(),
     getVersionStatus: vi.fn(),
+    startPiUpdate: vi.fn(),
     getWorkspaceRuntimeModel: vi.fn(),
     getWorkspaceRuntimeQuota: vi.fn(),
     getWorkspaceRuntimeStatus: vi.fn(),
@@ -133,17 +135,52 @@ describe("status method branch coverage", () => {
     el.notifyPiUpdateAvailable = vi.fn();
     vi.mocked(api.getVersionStatus).mockResolvedValueOnce({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
     vi.mocked(api.getPiVersionStatus).mockResolvedValueOnce({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
+    vi.mocked(api.getPiUpdateStatus).mockResolvedValueOnce({ state: "idle" });
     await el.loadVersionStatus();
     expect(el.notifyUpdateAvailable).toHaveBeenCalled();
     expect(el.notifyPiUpdateAvailable).toHaveBeenCalled();
     vi.mocked(api.getVersionStatus).mockRejectedValueOnce(new Error("web"));
     vi.mocked(api.getPiVersionStatus).mockRejectedValueOnce(new Error("pi"));
+    vi.mocked(api.getPiUpdateStatus).mockRejectedValueOnce(new Error("update"));
     await el.loadVersionStatus();
     el.renderVersionStatus(undefined);
     el.querySelector("[data-action='show-update-tip']").remove();
     el.renderVersionStatus({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
     el.renderPiVersionStatus(undefined);
     el.renderPiVersionStatus({ updateAvailable: true, currentVersion: "2", latestVersion: "2" });
+    el.notifyPiUpdateRunning = vi.fn();
+    el.notifyPiUpdateComplete = vi.fn();
+    el.notifyPiUpdateFailed = vi.fn();
+    let poll;
+    vi.spyOn(window, "setInterval").mockImplementation(((cb) => { poll = cb; return 7; }) as any);
+    vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
+    el.renderPiUpdateStatus({ state: "updating" });
+    el.renderPiUpdateStatus({ state: "updated" });
+    el.renderPiUpdateStatus({ state: "failed", error: "bad" });
+    expect(el.notifyPiUpdateRunning).toHaveBeenCalled();
+    expect(el.notifyPiUpdateComplete).toHaveBeenCalled();
+    expect(el.notifyPiUpdateFailed).toHaveBeenCalledWith("bad");
+    vi.mocked(api.getPiUpdateStatus).mockResolvedValueOnce({ state: "updating" });
+    await poll();
+    vi.mocked(api.getPiUpdateStatus).mockResolvedValueOnce({ state: "updated" });
+    await poll();
+    vi.mocked(api.getPiUpdateStatus).mockRejectedValueOnce(new Error("poll"));
+    el.startPiUpdatePolling();
+    await poll();
+    vi.mocked(api.startPiUpdate).mockResolvedValueOnce({ state: "updating" });
+    await el.startPiUpdateFlow();
+    vi.mocked(api.startPiUpdate).mockRejectedValueOnce(new Error("start"));
+    await el.startPiUpdateFlow();
+    vi.mocked(api.startPiUpdate).mockRejectedValueOnce("string start");
+    await el.startPiUpdateFlow();
+    el.notifyPiUpdateFailed = undefined;
+    vi.mocked(api.startPiUpdate).mockRejectedValueOnce("string start");
+    await el.startPiUpdateFlow();
+    const originalLocalStorage = globalThis.localStorage;
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, get: () => { throw new Error("blocked"); } });
+    expect(el.isPiUpdateIgnored("1", "2")).toBe(false);
+    el.rememberIgnoredPiUpdate("1", "2");
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: originalLocalStorage });
     vi.spyOn(window, "setTimeout").mockImplementation(((cb) => { cb(); return 1; }) as any);
     el.showUpdateTip();
     el.querySelector("[data-update-tip]").remove();

@@ -87,9 +87,9 @@ describe("pi-app toast notifications", () => {
     expect(warnings).toHaveLength(3);
     expect(warnings[0].textContent).toContain("pi-web 업데이트 가능");
     expect(warnings[0].textContent).toContain("pi-web update");
-    expect(warnings[1].textContent).toContain("pi 업데이트 가능");
-    expect(warnings[1].textContent).toContain("pi update");
-    expect(warnings[1].textContent).toContain("security fix");
+    expect(warnings[1].textContent).toContain("Do you want to update pi?");
+    expect(warnings[1].textContent).toContain("Yes");
+    expect(warnings[1].textContent).toContain("No");
     expect(warnings[2].textContent).toContain("인증 경고: GitHub Copilot");
     expect(warnings[2].textContent).toContain("대상: GitHub Copilot (github-copilot)");
     expect(warnings[2].textContent).toContain("방식: OAuth");
@@ -97,6 +97,22 @@ describe("pi-app toast notifications", () => {
     expect(warnings[2].textContent).toContain(
       "원본: Authentication failed for github-copilot. Credentials may have expired.",
     );
+    app.startPiUpdateFlow = vi.fn();
+    warnings[1].querySelector("[data-pi-update-confirm='yes']").click();
+    expect(app.startPiUpdateFlow).toHaveBeenCalled();
+    app.notifyPiUpdateAvailable({ currentVersion: "0.75.0", latestVersion: "0.75.6" });
+    const nextWarning = [...document.querySelectorAll(".session-toast.warning")]
+      .filter((toast) => toast.textContent.includes("Do you want to update pi?"))
+      .at(-1);
+    nextWarning.querySelector("[data-pi-update-confirm='no']").click();
+    expect(app.isPiUpdateIgnored("0.75.0", "0.75.6")).toBe(true);
+    app.notifyPiUpdateAvailable({ currentVersion: "0.75.0", latestVersion: "0.75.6" });
+    app.notifyPiUpdateRunning();
+    app.notifyPiUpdateComplete();
+    app.notifyPiUpdateFailed("");
+    expect(document.body.textContent).toContain("pi update in progress");
+    expect(document.body.textContent).toContain("pi update complete");
+    expect(document.body.textContent).toContain("pi update failed");
   });
 
   it("covers generic auth warning provider and context fallbacks", async () => {

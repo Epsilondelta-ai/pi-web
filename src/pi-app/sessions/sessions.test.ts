@@ -206,9 +206,17 @@ describe("pi-app sessions", () => {
 
     const button = app.querySelector("[data-action='show-update-tip']");
     expect(button.hidden).toBe(false);
-    expect([...document.querySelectorAll(".session-toast.warning")].some((toast) => toast.textContent.includes("pi 업데이트 가능"))).toBe(true);
+    expect([...document.querySelectorAll(".session-toast.warning")].some((toast) => toast.textContent.includes("Do you want to update pi?"))).toBe(true);
     button.click();
     expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
+  });
+
+  it("clears pi update polling on disconnect", async () => {
+    const app = await connectPiApp();
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+    app.piUpdateTimer = 123;
+    app.disconnectedCallback();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(123);
   });
 
   it("loads older session messages from the stored cursor", async () => {

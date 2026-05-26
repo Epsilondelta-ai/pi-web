@@ -1,10 +1,17 @@
-import { getPiVersionStatus, getVersionStatus } from "../../lib/api";
+import { getPiUpdateStatus, getPiVersionStatus, getVersionStatus, startPiUpdate } from "../../lib/api";
+
+const IGNORED_PI_UPDATE_KEY = "piweb:ignored-pi-update";
 
 export const versionMethods = {
   async loadVersionStatus() {
     try {
-      const [webStatus, piStatus] = await Promise.allSettled([getVersionStatus(), getPiVersionStatus()]);
+      const [webStatus, piStatus, updateStatus] = await Promise.allSettled([
+        getVersionStatus(),
+        getPiVersionStatus(),
+        getPiUpdateStatus(),
+      ]);
       if (webStatus.status === "fulfilled") this.renderVersionStatus(webStatus.value);
+      if (updateStatus.status === "fulfilled") this.renderPiUpdateStatus(updateStatus.value);
       if (piStatus.status === "fulfilled") this.renderPiVersionStatus(piStatus.value);
     } catch {}
   },
@@ -23,6 +30,52 @@ export const versionMethods = {
   renderPiVersionStatus(status) {
     if (!status?.updateAvailable || status?.latestVersion === status?.currentVersion) return;
     this.notifyPiUpdateAvailable?.(status);
+  },
+
+  renderPiUpdateStatus(status) {
+    if (status?.state === "updating") {
+      this.notifyPiUpdateRunning?.();
+      this.startPiUpdatePolling?.();
+    }
+    if (status?.state === "updated") this.notifyPiUpdateComplete?.();
+    if (status?.state === "failed") this.notifyPiUpdateFailed?.(status.error);
+  },
+
+  async startPiUpdateFlow() {
+    try {
+      this.renderPiUpdateStatus(await startPiUpdate());
+      this.startPiUpdatePolling?.();
+    } catch (error) {
+      this.notifyPiUpdateFailed?.(error?.message || String(error));
+    }
+  },
+
+  startPiUpdatePolling() {
+    if (this.piUpdateTimer) return;
+    this.piUpdateTimer = setInterval(async () => {
+      try {
+        const status = await getPiUpdateStatus();
+        this.renderPiUpdateStatus(status);
+        if (status?.state !== "updating") {
+          clearInterval(this.piUpdateTimer);
+          this.piUpdateTimer = undefined;
+        }
+      } catch {}
+    }, 3000);
+  },
+
+  isPiUpdateIgnored(current, latest) {
+    try {
+      return localStorage.getItem(IGNORED_PI_UPDATE_KEY) === `${current}:${latest}`;
+    } catch {
+      return false;
+    }
+  },
+
+  rememberIgnoredPiUpdate(current, latest) {
+    try {
+      localStorage.setItem(IGNORED_PI_UPDATE_KEY, `${current}:${latest}`);
+    } catch {}
   },
 
   showUpdateTip() {

@@ -69,6 +69,44 @@ func TestPiVersionEndpoint(t *testing.T) {
 	}
 }
 
+func TestPiUpdateEndpoints(t *testing.T) {
+	done := make(chan struct{})
+	server := NewServer(Config{
+		EnablePiExecution: true,
+		PiUpdateRunner: func(context.Context) error {
+			close(done)
+			return nil
+		},
+	}, NewMockStore(), NewBroker())
+
+	forbiddenReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", nil)
+	forbiddenRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(forbiddenRes, forbiddenReq)
+	if forbiddenRes.Code != http.StatusForbidden {
+		t.Fatalf("expected forbidden update without app header, got %d", forbiddenRes.Code)
+	}
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", nil)
+	startReq.Header.Set("X-Pi-Web-Request", "pi-update")
+	startRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(startRes, startReq)
+	if startRes.Code != http.StatusAccepted || !strings.Contains(startRes.Body.String(), `"state":"updating"`) {
+		t.Fatalf("unexpected start response: %d %s", startRes.Code, startRes.Body.String())
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("update runner did not run")
+	}
+
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/pi/update", nil)
+	statusRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(statusRes, statusReq)
+	if statusRes.Code != http.StatusOK || !strings.Contains(statusRes.Body.String(), `"state":"updated"`) {
+		t.Fatalf("unexpected status response: %d %s", statusRes.Code, statusRes.Body.String())
+	}
+}
+
 func TestServesStaticUI(t *testing.T) {
 	files := fstest.MapFS{
 		"index.html":    {Data: []byte("<html>app shell</html>")},

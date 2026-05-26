@@ -23,6 +23,7 @@ import {
   getAuthProviders,
   getOAuthLoginSession,
   getOAuthProviders,
+  getPiUpdateStatus,
   getPiVersionStatus,
   getSession,
   getVersionStatus,
@@ -53,6 +54,7 @@ import {
   sendOAuthLoginInput,
   sessionEvents,
   startOAuthLogin,
+  startPiUpdate,
   uploadWorkspaceFile,
 } from "./api";
 
@@ -83,9 +85,14 @@ describe("api adapter", () => {
     expect(result.url).toBe("http://backend.test/api/version");
   });
 
-  it("fetches pi version status", async () => {
-    const result = await getPiVersionStatus();
-    expect(result.url).toBe("http://backend.test/api/pi/version");
+  it("fetches pi version and update status", async () => {
+    const version = await getPiVersionStatus();
+    expect(version.url).toBe("http://backend.test/api/pi/version");
+    const status = await getPiUpdateStatus();
+    expect(status.url).toBe("http://backend.test/api/pi/update");
+    const started = await startPiUpdate();
+    expect(started.url).toBe("http://backend.test/api/pi/update");
+    expect(started.options.headers["X-Pi-Web-Request"]).toBe("pi-update");
   });
 
   it("defaults to same-origin API paths for the embedded app", async () => {

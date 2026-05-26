@@ -21,12 +21,14 @@ type Config struct {
 	CurrentVersion    string
 	VersionStatus     func(context.Context, string) (VersionStatus, error)
 	PiVersionStatus   func(context.Context) (PiVersionStatus, error)
+	PiUpdateRunner    PiUpdateRunner
 }
 
 type Server struct {
 	store        *Store
 	broker       *Broker
 	runner       *Runner
+	piUpdater    *PiUpdater
 	mux          *http.ServeMux
 	config       Config
 	commandCache commandCache
@@ -64,6 +66,7 @@ func NewServer(config Config, store *Store, broker *Broker) *Server {
 		store:        store,
 		broker:       broker,
 		runner:       NewRunner(),
+		piUpdater:    NewPiUpdater(config.PiUpdateRunner),
 		mux:          http.NewServeMux(),
 		config:       config,
 		commandCache: commandCache{entries: map[string]commandCacheEntry{}},
@@ -82,6 +85,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
 	s.mux.HandleFunc("GET /api/version", s.versionStatus)
 	s.mux.HandleFunc("GET /api/pi/version", s.piVersionStatus)
+	s.mux.HandleFunc("GET /api/pi/update", s.piUpdateStatus)
+	s.mux.HandleFunc("POST /api/pi/update", s.startPiUpdate)
 	s.mux.HandleFunc("GET /api/auth/providers", s.authProviders)
 	s.mux.HandleFunc("GET /api/auth/oauth/providers", s.oauthProviders)
 	s.mux.HandleFunc("POST /api/auth/oauth/start", s.startOAuthLogin)
