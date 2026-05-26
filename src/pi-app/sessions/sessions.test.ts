@@ -211,6 +211,14 @@ describe("pi-app sessions", () => {
     expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
   });
 
+  it("clears pi update polling on disconnect", async () => {
+    const app = await connectPiApp();
+    const clearIntervalSpy = vi.spyOn(window, "clearInterval");
+    app.piUpdateTimer = 123;
+    app.disconnectedCallback();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(123);
+  });
+
   it("loads older session messages from the stored cursor", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
