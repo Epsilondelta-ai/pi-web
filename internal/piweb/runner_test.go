@@ -48,7 +48,8 @@ func TestHandlePiJSONEventStreamsTextDelta(t *testing.T) {
 func TestHandlePiJSONEventPublishesFinalFallbackChoiceAfterStreaming(t *testing.T) {
 	broker := NewBroker()
 	store := NewMockStore()
-	state := &jsonStreamState{}
+	called := 0
+	state := &jsonStreamState{onFallbackChoiceMessage: func() { called++ }}
 	choice := "```json\n{\"type\":\"piweb_choice\",\"id\":\"test\",\"question\":\"Pick?\",\"options\":[{\"label\":\"A\",\"value\":\"a\"}],\"allowCustom\":false}\n```"
 	encoded, _ := json.Marshal(choice)
 	handlePiJSONEvent(`{"type":"message_update","assistantMessageEvent":{"type":"text_delta","delta":`+string(encoded)+`}}`, broker, store, "8e7c-44ff", state)
@@ -56,6 +57,9 @@ func TestHandlePiJSONEventPublishesFinalFallbackChoiceAfterStreaming(t *testing.
 	replay := broker.Replay("8e7c-44ff", 0)
 	if len(replay) != 2 || replay[0].Type != "session.delta" || replay[1].Type != "session.message" {
 		t.Fatalf("expected final fallback choice message after delta: %#v", replay)
+	}
+	if called != 1 {
+		t.Fatalf("expected fallback choice notification callback once, got %d", called)
 	}
 }
 

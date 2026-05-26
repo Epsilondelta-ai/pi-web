@@ -110,7 +110,13 @@ func (r *Runner) StartPiPrompt(
 			terminateCommandProcessGroup(cmd)
 		}()
 
-		state := &jsonStreamState{}
+		state := &jsonStreamState{
+			onFallbackChoiceMessage: func() {
+				if session, messages, err := store.Session(sessionID); err == nil {
+					_ = notifyRemoteChoiceQuestion(cwd, session, messages)
+				}
+			},
+		}
 		stdoutDone := make(chan struct{})
 		agentDone := make(chan struct{})
 		var doneOnce sync.Once
@@ -145,8 +151,10 @@ func (r *Runner) StartPiPrompt(
 			"status":     "idle",
 			"finishedAt": time.Now().UTC().Format(time.RFC3339),
 		})
-		if session, messages, err := store.Session(sessionID); err == nil {
-			_ = notifyRemoteResponseCompleted(cwd, session, messages)
+		if !state.fallbackChoiceNotified {
+			if session, messages, err := store.Session(sessionID); err == nil {
+				_ = notifyRemoteResponseCompleted(cwd, session, messages)
+			}
 		}
 	}()
 	return nil

@@ -60,6 +60,44 @@ func TestNotifyDiscordResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	}
 }
 
+func TestNotifyDiscordChoiceQuestionSendsConfiguredMessage(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotBody map[string]string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	previousBaseURL := discordAPIBaseURL
+	discordAPIBaseURL = server.URL
+	defer func() { discordAPIBaseURL = previousBaseURL }()
+
+	choice := "```json\n{\"type\":\"piweb_choice\",\"id\":\"pick\",\"question\":\"Pick one?\",\"options\":[],\"allowCustom\":false}\n```"
+	err := notifyDiscordChoiceQuestion(root, Session{ID: "8e7c-44ff", Title: "choose now"}, []Message{{Kind: "pi", Text: choice}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := gotBody["content"]
+	if !strings.Contains(content, "❓ 선택지 질문: choose n...") {
+		t.Fatalf("unexpected title content %q", content)
+	}
+	if !strings.Contains(content, "질문: Pick one?") {
+		t.Fatalf("unexpected choice question content %q", content)
+	}
+}
+
 func TestNotifyTelegramResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
