@@ -75,10 +75,23 @@ describe("pi-app input methods coverage", () => {
     app.prompt.value = "post";
     await app.submitPrompt();
     expect(app.setConnection).toHaveBeenCalledWith("err");
+
     app.prompt = null;
     app.attachments.append(document.createElement("span"));
     app.apiConnected = false;
     await app.submitPrompt();
+  });
+
+  it("reloads workspace command listing after slash reload", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "s1";
+    app.loadWorkspaceCommands = vi.fn();
+    globalThis.fetch = vi.fn(async (url) => String(url).includes("/ag-ui") ? aguiResponse() : ok({ accepted: true }));
+    app.prompt.value = "/reload";
+    await app.submitPrompt();
+    expect(app.loadWorkspaceCommands).toHaveBeenCalledWith("w1", { reload: true });
   });
 
   it("covers optional DOM absences and outside clicks", async () => {

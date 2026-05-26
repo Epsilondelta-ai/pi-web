@@ -176,6 +176,13 @@ describe("pi-app input actions coverage", () => {
       { cmd: "/two", desc: "two", location: "global" },
       { name: "three" },
       { name: undefined },
+    ], [
+      { error: "first warning" },
+      {},
+    ]);
+    expect([...app.querySelectorAll(".slash-warning")].map((item) => item.textContent)).toEqual([
+      "command warning: first warning",
+      "command warning: unknown error",
     ]);
     expect([...app.querySelectorAll(".slash-item")].map((item) => item.dataset.slash)).toEqual(["/one", "/two", "/three"]);
     app.prompt.value = "/tw";

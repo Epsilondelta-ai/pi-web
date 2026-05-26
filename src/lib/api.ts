@@ -123,8 +123,9 @@ export function searchWorkspaceFiles(workspaceId, query) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/files/search?q=${encodeURIComponent(query)}`);
 }
 
-export function getWorkspaceCommands(workspaceId) {
-  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/commands`);
+export function getWorkspaceCommands(workspaceId, options: { reload?: boolean } = {}) {
+  const query = options.reload ? "?reload=1" : "";
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/commands${query}`);
 }
 
 export function getWorkspaceModels(workspaceId) {

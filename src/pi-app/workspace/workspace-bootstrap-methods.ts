@@ -96,10 +96,11 @@ export const workspaceBootstrapMethods = {
     if (git?.branch) this.updatePromptMeta({ currentBranch: git.branch });
   },
 
-  async loadWorkspaceCommands(workspaceId) {
+  async loadWorkspaceCommands(workspaceId, options: any = {}) {
     try {
-      const { commands } = await getWorkspaceCommands(workspaceId);
-      this.renderSlashCommands(commands || []);
+      const { commands, diagnostics } = await getWorkspaceCommands(workspaceId, { reload: !!options.reload });
+      if (diagnostics?.length) this.renderSlashCommands(commands || [], diagnostics);
+      else this.renderSlashCommands(commands || []);
     } catch {}
   },
 

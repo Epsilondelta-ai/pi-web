@@ -165,22 +165,36 @@ func TestDeleteWorkspaceSessionsEndpoint(t *testing.T) {
 	}
 }
 
-func TestWorkspaceCommandsEndpointUsesMockCommandsWhenPiDisabled(t *testing.T) {
-	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
-	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/commands", nil)
+func TestWorkspaceCommandsEndpointListsNativeCommands(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("HOME", t.TempDir())
+	if err := os.MkdirAll(filepath.Join(root, ".pi", "prompts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "prompts", "review.md"), []byte("---\ndescription: Review current changes\n---\nbody"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(Config{EnablePiExecution: false}, store, NewBroker())
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspace.ID+"/commands", nil)
 	res := httptest.NewRecorder()
 	server.Handler().ServeHTTP(res, req)
 	if res.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", res.Code, res.Body.String())
 	}
-	if !strings.Contains(res.Body.String(), `"command":"/review"`) || !strings.Contains(res.Body.String(), `"scope":"project"`) {
+	if !strings.Contains(res.Body.String(), `"command":"/review"`) || !strings.Contains(res.Body.String(), `"command":"/reload"`) {
 		t.Fatalf("unexpected body: %s", res.Body.String())
 	}
 }
 
-func TestWorkspaceCommandsEndpointFallsBackWhenPiCommandsFail(t *testing.T) {
+func TestWorkspaceCommandsEndpointDoesNotShellOutToPi(t *testing.T) {
 	root := t.TempDir()
-	writeFakePi(t, root, "#!/bin/sh\nexit 0\n")
+	t.Setenv("HOME", t.TempDir())
+	writeFakePi(t, root, "#!/bin/sh\necho should-not-run >&2\nexit 1\n")
 	store := NewMockStore()
 	workspace, err := store.OpenWorkspace(root)
 	if err != nil {
@@ -193,9 +207,9 @@ func TestWorkspaceCommandsEndpointFallsBackWhenPiCommandsFail(t *testing.T) {
 	server.Handler().ServeHTTP(res, req)
 
 	if res.Code != http.StatusOK {
-		t.Fatalf("expected 200 fallback, got %d: %s", res.Code, res.Body.String())
+		t.Fatalf("expected 200, got %d: %s", res.Code, res.Body.String())
 	}
-	if !strings.Contains(res.Body.String(), `"command":"/review"`) || !strings.Contains(res.Body.String(), `"error"`) {
+	if !strings.Contains(res.Body.String(), `"command":"/reload"`) || strings.Contains(res.Body.String(), "should-not-run") {
 		t.Fatalf("unexpected body: %s", res.Body.String())
 	}
 }
