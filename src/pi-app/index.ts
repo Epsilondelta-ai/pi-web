@@ -88,6 +88,7 @@ class PiApp extends HTMLElement {
     this.backgroundSessionWatches?.clear?.();
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
+    if (this.piUpdateTimer) clearInterval(this.piUpdateTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
     if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
     this.toastDismissObserver?.disconnect?.();

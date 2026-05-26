@@ -87,9 +87,9 @@ describe("pi-app toast notifications", () => {
     expect(warnings).toHaveLength(3);
     expect(warnings[0].textContent).toContain("pi-web 업데이트 가능");
     expect(warnings[0].textContent).toContain("pi-web update");
-    expect(warnings[1].textContent).toContain("pi 업데이트 가능");
-    expect(warnings[1].textContent).toContain("pi update");
-    expect(warnings[1].textContent).toContain("security fix");
+    expect(warnings[1].textContent).toContain("Do you want to update pi?");
+    expect(warnings[1].textContent).toContain("Yes");
+    expect(warnings[1].textContent).toContain("No");
     expect(warnings[2].textContent).toContain("인증 경고: GitHub Copilot");
     expect(warnings[2].textContent).toContain("대상: GitHub Copilot (github-copilot)");
     expect(warnings[2].textContent).toContain("방식: OAuth");

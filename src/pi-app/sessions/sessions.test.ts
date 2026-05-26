@@ -206,7 +206,7 @@ describe("pi-app sessions", () => {
 
     const button = app.querySelector("[data-action='show-update-tip']");
     expect(button.hidden).toBe(false);
-    expect([...document.querySelectorAll(".session-toast.warning")].some((toast) => toast.textContent.includes("pi 업데이트 가능"))).toBe(true);
+    expect([...document.querySelectorAll(".session-toast.warning")].some((toast) => toast.textContent.includes("Do you want to update pi?"))).toBe(true);
     button.click();
     expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
   });

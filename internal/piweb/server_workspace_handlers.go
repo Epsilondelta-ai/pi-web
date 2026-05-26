@@ -49,6 +49,18 @@ func (s *Server) piVersionStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, status)
 }
+
+func (s *Server) piUpdateStatus(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.piUpdater.Status())
+}
+
+func (s *Server) startPiUpdate(w http.ResponseWriter, _ *http.Request) {
+	if !s.config.EnablePiExecution {
+		writeJSON(w, http.StatusOK, PiUpdateStatus{State: PiUpdateUpdated})
+		return
+	}
+	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context()))
+}
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
 	if path == "" {

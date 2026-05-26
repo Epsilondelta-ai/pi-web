@@ -9,8 +9,10 @@ vi.mock("../../lib/api", async () => {
   const actual = await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
   return {
     ...actual,
+    getPiUpdateStatus: vi.fn(),
     getPiVersionStatus: vi.fn(),
     getVersionStatus: vi.fn(),
+    startPiUpdate: vi.fn(),
     getWorkspaceRuntimeModel: vi.fn(),
     getWorkspaceRuntimeQuota: vi.fn(),
     getWorkspaceRuntimeStatus: vi.fn(),
@@ -133,11 +135,13 @@ describe("status method branch coverage", () => {
     el.notifyPiUpdateAvailable = vi.fn();
     vi.mocked(api.getVersionStatus).mockResolvedValueOnce({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
     vi.mocked(api.getPiVersionStatus).mockResolvedValueOnce({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
+    vi.mocked(api.getPiUpdateStatus).mockResolvedValueOnce({ state: "idle" });
     await el.loadVersionStatus();
     expect(el.notifyUpdateAvailable).toHaveBeenCalled();
     expect(el.notifyPiUpdateAvailable).toHaveBeenCalled();
     vi.mocked(api.getVersionStatus).mockRejectedValueOnce(new Error("web"));
     vi.mocked(api.getPiVersionStatus).mockRejectedValueOnce(new Error("pi"));
+    vi.mocked(api.getPiUpdateStatus).mockRejectedValueOnce(new Error("update"));
     await el.loadVersionStatus();
     el.renderVersionStatus(undefined);
     el.querySelector("[data-action='show-update-tip']").remove();

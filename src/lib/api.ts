@@ -38,6 +38,14 @@ export function getPiVersionStatus() {
   return request("/api/pi/version");
 }
 
+export function getPiUpdateStatus() {
+  return request("/api/pi/update");
+}
+
+export function startPiUpdate() {
+  return request("/api/pi/update", { method: "POST" });
+}
+
 export function getWorkspaces() {
   return request("/api/workspaces");
 }

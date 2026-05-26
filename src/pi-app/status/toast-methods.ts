@@ -1,4 +1,6 @@
 import { Notyf, NotyfEvent } from "notyf";
+import { currentUiLocale } from "../../i18n/client";
+import { uiMessage } from "../../i18n/ui";
 import { sessionEvents } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
 import { parseFallbackChoices } from "../input/fallback-choices";
@@ -161,6 +163,18 @@ function systemToastHtml(title, detail) {
   ].join("");
 }
 
+function piUpdateConfirmHtml() {
+  const locale = currentUiLocale();
+  return [
+    `<span class="toast-dot" aria-hidden="true"></span>`,
+    `<span class="toast-copy"><strong>${escapeHtml(uiMessage(locale, "piUpdateQuestion"))}</strong>`,
+    `<span class="toast-actions">`,
+    `<button type="button" data-pi-update-confirm="yes">${escapeHtml(uiMessage(locale, "piUpdateYes"))}</button>`,
+    `<button type="button" data-pi-update-confirm="no">${escapeHtml(uiMessage(locale, "piUpdateNo"))}</button>`,
+    `</span></span>`,
+  ].join("");
+}
+
 export function toastContextWorkspace(context) {
   if (!context || typeof context === "string") return context || "워크스페이스 없음";
   return context.workspaceName || context.workspace || context.label || "워크스페이스 없음";
@@ -255,13 +269,38 @@ export const toastMethods = {
   notifyPiUpdateAvailable(status) {
     const current = status?.currentVersion || "unknown";
     const latest = status?.latestVersion || "latest";
-    const note = status?.note ? ` ${status.note}` : "";
-    this.showSystemToast(
-      "warning",
-      "pi 업데이트 가능",
-      `현재 ${current}, 최신 ${latest}. pi update 실행 후 pi를 재시작하세요.${note}`,
-      `pi-update:${current}:${latest}`,
-    );
+    const key = `pi-update-question:${current}:${latest}`;
+    this.systemToastKeys ??= new Set();
+    if (this.systemToastKeys.has(key) || this.isPiUpdateIgnored?.(current, latest)) return;
+    this.systemToastKeys.add(key);
+    const notification = this.ensureToastRegion().open({ type: "warning", message: piUpdateConfirmHtml() });
+    notification.on(NotyfEvent.Click, (payload = {}) => {
+      const event = (payload as { event?: Event }).event;
+      const target = event?.target as Element | null | undefined;
+      const answer = target?.closest?.("[data-pi-update-confirm]")?.getAttribute("data-pi-update-confirm");
+      if (answer === "yes") {
+        this.dismissToast(notification);
+        void this.startPiUpdateFlow?.();
+      }
+      if (answer === "no") {
+        this.rememberIgnoredPiUpdate?.(current, latest);
+        this.dismissToast(notification);
+      }
+    });
+    this.syncToastDismissAll();
+  },
+
+  notifyPiUpdateRunning() {
+    this.showSystemToast("warning", uiMessage(currentUiLocale(), "piUpdateRunning"), "", "pi-update:running");
+  },
+
+  notifyPiUpdateComplete() {
+    this.showSystemToast("success", uiMessage(currentUiLocale(), "piUpdateComplete"), "", "pi-update:updated");
+  },
+
+  notifyPiUpdateFailed(error) {
+    const title = uiMessage(currentUiLocale(), "piUpdateFailed");
+    this.showSystemToast("error", title, error || title, `pi-update:failed:${error || ""}`);
   },
 
   notifyRuntimeWarning(detail) {

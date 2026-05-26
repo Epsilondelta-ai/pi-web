@@ -166,6 +166,13 @@ type PiVersionStatus struct {
 	Error           string `json:"error,omitempty"`
 }
 
+type PiUpdateStatus struct {
+	State      string `json:"state"`
+	StartedAt  string `json:"startedAt,omitempty"`
+	FinishedAt string `json:"finishedAt,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
