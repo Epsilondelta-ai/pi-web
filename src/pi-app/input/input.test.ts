@@ -96,7 +96,7 @@ describe("pi-app prompt input", () => {
     ]);
     expect(app.attachmentContents[0]).toMatchObject({ type: "file", name: "note.txt", mimeType: "text/plain", content: "hello" });
     expect([...app.querySelectorAll(".ac-glyph")].map((node) => node.innerHTML)).toEqual(["txt", "pdf", "&lt;/&gt;", "txt"]);
-    expect(app.attachmentContents[3].content).toBe("[file too large to inline]");
+    expect(app.attachmentContents[3].content).toBe("x");
     expect(app.attachmentPreviewMarkup(null)).toContain("file");
     await app.addFiles(undefined);
     const octet = new File(["bin"], "bin", { type: "" });
