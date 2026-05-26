@@ -38,6 +38,76 @@ describe("pi-app core events coverage", () => {
     expect(app.pickSlash).toHaveBeenCalledWith("/model");
   });
 
+  it("covers layout controls, persisted sidebar width, tool expansion, and resize", async () => {
+    const app = await connectPiApp();
+    const workspace = app.querySelector('[data-view="workspace"]');
+    const picker = app.querySelector('[data-view="picker"]');
+    const toggle = document.createElement("button");
+    toggle.dataset.action = "toggle-tree";
+    app.append(toggle);
+    const pickerInput = document.createElement("input");
+    pickerInput.name = "path";
+    pickerInput.focus = vi.fn();
+    picker.className = "picker-shell";
+    picker.append(pickerInput);
+    app.apiConnected = true;
+    app.browseFolder = vi.fn();
+    app.scrollTerm = vi.fn();
+
+    app.route("picker");
+    expect(picker.hidden).toBe(false);
+    expect(workspace.hidden).toBe(true);
+    expect(app.browseFolder).toHaveBeenCalled();
+    app.route("workspace");
+    expect(app.scrollTerm).toHaveBeenCalled();
+
+    app.toggleTree(false);
+    expect(app.dataset.tree).toBe("off");
+    app.toggleTree(true);
+    app.closeTreeFromOutside({ target: document.createElement("div"), composedPath: () => [] });
+    expect(app.dataset.tree).toBe("off");
+    app.toggleTree(true);
+    app.closeTreeFromOutside({ target: app.querySelector(".tree"), composedPath: () => [app.querySelector(".tree")] });
+    expect(app.dataset.tree).toBe("on");
+
+    app.toggleDrawer(true);
+    expect(app.querySelector('[data-action="open-drawer"]').getAttribute("aria-label")).toBe("close sidebar");
+    app.toggleDrawer(false);
+    expect(app.querySelector('[data-action="open-drawer"]').getAttribute("aria-label")).toBe("open sidebar");
+
+    localStorage.setItem("pi.sb.width", "999");
+    app.restoreSidebar();
+    expect(app.dataset.sidebarWidth).toBe("480");
+    localStorage.setItem("pi.sb.collapsed", "1");
+    app.restoreSidebar();
+    expect(app.dataset.sidebar).toBe("collapsed");
+    app.collapseSidebar(false);
+    expect(app.querySelector(".sidebar-wrap").hidden).toBe(false);
+
+    app.dataset.sidebarWidth = "280";
+    app.startResize({ preventDefault: vi.fn(), clientX: 100 });
+    window.dispatchEvent(new PointerEvent("pointermove", { clientX: -100 }));
+    expect(app.dataset.sidebarWidth).toBe("200");
+    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 500 }));
+    expect(app.dataset.sidebarWidth).toBe("480");
+    window.dispatchEvent(new PointerEvent("pointerup"));
+
+    app.notifyTranscriptNodeHeightDidChange = vi.fn();
+    const card = document.createElement("div");
+    card.className = "tool-card";
+    card.innerHTML = `<button><span class="tc-caret"></span></button><pre class="tc-body">short</pre>`;
+    app.append(card);
+    app.toggleTool(card.querySelector("button"));
+    expect(card.classList.contains("collapsed")).toBe(true);
+    app.toggleTool(document.createElement("button"));
+    const body = card.querySelector(".tc-body");
+    body.__fullToolBody = "full";
+    const showFull = document.createElement("button");
+    body.append(showFull);
+    app.showFullToolOutput(showFull);
+    expect(body.textContent).toBe("full");
+  });
+
   it("guards timers and dispatches every event type", async () => {
     const app = await connectPiApp();
     app.runtimeStatusTimer = 1;

@@ -227,6 +227,60 @@ describe("pi-app messages", () => {
     expect(app.querySelector("[data-action='read-response']")).toBeNull();
   });
 
+  it("covers read aloud fallbacks and empty copy guards", async () => {
+    const app = await connectPiApp();
+    expect(app.speechTextFromAssistantText("```json\n{\"type\":\"piweb_choice\",\"id\":\"c\",\"question\":\"q\",\"options\":[{\"label\":\"A\",\"value\":\"a\"}]}\n```")).toBe("");
+    app.speakAssistantText("");
+    vi.stubGlobal("speechSynthesis", undefined);
+    app.speakAssistantText("hello");
+    app.readAssistantMessageNode(null);
+    const row = document.createElement("div");
+    row.className = "msg";
+    row.dataset.kind = "pi";
+    row.innerHTML = `<div class="body">body text</div>`;
+    const originalSpeakAssistantText = app.speakAssistantText;
+    app.speakAssistantText = vi.fn();
+    app.readAssistantMessageNode(row);
+    expect(app.speakAssistantText).toHaveBeenCalledWith("body text");
+    app.readAssistantMessageNode(document.createElement("div"));
+    expect(app.speakAssistantText).toHaveBeenCalledWith("");
+    app.speakAssistantText = originalSpeakAssistantText;
+
+    const speak = vi.fn();
+    const cancel = vi.fn();
+    function Utterance(text) { this.text = text; this.lang = ""; }
+    vi.stubGlobal("speechSynthesis", { speak, cancel });
+    vi.stubGlobal("SpeechSynthesisUtterance", Utterance);
+    Object.defineProperty(navigator, "language", { value: "", configurable: true });
+    app.voiceLanguage = "system";
+    app.speechLanguage = "";
+    app.speakAssistantText("hello");
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ lang: "en-US" }));
+    app.voiceLanguage = "";
+    app.speechLanguage = "fr-FR";
+    app.speakAssistantText("bonjour");
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ lang: "fr-FR" }));
+
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName, options) => {
+      const element = createElement(tagName, options);
+      if (tagName === "div") Object.defineProperty(element, "textContent", { configurable: true, get: () => "" });
+      return element;
+    });
+    expect(app.speechTextFromAssistantText("**visible**")).toBe("**visible**");
+    vi.mocked(document.createElement).mockRestore();
+    app.termInner = null;
+    app.transcriptItems = [{ nodes: [row, null] }, undefined];
+    app.syncReadAloudButton = vi.fn();
+    app.readResponsesAloud = false;
+    app.syncReadAloudControls();
+    expect(app.syncReadAloudButton).toHaveBeenCalledWith(row);
+
+    const button = document.createElement("button");
+    await app.copyCodeBlock(button);
+    expect(button.disabled).not.toBe(true);
+  });
+
   it("copies markdown code blocks with button feedback", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
@@ -483,6 +537,110 @@ describe("pi-app messages", () => {
     expect(frames).toHaveLength(1);
   });
 
+  it("covers message method fallback branches and clipboard fallback paths", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([
+      { kind: "user", text: "선택지 응답:\nid: answered\nvalue: yes" },
+      { kind: "pi", text: "initial" },
+    ]);
+    expect(app.answeredChoiceIds.has("answered")).toBe(true);
+
+    app.termInner = null;
+    app.finalizePiStream("ignored");
+    app.termInner = app.querySelector(".term-inner");
+    app.renderMessages([]);
+    app.appendMessage({ kind: "pi", text: "same" });
+    app.appendLoadingMessage();
+    app.appendMessage({ kind: "pi", text: "same" });
+    expect(app.querySelectorAll(".msg[data-kind='pi']")).toHaveLength(1);
+    const duplicateStream = app.simpleMessage("pi streaming", "pi >", "same");
+    duplicateStream.classList.add("streaming");
+    duplicateStream.dataset.kind = "pi";
+    app.termInner.append(duplicateStream);
+    app.streamingRows = { pi: duplicateStream };
+    app.finalizePiStream("same");
+    expect(app.querySelector(".msg.streaming")).toBeNull();
+    app.appendDelta({ kind: "think", delta: "t" });
+    app.appendMessage({ kind: "think", text: "final think" });
+    expect(app.querySelector(".thinking-block")).toBeTruthy();
+
+    const stale = app.simpleMessage("pi streaming", "pi >", "stale");
+    stale.classList.add("streaming");
+    stale.dataset.kind = "pi";
+    const stale2 = app.simpleMessage("pi streaming", "pi >", "stale2");
+    stale2.classList.add("streaming");
+    stale2.dataset.kind = "pi";
+    app.termInner.append(stale, stale2);
+    app.streamingRows = { pi: stale };
+    app.transcriptItems.push({ nodes: [stale] }, { nodes: [stale2] });
+    app.finalizePiStream("fresh");
+    expect([...app.querySelectorAll(".msg[data-kind='pi']")].at(-1).textContent).toContain("fresh");
+    expect(stale2.isConnected).toBe(false);
+
+    const pending = app.simpleMessage("think streaming", "…", "pending");
+    pending.classList.add("streaming");
+    pending.dataset.kind = "think";
+    app.pendingStreamingRow = pending;
+    app.streamingRows = { think: pending };
+    app.clearStreamingState("think");
+    expect(app.pendingStreamingRow).toBeUndefined();
+
+    app.renderMessages([]);
+    app.appendDelta({ kind: "pi", delta: "final" });
+    const extra = app.simpleMessage("pi streaming", "pi >", "extra");
+    extra.classList.add("streaming");
+    extra.dataset.kind = "pi";
+    app.termInner.append(extra);
+    app.transcriptItems.push({ nodes: [extra] });
+    app.finalizeStreamingMessages();
+    expect(extra.isConnected).toBe(false);
+
+    app.readResponsesAloud = true;
+    app.syncReadAloudControls();
+    app.syncReadAloudButton(document.createElement("div"));
+    app.readAssistantMessageNode(undefined);
+    expect(app.speechTextFromAssistantText(["```json", JSON.stringify({ type: "piweb_choice", id: "c", question: "q", options: [{ label: "A", value: "a" }] }), "```"].join("\n"))).toBe("");
+    app.speakAssistantText("");
+    vi.stubGlobal("SpeechSynthesisUtterance", undefined);
+    app.speakAssistantText("hello");
+
+    Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+    Object.defineProperty(document, "execCommand", { value: vi.fn(), configurable: true });
+    const exec = vi.spyOn(document, "execCommand").mockReturnValueOnce(true).mockReturnValueOnce(false);
+    await expect(app.copyTextToClipboard("fallback")).resolves.toBeUndefined();
+    await expect(app.copyTextToClipboard("fallback")).rejects.toThrow("copy failed");
+    expect(exec).toHaveBeenCalledWith("copy");
+
+    const button = document.createElement("button");
+    app.markCodeCopyButton(button, "failed");
+    const firstTimer = button.copyResetTimer;
+    app.markCodeCopyButton(button, "copied");
+    expect(button.dataset.copyStatus).toBe("copied");
+    expect(firstTimer).not.toBe(button.copyResetTimer);
+    app.markCodeCopyButton(undefined, "copied");
+    await app.copyCodeBlock(undefined);
+    const codeButton = document.createElement("button");
+    const block = document.createElement("div");
+    block.className = "code-block";
+    block.innerHTML = `<pre><code>copy me</code></pre>`;
+    block.append(codeButton);
+    app.copyTextToClipboard = vi.fn(async () => { throw new Error("no copy"); });
+    await app.copyCodeBlock(codeButton);
+    expect(codeButton.dataset.copyStatus).toBe("failed");
+  });
+
+  it("covers clear streaming pending row branch", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    const row = app.simpleMessage("pi streaming", "pi >", "x");
+    row.classList.add("streaming");
+    row.dataset.kind = "pi";
+    app.pendingStreamingRow = row;
+    app.streamingRows = { pi: row };
+    app.clearStreamingState("pi");
+    expect(app.pendingStreamingRow).toBeUndefined();
+  });
+
   it("removes virtualized loading messages from transcript state", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
@@ -495,5 +653,53 @@ describe("pi-app messages", () => {
     app.removeLoadingMessage();
     expect(app.transcriptItems.some((item) => item.nodes?.some((node) => node.matches?.(".msg.loading")))).toBe(false);
     expect(app.querySelector(".msg.loading")).toBeNull();
+  });
+
+  it("covers remaining message collection and fallback branches", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([]);
+    expect(app.answeredChoiceIdsFrom([{ kind: "user", text: "선택지 응답:\nid: c1\nvalue: a" }]).has("c1")).toBe(true);
+    const last = app.simpleMessage("pi", "pi >", "same");
+    last.dataset.rawText = "same";
+    app.appendTranscriptNode(last);
+    expect(app.isDuplicateMessage({ kind: "pi", text: "same" })).toBe(true);
+    delete last.dataset.rawText;
+    last.querySelector(".body").textContent = "body same";
+    expect(app.isDuplicateMessage({ kind: "pi", text: "body same" })).toBe(true);
+
+    const cached = app.simpleMessage("pi streaming", "pi >", "cached");
+    cached.classList.add("streaming");
+    cached.dataset.kind = "pi";
+    app.streamingRows = { pi: cached };
+    app.termInner.append(cached);
+    app.transcriptItems = [null, { nodes: [null, cached] }];
+    expect(app.streamingRowsForKind("pi")).toContain(cached);
+    app.pendingStreamingRow = cached;
+    app.clearStreamingState("pi");
+    expect(app.pendingStreamingRow).toBeUndefined();
+
+    const loading = app.simpleMessage("loading", "pi >", "loading");
+    loading.classList.add("loading");
+    app.transcriptItems = [null, { nodes: [null, loading] }];
+    expect(app.loadingMessageNodes()).toContain(loading);
+    app.deferTranscriptRender = true;
+    app.removeLoadingMessage();
+    app.deferTranscriptRender = false;
+
+    const piNode = app.simpleMessage("pi", "pi >", "read me");
+    piNode.dataset.kind = "pi";
+    app.transcriptItems = [null, { nodes: [null, piNode] }];
+    expect(() => app.syncReadAloudControls()).not.toThrow();
+    app.termInner = null;
+    app.answeredChoiceIds = new Set(["missing"]);
+    expect(() => app.syncAnsweredChoices()).not.toThrow();
+
+    app.voiceLanguage = "";
+    app.speechLanguage = "";
+    vi.stubGlobal("SpeechSynthesisUtterance", function SpeechSynthesisUtterance(text) { this.text = text; });
+    vi.stubGlobal("speechSynthesis", { cancel: vi.fn(), speak: vi.fn() });
+    vi.stubGlobal("navigator", { language: "" });
+    app.speakAssistantText("hello");
+    expect(globalThis.speechSynthesis.speak).toHaveBeenCalled();
   });
 });

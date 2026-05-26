@@ -1,4 +1,5 @@
 import { getGitCommit, getGitHistory } from "../../lib/api";
+import { fallbackValue } from "../../lib/fallbacks";
 import { escapeHtml } from "../../lib/renderers";
 
 const LUCIDE_LIST_PLUS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 12H3"></path><path d="M16 6H3"></path><path d="M16 18H3"></path><path d="M18 9v6"></path><path d="M21 12h-6"></path></svg>`;
@@ -19,7 +20,7 @@ export const gitHistoryMethods = {
         && this.gitHistoryLimit < MAX_GIT_HISTORY_COMMITS;
       this.renderGitHistory(this.gitHistoryCommits);
     } catch (error) {
-      this.renderGitHistoryError(error?.message || "git history unavailable");
+      this.renderGitHistoryError(fallbackValue(error?.message, "git history unavailable"));
     }
   },
 
@@ -91,16 +92,16 @@ export const gitHistoryMethods = {
     if (button) button.disabled = true;
     try {
       const scroll = this.querySelector("[data-git-commit-scroll]");
-      const scrollTop = scroll?.scrollTop || 0;
+      const scrollTop = fallbackValue(scroll?.scrollTop, 0);
       const { commits } = await getGitHistory(this.dataset.activeWorkspaceId, nextLimit);
       this.gitHistoryLimit = nextLimit;
-      this.gitHistoryCommits = commits || [];
+      this.gitHistoryCommits = fallbackValue(commits, []);
       this.gitHistoryHasMore = this.gitHistoryCommits.length >= nextLimit && nextLimit < MAX_GIT_HISTORY_COMMITS;
       this.renderGitHistory(this.gitHistoryCommits);
       const nextScroll = this.querySelector("[data-git-commit-scroll]");
       if (nextScroll) nextScroll.scrollTop = scrollTop;
     } catch (error) {
-      this.renderGitHistoryError(error?.message || "git history unavailable");
+      this.renderGitHistoryError(fallbackValue(error?.message, "git history unavailable"));
     }
   },
 
@@ -131,7 +132,7 @@ export const gitHistoryMethods = {
       const response = await getGitCommit(this.dataset.activeWorkspaceId, hash);
       this.renderGitCommitDetail(response);
     } catch (error) {
-      detail.innerHTML = `<div class="git-empty err">${escapeHtml(error?.message || "commit unavailable")}</div>`;
+      detail.innerHTML = `<div class="git-empty err">${escapeHtml(fallbackValue(error?.message, "commit unavailable"))}</div>`;
     }
   },
 
@@ -175,17 +176,17 @@ export const gitHistoryMethods = {
   },
 };
 
-function fileTemplate(file) {
+export function fileTemplate(file) {
   const oldPath = file.oldPath ? `<small>${escapeHtml(file.oldPath)} →</small>` : "";
   return `<div class="git-file"><span class="status ${escapeHtml(file.status || "modified")}">${escapeHtml(file.status || "modified")}</span><span class="path">${oldPath}${escapeHtml(file.path || "")}</span><span class="nums"><span class="add">+${file.additions || 0}</span><span class="del">-${file.deletions || 0}</span></span></div>`;
 }
 
-function refsTemplate(refs = []) {
+export function refsTemplate(refs = []) {
   if (!refs.length) return "";
   return `<span class="git-refs">${refs.map((ref) => `<em>${escapeHtml(ref)}</em>`).join("")}</span>`;
 }
 
-function formatGitDate(value) {
+export function formatGitDate(value) {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return escapeHtml(value);

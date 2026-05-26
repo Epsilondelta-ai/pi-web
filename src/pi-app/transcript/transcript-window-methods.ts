@@ -7,21 +7,26 @@ import {
 const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
 
-function isElement(node) {
+export function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
 }
 
-function numericPixelValue(value) {
+export function numericPixelValue(value) {
   const parsed = Number.parseFloat(value || "0");
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function measuredHeight(nodes) {
+export function measuredHeight(nodes) {
   return nodes.reduce((total, node) => {
     const height = node.getBoundingClientRect?.().height || node.offsetHeight || 0;
     const style = globalThis.getComputedStyle?.(node);
     return total + height + numericPixelValue(style?.marginTop) + numericPixelValue(style?.marginBottom);
   }, 0);
+}
+
+export function transcriptIndex(items, item) {
+  if (!items) return -1;
+  return items.indexOf(item);
 }
 
 export const transcriptWindowMethods = {
@@ -249,12 +254,12 @@ export const transcriptWindowMethods = {
   },
 
   isTranscriptItemVisible(item) {
-    const index = this.transcriptItems?.indexOf(item) ?? -1;
+    const index = transcriptIndex(this.transcriptItems, item);
     return index >= this.transcriptVisibleStart && index < this.transcriptVisibleEnd;
   },
 
   isTranscriptItemVisibleInScroller(item) {
-    const index = this.transcriptItems?.indexOf(item) ?? -1;
+    const index = transcriptIndex(this.transcriptItems, item);
     if (index < 0) return false;
     const state = this.transcriptVirtualScroller?.getState?.();
     if (!state) return this.isTranscriptItemVisible(item);

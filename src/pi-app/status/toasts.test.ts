@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
+import { authProviderLabel, detailMessage, toastContextSession, toastContextWorkspace } from "./toast-methods";
 
 const fallbackChoiceJson = [
   "```json",
@@ -96,6 +97,33 @@ describe("pi-app toast notifications", () => {
     expect(warnings[2].textContent).toContain(
       "원본: Authentication failed for github-copilot. Credentials may have expired.",
     );
+  });
+
+  it("covers generic auth warning provider and context fallbacks", async () => {
+    const app = await connectPiApp();
+    expect(detailMessage(null)).toBe("");
+    expect(detailMessage({ message: "object message" })).toBe("object message");
+    expect(toastContextWorkspace(null)).toBe("워크스페이스 없음");
+    expect(toastContextWorkspace({ label: "Label workspace" })).toBe("Label workspace");
+    expect(toastContextSession({ sessionId: "sid" })).toBe("sid");
+    expect(toastContextSession({})).toBe("세션 없음");
+    expect(authProviderLabel("")).toBe("알 수 없음");
+    app.notifyRuntimeWarning("No API key configured");
+    app.notifyRuntimeWarning({ message: "Authentication failed for provider custom-provider" });
+    app.showToast("success", undefined, { workspace: "Workspace ID", session: "Session name", prompt: "Prompt text", sessionId: "sid" });
+    app.showToast("success", undefined, "string-session");
+    app.activateToastSession("missing-session");
+    app.dataset.activeSessionId = "same-session";
+    const same = document.createElement("button");
+    same.className = "session-row active";
+    same.dataset.session = "same-session";
+    app.append(same);
+    expect(app.backgroundWatchRows().has("same-session")).toBe(false);
+    const text = document.body.textContent;
+    expect(text).toContain("대상: 알 수 없음");
+    expect(text).toContain("custom-provider");
+    expect(text).toContain("Workspace ID");
+    expect(text).toContain("세션 없음");
   });
 
   it("shows auth warnings instead of generic response errors for credential failures", async () => {
@@ -201,6 +229,73 @@ describe("pi-app toast notifications", () => {
     app.syncUnreadCompletedSessions();
 
     expect(localStorage.getItem("piweb:unread-completed-sessions")).toBe("[]");
+  });
+
+  it("covers toast storage, background watch cleanup, auth labels, and default contexts", async () => {
+    const app = await connectPiApp();
+    app.handleToastClick();
+    app.showToast("unknown", "<detail>", "workspace label");
+    expect(document.querySelector(".session-toast.success").textContent).toContain("workspace label");
+    app.showSystemToast("unknown", "T", "D");
+    expect([...document.querySelectorAll(".session-toast.warning")].at(-1).textContent).toContain("T");
+    app.dismissToast(undefined);
+
+    app.notifyRuntimeWarning("invalid_grant for provider anthropic");
+    app.notifyRuntimeWarning("Unauthorized for provider openai");
+    app.notifyRuntimeWarning("models.json error for custom");
+    expect([...document.querySelectorAll(".session-toast.warning")].map((node) => node.textContent).join(" ")).toContain("OAuth grant");
+
+    localStorage.setItem("piweb:last-session-prompts", "not-json");
+    expect(app.readLastSessionPrompt("s1")).toBe("");
+    app.writeLastSessionPrompt("", "skip");
+    app.writeLastSessionPrompt("s1", "  prompt  ");
+    expect(app.readLastSessionPrompt("s1")).toBe("prompt");
+    localStorage.setItem("piweb:unread-completed-sessions", "not-json");
+    expect(app.readUnreadCompletedSessions().size).toBe(0);
+    app.writeUnreadCompletedSessions(new Set(["s1"]));
+    app.clearUnreadCompletedSession("missing");
+    app.markUnreadCompletedSession("");
+    app.dataset.activeSessionId = "s1";
+    app.markUnreadCompletedSession("s1");
+
+    app.apiConnected = false;
+    const close = vi.fn();
+    app.backgroundSessionWatches = new Map([["s2", { source: { close } }]]);
+    app.syncBackgroundSessionWatches();
+    expect(close).toHaveBeenCalled();
+    expect(app.backgroundSessionWatches.size).toBe(0);
+
+    app.apiConnected = true;
+    vi.stubGlobal("EventSource", undefined);
+    app.syncBackgroundSessionWatches();
+    const row = document.createElement("div");
+    row.className = "session-row active";
+    row.dataset.session = "s2";
+    row.dataset.workspace = "w2";
+    row.dataset.title = "row title";
+    app.append(row);
+    const group = document.createElement("div");
+    group.dataset.workspaceGroup = "w2";
+    group.innerHTML = `<span class="label">Workspace 2</span>`;
+    app.append(group);
+    app.writeLastSessionPrompt("s2", "last prompt");
+    const context = app.toastContextForSessionRow(row);
+    expect(context).toMatchObject({ workspaceName: "Workspace 2", sessionName: "row title", prompt: "last prompt", sessionId: "s2" });
+
+    const watch = { row, source: { close: vi.fn() }, failed: false, wasRunning: false };
+    app.notifyResponseFailure = vi.fn();
+    app.notifyChoiceRequested = vi.fn();
+    app.notifySessionCompleted = vi.fn();
+    app.dismissBackgroundSessionWatch = vi.fn();
+    app.handleBackgroundSessionEvent(null, watch);
+    app.handleBackgroundSessionEvent({ type: "heartbeat" }, watch);
+    app.handleBackgroundSessionEvent({ type: "error", payload: { error: "boom" } }, watch);
+    app.handleBackgroundSessionEvent({ type: "session.message", payload: { text: fallbackChoiceJson } }, watch);
+    app.handleBackgroundSessionEvent({ type: "session.status", payload: { status: "thinking" }, sessionId: "s2" }, watch);
+    app.handleBackgroundSessionEvent({ type: "session.status", payload: { status: "cancelled" }, sessionId: "s2" }, watch);
+    expect(app.notifyResponseFailure).toHaveBeenCalled();
+    expect(app.notifyChoiceRequested).toHaveBeenCalled();
+    expect(app.dismissBackgroundSessionWatch).toHaveBeenCalled();
   });
 
   it("restores unread completed session glow from local storage until the session is opened", async () => {

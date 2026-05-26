@@ -7,6 +7,10 @@ import {
   startOAuthLogin,
 } from "../../lib/api";
 
+export function oauthErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export const oauthMethods = {
   fillOAuthForm() {
     const providerSelect = this.querySelector("[data-oauth-provider]");
@@ -37,7 +41,7 @@ export const oauthMethods = {
       this.pollOAuthSession(session.id);
     } catch (error) {
       button && (button.disabled = false);
-      this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setOAuthStatus(oauthErrorMessage(error), true);
       this.setConnection("err");
     }
   },
@@ -52,7 +56,7 @@ export const oauthMethods = {
         this.applyOAuthSession(session);
         if (terminal.has(session.status)) break;
       } catch (error) {
-        this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+        this.setOAuthStatus(oauthErrorMessage(error), true);
         break;
       }
     }
@@ -100,7 +104,7 @@ export const oauthMethods = {
       input.value = "";
       this.applyOAuthSession(session);
     } catch (error) {
-      this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setOAuthStatus(oauthErrorMessage(error), true);
     }
   },
 
@@ -113,7 +117,7 @@ export const oauthMethods = {
       await this.refreshAuthAfterOAuth();
       this.setOAuthStatus("OAuth credential removed");
     } catch (error) {
-      this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setOAuthStatus(oauthErrorMessage(error), true);
       this.setConnection("err");
     }
   },

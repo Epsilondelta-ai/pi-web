@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
+import { fallbackChoicePrompt, hiddenFenceType, parseFallbackChoiceAnswer, parseFallbackChoices, streamVisibleChoiceText, stripFallbackChoices } from "./fallback-choices";
 
 const fallbackChoicePayload = JSON.stringify({
   type: "piweb_choice",
@@ -72,6 +73,30 @@ describe("pi-app fallback choices", () => {
       text: "선택지 응답:\nid: runtime\nvalue: custom runtime",
       attachments: [],
     });
+  });
+
+  it("parses and streams malformed or non-choice JSON visibly", () => {
+    expect(parseFallbackChoices("```json\n{ nope\n```")).toEqual([]);
+    expect(parseFallbackChoices("```json\n{\"type\":\"other\",\"id\":\"x\",\"question\":\"Q\",\"options\":[{\"label\":\"A\",\"value\":\"a\"}]}\n```")).toEqual([]);
+    expect(parseFallbackChoices("```json\n{\"type\":\"piweb_choice\",\"id\":\"x\",\"question\":\"Q\",\"options\":[{}]}\n```")).toEqual([]);
+    expect(stripFallbackChoices("before\n```json\n{ nope\n```\nafter")).toContain("{ nope");
+    expect(stripFallbackChoices("before\n```json\n{\"type\":\"other\"}\n```\nafter")).toContain("other");
+    expect(parseFallbackChoices(["```json", JSON.stringify({ type: "piweb_choice", id: "x".repeat(200), question: "Q".repeat(2000), allowCustom: true, options: Array.from({ length: 10 }, (_, index) => ({ label: `L${index}`, value: `V${index}`, description: index ? "D" : "" })) }), "```"].join("\n"))[0]).toMatchObject({ id: "x".repeat(120), question: "Q".repeat(1000), allowCustom: true });
+    expect(hiddenFenceType("plain")).toBe("");
+    expect(streamVisibleChoiceText("hello``")).toEqual({ visible: "hello", pending: "``" });
+    expect(streamVisibleChoiceText("```jsonx```tail")).toEqual({ visible: "```jsonx```tail", pending: "" });
+    expect(streamVisibleChoiceText("prefix```json\n{\"type\":\"piweb_choice\"}")).toEqual({ visible: "prefix", pending: "```json\n{\"type\":\"piweb_choice\"}" });
+    expect(streamVisibleChoiceText("```json\n{bad}\n```tail")).toEqual({ visible: "```json\n{bad}\n```tail", pending: "" });
+    expect(streamVisibleChoiceText("```json\n{\"type\":\"other\"}\n```tail")).toEqual({
+      visible: "```json\n{\"type\":\"other\"}\n```tail",
+      pending: "",
+    });
+    expect(streamVisibleChoiceText("```json\n{\"type\":\"piweb_design_deck\"}\n```tail")).toEqual({ visible: "tail", pending: "" });
+    expect(fallbackChoicePrompt("", "x")).toBe("");
+    expect(fallbackChoicePrompt("id", "  ")).toBe("");
+    expect(fallbackChoicePrompt("id", "value")).toContain("id: id");
+    expect(parseFallbackChoiceAnswer("nope")).toBeUndefined();
+    expect(parseFallbackChoiceAnswer("선택지 응답:\nid: abc\nvalue: x")).toBe("abc");
   });
 
   it("disables already answered fallback choices on reload", async () => {
