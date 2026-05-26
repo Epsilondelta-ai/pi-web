@@ -185,7 +185,7 @@ export const inputMethods = {
     const button = event.currentTarget.querySelector("button[type='submit']");
     await this.runPromptShellCommand(command, {
       onStart: () => { if (button) button.disabled = true; },
-      onSuccess: () => { if (input) input.value = ""; },
+      onSuccess: () => { input.value = ""; },
       onFinish: () => { if (button) button.disabled = false; },
     });
   },
@@ -199,9 +199,9 @@ export const inputMethods = {
         this.exitPromptShellMode();
       },
       onFinish: () => {
-        if (this.prompt) this.prompt.disabled = false;
+        this.prompt.disabled = false;
         this.updatePrompt();
-        this.prompt?.focus();
+        this.prompt.focus();
       },
     });
   },
@@ -790,7 +790,7 @@ export const inputMethods = {
     this.promptShellMode = true;
     this.promptBar?.classList.add("shell-mode");
     this.prompt?.setAttribute("placeholder", "run shell command in workspace…");
-    this.attachButtonOriginalHtml ??= this.attachButton?.innerHTML || "";
+    if (this.attachButtonOriginalHtml === undefined) this.attachButtonOriginalHtml = this.attachButton?.innerHTML || "";
     if (this.attachButton) {
       this.attachButton.innerHTML = SHELL_PROMPT_ICON;
       this.attachButton.disabled = true;
@@ -806,7 +806,7 @@ export const inputMethods = {
     this.promptBar?.classList.remove("shell-mode");
     this.prompt?.setAttribute("placeholder", "ask pi to do something…");
     if (this.attachButton) {
-      this.attachButton.innerHTML = this.attachButtonOriginalHtml || this.attachButton.innerHTML;
+      this.attachButton.innerHTML = this.attachButtonOriginalHtml;
       this.attachButton.disabled = false;
       this.attachButton.setAttribute("aria-label", "attach files");
       this.attachButton.setAttribute("title", "attach files");

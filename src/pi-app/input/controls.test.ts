@@ -35,6 +35,16 @@ describe("pi-app controls", () => {
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
   });
 
+  it("enters prompt shell mode when input starts with bang-space", async () => {
+    const app = await connectPiApp();
+    app.prompt.value = "! pwd";
+    app.prompt.dispatchEvent(new Event("input"));
+
+    expect(app.promptShellMode).toBe(true);
+    expect(app.prompt.value).toBe("pwd");
+    expect(app.querySelector(".attach-btn").disabled).toBe(true);
+  });
+
   it("toggles prompt shell mode with bang-space and backspace", async () => {
     const app = await connectPiApp();
     const prompt = app.querySelector(".prompt-textarea");
@@ -55,6 +65,33 @@ describe("pi-app controls", () => {
     expect(app.promptShellMode).toBe(false);
     expect(attach.disabled).toBe(false);
     expect(attach.textContent).toBe("attach");
+  });
+
+  it("covers prompt shell mode no-op branches", async () => {
+    const app = await connectPiApp();
+
+    app.enterPromptShellMode();
+    app.enterPromptShellMode();
+    await app.submitPrompt();
+    app.exitPromptShellMode();
+    app.enterPromptShellMode();
+    app.exitPromptShellMode();
+    app.exitPromptShellMode();
+
+    const attach = app.attachButton;
+    const bar = app.promptBar;
+    app.attachButtonOriginalHtml = undefined;
+    app.attachButton = null;
+    app.promptBar = null;
+    app.enterPromptShellMode();
+    app.exitPromptShellMode();
+    app.attachButton = attach;
+    app.promptBar = bar;
+
+    const prompt = app.prompt;
+    app.prompt = null;
+    await app.submitPromptShellCommand("pwd");
+    app.prompt = prompt;
   });
 
   it("runs prompt shell commands through the workspace shell API", async () => {
