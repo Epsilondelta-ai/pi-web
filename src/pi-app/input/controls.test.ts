@@ -7,7 +7,11 @@ const browserWhisperMock = vi.hoisted(() => vi.fn(function BrowserWhisperMock() 
 vi.mock("browser-whisper", () => ({ BrowserWhisper: browserWhisperMock }));
 
 describe("pi-app controls", () => {
-  beforeEach(installPiAppFixture);
+  beforeEach(async () => {
+    installPiAppFixture();
+    const { speechMethods } = await import("./speech-methods");
+    Object.assign(customElements.get("pi-app")!.prototype, speechMethods, { speechMethodsLoaded: true });
+  });
   afterEach(cleanupPiAppFixture);
 
   it("applies UI language selection immediately", async () => {
@@ -140,6 +144,7 @@ describe("pi-app controls", () => {
     prompt.value = "기존";
 
     mic.click();
+    await Promise.resolve();
     const recognition = instances[0];
     expect(recognition.lang).toBe("ko-KR");
     expect(mic.classList.contains("listening")).toBe(true);
@@ -492,6 +497,7 @@ describe("pi-app controls", () => {
     app.loadWhisperPipeline = vi.fn(async () => ({ downloadModel }));
 
     app.querySelector("[data-action='download-whisper-model']").click();
+    await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
     expect(app.loadWhisperPipeline).toHaveBeenCalled();
