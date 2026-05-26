@@ -28,6 +28,11 @@ func TestListNativeSlashCommandsIncludesPromptsSkillsExtensionsAndPackages(t *te
 			t.Fatalf("missing %s in %+v diagnostics=%+v", command, result.Commands, result.Diagnostics)
 		}
 	}
+	for _, diagnostic := range result.Diagnostics {
+		if strings.Contains(diagnostic.Path, "hello.ts") {
+			t.Fatalf("expected static fallback to avoid diagnostics for hello.ts, got %+v", result.Diagnostics)
+		}
+	}
 }
 
 func TestPackageFiltersAndMissingDiagnostics(t *testing.T) {

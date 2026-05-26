@@ -144,6 +144,8 @@ describe("api adapter", () => {
     expect(JSON.parse(opened.options.body)).toEqual({ path: "/repo" });
     const commands = await getWorkspaceCommands("w1");
     expect(commands.url).toBe("http://backend.test/api/workspaces/w1/commands");
+    const cachedCommands = await getWorkspaceCommands("w1", { reload: false });
+    expect(cachedCommands.url).toBe("http://backend.test/api/workspaces/w1/commands");
     const reloadedCommands = await getWorkspaceCommands("w1", { reload: true });
     expect(reloadedCommands.url).toBe("http://backend.test/api/workspaces/w1/commands?reload=1");
     const models = await getWorkspaceModels("w1");
