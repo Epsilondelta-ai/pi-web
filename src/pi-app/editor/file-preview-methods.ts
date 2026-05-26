@@ -1,6 +1,14 @@
 import { getWorkspaceFile, saveWorkspaceFile } from "../../lib/api";
 import { fallbackValue } from "../../lib/fallbacks";
-import { CodeMirrorFileEditor, codeMirrorLanguageName, editableFileState, isTextFile } from "./file-editor";
+import { codeMirrorLanguageName, editableFileState, isTextFile } from "./file-editor-state";
+
+function defaultCodeMirrorFileEditorLoader() {
+  return import("./file-editor");
+}
+let loadCodeMirrorFileEditor = defaultCodeMirrorFileEditorLoader;
+export function setCodeMirrorFileEditorLoaderForTest(loader?) {
+  loadCodeMirrorFileEditor = loader || defaultCodeMirrorFileEditorLoader;
+}
 
 export const filePreviewMethods = {
   async openFile(button) {
@@ -62,6 +70,7 @@ export const filePreviewMethods = {
     if (mode === "text" && isTextFile(file)) {
       const node = textPreviewNode(this, state);
       body.append(node);
+      state.editorReady = mountTextPreviewEditor(this, state, node);
       return;
     }
     if (mode === "image" && file.dataUrl) {
@@ -126,6 +135,7 @@ export const filePreviewMethods = {
         saveStatus: "saved",
       };
       this.renderFilePreviewBody();
+      await this.filePreview.editorReady;
       await this.loadWorkspaceMeta(workspaceId);
     } catch (error) {
       state.saveStatus = errorMessage(error);
@@ -208,23 +218,36 @@ function textPreviewNode(app, state) {
   const container = document.createElement("div");
   container.dataset.filePreviewEditor = "";
   container.dataset.language = codeMirrorLanguageName(file);
-
+  container.textContent = "loading editor…";
   const readOnly = editableFileState(file).readOnly;
-  const content = `${fallbackValue(file.content, "")}${truncatedSuffix(file)}`;
-  state.editor = new CodeMirrorFileEditor(container, {
-    file,
-    content,
-    originalContent: state.originalContent,
-    readOnly,
-    onChange: (nextContent) => {
-      state.dirty = nextContent !== state.cleanContent;
-      state.saveStatus = "";
-      updatePreviewActions(app.querySelector("[data-file-preview]"), state);
-    },
-    onSave: () => void app.saveFilePreview?.(),
-  });
   container.setAttribute("aria-label", `${readOnly ? "view" : "edit"} ${fallbackValue(file.path, "file")}`);
   return container;
+}
+
+async function mountTextPreviewEditor(app, state, container) {
+  const token = Symbol("file-preview-editor");
+  state.editorLoadToken = token;
+  const file = state.file;
+  const readOnly = editableFileState(file).readOnly;
+  const content = `${fallbackValue(file.content, "")}${truncatedSuffix(file)}`;
+  try {
+    const { CodeMirrorFileEditor } = await loadCodeMirrorFileEditor();
+    if (state.editorLoadToken !== token || app.filePreview !== state || !container.isConnected) return;
+    state.editor = new CodeMirrorFileEditor(container, {
+      file,
+      content,
+      originalContent: state.originalContent,
+      readOnly,
+      onChange: (nextContent) => {
+        state.dirty = nextContent !== state.cleanContent;
+        state.saveStatus = "";
+        updatePreviewActions(app.querySelector("[data-file-preview]"), state);
+      },
+      onSave: () => void app.saveFilePreview?.(),
+    });
+  } catch (error) {
+    container.textContent = error instanceof Error ? error.message : String(error);
+  }
 }
 
 export function truncatedSuffix(file) {

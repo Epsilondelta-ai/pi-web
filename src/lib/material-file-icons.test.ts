@@ -10,6 +10,8 @@ describe("resolveMaterialFileIcon", () => {
     expect(resolveMaterialFileIcon({ kind: "file", name: "README.md" }).name).toBe("readme");
     expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).name).toBe("typescript");
     expect(resolveMaterialFileIcon({ kind: "file", name: "unknown" }).name).toBe("file");
+    expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
+    expect(resolveMaterialFileIcon({ kind: "dir", name: "unknown-folder" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
   });
 
   it("resolves compound extensions and path-only names", () => {

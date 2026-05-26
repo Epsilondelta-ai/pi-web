@@ -44,6 +44,12 @@ export const layoutMethods = {
     body?.classList.toggle("tree-open", treeEnabled);
     this.querySelector('[data-action="toggle-tree"]')?.classList.toggle("on", treeEnabled);
     tree?.toggleAttribute("hidden", !treeEnabled);
+    if (treeEnabled) {
+      void this.ensureWorkspaceTreeMounted?.();
+      if (this.apiConnected && this.dataset.activeWorkspaceId && !this.workspaceMetaLoadedFor?.has?.(this.dataset.activeWorkspaceId)) {
+        void this.loadWorkspaceMeta?.(this.dataset.activeWorkspaceId);
+      }
+    }
     this.applyGrid();
   },
 

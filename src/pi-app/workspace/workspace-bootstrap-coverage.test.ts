@@ -82,6 +82,7 @@ describe("workspace bootstrap coverage", () => {
     app.populateBrowserVoiceLanguageOptions();
     app.fillModelControls();
     app.fillSettingsForm();
+    expect(app.updateWhisperCacheStatus).toHaveBeenCalled();
     expect(app.querySelector("[data-settings-path]").textContent).toBe("/p");
     expect(app.querySelector("[data-custom-setting='defaultProvider']").value).toBe("custom-provider");
     expect(app.querySelector("[data-setting='voice.language']").value).toMatch(/Korean|한국어|ko/i);

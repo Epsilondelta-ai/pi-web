@@ -37,6 +37,10 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "measure:startup": "bun run build && node scripts/measure-startup.mjs",
+    "measure:startup:mobile": "bun run build && PI_WEB_THROTTLE=mobile PI_WEB_BUDGET_FCP=1500 PI_WEB_BUDGET_DCL=2500 PI_WEB_BUDGET_LOAD=3000 node scripts/measure-startup.mjs",
+    "measure:user-flow": "bun run build && node scripts/measure-user-flow.mjs",
+    "check:perf": "bun run measure:startup && bun run measure:startup:mobile && bun run measure:user-flow",
     "check": "bun run lint && bun run typecheck && bun run test && bun run backend:test && bun run build && bun run build-storybook"
   },
   "dependencies": {
@@ -82,6 +86,8 @@
     "eslint-plugin-astro": "^1.7.0",
     "globals": "^17.6.0",
     "jsdom": "29.1.1",
+    "lighthouse": "^13.3.0",
+    "puppeteer-core": "^25.1.0",
     "storybook": "10.4.0",
     "typescript": "6.0.3",
     "typescript-eslint": "^8.59.4",

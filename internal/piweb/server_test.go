@@ -103,6 +103,26 @@ func TestServesStaticUI(t *testing.T) {
 	if res.Code != http.StatusNotFound {
 		t.Fatalf("expected unknown API route to stay 404, got %d", res.Code)
 	}
+
+	req = httptest.NewRequest(http.MethodGet, "/assets/app.js", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	res = httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK || res.Header().Get("Content-Encoding") != "gzip" || res.Header().Get("Vary") != "Accept-Encoding" {
+		t.Fatalf("expected gzip static asset, got %d encoding=%q vary=%q", res.Code, res.Header().Get("Content-Encoding"), res.Header().Get("Vary"))
+	}
+	if contentType := res.Header().Get("Content-Type"); contentType != "text/javascript; charset=utf-8" {
+		t.Fatalf("expected gzip js content type, got %q", contentType)
+	}
+
+	files["assets/app.css"] = &fstest.MapFile{Data: []byte("body{}")}
+	req = httptest.NewRequest(http.MethodGet, "/assets/app.css", nil)
+	req.Header.Set("Accept-Encoding", "gzip")
+	res = httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if contentType := res.Header().Get("Content-Type"); contentType != "text/css; charset=utf-8" {
+		t.Fatalf("expected gzip css content type, got %q", contentType)
+	}
 }
 
 func TestWorkspaceAndSessionManagementEndpoints(t *testing.T) {
