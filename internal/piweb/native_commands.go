@@ -557,11 +557,26 @@ func truncate(s string, n int) string {
 }
 
 const extensionProbeScript = `
-import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 const input = JSON.parse(process.env.PI_WEB_EXTENSION_PAYLOAD || '{}');
-let jiti = null;
-try { jiti = require('jiti')(process.cwd(), { interopDefault: true }); } catch {}
+function stripTypeScript(source) {
+  return source
+    .replace(/^\s*import\s+type\s+[^;]+;?\s*$/gm, '')
+    .replace(/:\s*[A-Za-z_$][A-Za-z0-9_$]*(?:<[^=;,){}]+>)?(?=\s*[,)=;{])/g, '')
+    .replace(/\s+as\s+[A-Za-z_$][A-Za-z0-9_$.]*(?:<[^;,){}]+>)?/g, '')
+    .replace(/interface\s+[A-Za-z_$][A-Za-z0-9_$]*\s*{[^}]*}/g, '');
+}
+async function importExtension(path) {
+  if (!path.endsWith('.ts')) return import(pathToFileURL(path).href);
+  const dir = mkdtempSync(join(tmpdir(), 'pi-web-ext-'));
+  const out = join(dir, basename(path).replace(/\.ts$/, '.mjs'));
+  writeFileSync(out, stripTypeScript(readFileSync(path, 'utf8')));
+  try { return await import(pathToFileURL(out).href); }
+  finally { rmSync(dir, { recursive: true, force: true }); }
+}
 const commands = [];
 const errors = [];
 function fakePi(ext) {
@@ -575,7 +590,7 @@ function fakePi(ext) {
 }
 for (const ext of input.extensions || []) {
   try {
-    const mod = ext.path.endsWith('.ts') && jiti ? await jiti.import(ext.path) : await import('file://' + ext.path);
+    const mod = await importExtension(ext.path);
     const setup = typeof mod.default === 'function' ? mod.default : (mod.setup || mod.default?.setup);
     if (typeof setup === 'function') await setup(fakePi(ext));
   } catch (error) {

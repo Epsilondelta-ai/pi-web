@@ -14,7 +14,7 @@ func TestListNativeSlashCommandsIncludesPromptsSkillsExtensionsAndPackages(t *te
 	t.Setenv("HOME", home)
 	writeFile(t, filepath.Join(root, ".pi", "prompts", "review.md"), "---\ndescription: Review changes\nargument-hint: [scope]\n---\nBody")
 	writeFile(t, filepath.Join(root, ".pi", "skills", "ship", "SKILL.md"), "---\nname: ship\ndescription: Ship the complete feature\n---\n# Ship")
-	writeFile(t, filepath.Join(root, ".pi", "extensions", "hello.mjs"), "export function setup(pi) { pi.registerCommand('hello', { description: 'Say hello' }) }\n")
+	writeFile(t, filepath.Join(root, ".pi", "extensions", "hello.ts"), "export function setup(pi: ExtensionAPI) { pi.registerCommand('hello', { description: 'Say hello' }) }\n")
 	pkgRoot := filepath.Join(root, ".pi", "npm", "node_modules", "pkg")
 	writeFile(t, filepath.Join(pkgRoot, "package.json"), `{"pi":{"prompts":["prompts"],"skills":["skills"],"extensions":["extensions"]}}`)
 	writeFile(t, filepath.Join(pkgRoot, "prompts", "pkgprompt.md"), "Package prompt")
