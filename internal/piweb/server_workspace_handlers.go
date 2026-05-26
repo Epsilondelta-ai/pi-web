@@ -176,18 +176,10 @@ func (s *Server) workspaceCommands(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	commands := MockSlashCommands()
-	var commandError string
-	if s.config.EnablePiExecution {
-		commands, err = ListPiCommands(r.Context(), root)
-		if err != nil {
-			commands = MockSlashCommands()
-			commandError = err.Error()
-		}
-	}
-	body := map[string]any{"commands": commands}
-	if commandError != "" {
-		body["error"] = commandError
+	result := s.workspaceCommandList(r.Context(), r.PathValue("workspaceID"), root, r.URL.Query().Get("reload") == "1")
+	body := map[string]any{"commands": result.Commands}
+	if len(result.Diagnostics) > 0 {
+		body["diagnostics"] = result.Diagnostics
 	}
 	writeJSON(w, http.StatusOK, body)
 }

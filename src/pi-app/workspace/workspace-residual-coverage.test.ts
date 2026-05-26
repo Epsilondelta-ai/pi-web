@@ -92,6 +92,13 @@ describe("workspace residual method coverage", () => {
     expect(app.updatePromptMeta).toHaveBeenCalledWith({ currentBranch: "dev" });
     await app.loadWorkspaceCommands("w1");
     expect(app.renderSlashCommands).toHaveBeenCalledWith(["/x"]);
+    vi.mocked(api.getWorkspaceCommands).mockResolvedValueOnce({ commands: ["/y"], diagnostics: [{ error: "warn" }] });
+    await app.loadWorkspaceCommands("w1", { reload: true });
+    expect(app.renderSlashCommands).toHaveBeenCalledWith(["/y"], [{ error: "warn" }]);
+    expect(api.getWorkspaceCommands).toHaveBeenCalledWith("w1", { reload: true });
+    vi.mocked(api.getWorkspaceCommands).mockResolvedValueOnce({ diagnostics: [{ error: "warn-only" }] });
+    await app.loadWorkspaceCommands("w1");
+    expect(app.renderSlashCommands).toHaveBeenCalledWith([], [{ error: "warn-only" }]);
     vi.mocked(api.getWorkspaceCommands).mockRejectedValueOnce(new Error("commands"));
     await app.loadWorkspaceCommands("w1");
 
