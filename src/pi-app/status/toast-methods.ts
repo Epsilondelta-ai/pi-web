@@ -176,10 +176,7 @@ function piUpdateConfirmHtml() {
 }
 
 function packageUpdateLabel(update) {
-  const name = update?.displayName || update?.source || "unknown";
-  const current = update?.currentVersion;
-  const latest = update?.latestVersion;
-  return current && latest ? `${name} (${current} → ${latest})` : name;
+  return `${update.displayName} (${update.currentVersion} → ${update.latestVersion})`;
 }
 
 function piPackageUpdateConfirmHtml(updates) {
@@ -200,9 +197,7 @@ function piPackageUpdateConfirmHtml(updates) {
 }
 
 function packageUpdateKey(updates) {
-  return updates
-    .map((update) => `${update?.source || ""}:${update?.currentVersion || ""}:${update?.latestVersion || ""}`)
-    .join("|");
+  return updates.map((update) => `${update.source}:${update.currentVersion}:${update.latestVersion}`).join("|");
 }
 
 export function toastContextWorkspace(context) {
@@ -323,7 +318,9 @@ export const toastMethods = {
   notifyPiPackageUpdateAvailable(updates) {
     const key = `pi-package-update-question:${packageUpdateKey(updates)}`;
     this.systemToastKeys ??= new Set();
-    if (this.systemToastKeys.has(key) || this.isPiPackageUpdateIgnored?.(key)) return;
+    const alreadyShown = this.systemToastKeys.has(key);
+    const ignored = this.isPiPackageUpdateIgnored(key);
+    if (alreadyShown || ignored) return;
     this.systemToastKeys.add(key);
     const notification = this.ensureToastRegion().open({ type: "warning", message: piPackageUpdateConfirmHtml(updates) });
     notification.on(NotyfEvent.Click, (payload = {}) => {

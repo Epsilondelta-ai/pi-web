@@ -112,6 +112,17 @@ describe("pi-app toast notifications", () => {
     expect(packageWarning.textContent).toContain("other (1.0.0 → 1.1.0)");
     packageWarning.querySelector("[data-pi-package-update-confirm='yes']").click();
     expect(app.startPiUpdateFlow).toHaveBeenCalledWith();
+    app.notifyPiPackageUpdateAvailable([
+      { source: "npm:skip", displayName: "skip", currentVersion: "1.0.0", latestVersion: "1.1.0" },
+    ]);
+    const skippedPackageWarning = [...document.querySelectorAll(".session-toast.warning")]
+      .filter((toast) => toast.textContent.includes("skip (1.0.0 → 1.1.0)"))
+      .at(-1);
+    skippedPackageWarning.querySelector("[data-pi-package-update-confirm='no']").click();
+    expect(app.isPiPackageUpdateIgnored("pi-package-update-question:npm:skip:1.0.0:1.1.0")).toBe(true);
+    app.notifyPiPackageUpdateAvailable([
+      { source: "npm:skip", displayName: "skip", currentVersion: "1.0.0", latestVersion: "1.1.0" },
+    ]);
     app.notifyPiUpdateAvailable({ currentVersion: "0.75.0", latestVersion: "0.75.6" });
     const nextWarning = [...document.querySelectorAll(".session-toast.warning")]
       .filter((toast) => toast.textContent.includes("Do you want to update pi?"))

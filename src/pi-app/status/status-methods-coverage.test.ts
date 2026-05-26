@@ -9,6 +9,7 @@ vi.mock("../../lib/api", async () => {
   const actual = await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
   return {
     ...actual,
+    getPiPackageUpdateStatus: vi.fn(),
     getPiUpdateStatus: vi.fn(),
     getPiVersionStatus: vi.fn(),
     getVersionStatus: vi.fn(),
@@ -133,14 +134,18 @@ describe("status method branch coverage", () => {
     const el = host(`<button data-action="show-update-tip" hidden></button><span data-update-tip hidden></span>`);
     el.notifyUpdateAvailable = vi.fn();
     el.notifyPiUpdateAvailable = vi.fn();
+    el.notifyPiPackageUpdateAvailable = vi.fn();
     vi.mocked(api.getVersionStatus).mockResolvedValueOnce({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
     vi.mocked(api.getPiVersionStatus).mockResolvedValueOnce({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
+    vi.mocked(api.getPiPackageUpdateStatus).mockResolvedValueOnce({ updates: [{ source: "npm:pkg" }] });
     vi.mocked(api.getPiUpdateStatus).mockResolvedValueOnce({ state: "idle" });
     await el.loadVersionStatus();
     expect(el.notifyUpdateAvailable).toHaveBeenCalled();
     expect(el.notifyPiUpdateAvailable).toHaveBeenCalled();
+    expect(el.notifyPiPackageUpdateAvailable).toHaveBeenCalledWith([{ source: "npm:pkg" }]);
     vi.mocked(api.getVersionStatus).mockRejectedValueOnce(new Error("web"));
     vi.mocked(api.getPiVersionStatus).mockRejectedValueOnce(new Error("pi"));
+    vi.mocked(api.getPiPackageUpdateStatus).mockRejectedValueOnce(new Error("packages"));
     vi.mocked(api.getPiUpdateStatus).mockRejectedValueOnce(new Error("update"));
     await el.loadVersionStatus();
     el.renderVersionStatus(undefined);
@@ -148,6 +153,8 @@ describe("status method branch coverage", () => {
     el.renderVersionStatus({ updateAvailable: true, currentVersion: "1", latestVersion: "2" });
     el.renderPiVersionStatus(undefined);
     el.renderPiVersionStatus({ updateAvailable: true, currentVersion: "2", latestVersion: "2" });
+    el.renderPiPackageUpdateStatus(undefined);
+    el.renderPiPackageUpdateStatus({ updates: [] });
     el.notifyPiUpdateRunning = vi.fn();
     el.notifyPiUpdateComplete = vi.fn();
     el.notifyPiUpdateFailed = vi.fn();
@@ -180,6 +187,8 @@ describe("status method branch coverage", () => {
     Object.defineProperty(globalThis, "localStorage", { configurable: true, get: () => { throw new Error("blocked"); } });
     expect(el.isPiUpdateIgnored("1", "2")).toBe(false);
     el.rememberIgnoredPiUpdate("1", "2");
+    expect(el.isPiPackageUpdateIgnored("pkg-key")).toBe(false);
+    el.rememberIgnoredPiPackageUpdate("pkg-key");
     Object.defineProperty(globalThis, "localStorage", { configurable: true, value: originalLocalStorage });
     vi.spyOn(window, "setTimeout").mockImplementation(((cb) => { cb(); return 1; }) as any);
     el.showUpdateTip();
