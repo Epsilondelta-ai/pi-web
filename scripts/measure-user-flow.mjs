@@ -99,10 +99,17 @@ async function openFilePreview(page, filePath) {
   if (!opened) throw new Error(`user-flow file preview not opened: ${filePath}`);
 }
 
+function stepMode(step) {
+  if (step.name?.startsWith("Navigation report")) return "navigation";
+  if (step.name?.startsWith("Timespan report")) return "timespan";
+  if (step.name?.startsWith("Snapshot report")) return "snapshot";
+  return "unknown";
+}
+
 function summarizeFlow(flowResult) {
   return flowResult.steps.map((step) => ({
     name: step.name,
-    mode: step.gatherMode,
+    mode: stepMode(step),
     score: step.lhr.categories.performance?.score,
     fcp: step.lhr.audits["first-contentful-paint"]?.numericValue ?? null,
     lcp: step.lhr.audits["largest-contentful-paint"]?.numericValue ?? null,
@@ -120,7 +127,9 @@ function enforceFlowBudgets(summary) {
   if (Number.isFinite(budgets.minNavigationScore) && Number.isFinite(navigation?.score) && navigation.score < budgets.minNavigationScore) failures.push(`navigation score ${navigation.score} < ${budgets.minNavigationScore}`);
   if (Number.isFinite(budgets.maxNavigationLcp) && Number.isFinite(navigation?.lcp) && navigation.lcp > budgets.maxNavigationLcp) failures.push(`navigation LCP ${navigation.lcp} > ${budgets.maxNavigationLcp}`);
   if (Number.isFinite(budgets.maxNavigationTbt) && Number.isFinite(navigation?.tbt) && navigation.tbt > budgets.maxNavigationTbt) failures.push(`navigation TBT ${navigation.tbt} > ${budgets.maxNavigationTbt}`);
-  for (const step of summary.slice(1).filter((item) => item.mode === "timespan")) {
+  const interactionSteps = summary.slice(1).filter((item) => item.mode === "timespan");
+  if (!interactionSteps.length) failures.push("interaction timespan steps missing");
+  for (const step of interactionSteps) {
     if (!Number.isFinite(step.tbt)) failures.push(`${step.name} TBT missing`);
     else if (step.tbt > budgets.maxInteractionTbt) failures.push(`${step.name} TBT ${step.tbt} > ${budgets.maxInteractionTbt}`);
   }
