@@ -2,6 +2,7 @@ package piweb
 
 import (
 	"context"
+	"errors"
 	"strings"
 )
 
@@ -45,11 +46,14 @@ func WorkspaceRuntimeStatus(ctx context.Context, root string) (RuntimeStatus, er
 }
 
 func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatus, error) {
-	status, err := CurrentPiModelStatus(ctx, root)
+	status, err := RuntimeModelStatusFromSettings(root)
 	if err != nil {
-		status = RuntimeStatus{}
-		if warning := runtimeAuthWarning(err); warning != "" {
-			status.Warning = warning
+		status, err = CurrentPiModelStatus(ctx, root)
+		if err != nil {
+			status = RuntimeStatus{}
+			if warning := runtimeAuthWarning(err); warning != "" {
+				status.Warning = warning
+			}
 		}
 	}
 	if status.Warning == "" {
@@ -57,6 +61,34 @@ func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatu
 	}
 	if git, err := RealGitStatus(root); err == nil {
 		status.CurrentBranch = git.Branch
+	}
+	return status, nil
+}
+
+func RuntimeModelStatusFromSettings(root string) (RuntimeStatus, error) {
+	settings, err := WorkspaceSettings(root)
+	if err != nil {
+		return RuntimeStatus{}, err
+	}
+	_, hasGlobalProvider := settings.Global["defaultProvider"]
+	_, hasProjectProvider := settings.Project["defaultProvider"]
+	_, hasGlobalModel := settings.Global["defaultModel"]
+	_, hasProjectModel := settings.Project["defaultModel"]
+	_, hasGlobalThinking := settings.Global["defaultThinkingLevel"]
+	_, hasProjectThinking := settings.Project["defaultThinkingLevel"]
+	if !hasGlobalProvider && !hasProjectProvider && !hasGlobalModel && !hasProjectModel && !hasGlobalThinking && !hasProjectThinking {
+		return RuntimeStatus{}, errors.New("runtime model settings unavailable")
+	}
+	provider, _ := settings.Effective["defaultProvider"].(string)
+	model, _ := settings.Effective["defaultModel"].(string)
+	thinkingLevel, _ := settings.Effective["defaultThinkingLevel"].(string)
+	status := RuntimeStatus{
+		Model:         strings.TrimSpace(model),
+		ModelProvider: strings.TrimSpace(provider),
+		ThinkingLevel: strings.TrimSpace(thinkingLevel),
+	}
+	if status.Model == "" && status.ModelProvider == "" && status.ThinkingLevel == "" {
+		return RuntimeStatus{}, errors.New("runtime model settings unavailable")
 	}
 	return status, nil
 }
