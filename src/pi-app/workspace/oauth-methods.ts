@@ -2,6 +2,7 @@ import {
   getAuthProviders,
   getOAuthLoginSession,
   getOAuthProviders,
+  logoutProvider,
   sendOAuthLoginInput,
   startOAuthLogin,
 } from "../../lib/api";
@@ -100,6 +101,20 @@ export const oauthMethods = {
       this.applyOAuthSession(session);
     } catch (error) {
       this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+    }
+  },
+
+  async logoutOAuthProvider() {
+    const provider = this.querySelector("[data-oauth-provider]")?.value;
+    if (!provider || !this.apiConnected) return;
+    this.setOAuthStatus("removing OAuth credential…");
+    try {
+      await logoutProvider(provider);
+      await this.refreshAuthAfterOAuth();
+      this.setOAuthStatus("OAuth credential removed");
+    } catch (error) {
+      this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setConnection("err");
     }
   },
 
