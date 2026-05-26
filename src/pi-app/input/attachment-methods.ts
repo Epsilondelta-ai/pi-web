@@ -1,4 +1,3 @@
-const INLINE_LIMIT = 256 * 1024;
 const LUCIDE_X_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;
 
 export const attachmentMethods = {
@@ -42,12 +41,11 @@ export const attachmentMethods = {
   },
 
   async fileAttachment(file) {
-    const content = file.size <= INLINE_LIMIT ? await file.text() : "[file too large to inline]";
     return {
       type: "file",
       name: file.name,
       mimeType: file.type || "text/plain",
-      content,
+      content: await file.text(),
     };
   },
 
