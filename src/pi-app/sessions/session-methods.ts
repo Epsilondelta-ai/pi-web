@@ -1,13 +1,12 @@
 import {
   createSession,
-  deleteSession as deleteSessionRequest,
-  deleteWorkspaceSessions as deleteWorkspaceSessionsRequest,
   renameSession as renameSessionRequest,
 } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
+import { sessionDeleteMethods } from "./session-delete-methods";
 import { decorateSessionRow, sessionKindLabel } from "./session-hierarchy";
 import { sessionMenuMethods } from "./session-menu-methods";
-import { clearStoredActiveSession, storeActiveSession } from "./session-storage";
+import { storeActiveSession } from "./session-storage";
 
 const LUCIDE_ELLIPSIS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`;
 const LUCIDE_PENCIL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></svg>`;
@@ -156,84 +155,7 @@ export const sessionMethods = {
     }
   },
 
-  async deleteSession(sessionId) {
-    this.closeSessionMenus();
-    if (!sessionId || !this.apiConnected) return;
-    if (!confirm(`Delete session ${sessionId}? This removes the local JSONL file.`)) return;
-    try {
-      await deleteSessionRequest(sessionId);
-      const workspaceId = this.findWorkspaceIdForSession(sessionId);
-      this.querySelector(`[data-session='${sessionId}']`)?.remove();
-      this.refreshWorkspaceSessionControls(workspaceId);
-      if (this.dataset.activeSessionId === sessionId) this.clearActiveSession(sessionId);
-    } catch {
-      this.setConnection("err");
-    }
-  },
-
-  async deleteWorkspaceSessions(workspaceId) {
-    this.closeSessionMenus();
-    if (!workspaceId || !this.apiConnected) return;
-    const count = this.countWorkspaceSessions(workspaceId);
-    const suffix = count ? ` (${count} shown)` : "";
-    if (!confirm(`Delete all sessions in this workspace${suffix}? This removes local JSONL files.`)) return;
-    try {
-      await deleteWorkspaceSessionsRequest(workspaceId);
-      this.clearWorkspaceSessionRows(workspaceId);
-      if (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId) {
-        this.clearActiveSession(this.dataset.activeSessionId);
-      }
-    } catch {
-      this.setConnection("err");
-    }
-  },
-
-  clearActiveSession(sessionId) {
-    clearStoredActiveSession(sessionId);
-    this.eventSource?.close();
-    this.eventStreamId = undefined;
-    this.dataset.activeSessionId = "";
-    this.resetActiveSessionState();
-    this.renderMessages([]);
-    this.showEmptyMain();
-    const title = this.querySelector("[data-active-session-title]");
-    if (title) {
-      title.textContent = "no session";
-      title.title = "no session";
-    }
-  },
-
-  clearWorkspaceSessionRows(workspaceId) {
-    const group = this.findWorkspaceGroup?.(workspaceId)
-      || this.querySelector(`[data-workspace-group='${workspaceId}']`);
-    group?.querySelectorAll(":scope > .sessions > .session-row[data-session]").forEach((row) => row.remove());
-    this.refreshWorkspaceSessionControls(workspaceId);
-  },
-
-  refreshWorkspaceSessionControls(workspaceId) {
-    const group = this.findWorkspaceGroup?.(workspaceId)
-      || this.querySelector(`[data-workspace-group='${workspaceId}']`);
-    if (!group) return;
-    const sessions = group.querySelector(".sessions");
-    const count = this.countWorkspaceSessions(workspaceId);
-    const countLabel = group.querySelector(".ws-count") || group.querySelector(".ws-meta");
-    if (countLabel) countLabel.textContent = String(count);
-    sessions?.querySelector("[data-action='delete-workspace-sessions']")?.remove();
-    const newSessionRow = sessions?.querySelector(".new-session-row");
-    if (sessions && newSessionRow && count > 0) {
-      sessions.insertBefore(this.createDeleteWorkspaceSessionsRow(workspaceId), newSessionRow);
-    }
-  },
-
-  countWorkspaceSessions(workspaceId) {
-    return this.querySelectorAll(
-      `[data-workspace-group='${workspaceId}'] > .sessions > .session-row[data-session]`,
-    ).length;
-  },
-
-  findWorkspaceIdForSession(sessionId) {
-    return this.querySelector(`[data-session='${sessionId}']`)?.dataset.workspace;
-  },
+  ...sessionDeleteMethods,
 
   async newSession(workspace) {
     const workspaceId = workspace || this.dataset.activeWorkspaceId;
