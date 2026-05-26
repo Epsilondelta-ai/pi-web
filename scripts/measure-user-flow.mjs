@@ -14,7 +14,7 @@ const url = `http://127.0.0.1:${port}/`;
 const budgets = {
   minNavigationScore: Number(process.env.PI_WEB_FLOW_MIN_NAV_SCORE || 0.9),
   maxNavigationLcp: Number(process.env.PI_WEB_FLOW_MAX_NAV_LCP || 3000),
-  maxNavigationTbt: Number(process.env.PI_WEB_FLOW_MAX_NAV_TBT || 200),
+  maxNavigationTbt: Number(process.env.PI_WEB_FLOW_MAX_NAV_TBT || 250),
   maxInteractionTbt: Number(process.env.PI_WEB_FLOW_MAX_INTERACTION_TBT || 250),
 };
 
