@@ -184,18 +184,16 @@ function packageUpdateLabel(update) {
 
 function piPackageUpdateConfirmHtml(updates) {
   const locale = currentUiLocale();
-  const options = updates
-    .map((update) => {
-      const source = String(update?.source || "");
-      return `<option value="${escapeHtml(source)}">${escapeHtml(packageUpdateLabel(update))}</option>`;
-    })
+  const packageLines = updates
+    .map((update) => `<small class="toast-line toast-prompt">${escapeHtml(packageUpdateLabel(update))}</small>`)
     .join("");
   return [
     `<span class="toast-dot" aria-hidden="true"></span>`,
     `<span class="toast-copy"><strong>${escapeHtml(uiMessage(locale, "piPackageUpdateQuestion"))}</strong>`,
-    `<select data-pi-package-update-source>${options}</select>`,
+    `<small class="toast-line toast-prompt">${escapeHtml(String(updates.length))} package(s)</small>`,
+    packageLines,
     `<span class="toast-actions">`,
-    `<button type="button" data-pi-package-update-confirm="yes">${escapeHtml(uiMessage(locale, "piUpdateYes"))}</button>`,
+    `<button type="button" data-pi-package-update-confirm="yes">${escapeHtml(uiMessage(locale, "piUpdateAll"))}</button>`,
     `<button type="button" data-pi-package-update-confirm="no">${escapeHtml(uiMessage(locale, "piUpdateNo"))}</button>`,
     `</span></span>`,
   ].join("");
@@ -333,10 +331,8 @@ export const toastMethods = {
       const target = event?.target as Element | null | undefined;
       const answer = target?.closest?.("[data-pi-package-update-confirm]")?.getAttribute("data-pi-package-update-confirm");
       if (answer === "yes") {
-        const toast = target?.closest?.(".notyf__toast");
-        const source = (toast?.querySelector?.("[data-pi-package-update-source]") as HTMLSelectElement | null)?.value || "";
         this.dismissToast(notification);
-        void this.startPiUpdateFlow?.(source);
+        void this.startPiUpdateFlow?.();
       }
       if (answer === "no") {
         this.rememberIgnoredPiPackageUpdate?.(key);
