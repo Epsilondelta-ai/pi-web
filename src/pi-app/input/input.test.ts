@@ -83,7 +83,7 @@ describe("pi-app prompt input", () => {
     expect(drag.defaultPrevented).toBe(true);
     expect(dataTransfer.dropEffect).toBe("copy");
     expect(promptBar.classList.contains("drag-over")).toBe(true);
-    expect(app.querySelector("[data-drop-overlay]").textContent).toBe("파일을 놓으면 첨부됩니다");
+    expect(app.querySelector("[data-drop-overlay]").textContent).toBe("Drop files to attach");
 
     const drop = new Event("drop", { bubbles: true, cancelable: true });
     Object.defineProperty(drop, "dataTransfer", { value: dataTransfer });

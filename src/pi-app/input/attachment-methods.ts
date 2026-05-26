@@ -1,3 +1,6 @@
+import { currentUiLocale } from "../../i18n/client";
+import { uiMessage } from "../../i18n/ui";
+
 const LUCIDE_X_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;
 
 export const attachmentMethods = {
@@ -57,7 +60,8 @@ export const attachmentMethods = {
     const overlay = document.createElement("div");
     overlay.className = "drop-overlay";
     overlay.dataset.dropOverlay = "";
-    overlay.textContent = "파일을 놓으면 첨부됩니다";
+    overlay.dataset.i18n = "dropFilesToAttach";
+    overlay.textContent = uiMessage(currentUiLocale(), "dropFilesToAttach");
     this.promptBar.append(overlay);
   },
 
