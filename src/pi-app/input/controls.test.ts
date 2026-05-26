@@ -35,6 +35,87 @@ describe("pi-app controls", () => {
     expect(app.querySelector(".slash-pop").hidden).toBe(false);
   });
 
+  it("enters prompt shell mode when input starts with bang-space", async () => {
+    const app = await connectPiApp();
+    app.prompt.value = "! pwd";
+    app.prompt.dispatchEvent(new Event("input"));
+
+    expect(app.promptShellMode).toBe(true);
+    expect(app.prompt.value).toBe("pwd");
+    expect(app.querySelector(".attach-btn").disabled).toBe(true);
+  });
+
+  it("toggles prompt shell mode with bang-space and backspace", async () => {
+    const app = await connectPiApp();
+    const prompt = app.querySelector(".prompt-textarea");
+    const attach = app.querySelector(".attach-btn");
+
+    prompt.value = "!";
+    prompt.selectionStart = 1;
+    prompt.selectionEnd = 1;
+    prompt.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+
+    expect(app.promptShellMode).toBe(true);
+    expect(prompt.value).toBe("");
+    expect(attach.disabled).toBe(true);
+    expect(attach.innerHTML).toContain("M12 19h8");
+
+    prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }));
+
+    expect(app.promptShellMode).toBe(false);
+    expect(attach.disabled).toBe(false);
+    expect(attach.textContent).toBe("attach");
+  });
+
+  it("covers prompt shell mode no-op branches", async () => {
+    const app = await connectPiApp();
+
+    app.enterPromptShellMode();
+    app.enterPromptShellMode();
+    await app.submitPrompt();
+    app.exitPromptShellMode();
+    app.enterPromptShellMode();
+    app.exitPromptShellMode();
+    app.exitPromptShellMode();
+
+    const attach = app.attachButton;
+    const bar = app.promptBar;
+    app.attachButtonOriginalHtml = undefined;
+    app.attachButton = null;
+    app.promptBar = null;
+    app.enterPromptShellMode();
+    app.exitPromptShellMode();
+    app.attachButton = attach;
+    app.promptBar = bar;
+
+    const prompt = app.prompt;
+    app.prompt = null;
+    await app.submitPromptShellCommand("pwd");
+    app.prompt = prompt;
+  });
+
+  it("runs prompt shell commands through the workspace shell API", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    globalThis.fetch = vi.fn(async (url, options) => {
+      if (String(url).endsWith("/api/workspaces/w1/shell")) {
+        expect(JSON.parse(options.body)).toEqual({ command: "echo one\necho two" });
+        return { ok: true, json: async () => ({ exitCode: 0, durationMs: 3, output: "one\ntwo" }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+
+    app.enterPromptShellMode();
+    app.prompt.value = "echo one\necho two";
+    await app.submitPrompt();
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining("/api/workspaces/w1/shell"), expect.any(Object));
+    expect(app.promptShellMode).toBe(false);
+    expect(app.prompt.value).toBe("");
+    expect(app.querySelector(".tool-card[data-tool='shell'] .tc-body").textContent).toContain("one");
+  });
+
   it("toggles voice input and writes speech recognition text into the prompt", async () => {
     vi.useFakeTimers();
     const instances = [];
