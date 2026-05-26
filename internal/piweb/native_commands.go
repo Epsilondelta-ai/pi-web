@@ -557,9 +557,8 @@ func truncate(s string, n int) string {
 }
 
 const extensionProbeScript = `
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 const input = JSON.parse(process.env.PI_WEB_EXTENSION_PAYLOAD || '{}');
 function stripTypeScript(source) {
@@ -571,11 +570,16 @@ function stripTypeScript(source) {
 }
 async function importExtension(path) {
   if (!path.endsWith('.ts')) return import(pathToFileURL(path).href);
-  const dir = mkdtempSync(join(tmpdir(), 'pi-web-ext-'));
-  const out = join(dir, basename(path).replace(/\.ts$/, '.mjs'));
-  writeFileSync(out, stripTypeScript(readFileSync(path, 'utf8')));
-  try { return await import(pathToFileURL(out).href); }
-  finally { rmSync(dir, { recursive: true, force: true }); }
+  const source = stripTypeScript(readFileSync(path, 'utf8'));
+  const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(source).toString('base64');
+  return import(moduleUrl);
+}
+function staticCommandFallback(path) {
+  const source = readFileSync(path, 'utf8');
+  const commands = [];
+  const pattern = /registerCommand\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*{[\s\S]*?description\s*:\s*['\"]([^'\"]*)['\"]/g;
+  for (const match of source.matchAll(pattern)) commands.push({ name: match[1], description: match[2] });
+  return commands;
 }
 const commands = [];
 const errors = [];
@@ -594,7 +598,11 @@ for (const ext of input.extensions || []) {
     const setup = typeof mod.default === 'function' ? mod.default : (mod.setup || mod.default?.setup);
     if (typeof setup === 'function') await setup(fakePi(ext));
   } catch (error) {
-    errors.push({ path: ext.path, error: String(error?.message || error).slice(0, 300) });
+    const fallback = staticCommandFallback(ext.path);
+    for (const command of fallback) {
+      commands.push({ name: command.name, command: '/' + command.name, description: command.description, source: 'extension', scope: ext.scope || '', path: ext.path });
+    }
+    if (fallback.length === 0) errors.push({ path: ext.path, error: String(error?.message || error).slice(0, 300) });
   }
 }
 console.log(JSON.stringify({ commands, errors }));
