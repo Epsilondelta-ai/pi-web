@@ -9,6 +9,15 @@ import { readStoredActiveSession, storeActiveSession } from "../sessions/session
 
 const SESSION_MESSAGE_PAGE_SIZE = 120;
 
+function parseInitialTreeFiles(raw) {
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
 function findStoredSession(workspaces, stored) {
   if (!stored?.sessionId) return undefined;
   const preferred = workspaces.find((workspace) => workspace.id === stored.workspaceId);
@@ -47,9 +56,9 @@ export const workspaceBootstrapMethods = {
         void this.loadWorkspaceCommands(activeWorkspace.id);
         void this.loadRuntimeStatus(activeWorkspace.id);
         void (this.loadWorkspaceSettingsState?.(activeWorkspace.id))?.catch?.(() => undefined);
-        await this.loadWorkspaceMeta(activeWorkspace.id);
       }
       if (activeSession) await this.loadSession(activeSession.id);
+      if (activeWorkspace && this.dataset.tree === "on") void this.loadWorkspaceMeta(activeWorkspace.id);
     } catch {
       this.apiConnected = false;
       this.setConnection("err");
@@ -73,11 +82,37 @@ export const workspaceBootstrapMethods = {
   },
 
   async loadWorkspaceMeta(workspaceId, options: any = {}) {
+    const token = Symbol(workspaceId);
+    this.workspaceMetaLoadToken = token;
     try {
       const [{ files }, git] = await Promise.all([getWorkspaceFiles(workspaceId), getGitStatus(workspaceId)]);
+      if (this.workspaceMetaLoadToken !== token || this.dataset.activeWorkspaceId !== workspaceId) return;
+      this.workspaceMetaLoadedFor = this.workspaceMetaLoadedFor || new Set();
+      this.workspaceMetaLoadedFor.add(workspaceId);
       this.renderWorkspaceTree(files, git?.files || {}, options.selectedPath);
       this.renderGitStatus(git);
     } catch {}
+  },
+
+  async ensureWorkspaceTreeMounted() {
+    const root = this.querySelector("[data-workspace-tree-root]");
+    if (!root || this.workspaceTreeMounted || this.workspaceTreeMounting) return;
+    this.workspaceTreeMounting = true;
+    try {
+      const [{ default: React }, { createRoot }, { default: WorkspaceFileTree }] = await Promise.all([
+        import("react"),
+        import("react-dom/client"),
+        import("../../components/WorkspaceFileTree"),
+      ]);
+      if (!root.isConnected || this.workspaceTreeMounted) return;
+      const initialFiles = this.workspaceFiles || parseInitialTreeFiles(root.dataset.initialFiles);
+      const initialStatusMap = this.workspaceFileStatuses || {};
+      this.workspaceTreeRoot = createRoot(root);
+      this.workspaceTreeRoot.render(React.createElement(WorkspaceFileTree, { initialFiles, initialStatusMap }));
+      this.workspaceTreeMounted = true;
+    } finally {
+      this.workspaceTreeMounting = false;
+    }
   },
 
   renderWorkspaceTree(files, statusMap = {}, selectedPathOverride = undefined) {
@@ -235,7 +270,7 @@ export const workspaceBootstrapMethods = {
     void this.loadWorkspaceCommands(workspaceId);
     void this.loadRuntimeStatus(workspaceId);
     void (this.loadWorkspaceSettingsState?.(workspaceId))?.catch?.(() => undefined);
-    void this.loadWorkspaceMeta(workspaceId);
+    if (this.dataset.tree === "on") void this.loadWorkspaceMeta(workspaceId);
   },
 
   openActiveWorkspaceGroup(workspaceId) {

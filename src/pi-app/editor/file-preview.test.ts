@@ -35,9 +35,16 @@ function mountPreview() {
   return app;
 }
 
-function dispatchEditorChange(app, text: string) {
+async function renderPreview(app, file) {
+  app.renderFilePreview(file);
+  await app.filePreview?.editorReady;
+  app.apiConnected = true;
+}
+
+async function dispatchEditorChange(app, text: string) {
   const view = app.filePreview.editor.view;
   view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe("file preview CodeMirror editor", () => {
@@ -51,9 +58,9 @@ describe("file preview CodeMirror editor", () => {
     document.body.innerHTML = "";
   });
 
-  it("renders editable text files in CodeMirror and tracks dirty state", () => {
+  it("renders editable text files in CodeMirror and tracks dirty state", async () => {
     const app = mountPreview();
-    app.renderFilePreview({
+    await renderPreview(app, {
       path: "src/demo.ts",
       mime: "text/typescript",
       previewKind: "text",
@@ -71,7 +78,7 @@ describe("file preview CodeMirror editor", () => {
     expect(save.hidden).toBe(false);
     expect(save.disabled).toBe(true);
 
-    dispatchEditorChange(app, "const answer = 2;");
+    await dispatchEditorChange(app, "const answer = 2;");
 
     expect(app.filePreview.dirty).toBe(true);
     expect(editor.querySelector(".cm-gitChangeGutter")).toBeTruthy();
@@ -81,9 +88,9 @@ describe("file preview CodeMirror editor", () => {
     expect(app.querySelector(".fp-head small").textContent).toContain("modified");
   });
 
-  it("searches file content with highlighted next and previous matches", () => {
+  it("searches file content with highlighted next and previous matches", async () => {
     const app = mountPreview();
-    app.renderFilePreview({ path: "demo.txt", mime: "text/plain", previewKind: "text", content: "alpha beta alpha" });
+    await renderPreview(app, { path: "demo.txt", mime: "text/plain", previewKind: "text", content: "alpha beta alpha" });
 
     const input = app.querySelector<HTMLInputElement>(".fp-editor-search input");
     input!.value = "alpha";
@@ -100,18 +107,18 @@ describe("file preview CodeMirror editor", () => {
     expect(app.filePreview.editor.view.state.selection.main.from).toBe(0);
   });
 
-  it("shows added and deleted git gutter marker types", () => {
+  it("shows added and deleted git gutter marker types", async () => {
     const app = mountPreview();
-    app.renderFilePreview({ path: "new.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;", originalContent: "" });
+    await renderPreview(app, { path: "new.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;", originalContent: "" });
     expect(app.querySelector(".cm-git-added")).toBeTruthy();
 
-    app.renderFilePreview({ path: "short.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;\n", originalContent: "let x = 1;\nlet y = 2;\n" });
+    await renderPreview(app, { path: "short.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;\n", originalContent: "let x = 1;\nlet y = 2;\n" });
     expect(app.querySelector(".cm-git-deleted")).toBeTruthy();
   });
 
-  it("shows git-based gutter markers without treating opened git changes as unsaved", () => {
+  it("shows git-based gutter markers without treating opened git changes as unsaved", async () => {
     const app = mountPreview();
-    app.renderFilePreview({
+    await renderPreview(app, {
       path: "demo.js",
       mime: "text/javascript",
       previewKind: "text",
@@ -129,8 +136,8 @@ describe("file preview CodeMirror editor", () => {
 
   it("does not save a preview after the active workspace changes", async () => {
     const app = mountPreview();
-    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
-    dispatchEditorChange(app, "let x = 2;");
+    await renderPreview(app, { path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    await dispatchEditorChange(app, "let x = 2;");
     app.dataset.activeWorkspaceId = "workspace-2";
 
     await app.saveFilePreview();
@@ -160,8 +167,8 @@ describe("file preview CodeMirror editor", () => {
   it("saves current CodeMirror document and keeps edits after save failure", async () => {
     const app = mountPreview();
     vi.mocked(api.saveWorkspaceFile).mockRejectedValueOnce(new Error("permission denied"));
-    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
-    dispatchEditorChange(app, "let x = 2;");
+    await renderPreview(app, { path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    await dispatchEditorChange(app, "let x = 2;");
 
     await app.saveFilePreview();
 
@@ -179,8 +186,8 @@ describe("file preview CodeMirror editor", () => {
       previewKind: "text",
       content: "let x = 2;",
     });
-    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
-    dispatchEditorChange(app, "let x = 2;");
+    await renderPreview(app, { path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    await dispatchEditorChange(app, "let x = 2;");
 
     await app.saveFilePreview();
 
@@ -194,11 +201,11 @@ describe("file preview CodeMirror editor", () => {
     const app = mountPreview();
     let resolveSave: (file: unknown) => void = () => undefined;
     vi.mocked(api.saveWorkspaceFile).mockReturnValueOnce(new Promise((resolve) => { resolveSave = resolve; }) as never);
-    app.renderFilePreview({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
-    dispatchEditorChange(app, "let x = 2;");
+    await renderPreview(app, { path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 1;" });
+    await dispatchEditorChange(app, "let x = 2;");
 
     const saving = app.saveFilePreview();
-    dispatchEditorChange(app, "let x = 3;");
+    await dispatchEditorChange(app, "let x = 3;");
     resolveSave({ path: "demo.js", mime: "text/javascript", previewKind: "text", content: "let x = 2;" });
     await saving;
 
@@ -207,11 +214,11 @@ describe("file preview CodeMirror editor", () => {
     expect(app.filePreview.dirty).toBe(true);
   });
 
-  it("asks before switching files with unsaved changes and guards reload", () => {
+  it("asks before switching files with unsaved changes and guards reload", async () => {
     const app = mountPreview();
     app.installFilePreviewUnloadGuard();
-    app.renderFilePreview({ path: "a.txt", mime: "text/plain", previewKind: "text", content: "a" });
-    dispatchEditorChange(app, "changed");
+    await renderPreview(app, { path: "a.txt", mime: "text/plain", previewKind: "text", content: "a" });
+    await dispatchEditorChange(app, "changed");
     vi.mocked(window.confirm).mockReturnValueOnce(false);
 
     const clean = app.confirmCleanFilePreview();
@@ -264,7 +271,7 @@ describe("file preview CodeMirror editor", () => {
 
     app.renderFilePreview({ path: "loading.txt", previewKind: "loading" });
     expect(app.querySelector(".fp-body").textContent).toBe("loading preview…");
-    app.renderFilePreview({ path: "readonly.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
+    await renderPreview(app, { path: "readonly.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
     expect(app.querySelector("[data-file-preview-editor]").getAttribute("aria-label")).toBe("view readonly.txt");
     const realSaveFilePreview = app.saveFilePreview;
     app.saveFilePreview = vi.fn();
@@ -297,18 +304,18 @@ describe("file preview CodeMirror editor", () => {
     window.dispatchEvent(cleanEvent);
     expect(cleanEvent.defaultPrevented).toBe(false);
     app.querySelector("[data-file-preview]").remove();
-    app.renderFilePreview({ path: "missing-modal.txt", previewKind: "text", content: "x" });
+    await renderPreview(app, { path: "missing-modal.txt", previewKind: "text", content: "x" });
     expect(app.hasDirtyFilePreview()).toBe(false);
     await app.saveFilePreview();
   });
 
-  it("keeps image, large, and unsupported files on preview fallback paths", () => {
+  it("keeps image, large, and unsupported files on preview fallback paths", async () => {
     const app = mountPreview();
     app.renderFilePreview({ path: "logo.png", mime: "image/png", previewKind: "image", dataUrl: "data:image/png;base64,aa" });
     expect(app.querySelector(".fp-body img")).toBeTruthy();
     expect(app.querySelector("[data-file-preview-editor]")).toBeFalsy();
 
-    app.renderFilePreview({ path: "big.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
+    await renderPreview(app, { path: "big.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
     expect(app.querySelector("[data-file-preview-editor] .cm-editor")).toBeTruthy();
     expect(app.querySelector("[data-action='save-file-preview']").hidden).toBe(true);
 
@@ -316,10 +323,10 @@ describe("file preview CodeMirror editor", () => {
     expect(app.querySelector(".fp-body").textContent).toContain("미리보기를 지원하지 않습니다");
   });
 
-  it("clears discarded dirty state when closing preview", () => {
+  it("clears discarded dirty state when closing preview", async () => {
     const app = mountPreview();
-    app.renderFilePreview({ path: "a.txt", mime: "text/plain", previewKind: "text", content: "a" });
-    dispatchEditorChange(app, "changed");
+    await renderPreview(app, { path: "a.txt", mime: "text/plain", previewKind: "text", content: "a" });
+    await dispatchEditorChange(app, "changed");
 
     app.closeFilePreview();
 

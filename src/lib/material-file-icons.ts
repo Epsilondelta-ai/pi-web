@@ -1,4 +1,7 @@
 import materialIcons from "material-icon-theme/dist/material-icons.json";
+import fileIconUrl from "material-icon-theme/icons/file.svg?url";
+import folderIconUrl from "material-icon-theme/icons/folder.svg?url";
+import folderOpenIconUrl from "material-icon-theme/icons/folder-open.svg?url";
 
 type IconDefinition = { iconPath?: string };
 type MaterialIconManifest = {
@@ -15,12 +18,6 @@ type MaterialIconManifest = {
 export type MaterialFileIcon = { name: string; url: string };
 
 const manifest = materialIcons as MaterialIconManifest;
-const iconUrls = import.meta.glob("../../node_modules/material-icon-theme/icons/*.svg", {
-  eager: true,
-  import: "default",
-  query: "?url",
-}) as Record<string, string>;
-const urlByIconName = buildUrlMap(iconUrls);
 
 export function resolveMaterialFileIcon(input: { name: string; path?: string; kind: "file" | "dir"; open?: boolean }): MaterialFileIcon {
   const iconName = input.kind === "dir" ? resolveFolderIcon(input.name, input.open) : resolveFileIcon(input.name, input.path);
@@ -54,11 +51,9 @@ function extensionCandidates(basename: string): string[] {
 }
 
 function iconUrl(iconName: string): string {
-  return urlByIconName[iconName];
-}
-
-function buildUrlMap(modules: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(Object.entries(modules).map(([path, url]) => [path.split("/").pop()!.replace(/\.svg$/, ""), url]));
+  if (iconName === "folder") return folderIconUrl;
+  if (iconName === "folder-open") return folderOpenIconUrl;
+  return fileIconUrl;
 }
 
 function normalizeName(name: string): string {
