@@ -395,7 +395,9 @@ export const inputMethods = {
 
   selectedWhisperModel() {
     const control = this.querySelector("[data-setting='speechInput.whisperModel']");
-    return control?.value || this.whisperModel || "tiny-q5";
+    if (control?.value) return control.value;
+    if (this.whisperModel) return this.whisperModel;
+    return "tiny-q5";
   },
 
   isWhisperModelCached(model) {
@@ -407,11 +409,12 @@ export const inputMethods = {
   },
 
   refreshWhisperModelRequirement() {
-    const useLocalControl = this.querySelector?.("[data-setting='speechInput.useLocalWhisper']");
+    const useLocalControl = this.querySelector("[data-setting='speechInput.useLocalWhisper']");
     const model = this.selectedWhisperModel();
-    const missing = useLocalControl?.checked === true && !this.isWhisperModelCached(model);
-    const button = this.querySelector?.("[data-action='download-whisper-model']");
-    const saveButton = this.querySelector?.("[data-settings-form] button[type='submit']");
+    let missing = false;
+    if (useLocalControl?.checked === true) missing = !this.isWhisperModelCached(model);
+    const button = this.querySelector("[data-action='download-whisper-model']");
+    const saveButton = this.querySelector("[data-settings-form] button[type='submit']");
     if (button) {
       button.hidden = !missing;
       button.dataset.missing = missing ? "true" : "false";

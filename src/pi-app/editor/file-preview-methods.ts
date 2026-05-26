@@ -2,6 +2,14 @@ import { getWorkspaceFile, saveWorkspaceFile } from "../../lib/api";
 import { fallbackValue } from "../../lib/fallbacks";
 import { codeMirrorLanguageName, editableFileState, isTextFile } from "./file-editor-state";
 
+function defaultCodeMirrorFileEditorLoader() {
+  return import("./file-editor");
+}
+let loadCodeMirrorFileEditor = defaultCodeMirrorFileEditorLoader;
+export function setCodeMirrorFileEditorLoaderForTest(loader?) {
+  loadCodeMirrorFileEditor = loader || defaultCodeMirrorFileEditorLoader;
+}
+
 export const filePreviewMethods = {
   async openFile(button) {
     return this.openFilePath?.(button?.dataset.filePath, button);
@@ -223,7 +231,7 @@ async function mountTextPreviewEditor(app, state, container) {
   const readOnly = editableFileState(file).readOnly;
   const content = `${fallbackValue(file.content, "")}${truncatedSuffix(file)}`;
   try {
-    const { CodeMirrorFileEditor } = await import("./file-editor");
+    const { CodeMirrorFileEditor } = await loadCodeMirrorFileEditor();
     if (state.editorLoadToken !== token || app.filePreview !== state || !container.isConnected) return;
     state.editor = new CodeMirrorFileEditor(container, {
       file,
@@ -238,7 +246,6 @@ async function mountTextPreviewEditor(app, state, container) {
       onSave: () => void app.saveFilePreview?.(),
     });
   } catch (error) {
-    if (state.editorLoadToken !== token || app.filePreview !== state || !container.isConnected) return;
     container.textContent = error instanceof Error ? error.message : String(error);
   }
 }
