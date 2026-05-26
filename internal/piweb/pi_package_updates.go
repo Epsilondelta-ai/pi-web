@@ -57,7 +57,7 @@ func DetectPiPackageUpdateStatus(ctx context.Context) (PiPackageUpdateStatus, er
 	packages := dedupePiPackages(append(piPackagesFromSettings(projectSettings, "project"), piPackagesFromSettings(globalSettings, "user")...))
 	updates := make([]PiPackageUpdate, 0)
 	for _, pkg := range packages {
-		update, ok := checkNpmPackageUpdate(ctx, pkg, cwd, paths.Global, effectiveNpmCommand(globalSettings, projectSettings))
+		update, ok := checkNpmPackageUpdate(ctx, pkg, cwd, paths.Global, npmCommandFromSettings(globalSettings))
 		if ok {
 			updates = append(updates, update)
 		}
@@ -190,13 +190,6 @@ func latestNpmPackageVersion(ctx context.Context, cwd string, npmCommand []strin
 		return strings.TrimSpace(version)
 	}
 	return strings.Trim(strings.TrimSpace(string(out)), `"`)
-}
-
-func effectiveNpmCommand(globalSettings map[string]any, projectSettings map[string]any) []string {
-	if command := npmCommandFromSettings(projectSettings); len(command) > 0 {
-		return command
-	}
-	return npmCommandFromSettings(globalSettings)
 }
 
 func npmCommandFromSettings(settings map[string]any) []string {

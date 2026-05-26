@@ -31,9 +31,9 @@ func TestDetectPiPackageUpdateStatusFindsUnpinnedNpmUpdates(t *testing.T) {
 	if err := os.WriteFile(fakeNpm, []byte("#!/bin/sh\nprintf '\"2.0.0\"\n'\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeJSONFile(t, filepath.Join(root, ".pi", "settings.json"), `{"packages":["npm:@example/pkg"],"npmCommand":["`+fakeNpm+`"]}`)
+	writeJSONFile(t, filepath.Join(root, ".pi", "settings.json"), `{"packages":["npm:@example/pkg"]}`)
 	writeJSONFile(t, filepath.Join(root, ".pi", "npm", "node_modules", "@example", "pkg", "package.json"), `{"version":"1.0.0"}`)
-	writeJSONFile(t, filepath.Join(home, ".pi", "agent", "settings.json"), `{"packages":["npm:@example/pkg","npm:pinned@1.0.0"]}`)
+	writeJSONFile(t, filepath.Join(home, ".pi", "agent", "settings.json"), `{"packages":["npm:@example/pkg","npm:pinned@1.0.0"],"npmCommand":["`+fakeNpm+`"]}`)
 
 	status, err := DetectPiPackageUpdateStatus(context.Background())
 	if err != nil {
