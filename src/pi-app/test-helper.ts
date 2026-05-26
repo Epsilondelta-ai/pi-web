@@ -95,6 +95,7 @@ export function installPiAppFixture() {
             <a data-oauth-link href="#" hidden></a>
             <input data-oauth-input hidden />
             <button type="button" data-action="start-oauth-login">oauth</button>
+            <button type="button" data-action="logout-oauth-provider">logout oauth</button>
             <button type="button" data-action="send-oauth-input" hidden>send oauth</button>
             <span data-oauth-status></span>
           </div>

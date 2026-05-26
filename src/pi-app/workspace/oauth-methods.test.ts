@@ -107,6 +107,25 @@ describe("oauth methods", () => {
     expect(app.querySelector("[data-oauth-status]").textContent).toBe("input failed");
   });
 
+  it("logs out the selected OAuth provider", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    app.querySelector("[data-oauth-provider]").innerHTML = `<option value="openai-codex">Codex</option>`;
+    const calls = [];
+    globalThis.fetch = vi.fn(async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET" });
+      if (String(url).endsWith("/auth/providers")) return ok({ providers: [{ id: "openai-codex", name: "Codex", configured: false }] });
+      if (String(url).endsWith("/auth/oauth/providers")) return ok({ providers: [{ id: "openai-codex", name: "Codex", configured: false }] });
+      return ok({});
+    });
+
+    await app.logoutOAuthProvider();
+
+    expect(calls).toContainEqual({ url: "http://backend.test/api/auth/openai-codex", method: "DELETE" });
+    expect(app.querySelector("[data-oauth-status]").textContent).toBe("OAuth credential removed");
+  });
+
   it("covers optional DOM and guard branches", async () => {
     const app = await connectPiApp();
     app.fillOAuthForm();

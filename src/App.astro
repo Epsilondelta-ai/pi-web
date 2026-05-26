@@ -355,7 +355,10 @@ function speechLanguageListId(path) {
                 <option value="" data-i18n="loadingOAuthProviders">loading OAuth providers…</option>
               </select>
             </label>
-            <button type="button" data-action="start-oauth-login" data-i18n="loginWithOAuth">login with OAuth</button>
+            <div class="auth-login-actions">
+              <button type="button" data-action="start-oauth-login" data-i18n="loginWithOAuth">login with OAuth</button>
+              <button type="button" data-action="logout-oauth-provider" data-i18n="logout">logout</button>
+            </div>
             <a data-oauth-link href="#" target="_blank" rel="noreferrer" hidden data-i18n="openLoginPage">open login page</a>
             <input data-oauth-input autocomplete="off" placeholder="prompt input or redirect URL" data-i18n-placeholder="oauthInput" hidden />
             <button type="button" data-action="send-oauth-input" hidden data-i18n="send">send</button>

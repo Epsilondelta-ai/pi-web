@@ -322,6 +322,7 @@ export const inputMethods = {
     if (action === "save-auth-provider") this.saveAuthForm?.(event);
     if (action === "logout-auth-provider") this.logoutAuthProvider?.();
     if (action === "start-oauth-login") this.startOAuthLogin?.();
+    if (action === "logout-oauth-provider") this.logoutOAuthProvider?.();
     if (action === "send-oauth-input") this.sendOAuthInput?.();
     if (action === "close-tweaks") this.querySelector("[data-tweaks]")?.setAttribute("hidden", "");
     if (!actionTarget?.closest(".session-menu") && action !== "session-menu-toggle" && button?.dataset.session) {
