@@ -796,6 +796,7 @@ func TestCoverageRemainingEasyBranches(t *testing.T) {
 
 func TestCoverageRuntimeQuotaHTTPFilesAndSessions(t *testing.T) {
 	root := t.TempDir()
+	t.Setenv("HOME", t.TempDir())
 	if output, err := exec.Command("git", "-C", root, "init", "-b", "main").CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v %s", err, output)
 	}

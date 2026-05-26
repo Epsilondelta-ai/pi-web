@@ -46,6 +46,52 @@ func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
 	}
 }
 
+func TestRuntimeModelStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultProvider":"openai-codex","defaultModel":"gpt-5.4","defaultThinkingLevel":"low"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"defaultModel":"gpt-5.5","defaultThinkingLevel":"high"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := RuntimeModelStatusFromSettings(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ModelProvider != "openai-codex" || status.Model != "gpt-5.5" || status.ThinkingLevel != "high" {
+		t.Fatalf("unexpected settings status: %+v", status)
+	}
+}
+
+func TestWorkspaceRuntimeModelStatusUsesSettingsWithoutPiRPC(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultProvider":"zai","defaultModel":"glm-4.6","defaultThinkingLevel":"medium"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	status, err := WorkspaceRuntimeModelStatus(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status.ModelProvider != "zai" || status.Model != "glm-4.6" || status.ThinkingLevel != "medium" {
+		t.Fatalf("unexpected runtime status: %+v", status)
+	}
+}
+
 func TestWorkspaceRuntimeQuotaStatusFallsBackToEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("PI_WEB_5H_QUOTA", "33")
