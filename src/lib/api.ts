@@ -1,5 +1,3 @@
-import { HttpAgent } from "@ag-ui/client";
-
 const DEV_API_BASE = "http://127.0.0.1:8732";
 const DEV_PORTS = new Set(["4321", "6006"]);
 
@@ -249,6 +247,7 @@ export async function runAguiSessionPrompt(sessionId, text, attachments = [], su
     await postPrompt(sessionId, text, attachments);
     return false;
   }
+  const { HttpAgent } = await import("@ag-ui/client");
   const agent = new HttpAgent({
     url: `${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/ag-ui`,
     threadId: sessionId,
