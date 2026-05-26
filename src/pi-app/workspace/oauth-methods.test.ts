@@ -134,6 +134,18 @@ describe("oauth methods", () => {
 
     expect(calls).toContainEqual({ url: "http://backend.test/api/auth/openai-codex", method: "DELETE" });
     expect(app.querySelector("[data-oauth-status]").textContent).toBe("OAuth credential removed");
+
+    globalThis.fetch = vi.fn(async () => { throw "logout string failed"; });
+    app.setConnection = vi.fn();
+    await app.logoutOAuthProvider();
+    expect(app.querySelector("[data-oauth-status]").textContent).toBe("logout string failed");
+    expect(app.setConnection).toHaveBeenCalledWith("err");
+
+    app.apiConnected = false;
+    await app.logoutOAuthProvider();
+    app.apiConnected = true;
+    app.querySelector("[data-oauth-provider]").innerHTML = "";
+    await app.logoutOAuthProvider();
   });
 
   it("covers optional DOM and guard branches", async () => {

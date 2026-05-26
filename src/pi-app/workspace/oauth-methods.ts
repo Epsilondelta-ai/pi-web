@@ -117,7 +117,7 @@ export const oauthMethods = {
       await this.refreshAuthAfterOAuth();
       this.setOAuthStatus("OAuth credential removed");
     } catch (error) {
-      this.setOAuthStatus(error instanceof Error ? error.message : String(error), true);
+      this.setOAuthStatus(oauthErrorMessage(error), true);
       this.setConnection("err");
     }
   },
