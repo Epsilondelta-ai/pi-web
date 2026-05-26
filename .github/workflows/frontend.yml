@@ -71,6 +71,10 @@ jobs:
 
       - name: Check performance budgets
         run: bun run check:perf
+        env:
+          PI_WEB_BUDGET_FCP: '2000'
+          PI_WEB_BUDGET_DCL: '4000'
+          PI_WEB_BUDGET_LOAD: '4500'
 
       - name: Build Storybook
         run: bun run build-storybook
