@@ -176,7 +176,7 @@ func (s *Server) workspaceCommands(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	result := ListNativeSlashCommands(r.Context(), root)
+	result := s.workspaceCommandList(r.Context(), r.PathValue("workspaceID"), root, r.URL.Query().Get("reload") == "1")
 	body := map[string]any{"commands": result.Commands}
 	if len(result.Diagnostics) > 0 {
 		body["diagnostics"] = result.Diagnostics

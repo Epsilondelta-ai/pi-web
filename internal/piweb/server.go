@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -23,11 +24,22 @@ type Config struct {
 }
 
 type Server struct {
-	store  *Store
-	broker *Broker
-	runner *Runner
-	mux    *http.ServeMux
-	config Config
+	store        *Store
+	broker       *Broker
+	runner       *Runner
+	mux          *http.ServeMux
+	config       Config
+	commandCache commandCache
+}
+
+type commandCache struct {
+	mu      sync.Mutex
+	entries map[string]commandCacheEntry
+}
+
+type commandCacheEntry struct {
+	result nativeCommandResult
+	loaded time.Time
 }
 
 func NewServer(config Config, store *Store, broker *Broker) *Server {
@@ -48,7 +60,14 @@ func NewServer(config Config, store *Store, broker *Broker) *Server {
 	if config.CurrentVersion == "" {
 		config.CurrentVersion = "dev"
 	}
-	s := &Server{store: store, broker: broker, runner: NewRunner(), mux: http.NewServeMux(), config: config}
+	s := &Server{
+		store:        store,
+		broker:       broker,
+		runner:       NewRunner(),
+		mux:          http.NewServeMux(),
+		config:       config,
+		commandCache: commandCache{entries: map[string]commandCacheEntry{}},
+	}
 	s.routes()
 	return s
 }

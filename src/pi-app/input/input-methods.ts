@@ -74,11 +74,11 @@ export const inputMethods = {
     const submitKey = this.promptSubmitKey?.() || "";
     if (this.promptSubmitting && this.promptSubmittingKey === submitKey) return;
     const submitToken = Symbol("prompt-submit");
+    const workspaceId = this.dataset.activeWorkspaceId;
     this.promptSubmitting = true;
     this.promptSubmittingKey = submitKey;
     this.promptSubmittingToken = submitToken;
     try {
-      const workspaceId = this.dataset.activeWorkspaceId;
       let sessionId = this.dataset.activeSessionId;
       if (sessionId && workspaceId && !this.activeSessionBelongsToWorkspace(sessionId, workspaceId)) {
         sessionId = "";
@@ -139,6 +139,9 @@ export const inputMethods = {
         }
       }
     } finally {
+      if (text === "/reload" && workspaceId && this.apiConnected) {
+        void this.loadWorkspaceCommands?.(workspaceId, { reload: true });
+      }
       if (this.promptSubmittingToken === submitToken) {
         this.promptSubmitting = false;
         this.promptSubmittingKey = "";
@@ -821,10 +824,16 @@ export const inputMethods = {
     this.prompt.focus();
   },
 
-  renderSlashCommands(commands = []) {
+  renderSlashCommands(commands = [], diagnostics = []) {
     const list = this.querySelector(".slash-list");
     if (!list) return;
     list.replaceChildren();
+    for (const diagnostic of diagnostics.slice(0, 3)) {
+      const warning = document.createElement("div");
+      warning.className = "slash-empty slash-warning";
+      warning.textContent = `command warning: ${diagnostic.error || "unknown error"}`;
+      list.append(warning);
+    }
     for (const command of commands) {
       const name = command.command || command.cmd || `/${command.name}`;
       if (!name || name === "/undefined") continue;

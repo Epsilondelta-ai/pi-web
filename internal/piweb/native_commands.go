@@ -26,9 +26,10 @@ type commandResource struct {
 type packageFilter map[string][]string
 
 type resolvedPackage struct {
-	Root   string
-	Scope  string
-	Filter packageFilter
+	Root     string
+	Scope    string
+	Identity string
+	Filter   packageFilter
 }
 
 type nativeCommandResult struct {
@@ -254,7 +255,7 @@ func resolveSettingsPackages(cwd, home string, diagnostics *[]commandDiagnostic)
 	packages = append(packages, readPackageSettings(filepath.Join(cwd, ".pi", "settings.json"), filepath.Join(cwd, ".pi"), "project", diagnostics)...)
 	seen := map[string]resolvedPackage{}
 	for _, pkg := range packages {
-		seen[pkg.Root] = pkg
+		seen[pkg.Identity] = pkg
 	}
 	packages = packages[:0]
 	for _, pkg := range seen {
@@ -287,7 +288,12 @@ func readPackageSettings(settingsPath, baseDir, scope string, diagnostics *[]com
 			if !fileExists(root) {
 				*diagnostics = append(*diagnostics, commandDiagnostic{Path: root, Error: "package missing"})
 			}
-			packages = append(packages, resolvedPackage{Root: root, Scope: scope, Filter: packageEntryFilter(item)})
+			packages = append(packages, resolvedPackage{
+				Root:     root,
+				Scope:    scope,
+				Identity: packageIdentity(source, root),
+				Filter:   packageEntryFilter(item),
+			})
 		}
 	}
 	return packages
@@ -316,6 +322,24 @@ func packageEntryFilter(item any) packageFilter {
 		}
 	}
 	return filter
+}
+
+func packageIdentity(source, root string) string {
+	if strings.HasPrefix(source, "npm:") {
+		name := strings.TrimPrefix(source, "npm:")
+		if at := strings.LastIndex(name, "@"); at > 0 {
+			name = name[:at]
+		}
+		return "npm:" + name
+	}
+	if strings.HasPrefix(source, "git:") || strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") || strings.HasPrefix(source, "ssh://") {
+		clean := strings.TrimPrefix(source, "git:")
+		if at := strings.LastIndex(clean, "@"); at > strings.LastIndex(clean, "/") {
+			clean = clean[:at]
+		}
+		return "git:" + clean
+	}
+	return "local:" + root
 }
 
 func resolvePackageRoot(source, baseDir string) string {
