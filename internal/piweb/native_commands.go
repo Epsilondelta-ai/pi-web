@@ -23,14 +23,22 @@ type commandResource struct {
 	Scope string
 }
 
+type packageFilter map[string][]string
+
+type resolvedPackage struct {
+	Root   string
+	Scope  string
+	Filter packageFilter
+}
+
 type nativeCommandResult struct {
 	Commands    []SlashCommand      `json:"commands"`
 	Diagnostics []commandDiagnostic `json:"diagnostics,omitempty"`
 }
 
 func ListNativeSlashCommands(ctx context.Context, cwd string) nativeCommandResult {
-	resources := discoverCommandResources(cwd)
 	result := nativeCommandResult{}
+	resources := discoverCommandResources(cwd, &result.Diagnostics)
 	seen := map[string]SlashCommand{}
 	add := func(cmd SlashCommand) {
 		if cmd.Name == "" || cmd.Command == "/" {
@@ -67,7 +75,7 @@ type commandResources struct {
 	Extensions []commandResource
 }
 
-func discoverCommandResources(cwd string) commandResources {
+func discoverCommandResources(cwd string, diagnostics *[]commandDiagnostic) commandResources {
 	var out commandResources
 	home, _ := os.UserHomeDir()
 	add := func(dst *[]commandResource, path, scope string) {
@@ -88,14 +96,14 @@ func discoverCommandResources(cwd string) commandResources {
 	for _, dir := range ancestorAgentSkillDirs(cwd) {
 		add(&out.Skills, dir, "project")
 	}
-	for _, pkg := range resolveSettingsPackages(cwd, home) {
-		for _, p := range packageResourcePaths(pkg.Root, "prompts") {
+	for _, pkg := range resolveSettingsPackages(cwd, home, diagnostics) {
+		for _, p := range packageResourcePaths(pkg, "prompts") {
 			add(&out.Prompts, p, pkg.Scope)
 		}
-		for _, p := range packageResourcePaths(pkg.Root, "skills") {
+		for _, p := range packageResourcePaths(pkg, "skills") {
 			add(&out.Skills, p, pkg.Scope)
 		}
-		for _, p := range packageResourcePaths(pkg.Root, "extensions") {
+		for _, p := range packageResourcePaths(pkg, "extensions") {
 			add(&out.Extensions, p, pkg.Scope)
 		}
 	}
@@ -238,14 +246,12 @@ func firstBodyLine(body string) string {
 	return ""
 }
 
-type resolvedPackage struct{ Root, Scope string }
-
-func resolveSettingsPackages(cwd, home string) []resolvedPackage {
+func resolveSettingsPackages(cwd, home string, diagnostics *[]commandDiagnostic) []resolvedPackage {
 	var packages []resolvedPackage
 	if home != "" {
-		packages = append(packages, readPackageSettings(filepath.Join(home, ".pi", "agent", "settings.json"), filepath.Join(home, ".pi", "agent"), "global")...)
+		packages = append(packages, readPackageSettings(filepath.Join(home, ".pi", "agent", "settings.json"), filepath.Join(home, ".pi", "agent"), "global", diagnostics)...)
 	}
-	packages = append(packages, readPackageSettings(filepath.Join(cwd, ".pi", "settings.json"), filepath.Join(cwd, ".pi"), "project")...)
+	packages = append(packages, readPackageSettings(filepath.Join(cwd, ".pi", "settings.json"), filepath.Join(cwd, ".pi"), "project", diagnostics)...)
 	seen := map[string]resolvedPackage{}
 	for _, pkg := range packages {
 		seen[pkg.Root] = pkg
@@ -257,7 +263,7 @@ func resolveSettingsPackages(cwd, home string) []resolvedPackage {
 	return packages
 }
 
-func readPackageSettings(settingsPath, baseDir, scope string) []resolvedPackage {
+func readPackageSettings(settingsPath, baseDir, scope string, diagnostics *[]commandDiagnostic) []resolvedPackage {
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		return nil
@@ -278,10 +284,38 @@ func readPackageSettings(settingsPath, baseDir, scope string) []resolvedPackage 
 			source, _ = v["source"].(string)
 		}
 		if root := resolvePackageRoot(source, baseDir); root != "" {
-			packages = append(packages, resolvedPackage{Root: root, Scope: scope})
+			if !fileExists(root) {
+				*diagnostics = append(*diagnostics, commandDiagnostic{Path: root, Error: "package missing"})
+			}
+			packages = append(packages, resolvedPackage{Root: root, Scope: scope, Filter: packageEntryFilter(item)})
 		}
 	}
 	return packages
+}
+
+func packageEntryFilter(item any) packageFilter {
+	object, ok := item.(map[string]any)
+	if !ok {
+		return nil
+	}
+	filter := packageFilter{}
+	for _, kind := range []string{"prompts", "skills", "extensions", "themes"} {
+		raw, exists := object[kind]
+		if !exists {
+			continue
+		}
+		arr, ok := raw.([]any)
+		if !ok {
+			continue
+		}
+		filter[kind] = []string{}
+		for _, item := range arr {
+			if s, ok := item.(string); ok {
+				filter[kind] = append(filter[kind], s)
+			}
+		}
+	}
+	return filter
 }
 
 func resolvePackageRoot(source, baseDir string) string {
@@ -312,10 +346,22 @@ func resolvePackageRoot(source, baseDir string) string {
 	return filepath.Join(filepath.Dir(filepath.Join(baseDir, "settings.json")), source)
 }
 
-func packageResourcePaths(root, kind string) []string {
-	if root == "" {
+func packageResourcePaths(pkg resolvedPackage, kind string) []string {
+	if pkg.Root == "" || !fileExists(pkg.Root) {
 		return nil
 	}
+	paths := packageAllowedResourcePaths(pkg.Root, kind)
+	patterns, filtered := pkg.Filter[kind]
+	if !filtered {
+		return paths
+	}
+	if len(patterns) == 0 {
+		return nil
+	}
+	return applyPackageResourceFilter(pkg.Root, paths, patterns)
+}
+
+func packageAllowedResourcePaths(root, kind string) []string {
 	pkgPath := filepath.Join(root, "package.json")
 	data, err := os.ReadFile(pkgPath)
 	if err == nil {
@@ -324,19 +370,93 @@ func packageResourcePaths(root, kind string) []string {
 		}
 		if json.Unmarshal(data, &pkg) == nil && pkg.Pi != nil {
 			if raw, ok := pkg.Pi[kind]; ok {
-				var paths []string
-				if arr, ok := raw.([]any); ok {
-					for _, item := range arr {
-						if s, ok := item.(string); ok && !strings.HasPrefix(s, "!") {
-							paths = append(paths, filepath.Join(root, s))
-						}
-					}
-				}
-				return paths
+				return packageManifestPaths(root, raw)
 			}
 		}
 	}
 	return []string{filepath.Join(root, kind)}
+}
+
+func packageManifestPaths(root string, raw any) []string {
+	var paths []string
+	if arr, ok := raw.([]any); ok {
+		for _, item := range arr {
+			if s, ok := item.(string); ok && !strings.HasPrefix(s, "!") && !strings.HasPrefix(s, "+") && !strings.HasPrefix(s, "-") {
+				paths = append(paths, filepath.Join(root, s))
+			}
+		}
+	}
+	return paths
+}
+
+func applyPackageResourceFilter(root string, allowed []string, patterns []string) []string {
+	allowedFiles := expandResourcePaths(allowed)
+	included := map[string]bool{}
+	for _, pattern := range patterns {
+		if pattern == "" {
+			continue
+		}
+		mode := byte(0)
+		if strings.HasPrefix(pattern, "!") || strings.HasPrefix(pattern, "+") || strings.HasPrefix(pattern, "-") {
+			mode = pattern[0]
+			pattern = pattern[1:]
+		}
+		matches := matchPackagePattern(root, allowedFiles, pattern)
+		if mode == '+' {
+			matches = []string{filepath.Join(root, filepath.FromSlash(pattern))}
+		}
+		for _, path := range matches {
+			if mode == '!' || mode == '-' {
+				delete(included, path)
+			} else {
+				included[path] = true
+			}
+		}
+	}
+	var paths []string
+	for path := range included {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+func expandResourcePaths(paths []string) []string {
+	var files []string
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if err != nil {
+			continue
+		}
+		if !info.IsDir() {
+			files = append(files, path)
+			continue
+		}
+		_ = filepath.WalkDir(path, func(file string, entry os.DirEntry, err error) error {
+			if err == nil && !entry.IsDir() {
+				files = append(files, file)
+			}
+			return nil
+		})
+	}
+	return files
+}
+
+func matchPackagePattern(root string, files []string, pattern string) []string {
+	var matches []string
+	pattern = filepath.ToSlash(strings.TrimPrefix(pattern, "./"))
+	for _, file := range files {
+		rel, err := filepath.Rel(root, file)
+		if err != nil {
+			continue
+		}
+		rel = filepath.ToSlash(rel)
+		matched, _ := filepath.Match(pattern, rel)
+		if matched || rel == pattern || strings.HasPrefix(rel, strings.TrimSuffix(pattern, "/")+"/") {
+			matches = append(matches, file)
+		}
+	}
+	return matches
 }
 
 type dirEntryInfo struct{ info os.FileInfo }
