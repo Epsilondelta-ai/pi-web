@@ -124,6 +124,10 @@
   position: relative;
 }
 .prompt-bar.drag-over { background: var(--accent-bg); }
+.prompt-bar.drag-over .prompt-textarea {
+  border-color: var(--accent);
+  border-style: dashed;
+}
 .drop-overlay {
   position: absolute;
   inset: 4px;
