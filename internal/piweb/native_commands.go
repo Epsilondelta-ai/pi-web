@@ -574,12 +574,29 @@ async function importExtension(path) {
   const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(source).toString('base64');
   return import(moduleUrl);
 }
-function staticCommandFallback(path) {
-  const source = readFileSync(path, 'utf8');
+function staticCommandFallback(path, seen = new Set()) {
+  if (seen.has(path)) return [];
+  seen.add(path);
+  let source = '';
+  try { source = readFileSync(path, 'utf8'); } catch { return []; }
   const commands = [];
-  const pattern = /registerCommand\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*{[\s\S]*?description\s*:\s*['\"]([^'\"]*)['\"]/g;
-  for (const match of source.matchAll(pattern)) commands.push({ name: match[1], description: match[2] });
+  const commandPattern = /registerCommand\s*\(\s*['\"]([^'\"]+)['\"]\s*,\s*{[\s\S]*?description\s*:\s*['\"]([^'\"]*)['\"]/g;
+  for (const match of source.matchAll(commandPattern)) commands.push({ name: match[1], description: match[2] });
+  const importPattern = /(?:import|export)\s+(?:type\s+)?(?:[^'\"]*?\s+from\s+)?['\"](\.[^'\"]+)['\"]/g;
+  for (const match of source.matchAll(importPattern)) {
+    const resolved = resolveRelativeModule(path, match[1]);
+    if (resolved) commands.push(...staticCommandFallback(resolved, seen));
+  }
   return commands;
+}
+function resolveRelativeModule(from, specifier) {
+  const base = new URL(specifier, pathToFileURL(dirname(from) + '/'));
+  const path = base.pathname;
+  const candidates = path.match(/\.[cm]?[jt]s$/) ? [path] : [path + '.ts', path + '.js', path + '.mjs', path + '.cjs', path + '/index.ts', path + '/index.js'];
+  for (const candidate of candidates) {
+    try { readFileSync(candidate, 'utf8'); return candidate; } catch {}
+  }
+  return '';
 }
 const commands = [];
 const errors = [];
