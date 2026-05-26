@@ -184,7 +184,10 @@ export async function connectPiApp() {
 }
 
 export function cleanupPiAppFixture() {
-  document.querySelectorAll("pi-app").forEach((app) => app.remove());
+  document.querySelectorAll("pi-app").forEach((app) => {
+    app.workspaceTreeRoot?.unmount?.();
+    app.remove();
+  });
   localStorage?.clear?.();
   vi.restoreAllMocks();
   delete globalThis.PI_WEB_API_BASE;
