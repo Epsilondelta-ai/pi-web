@@ -223,6 +223,14 @@ describe("file preview CodeMirror editor", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("opens a successful file preview from the backend", async () => {
+    const app = mountPreview();
+    vi.mocked(api.getWorkspaceFile).mockResolvedValueOnce({ path: "ok.txt", mime: "text/plain", previewKind: "text", content: "ok" });
+    await app.openFilePath("ok.txt");
+    expect(api.getWorkspaceFile).toHaveBeenCalledWith("workspace-1", "ok.txt");
+    expect(app.filePreview.file.path).toBe("ok.txt");
+  });
+
   it("covers file open guards, errors, svg toggle, read-only labels, and save guards", async () => {
     const app = mountPreview();
     vi.mocked(api.getWorkspaceFile).mockClear();
@@ -235,7 +243,7 @@ describe("file preview CodeMirror editor", () => {
     expect(api.getWorkspaceFile).not.toHaveBeenCalled();
 
     app.confirmCleanFilePreview = vi.fn(() => true);
-    vi.mocked(api.getWorkspaceFile).mockRejectedValueOnce(new Error("read failed"));
+    vi.mocked(api.getWorkspaceFile).mockImplementationOnce(async () => { throw new Error("read failed"); });
     app.setConnection = vi.fn();
     const button = document.createElement("button");
     button.className = "tree-node selected";
@@ -258,7 +266,38 @@ describe("file preview CodeMirror editor", () => {
     expect(app.querySelector(".fp-body").textContent).toBe("loading preview…");
     app.renderFilePreview({ path: "readonly.txt", mime: "text/plain", previewKind: "text", content: "abc", truncated: true });
     expect(app.querySelector("[data-file-preview-editor]").getAttribute("aria-label")).toBe("view readonly.txt");
+    const realSaveFilePreview = app.saveFilePreview;
+    app.saveFilePreview = vi.fn();
+    app.querySelector(".cm-content")?.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true }));
+    app.saveFilePreview = realSaveFilePreview;
+    app.confirmCleanFilePreview = vi.fn(() => false);
+    app.closeFilePreview();
+    expect(app.querySelector("[data-file-preview]").hidden).toBe(false);
+    app.confirmCleanFilePreview = vi.fn(() => true);
+    app.filePreview.editor = undefined;
+    await app.saveFilePreview();
+    app.dataset.activeWorkspaceId = "";
+    await app.saveFilePreview();
+    app.dataset.activeWorkspaceId = "workspace-1";
     app.filePreview = undefined;
+    app.renderFilePreviewBody();
+    app.toggleFilePreviewMode();
+    app.filePreview = { file: { path: "x.txt", previewKind: "text", content: "x" }, editor: null };
+    await app.saveFilePreview();
+    app.apiConnected = false;
+    app.filePreview = { file: { path: "x.txt", previewKind: "text", content: "x" }, editor: { getValue: () => "x" } };
+    await app.saveFilePreview();
+    app.apiConnected = true;
+    app.renderFilePreview({ path: "nameless-image", mime: "image/png", previewKind: "image", dataUrl: "data:image/png;base64,x" });
+    expect(app.querySelector(".fp-body img").alt).toBe("nameless-image");
+    app.renderFilePreview({ path: "broken.png", mime: "image/png", previewKind: "image" });
+    expect(app.querySelector(".fp-body").textContent).toContain("이미지는");
+    app.installFilePreviewUnloadGuard();
+    const cleanEvent = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(cleanEvent);
+    expect(cleanEvent.defaultPrevented).toBe(false);
+    app.querySelector("[data-file-preview]").remove();
+    app.renderFilePreview({ path: "missing-modal.txt", previewKind: "text", content: "x" });
     expect(app.hasDirtyFilePreview()).toBe(false);
     await app.saveFilePreview();
   });

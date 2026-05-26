@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
+import { authProviderLabel, detailMessage, toastContextSession, toastContextWorkspace } from "./toast-methods";
 
 const fallbackChoiceJson = [
   "```json",
@@ -96,6 +97,33 @@ describe("pi-app toast notifications", () => {
     expect(warnings[2].textContent).toContain(
       "원본: Authentication failed for github-copilot. Credentials may have expired.",
     );
+  });
+
+  it("covers generic auth warning provider and context fallbacks", async () => {
+    const app = await connectPiApp();
+    expect(detailMessage(null)).toBe("");
+    expect(detailMessage({ message: "object message" })).toBe("object message");
+    expect(toastContextWorkspace(null)).toBe("워크스페이스 없음");
+    expect(toastContextWorkspace({ label: "Label workspace" })).toBe("Label workspace");
+    expect(toastContextSession({ sessionId: "sid" })).toBe("sid");
+    expect(toastContextSession({})).toBe("세션 없음");
+    expect(authProviderLabel("")).toBe("알 수 없음");
+    app.notifyRuntimeWarning("No API key configured");
+    app.notifyRuntimeWarning({ message: "Authentication failed for provider custom-provider" });
+    app.showToast("success", undefined, { workspace: "Workspace ID", session: "Session name", prompt: "Prompt text", sessionId: "sid" });
+    app.showToast("success", undefined, "string-session");
+    app.activateToastSession("missing-session");
+    app.dataset.activeSessionId = "same-session";
+    const same = document.createElement("button");
+    same.className = "session-row active";
+    same.dataset.session = "same-session";
+    app.append(same);
+    expect(app.backgroundWatchRows().has("same-session")).toBe(false);
+    const text = document.body.textContent;
+    expect(text).toContain("대상: 알 수 없음");
+    expect(text).toContain("custom-provider");
+    expect(text).toContain("Workspace ID");
+    expect(text).toContain("세션 없음");
   });
 
   it("shows auth warnings instead of generic response errors for credential failures", async () => {

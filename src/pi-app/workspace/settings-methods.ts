@@ -7,6 +7,7 @@ import {
   saveAPIKey,
   saveWorkspaceSettings,
 } from "../../lib/api";
+import { fallbackValue } from "../../lib/fallbacks";
 import {
   SETTINGS_FIELDS,
   SPEECH_LANGUAGE_OPTIONS,
@@ -15,7 +16,7 @@ import {
   settingsScopeSchema,
 } from "./settings-schema";
 
-function valueAt(settings, path) {
+export function valueAt(settings, path) {
   return path.split(".").reduce((value, part) => value?.[part], settings);
 }
 
@@ -29,15 +30,15 @@ function setPatchValue(patch, path, value) {
   target[parts.at(-1)] = value;
 }
 
-function settingLabel(path) {
+export function settingLabel(path) {
   return path.replace(/([A-Z])/g, " $1").replace(/\./g, " · ").replace(/^./, (char) => char.toUpperCase());
 }
 
-function baseLanguageCode(value) {
+export function baseLanguageCode(value) {
   return String(value || "").trim().split("-")[0].toLowerCase();
 }
 
-function languageOptionFromList(control, value) {
+export function languageOptionFromList(control, value) {
   const text = String(value || "").trim();
   const list = control?.list;
   if (!text || !list) return null;
@@ -47,7 +48,7 @@ function languageOptionFromList(control, value) {
   ));
 }
 
-function speechLanguageOption(value) {
+export function speechLanguageOption(value) {
   const text = String(value || "").trim();
   if (!text) return SPEECH_LANGUAGE_OPTIONS[0];
   const lower = text.toLowerCase();
@@ -58,14 +59,14 @@ function speechLanguageOption(value) {
   ));
 }
 
-function speechLanguageValue(value, control) {
+export function speechLanguageValue(value, control) {
   const text = String(value || "").trim();
   if (!text) return "system";
   const listed = languageOptionFromList(control, text)?.dataset.languageValue;
   return listed || speechLanguageOption(text)?.value || text;
 }
 
-function speechLanguageLabel(value, control) {
+export function speechLanguageLabel(value, control) {
   const text = String(value || "").trim();
   if (!text) return "System default";
   const listed = languageOptionFromList(control, text);
@@ -73,18 +74,18 @@ function speechLanguageLabel(value, control) {
   return speechLanguageOption(text)?.label || text;
 }
 
-function browserVoiceLanguageLabel(lang) {
+export function browserVoiceLanguageLabel(lang) {
   if (lang === "system") return "System default";
   return speechLanguageOption(baseLanguageCode(lang))?.label || lang;
 }
 
-function describeEffective(value) {
+export function describeEffective(value) {
   if (value === undefined) return "not set";
   if (typeof value === "boolean") return value ? "on" : "off";
   return String(value);
 }
 
-function customInputFor(control) {
+export function customInputFor(control) {
   return control.closest(".settings-field")?.querySelector(`[data-custom-setting='${control.dataset.setting}']`);
 }
 
@@ -98,19 +99,24 @@ const SETTINGS_FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
-function visibleSettingsFocusables(root) {
+export function visibleSettingsFocusables(root) {
   return [...root.querySelectorAll(SETTINGS_FOCUSABLE_SELECTOR)]
     .filter((element): element is HTMLElement => (
       element instanceof HTMLElement && element.getClientRects().length > 0 && !element.closest("[hidden]")
     ));
 }
 
-function settingsValueChanged(scopedSettings, effective, path, value) {
+export function settingsValueChanged(scopedSettings, effective, path, value) {
   const explicitValue = valueAt(scopedSettings, path);
   if (explicitValue !== undefined) return explicitValue !== value;
   if (value === null) return false;
   const effectiveValue = valueAt(effective, path);
   return effectiveValue !== value;
+}
+
+export function passwordEffectiveLabel(field, effectiveValue) {
+  if (field.type === "password" && effectiveValue) return "set";
+  return describeEffective(effectiveValue);
 }
 
 export const settingsMethods = {
@@ -315,8 +321,8 @@ export const settingsMethods = {
     if (!form || !this.settingsState) return;
     this.syncSecureContextSettingsControls();
     const scope = form.querySelector("[name='scope']")?.value || "project";
-    const scopedSettings = this.settingsState[scope] || {};
-    const effective = this.settingsState.effective || {};
+    const scopedSettings = fallbackValue(this.settingsState[scope], {});
+    const effective = fallbackValue(this.settingsState.effective, {});
     this.querySelector("[data-settings-path]").textContent = this.settingsState.paths?.[scope] || "—";
     for (const field of SETTINGS_FIELDS) {
       const control = form.querySelector(`[data-setting='${field.path}']`);
@@ -324,7 +330,7 @@ export const settingsMethods = {
       const explicitValue = valueAt(scopedSettings, field.path);
       const effectiveValue = valueAt(effective, field.path);
       const hint = control.closest(".settings-field")?.querySelector("small");
-      const effectiveLabel = field.type === "password" && effectiveValue ? "set" : describeEffective(effectiveValue);
+      const effectiveLabel = passwordEffectiveLabel(field, effectiveValue);
       hint?.replaceChildren(`effective: ${effectiveLabel}`);
       this.fillSettingsControl(control, field, explicitValue, effectiveValue);
       if (field.path === "defaultProvider") this.fillModelControls();

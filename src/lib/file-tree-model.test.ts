@@ -63,5 +63,12 @@ describe("decorateFileTree", () => {
     expect(isDirtyStatus("clean")).toBe(false);
     expect(isDirtyStatus("unknown")).toBe(false);
     expect(isDirtyStatus(undefined)).toBe(false);
+
+    const [empty] = decorateFileTree([{ type: "other", name: "", path: "" }], {}, "", new Set([""]));
+    expect(empty).toMatchObject({ id: "", path: "", kind: "file", selected: true, expanded: true });
+    const [statusFromNode] = decorateFileTree([{ type: "file", name: "node-status", status: "renamed" }]);
+    expect(statusFromNode.gitStatus).toBe("renamed");
+    const [parent] = decorateFileTree([{ type: "dir", name: "parent", children: [{ type: "dir", name: "child", children: [{ type: "file", name: "leaf", status: "modified" }] }] }]);
+    expect(parent.dirtyDescendants).toBe(true);
   });
 });

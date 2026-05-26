@@ -1,4 +1,5 @@
 import { getWorkspaceFile, saveWorkspaceFile } from "../../lib/api";
+import { fallbackValue } from "../../lib/fallbacks";
 import { CodeMirrorFileEditor, codeMirrorLanguageName, editableFileState, isTextFile } from "./file-editor";
 
 export const filePreviewMethods = {
@@ -80,7 +81,7 @@ export const filePreviewMethods = {
   toggleFilePreviewMode() {
     if (!this.filePreview?.file || !this.confirmCleanFilePreview?.()) return;
     this.filePreview.mode = this.filePreview.mode === "image" ? "text" : "image";
-    this.filePreview.cleanContent = this.filePreview.file.content || "";
+    this.filePreview.cleanContent = fallbackValue(this.filePreview.file.content, "");
     this.filePreview.originalContent = gitOriginalContent(this.filePreview.file);
     this.filePreview.dirty = false;
     this.filePreview.saveStatus = "";
@@ -102,10 +103,10 @@ export const filePreviewMethods = {
     try {
       const content = state.editor.getValue();
       const next = await saveWorkspaceFile(workspaceId, file.path, content);
-      const currentContent = state.editor?.getValue?.() || "";
+      const currentContent = fallbackValue(state.editor?.getValue?.(), "");
       if (currentContent !== content) {
         state.file = next;
-        state.cleanContent = next.content || content;
+        state.cleanContent = fallbackValue(next.content, content);
         state.originalContent = gitOriginalContent(next);
         state.dirty = currentContent !== state.cleanContent;
         state.saveStatus = "saved";
@@ -118,7 +119,7 @@ export const filePreviewMethods = {
         workspaceId,
         file: next,
         mode: defaultPreviewMode(next),
-        cleanContent: next.content || content,
+        cleanContent: fallbackValue(next.content, content),
         originalContent: gitOriginalContent(next),
         dirty: false,
         editor: undefined,
@@ -162,7 +163,7 @@ export const filePreviewMethods = {
   },
 };
 
-function setPreviewHeader(preview, state) {
+export function setPreviewHeader(preview, state) {
   const file = state.file || state;
   const meta = [file.mime, file.truncated ? "truncated" : "", state.dirty ? "modified" : state.saveStatus]
     .filter(Boolean)
@@ -171,7 +172,7 @@ function setPreviewHeader(preview, state) {
   preview.querySelector("small").textContent = meta;
 }
 
-function updatePreviewActions(preview, state) {
+export function updatePreviewActions(preview, state) {
   if (!preview || !state?.file) return;
   const file = state.file;
   const mode = state.mode;
@@ -192,11 +193,11 @@ function updatePreviewActions(preview, state) {
   setPreviewHeader(preview, state);
 }
 
-function gitOriginalContent(file) {
+export function gitOriginalContent(file) {
   return typeof file?.originalContent === "string" ? file.originalContent : file?.content || "";
 }
 
-function defaultPreviewMode(file) {
+export function defaultPreviewMode(file) {
   if (file.previewKind === "image" && file.dataUrl) return "image";
   if (isTextFile(file)) return "text";
   return "unsupported";
@@ -209,7 +210,7 @@ function textPreviewNode(app, state) {
   container.dataset.language = codeMirrorLanguageName(file);
 
   const readOnly = editableFileState(file).readOnly;
-  const content = `${file.content || ""}${file.truncated ? "\n\n[truncated]" : ""}`;
+  const content = `${fallbackValue(file.content, "")}${truncatedSuffix(file)}`;
   state.editor = new CodeMirrorFileEditor(container, {
     file,
     content,
@@ -222,24 +223,28 @@ function textPreviewNode(app, state) {
     },
     onSave: () => void app.saveFilePreview?.(),
   });
-  container.setAttribute("aria-label", `${readOnly ? "view" : "edit"} ${file.path || "file"}`);
+  container.setAttribute("aria-label", `${readOnly ? "view" : "edit"} ${fallbackValue(file.path, "file")}`);
   return container;
 }
 
-function imagePreviewNode(file) {
+export function truncatedSuffix(file) {
+  return file.truncated ? "\n\n[truncated]" : "";
+}
+
+export function imagePreviewNode(file) {
   const image = document.createElement("img");
   image.src = file.dataUrl;
   image.alt = file.path || "file preview";
   return image;
 }
 
-function fallbackMessage(file) {
+export function fallbackMessage(file) {
   if (file.previewKind === "error") return file.content;
   if (file.truncated) return "파일이 너무 커서 편집할 수 없습니다.";
   if (file.previewKind === "image") return "이미지는 미리보기만 지원합니다.";
   return "미리보기를 지원하지 않습니다.";
 }
 
-function errorMessage(error) {
+export function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }

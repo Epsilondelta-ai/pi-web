@@ -1,25 +1,26 @@
+import { fallbackValue } from "../../lib/fallbacks";
 import VirtualScroller from "virtual-scroller/dom";
 
 export const DEFAULT_TRANSCRIPT_ITEM_HEIGHT = 80;
 export const TRANSCRIPT_OVERSCAN_ITEM_COUNT = 30;
 
-function transcriptItemHeight(item) {
+export function transcriptItemHeight(item) {
   return item?.height || DEFAULT_TRANSCRIPT_ITEM_HEIGHT;
 }
 
-function transcriptRangeHeight(items, start, end) {
+export function transcriptRangeHeight(items, start, end) {
   let height = 0;
   for (let index = start; index < end; index += 1) height += transcriptItemHeight(items[index]);
   return height;
 }
 
-function transcriptItemNodes(owner, item) {
+export function transcriptItemNodes(owner, item) {
   if (!item) return [];
   if (!item.nodes && item.message) item.nodes = owner.transcriptElementNodes(owner.messageNode(item.message));
-  return item.nodes || [];
+  return fallbackValue(item.nodes, []);
 }
 
-function transcriptItemId(item) {
+export function transcriptItemId(item) {
   return item.id;
 }
 
@@ -56,8 +57,8 @@ function unobserveTranscriptItem(owner, element) {
 
 export function createTranscriptVirtualScroller(owner, { stickToBottom = false } = {}) {
   owner.transcriptResizeObservers ??= new Map();
-  const items = owner.transcriptItems || [];
-  const readyToStart = (owner.term?.clientHeight || 0) > 0;
+  const items = fallbackValue(owner.transcriptItems, []);
+  const readyToStart = fallbackValue(owner.term?.clientHeight, 0) > 0;
   const state = stickToBottom || !readyToStart ? initialTranscriptState(items) : undefined;
   const scroller = new VirtualScroller(
     owner.termInner,

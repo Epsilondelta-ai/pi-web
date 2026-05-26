@@ -120,9 +120,7 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
           />
         </label>
         <div ref={treeArea} className="tree-arborist-body">
-          {!files.length ? (
-            <div className="tree-empty">file tree loads from backend.</div>
-          ) : data.length ? (
+          {renderTreeContent(treeRenderState(files.length, data.length), (
             <Tree<FileTreeNode>
               data={data}
               width="100%"
@@ -150,9 +148,7 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
             >
               {FileTreeRow}
             </Tree>
-          ) : (
-            <div className="tree-empty">검색 결과가 없습니다.</div>
-          )}
+          ))}
         </div>
         <input
           ref={uploadInput}
@@ -205,7 +201,7 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
     const target = uploadTarget.current;
     const selectedFiles = fileList ? Array.from(fileList) : [];
     uploadTarget.current = null;
-    if (uploadInput.current) uploadInput.current.value = "";
+    clearUploadInput(uploadInput.current);
     if (!workspaceId || !target || !selectedFiles.length) return;
     const folder = uploadFolder(target);
     let firstPath = "";
@@ -319,7 +315,22 @@ function menuPosition(target: MenuTarget) {
   };
 }
 
-function StatusBadge({ status }: { status: string }) {
+export function treeRenderState(filesLength: number, dataLength: number) {
+  if (!filesLength) return "loading";
+  return dataLength ? "tree" : "empty";
+}
+
+export function renderTreeContent(state: string, tree: React.ReactNode) {
+  if (state === "loading") return <div className="tree-empty">file tree loads from backend.</div>;
+  if (state === "tree") return tree;
+  return <div className="tree-empty">검색 결과가 없습니다.</div>;
+}
+
+export function clearUploadInput(input: HTMLInputElement | null) {
+  if (input) input.value = "";
+}
+
+export function StatusBadge({ status }: { status: string }) {
   if (status === "clean") return null;
   const label = statusLabels[status] || "•";
   return <span className="tree-status-badge" aria-label={status}>{label}</span>;

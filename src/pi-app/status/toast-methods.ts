@@ -52,7 +52,7 @@ const AUTH_CREDENTIAL_ERROR_PATTERNS = [
   /token\s+expired/i,
 ];
 
-function detailMessage(detail) {
+export function detailMessage(detail) {
   return typeof detail === "string" ? detail : detail?.message || String(detail || "");
 }
 
@@ -80,7 +80,7 @@ function authProviderFromMessage(message) {
   return match?.[1]?.replace(/[.,:;)]$/, "") || "";
 }
 
-function authProviderLabel(provider) {
+export function authProviderLabel(provider) {
   if (!provider) return "알 수 없음";
   return AUTH_PROVIDER_LABELS[provider] || provider;
 }
@@ -161,12 +161,12 @@ function systemToastHtml(title, detail) {
   ].join("");
 }
 
-function toastContextWorkspace(context) {
+export function toastContextWorkspace(context) {
   if (!context || typeof context === "string") return context || "워크스페이스 없음";
   return context.workspaceName || context.workspace || context.label || "워크스페이스 없음";
 }
 
-function toastContextSession(context) {
+export function toastContextSession(context) {
   if (!context || typeof context === "string") return "세션 없음";
   return context.sessionName || context.session || context.sessionId || "세션 없음";
 }

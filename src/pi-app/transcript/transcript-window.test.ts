@@ -266,6 +266,13 @@ describe("pi-app transcript window", () => {
     });
 
     const app = await connectPiApp();
+    app.handleTranscriptScroll = vi.fn();
+    app.term.dispatchEvent(new Event("scroll"));
+    expect(app.handleTranscriptScroll).toHaveBeenCalled();
+    const boundButton = app.ensureTranscriptScrollButton();
+    app.scrollTranscriptToBottom = vi.fn();
+    boundButton.click();
+    expect(app.scrollTranscriptToBottom).toHaveBeenCalled();
     const term = app.term;
     app.term = null;
     app.scrollTerm({ force: true });
@@ -305,6 +312,49 @@ describe("pi-app transcript window", () => {
     app.transcriptItems = [];
     app.renderTranscriptWindow();
     expect(app.termInner.children).toHaveLength(0);
+
+    app.installTranscriptScrollGuard();
+    app.transcriptScrollButton = null;
+    app.updateTranscriptScrollButton();
+    app.transcriptItems = [{ id: 5, message: { kind: "pi", text: "from item" } }];
+    expect(app.transcriptItemNodes(0)[0].textContent).toContain("from item");
+    expect(app.transcriptElementNodes(null)).toEqual([]);
+    const unattached = document.createElement("div");
+    app.notifyTranscriptNodeHeightDidChange(unattached);
+    app.notifyTranscriptItemHeightDidChange({ id: "missing", height: 1 }, unattached);
+    app.appendTranscriptNode(document.createTextNode("x"));
+    app.deferTranscriptRender = true;
+    const deferred = document.createElement("div");
+    app.appendTranscriptNode(deferred);
+    app.removeTranscriptNode(deferred);
+    app.deferTranscriptRender = false;
+    app.removeTranscriptNode(null);
+    app.transcriptItems = [];
+    app.removeTranscriptNode(document.createElement("div"));
+    app.transcriptItems = [{ id: 1, nodes: [document.createElement("div")], height: 1 }];
+    app.transcriptVisibleStart = 1;
+    app.transcriptVisibleEnd = 1;
+    expect(app.isTranscriptItemVisible(app.transcriptItems[0])).toBe(false);
+    app.transcriptVirtualScroller = { getState: () => ({ firstShownItemIndex: 0, lastShownItemIndex: 0 }), onItemHeightDidChange: vi.fn() };
+    expect(app.isTranscriptItemVisibleInScroller({ id: 99 })).toBe(false);
+    expect(app.isTranscriptItemVisibleInScroller(app.transcriptItems[0])).toBe(true);
+    app.applyTranscriptVirtualState({ firstShownItemIndex: 0, lastShownItemIndex: 0, itemHeights: [120, 0] });
+    expect(app.transcriptItems[0].height).toBe(120);
+    const rendered = document.createElement("div");
+    rendered.className = "transcript-item";
+    rendered.dataset.transcriptItem = "1";
+    app.termInner.append(rendered);
+    app.measureRenderedTranscriptItems();
+    app.transcriptResizeObservers = new Map([[rendered, { disconnect: vi.fn() }]]);
+    app.destroyTranscriptVirtualScroller();
+    expect(app.transcriptResizeObservers.size).toBe(0);
+
+    const orphan = document.createElement("span");
+    const parent = document.createElement("div");
+    parent.append(orphan);
+    app.transcriptItems = [{ id: 2, nodes: [parent], height: 1 }];
+    app.notifyTranscriptNodeHeightDidChange(orphan);
+    expect(app.transcriptItems[0].height).toBe(1);
   });
 
   it("covers tool card default and expanded paths", async () => {

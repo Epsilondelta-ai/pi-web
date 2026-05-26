@@ -1,3 +1,4 @@
+import { fallbackValue } from "../../lib/fallbacks";
 import { escapeHtml, renderBannerBody, renderPiBody, renderUserBody } from "../../lib/renderers";
 import { parseDesignDecks, stripDesignDecks } from "../input/design-decks";
 import {
@@ -7,6 +8,10 @@ import {
   streamVisibleChoiceText,
 } from "../input/fallback-choices";
 import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "../constants";
+
+export function streamingRowsStart(replaced) {
+  return replaced ? 1 : 0;
+}
 
 export const messageMethods = {
   renderMessages(messages) {
@@ -46,7 +51,8 @@ export const messageMethods = {
     for (const message of messages) {
       if (message.kind !== "user") continue;
       const choiceId = parseFallbackChoiceAnswer(message.text);
-      if (choiceId) choiceIds.add(choiceId);
+      choiceIds.add(choiceId);
+      choiceIds.delete(undefined);
     }
     return choiceIds;
   },
@@ -183,7 +189,7 @@ export const messageMethods = {
       this.piDeltaBuffer = "";
       this.piStreamText = "";
     }
-    if (this.streamingRows?.[kind]) this.streamingRows = { ...(this.streamingRows || {}), [kind]: undefined };
+    if (this.streamingRows?.[kind]) this.streamingRows = { ...fallbackValue(this.streamingRows, {}), [kind]: undefined };
     if (this.pendingStreamingRow?.matches?.(`.msg.streaming[data-kind='${kind}']`)) this.pendingStreamingRow = undefined;
   },
 
@@ -219,8 +225,8 @@ export const messageMethods = {
   },
 
   loadingMessageNodes() {
-    const nodes = new Set(this.termInner?.querySelectorAll(".msg.loading") || []);
-    for (const item of this.transcriptItems || []) {
+    const nodes = new Set(fallbackValue(this.termInner?.querySelectorAll(".msg.loading"), []));
+    for (const item of fallbackValue(this.transcriptItems, [])) {
       for (const node of item?.nodes || []) {
         if (node?.matches?.(".msg.loading")) nodes.add(node);
       }
@@ -232,8 +238,8 @@ export const messageMethods = {
     const loadingNodes = this.loadingMessageNodes();
     if (!loadingNodes.length) return;
     const loadingSet = new Set(loadingNodes);
-    this.transcriptItems = (this.transcriptItems || []).filter(
-      (item) => !(item?.nodes || []).some((node) => loadingSet.has(node)),
+    this.transcriptItems = fallbackValue(this.transcriptItems, []).filter(
+      (item) => !fallbackValue(item?.nodes, []).some((node) => loadingSet.has(node)),
     );
     loadingNodes.forEach((loading) => loading.remove?.());
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom: false });
@@ -270,7 +276,7 @@ export const messageMethods = {
     if (piText && piRows.length) {
       const finalNode = this.messageNode({ kind: "pi", text: piText });
       const replaced = this.replaceTranscriptNode(piRows[0], finalNode);
-      for (const row of piRows.slice(replaced ? 1 : 0)) this.removeTranscriptNode(row);
+      for (const row of piRows.slice(streamingRowsStart(replaced))) this.removeTranscriptNode(row);
       this.notifyPiMessageCommitted({ kind: "pi", text: piText });
     }
     this.piDeltaBuffer = "";
@@ -451,7 +457,7 @@ export const messageMethods = {
   },
 
   syncAnsweredChoices() {
-    for (const choiceId of this.answeredChoiceIds || []) this.disableRenderedChoice(choiceId);
+    for (const choiceId of fallbackValue(this.answeredChoiceIds, [])) this.disableRenderedChoice(choiceId);
   },
 
   disableRenderedChoice(choiceId) {
@@ -466,7 +472,7 @@ export const messageMethods = {
   },
 
   syncReadAloudControls() {
-    const nodes = new Set(this.termInner?.querySelectorAll(".msg[data-kind='pi']") || []);
+    const nodes = new Set(fallbackValue(this.termInner?.querySelectorAll(".msg[data-kind='pi']"), []));
     for (const item of this.transcriptItems || []) {
       for (const node of item?.nodes || []) {
         if (node?.matches?.(".msg[data-kind='pi']")) nodes.add(node);
@@ -539,7 +545,7 @@ export const messageMethods = {
     synth.cancel?.();
     const utterance = new SpeechSynthesisUtterance(content);
     const language = this.voiceLanguage || this.speechLanguage || "system";
-    utterance.lang = language === "system" ? navigator.language || "en-US" : language || "en-US";
+    utterance.lang = language === "system" ? fallbackValue(navigator.language, "en-US") : fallbackValue(language, "en-US");
     synth.speak?.(utterance);
   },
 

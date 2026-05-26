@@ -25,6 +25,8 @@ describe("safe markdown rendering", () => {
     expect(html).toContain('class="language-ts"');
     expect(html).toContain("const ok = true;");
     expect(html.match(/data-action="copy-code"/g)).toHaveLength(1);
+    expect(renderPiBody(["```", "plain", "```"].join("\n"))).not.toContain("language-");
+    expect(renderUserBody(null)).toBe("");
 
     const plain = renderPiBody(["```bad<script>", "x", "```", "", "    indented"].join("\n"));
     expect(plain).toContain('class="language-badscript"');

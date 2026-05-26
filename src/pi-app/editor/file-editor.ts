@@ -177,6 +177,11 @@ export function isTextFile(file: FileLike) {
   return file.previewKind === "text" || file.mime === "image/svg+xml";
 }
 
+export function fileExtensionFromName(name: string) {
+  if (!name.includes(".")) return "";
+  return name.split(".").pop() as string;
+}
+
 export function codeMirrorLanguageName(file: FileLike) {
   const mime = file.mime || "";
   if (mime === "application/json") return "json";
@@ -189,7 +194,7 @@ export function codeMirrorLanguageName(file: FileLike) {
   if (name === "makefile" || name === "justfile") return "makefile";
   if (SHELL_FILENAMES.has(name)) return "shell";
 
-  const extension = name.includes(".") ? name.split(".").pop() || "" : "";
+  const extension = fileExtensionFromName(name);
   if (["js", "mjs", "cjs", "jsx"].includes(extension)) return "javascript";
   if (["ts", "mts", "cts", "tsx"].includes(extension)) return "typescript";
   if (["json", "jsonc", "ipynb"].includes(extension)) return "json";
@@ -203,7 +208,7 @@ export function codeMirrorLanguageName(file: FileLike) {
 
 export function codeMirrorLanguageExtension(file: FileLike): Extension[] {
   const name = basename(file).toLowerCase();
-  const extension = name.includes(".") ? name.split(".").pop() || "" : "";
+  const extension = fileExtensionFromName(name);
   switch (codeMirrorLanguageName(file)) {
     case "javascript":
       return [javascript({ jsx: extension === "jsx" })];
@@ -280,7 +285,7 @@ function gitChangeGutter(originalContent: string): Extension[] {
   return [field, gutter({ class: "cm-gitChangeGutter", markers: (view) => view.state.field(field) })];
 }
 
-function buildGitChangeMarkers(originalContent: string, doc: Text) {
+export function buildGitChangeMarkers(originalContent: string, doc: Text) {
   const builder = new RangeSetBuilder<GitChangeMarker>();
   for (const change of diff(originalContent, doc.toString())) {
     if (change.fromB === change.toB) {
@@ -293,7 +298,7 @@ function buildGitChangeMarkers(originalContent: string, doc: Text) {
   return builder.finish();
 }
 
-function addLineMarkers(
+export function addLineMarkers(
   builder: RangeSetBuilder<GitChangeMarker>,
   doc: Text,
   from: number,

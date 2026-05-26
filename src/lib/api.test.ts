@@ -20,6 +20,7 @@ import {
   getGitCommit,
   getGitHistory,
   getGitStatus,
+  getAuthProviders,
   getOAuthLoginSession,
   getOAuthProviders,
   getPiVersionStatus,
@@ -41,6 +42,7 @@ import {
   openWorkspace,
   postPrompt,
   renameSession,
+  saveAPIKey,
   renameWorkspaceFile,
   runAguiSessionPrompt,
   steerSession,
@@ -88,8 +90,11 @@ describe("api adapter", () => {
 
   it("defaults to same-origin API paths for the embedded app", async () => {
     delete globalThis.PI_WEB_API_BASE;
+    const original = globalThis.location;
+    Object.defineProperty(globalThis, "location", { value: { port: "1234" }, configurable: true });
     const result = await getWorkspaces();
     expect(result.url).toBe("/api/workspaces");
+    Object.defineProperty(globalThis, "location", { value: original, configurable: true });
   });
 
   it("uses the development backend for known dev ports", async () => {
@@ -103,6 +108,9 @@ describe("api adapter", () => {
   });
 
   it("escapes session ids in paths and supports message paging", async () => {
+    expect((await getSession("plain")).url).toBe("http://backend.test/api/sessions/plain");
+    expect((await getSession("plain", { limit: 10 })).url).toBe("http://backend.test/api/sessions/plain?limit=10");
+    expect((await getSession("plain", { before: "abc" })).url).toBe("http://backend.test/api/sessions/plain?before=abc");
     const result = await getSession("a/b", { limit: 25, before: "123" });
     expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb?limit=25&before=123");
   });
@@ -161,6 +169,8 @@ describe("api adapter", () => {
   });
 
   it("manages auth and oauth requests", async () => {
+    expect((await getAuthProviders()).url).toBe("http://backend.test/api/auth/providers");
+    expect(JSON.parse((await saveAPIKey("anthropic", "key")).options.body)).toEqual({ provider: "anthropic", apiKey: "key" });
     expect((await getOAuthProviders()).url).toBe("http://backend.test/api/auth/oauth/providers");
     expect((await startOAuthLogin("anthropic")).url).toBe("http://backend.test/api/auth/oauth/start");
     expect(JSON.parse((await startOAuthLogin("anthropic")).options.body)).toEqual({ provider: "anthropic" });
@@ -241,6 +251,13 @@ describe("api adapter", () => {
       },
     }));
     await expect(getWorkspaces()).rejects.toThrow("500 Server Error");
+    globalThis.fetch = vi.fn(async () => ({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      json: async () => ({}),
+    }));
+    await expect(getWorkspaces()).rejects.toThrow("400 Bad Request");
   });
 
   it("runs AG-UI prompts with EventSource fallback and tool callbacks", async () => {
@@ -288,6 +305,47 @@ describe("api adapter", () => {
     callbacks.onToolCallResultEvent({ event: { toolCallId: "t2", content: "" } });
     callbacks.onToolCallEndEvent({ event: { toolCallId: "t2" }, toolCallName: "write", toolCallArgs: "raw" });
     expect(subscriber.onToolEnd).toHaveBeenLastCalledWith({ id: "t2", name: "write", args: "raw", body: "x" });
+  });
+
+  it("covers AG-UI callback fallbacks without subscribers", async () => {
+    globalThis.EventSource = class {};
+    const callbacks: any = {};
+    agui.runAgent.mockImplementationOnce(async (_input, cb) => {
+      Object.assign(callbacks, cb);
+      cb.onRunStartedEvent();
+      cb.onTextMessageContentEvent({ event: {} });
+      cb.onTextMessageEndEvent({});
+      cb.onReasoningMessageContentEvent({ event: {} });
+      cb.onToolCallStartEvent({ event: { toolCallId: "t0" } });
+      cb.onToolCallArgsEvent({ event: { toolCallId: "t0" } });
+      cb.onToolCallResultEvent({ event: { toolCallId: "t-missing" } });
+      cb.onToolCallEndEvent({ event: { toolCallId: "t-missing" } });
+      cb.onRunErrorEvent({ event: {} });
+      cb.onRunFailed({ error: undefined });
+      cb.onRunFinishedEvent();
+    });
+    expect(await runAguiSessionPrompt("s1", "hello")).toBe(true);
+
+    const subscriber = {
+      onTextDelta: vi.fn(),
+      onTextEnd: vi.fn(),
+      onThinkingDelta: vi.fn(),
+      onToolEnd: vi.fn(),
+      onRunError: vi.fn(),
+    };
+    agui.runAgent.mockImplementationOnce(async (_input, cb) => {
+      cb.onTextMessageContentEvent({ event: { delta: "" } });
+      cb.onTextMessageEndEvent({ textMessageBuffer: "" });
+      cb.onReasoningMessageContentEvent({ event: { delta: "" } });
+      cb.onToolCallArgsEvent({ event: { toolCallId: "new", delta: "" } });
+      cb.onToolCallEndEvent({ event: { toolCallId: "new" }, toolCallArgs: undefined });
+      cb.onRunErrorEvent({ event: { message: "" } });
+      cb.onRunFailed({ error: null });
+    });
+    expect(await runAguiSessionPrompt("s2", "hello", [], subscriber)).toBe(true);
+    expect(subscriber.onTextDelta).toHaveBeenCalledWith("");
+    expect(subscriber.onToolEnd).toHaveBeenCalledWith({ id: "new", name: "tool", args: "{}", body: "" });
+    expect(subscriber.onRunError).toHaveBeenCalledWith("AG-UI run failed");
   });
 
   it("falls back when AG-UI reader streaming is unavailable", async () => {

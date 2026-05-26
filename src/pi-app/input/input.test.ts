@@ -75,23 +75,35 @@ describe("pi-app prompt input", () => {
     expect(app.imageExtension("image/jpeg")).toBe("jpg");
     expect(app.imageExtension("image/svg+xml;charset=utf-8")).toBe("svg");
     expect(app.imageExtension()).toBe("png");
+    expect(app.kindGlyph(new File(["img"], "clip.png", { type: "image/png" }))).toBe("img");
     expect(app.formatBytes(512)).toBe("512 B");
     expect(app.formatBytes(2048)).toBe("2.0 KB");
     expect(app.formatBytes(2 * 1024 * 1024)).toBe("2.0 MB");
 
     const nameless = new File(["svg"], "", { type: "image/svg+xml" });
     const pasted = app.pastedImageFiles({ files: [nameless, new File(["x"], "note.txt", { type: "text/plain" })] });
+    const itemPasted = app.pastedImageFiles({ items: [{ getAsFile: () => ({ name: "", type: "image/png", lastModified: 0 }) }] });
     expect(pasted[0].name).toBe("pasted-image-1.svg");
+    expect(itemPasted[0].name).toBe("pasted-image-1.png");
 
+    const huge = new File(["x"], "huge.txt", { type: "text/plain" });
+    Object.defineProperty(huge, "size", { value: 300 * 1024 });
     await app.addFiles([
       new File(["hello"], "note.txt", { type: "" }),
       new File(["pdf"], "doc.pdf", { type: "application/pdf" }),
       new File(["code"], "main.ts", { type: "text/typescript" }),
+      huge,
     ]);
     expect(app.attachmentContents[0]).toMatchObject({ type: "file", name: "note.txt", mimeType: "text/plain", content: "hello" });
-    expect([...app.querySelectorAll(".ac-glyph")].map((node) => node.innerHTML)).toEqual(["txt", "pdf", "&lt;/&gt;"]);
+    expect([...app.querySelectorAll(".ac-glyph")].map((node) => node.innerHTML)).toEqual(["txt", "pdf", "&lt;/&gt;", "txt"]);
+    expect(app.attachmentContents[3].content).toBe("[file too large to inline]");
+    expect(app.attachmentPreviewMarkup(null)).toContain("file");
+    await app.addFiles(undefined);
+    const octet = new File(["bin"], "bin", { type: "" });
+    expect((await app.imageAttachment(octet)).mimeType).toBe("image/png");
+    expect(await app.fileDataUrl(octet)).toContain("application/octet-stream");
     app.attachments = null;
     await app.addFiles([new File(["ignored"], "ignored.txt")]);
-    expect(app.attachmentContents).toHaveLength(3);
+    expect(app.attachmentContents).toHaveLength(4);
   });
 });

@@ -32,13 +32,13 @@ describe("transcript virtual scroller helpers", () => {
     delete globalThis.ResizeObserver;
   });
 
-  it("creates configured scrollers with initial bottom state and callbacks", () => {
+  it("creates configured scrollers with initial bottom state, overscan height, and callbacks", () => {
     const term = document.createElement("div");
     Object.defineProperty(term, "clientHeight", { configurable: true, value: 0 });
     const owner: any = {
       term,
       termInner: document.createElement("div"),
-      transcriptItems: [{ id: 1, height: 10 }, { id: 2 }, { id: 3, height: 30 }],
+      transcriptItems: Array.from({ length: 35 }, (_, index) => ({ id: index + 1, height: index < 5 ? 10 : undefined })),
       renderVirtualTranscriptItem: vi.fn((item) => document.createTextNode(String(item.id))),
       applyTranscriptVirtualState: vi.fn(),
     };
@@ -50,7 +50,7 @@ describe("transcript virtual scroller helpers", () => {
     expect(scroller.options.getEstimatedItemHeight()).toBe(DEFAULT_TRANSCRIPT_ITEM_HEIGHT);
     expect(scroller.options.getEstimatedVisibleItemRowsCount()).toBe(TRANSCRIPT_OVERSCAN_ITEM_COUNT);
     expect(scroller.options.getItemId({ id: "x" })).toBe("x");
-    expect(scroller.options.initialScrollPosition).toBe(0);
+    expect(scroller.options.initialScrollPosition).toBe(50);
     scroller.options.onStateChange({ firstShownItemIndex: 1, lastShownItemIndex: 2 });
     expect(owner.applyTranscriptVirtualState).toHaveBeenCalledWith({ firstShownItemIndex: 1, lastShownItemIndex: 2 });
   });
@@ -135,6 +135,12 @@ describe("transcript virtual scroller helpers", () => {
     updateTranscriptVirtualScroller(owner);
     expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalledTimes(2);
     expect(virtualScroller.instances.at(-1).options.readyToStart).toBe(false);
+
+    owner.transcriptVirtualScroller = undefined;
+    owner.transcriptItems = [{ id: 2 }];
+    Object.defineProperty(owner.term, "clientHeight", { configurable: true, value: 100 });
+    updateTranscriptVirtualScroller(owner);
+    expect(virtualScroller.instances.at(-1).options.readyToStart).toBe(true);
 
     owner.termInner = null;
     expect(() => updateTranscriptVirtualScroller(owner)).not.toThrow();

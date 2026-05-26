@@ -2,7 +2,7 @@ const CHOICE_FENCE = /```json\s*([\s\S]*?)```/gi;
 const CHOICE_FENCE_MARKER = "```json";
 const HIDDEN_FENCE_TYPES = new Set(["piweb_choice", "piweb_design_deck"]);
 
-function hiddenFenceType(block = "") {
+export function hiddenFenceType(block = "") {
   const match = block.match(/^```json\s*([\s\S]*?)```$/i);
   if (!match) return "";
   try {
