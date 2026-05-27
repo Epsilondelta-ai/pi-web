@@ -115,9 +115,12 @@ func (s *Server) startPiUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	workspaceDir := ""
 	if req.WorkspaceID != "" {
-		if dir, err := s.store.WorkspacePath(req.WorkspaceID); err == nil {
-			workspaceDir = dir
+		dir, err := s.store.WorkspacePath(req.WorkspaceID)
+		if err != nil {
+			writeStoreError(w, err)
+			return
 		}
+		workspaceDir = dir
 	}
 	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context(), strings.TrimSpace(req.Source), workspaceDir))
 }
