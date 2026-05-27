@@ -10,14 +10,14 @@ import (
 
 func TestPiUpdaterStatusResetsAfterRead(t *testing.T) {
 	var called atomic.Int32
-	runner := func(_ context.Context, _ string, _ []string) error {
+	runner := func(_ context.Context, _ string, _ string) error {
 		called.Add(1)
 		return nil
 	}
 	u := NewPiUpdater(runner)
 
 	// Start an update
-	result := u.Start(context.Background(), "", nil)
+	result := u.Start(context.Background(), "", "")
 	if result.State != PiUpdateUpdating {
 		t.Fatalf("expected updating, got %q", result.State)
 	}
@@ -39,12 +39,12 @@ func TestPiUpdaterStatusResetsAfterRead(t *testing.T) {
 }
 
 func TestPiUpdaterStatusResetsFailedAfterRead(t *testing.T) {
-	runner := func(_ context.Context, _ string, _ []string) error {
+	runner := func(_ context.Context, _ string, _ string) error {
 		return errTestUpdate
 	}
 	u := NewPiUpdater(runner)
 
-	u.Start(context.Background(), "", nil)
+	u.Start(context.Background(), "", "")
 	time.Sleep(100 * time.Millisecond)
 
 	status1 := u.Status()
@@ -60,16 +60,16 @@ func TestPiUpdaterStatusResetsFailedAfterRead(t *testing.T) {
 
 func TestPiUpdaterRejectsConcurrentStart(t *testing.T) {
 	block := make(chan struct{})
-	runner := func(_ context.Context, _ string, _ []string) error {
+	runner := func(_ context.Context, _ string, _ string) error {
 		<-block
 		return nil
 	}
 	u := NewPiUpdater(runner)
 
-	u.Start(context.Background(), "", nil)
+	u.Start(context.Background(), "", "")
 
 	// Second start while updating should return the existing status
-	result := u.Start(context.Background(), "", nil)
+	result := u.Start(context.Background(), "", "")
 	if result.State != PiUpdateUpdating {
 		t.Fatalf("expected updating on concurrent start, got %q", result.State)
 	}

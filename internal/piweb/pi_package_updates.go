@@ -14,8 +14,10 @@ import (
 type PiPackageUpdateDetector func(context.Context) (PiPackageUpdateStatus, error)
 
 type PiPackageUpdateStatus struct {
-	Updates []PiPackageUpdate `json:"updates"`
-	Error   string            `json:"error,omitempty"`
+	Updates     []PiPackageUpdate `json:"updates"`
+	Scope       string            `json:"scope,omitempty"`
+	WorkspaceID string            `json:"workspaceId,omitempty"`
+	Error       string            `json:"error,omitempty"`
 }
 
 type PiPackageUpdate struct {
@@ -34,13 +36,9 @@ type configuredPiPackage struct {
 
 var npmPackageSpecPattern = regexp.MustCompile(`^(@?[^@]+(?:/[^@]+)?)(?:@(.+))?$`)
 
-func DetectPiPackageUpdateStatus(ctx context.Context, workspacePaths []string) (PiPackageUpdateStatus, error) {
+func DetectGlobalPackageUpdates(ctx context.Context) (PiPackageUpdateStatus, error) {
 	if os.Getenv("PI_OFFLINE") != "" {
 		return PiPackageUpdateStatus{}, nil
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return PiPackageUpdateStatus{}, err
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -51,65 +49,55 @@ func DetectPiPackageUpdateStatus(ctx context.Context, workspacePaths []string) (
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
-	allPaths := uniquePaths(append([]string{cwd}, workspacePaths...))
-	seen := map[string]bool{}
 	npmCmd := npmCommandFromSettings(globalSettings)
 	updates := make([]PiPackageUpdate, 0)
-	// Project packages from cwd and all known workspace paths (higher priority)
-	for _, dir := range allPaths {
-		projectSettingsPath := filepath.Join(dir, ".pi", "settings.json")
-		projectSettings, err := readSettingsFile(projectSettingsPath)
-		if err != nil {
-			continue
-		}
-		for _, pkg := range piPackagesFromSettings(projectSettings, "project") {
-			if isPinnedPackage(pkg.Source) {
-				continue
-			}
-			key := piPackageIdentity(pkg.Source)
-			if key == "" || seen[key] {
-				continue
-			}
-			seen[key] = true
-			update, ok := checkNpmPackageUpdate(ctx, pkg, dir, globalSettingsPath, npmCmd)
-			if ok {
-				updates = append(updates, update)
-			}
-		}
-	}
-	// Global packages (user scope)
 	for _, pkg := range piPackagesFromSettings(globalSettings, "user") {
 		if isPinnedPackage(pkg.Source) {
 			continue
 		}
-		key := piPackageIdentity(pkg.Source)
-		if key == "" || seen[key] {
-			continue
-		}
-		seen[key] = true
-		update, ok := checkNpmPackageUpdate(ctx, pkg, cwd, globalSettingsPath, npmCmd)
+		update, ok := checkNpmPackageUpdate(ctx, pkg, home, globalSettingsPath, npmCmd)
 		if ok {
 			updates = append(updates, update)
 		}
 	}
-	return PiPackageUpdateStatus{Updates: updates}, nil
+	return PiPackageUpdateStatus{Updates: updates, Scope: "global"}, nil
+}
+
+func DetectWorkspacePackageUpdates(ctx context.Context, workspacePath string) (PiPackageUpdateStatus, error) {
+	if os.Getenv("PI_OFFLINE") != "" {
+		return PiPackageUpdateStatus{}, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return PiPackageUpdateStatus{}, err
+	}
+	globalSettingsPath := filepath.Join(home, ".pi", "agent", "settings.json")
+	globalSettings, err := readSettingsFile(globalSettingsPath)
+	if err != nil {
+		return PiPackageUpdateStatus{}, err
+	}
+	projectSettingsPath := filepath.Join(workspacePath, ".pi", "settings.json")
+	projectSettings, err := readSettingsFile(projectSettingsPath)
+	if err != nil {
+		return PiPackageUpdateStatus{}, err
+	}
+	npmCmd := npmCommandFromSettings(globalSettings)
+	updates := make([]PiPackageUpdate, 0)
+	for _, pkg := range piPackagesFromSettings(projectSettings, "project") {
+		if isPinnedPackage(pkg.Source) {
+			continue
+		}
+		update, ok := checkNpmPackageUpdate(ctx, pkg, workspacePath, globalSettingsPath, npmCmd)
+		if ok {
+			updates = append(updates, update)
+		}
+	}
+	return PiPackageUpdateStatus{Updates: updates, Scope: "workspace"}, nil
 }
 
 func isPinnedPackage(source string) bool {
 	_, pinned, ok := parseNpmPiPackageSource(source)
 	return ok && pinned
-}
-
-func uniquePaths(paths []string) []string {
-	seen := map[string]bool{}
-	out := make([]string, 0, len(paths))
-	for _, p := range paths {
-		if !seen[p] {
-			seen[p] = true
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 func piPackagesFromSettings(settings map[string]any, scope string) []configuredPiPackage {

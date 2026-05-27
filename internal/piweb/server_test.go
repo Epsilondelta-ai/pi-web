@@ -76,7 +76,7 @@ func TestPiUpdateEndpoints(t *testing.T) {
 		PiPackageUpdateStatus: func(context.Context) (PiPackageUpdateStatus, error) {
 			return PiPackageUpdateStatus{Updates: []PiPackageUpdate{{Source: "npm:@example/pkg", DisplayName: "@example/pkg"}}}, nil
 		},
-		PiUpdateRunner: func(_ context.Context, source string, _ []string) error {
+		PiUpdateRunner: func(_ context.Context, source string, _ string) error {
 			done <- source
 			return nil
 		},

@@ -3,9 +3,7 @@ package piweb
 import (
 	"bytes"
 	"context"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"sync"
 	"time"
 )
@@ -17,7 +15,7 @@ const (
 	PiUpdateFailed   = "failed"
 )
 
-type PiUpdateRunner func(ctx context.Context, source string, workspacePaths []string) error
+type PiUpdateRunner func(ctx context.Context, source string, workspaceDir string) error
 
 type PiUpdater struct {
 	mu     sync.Mutex
@@ -32,24 +30,14 @@ func NewPiUpdater(runner PiUpdateRunner) *PiUpdater {
 	return &PiUpdater{runner: runner, status: PiUpdateStatus{State: PiUpdateIdle}}
 }
 
-func RunPiUpdateCommand(ctx context.Context, source string, workspacePaths []string) error {
-	if source == "" {
-		// Update pi itself
-		if err := runPiCommand(ctx, "", "update", "--self"); err != nil {
-			return err
-		}
-		// Update extensions in each workspace that has packages
-		for _, dir := range workspacePaths {
-			if _, err := os.Stat(filepath.Join(dir, ".pi", "npm", "package.json")); err != nil {
-				continue
-			}
-			if err := runPiCommand(ctx, dir, "update", "--extensions"); err != nil {
-				return err
-			}
-		}
-		return nil
+func RunPiUpdateCommand(ctx context.Context, source string, workspaceDir string) error {
+	if workspaceDir != "" {
+		return runPiCommand(ctx, workspaceDir, "update", "--extensions")
 	}
-	return runPiCommand(ctx, "", "update", source)
+	if source != "" {
+		return runPiCommand(ctx, "", "update", source)
+	}
+	return runPiCommand(ctx, "", "update")
 }
 
 func runPiCommand(ctx context.Context, dir string, args ...string) error {
@@ -77,7 +65,7 @@ func (u *PiUpdater) Status() PiUpdateStatus {
 	return status
 }
 
-func (u *PiUpdater) Start(ctx context.Context, source string, workspacePaths []string) PiUpdateStatus {
+func (u *PiUpdater) Start(ctx context.Context, source string, workspaceDir string) PiUpdateStatus {
 	u.mu.Lock()
 	if u.status.State == PiUpdateUpdating {
 		status := u.status
@@ -89,7 +77,7 @@ func (u *PiUpdater) Start(ctx context.Context, source string, workspacePaths []s
 	u.mu.Unlock()
 
 	go func() {
-		err := u.runner(ctx, source, workspacePaths)
+		err := u.runner(ctx, source, workspaceDir)
 		u.mu.Lock()
 		defer u.mu.Unlock()
 		u.status.FinishedAt = time.Now().UTC().Format(time.RFC3339)

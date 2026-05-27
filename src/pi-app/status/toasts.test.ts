@@ -119,7 +119,7 @@ describe("pi-app toast notifications", () => {
       .filter((toast) => toast.textContent.includes("skip (1.0.0 → 1.1.0)"))
       .at(-1);
     skippedPackageWarning.querySelector("[data-pi-package-update-confirm='no']").click();
-    expect(app.isPiPackageUpdateIgnored("pi-package-update-question:npm:skip:1.0.0:1.1.0")).toBe(true);
+    expect(app.isPiPackageUpdateIgnored("pi-package-update-question:global:npm:skip:1.0.0:1.1.0")).toBe(true);
     app.notifyPiPackageUpdateAvailable([
       { source: "npm:skip", displayName: "skip", currentVersion: "1.0.0", latestVersion: "1.1.0" },
     ]);
