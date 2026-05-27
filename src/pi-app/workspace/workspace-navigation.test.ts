@@ -34,6 +34,10 @@ describe("pi-app workspace navigation", () => {
     ]);
 
     app.querySelector("[data-workspace='juun'].ws-row").click();
+    expect(app.dataset.activeWorkspaceId).toBe("hahn");
+    expect(activeWorkspace.textContent).not.toBe("juun-ai");
+    expect(app.querySelector("[data-workspace='hahn'].ws-row").getAttribute("aria-current")).toBe("true");
+    expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-expanded")).toBe("true");
     expect(app.loadWorkspaceMeta).not.toHaveBeenCalled();
     await app.newSession("juun");
 

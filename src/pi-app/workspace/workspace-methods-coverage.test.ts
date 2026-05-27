@@ -74,6 +74,9 @@ describe("workspace folder/render/bootstrap coverage", () => {
     window.addEventListener("pi-sidebar-workspace-state", (event) => sidebarEvents.push(event.detail));
     app.toggleWorkspace("w2");
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w2", openWorkspaceId: "" });
+    app.toggleWorkspace("w1");
+    expect(app.dataset.activeWorkspaceId).toBe("w2");
+    expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w2", openWorkspaceId: "w1" });
     delete app.dataset.activeWorkspaceId;
     app.openActiveWorkspaceGroup("");
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "", openWorkspaceId: "" });
