@@ -1,5 +1,5 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
 export type WebStatusInput = {
@@ -16,12 +16,13 @@ export async function persistWebStatus(
   await mkdir(piDirectory, { recursive: true });
   const settingsPath = join(piDirectory, "pi-web.json");
   const settings = await readJsonObject(settingsPath);
+  if (!settings) return;
   settings.status = {
     model: input.model,
     ...quotas,
     updatedAt: new Date().toISOString(),
   };
-  await writeFile(settingsPath, JSON.stringify(settings, null, 2), "utf8");
+  await writePrivateJson(settingsPath, settings);
   await removeLegacyWebStatus(join(piDirectory, "web-status.json"));
 }
 
@@ -42,17 +43,30 @@ async function removeLegacyWebStatus(path: string): Promise<void> {
   }
 }
 
-async function readJsonObject(path: string): Promise<Record<string, unknown>> {
+async function readJsonObject(path: string): Promise<Record<string, unknown> | undefined> {
   try {
     const raw = await readFile(path, "utf8");
     const parsed = JSON.parse(raw) as unknown;
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
     }
-  } catch {
-    return {};
+    return undefined;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return {};
+    return undefined;
   }
-  return {};
+}
+
+async function writePrivateJson(path: string, value: Record<string, unknown>): Promise<void> {
+  const tempPath = `${path}.tmp-${process.pid}-${Date.now()}`;
+  const data = `${JSON.stringify(value, null, 2)}\n`;
+  const handle = await open(tempPath, "w", 0o600);
+  try {
+    await handle.writeFile(data, "utf8");
+  } finally {
+    await handle.close();
+  }
+  await rename(tempPath, path);
 }
 
 function parseQuotaPercent(text: string | undefined, pattern: RegExp): number | undefined {
