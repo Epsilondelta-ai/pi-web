@@ -123,6 +123,30 @@ describe("pi-app toast notifications", () => {
     app.notifyPiPackageUpdateAvailable([
       { source: "npm:skip", displayName: "skip", currentVersion: "1.0.0", latestVersion: "1.1.0" },
     ]);
+    app.notifyWorkspacePackageUpdateAvailable(
+      [{ source: "npm:ws-pkg", displayName: "ws-pkg", currentVersion: "1.0.0", latestVersion: "2.0.0" }],
+      "ws-1",
+    );
+    const wsPackageWarning = [...document.querySelectorAll(".session-toast.warning")]
+      .filter((toast) => toast.textContent.includes("workspace packages"))
+      .at(-1);
+    expect(wsPackageWarning.textContent).toContain("ws-pkg (1.0.0 → 2.0.0)");
+    app.startPiUpdateFlow = vi.fn();
+    wsPackageWarning.querySelector("[data-pi-package-update-confirm='yes']").click();
+    expect(app.startPiUpdateFlow).toHaveBeenCalledWith("", "ws-1");
+    app.notifyWorkspacePackageUpdateAvailable(
+      [{ source: "npm:ws-skip", displayName: "ws-skip", currentVersion: "1.0.0", latestVersion: "1.1.0" }],
+      "ws-1",
+    );
+    const wsSkipWarning = [...document.querySelectorAll(".session-toast.warning")]
+      .filter((toast) => toast.textContent.includes("ws-skip (1.0.0 → 1.1.0)"))
+      .at(-1);
+    wsSkipWarning.querySelector("[data-pi-package-update-confirm='no']").click();
+    expect(app.isPiPackageUpdateIgnored("pi-package-update-question:workspace:ws-1:npm:ws-skip:1.0.0:1.1.0")).toBe(true);
+    app.notifyWorkspacePackageUpdateAvailable(
+      [{ source: "npm:ws-skip", displayName: "ws-skip", currentVersion: "1.0.0", latestVersion: "1.1.0" }],
+      "ws-1",
+    );
     app.notifyPiUpdateAvailable({ currentVersion: "0.75.0", latestVersion: "0.75.6" });
     const nextWarning = [...document.querySelectorAll(".session-toast.warning")]
       .filter((toast) => toast.textContent.includes("Do you want to update pi?"))

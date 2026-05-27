@@ -13,6 +13,7 @@ vi.mock("../../lib/api", () => ({
   getAuthProviders: vi.fn(),
   sendOAuthLoginInput: vi.fn(),
   startOAuthLogin: vi.fn(),
+  getPiPackageUpdateStatus: vi.fn(),
 }));
 
 import * as api from "../../lib/api";
@@ -112,6 +113,13 @@ describe("workspace residual method coverage", () => {
     app.prependLoadedMessages([]);
 
     app.apiConnected = true;
+    app.loadWorkspaceCommands = vi.fn();
+    app.loadRuntimeStatus = vi.fn();
+    app.loadWorkspaceSettingsState = vi.fn().mockResolvedValue(undefined);
+    app.loadWorkspaceMeta = vi.fn();
+    app.dataset.tree = "on";
+    vi.mocked(api.getPiPackageUpdateStatus).mockResolvedValueOnce({ scope: "workspace", workspaceId: "w1", updates: [] });
+    await app.loadWorkspaceContext("w1");
     app.loadWorkspaceContext = vi.fn();
     app.activateWorkspaceForSession("w1", { loadContext: true, forceLoadContext: true });
     expect(app.loadWorkspaceContext).toHaveBeenCalledWith("w1");
