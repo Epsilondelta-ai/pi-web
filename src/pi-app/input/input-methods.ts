@@ -164,13 +164,13 @@ export const inputMethods = {
   async submitPromptShellCommand(command) {
     if (!this.prompt) return;
     await this.runPromptShellCommand(command, {
-      onStart: () => { this.prompt.disabled = true; },
-      onSuccess: () => {
+      onStart: () => {
         this.prompt.value = "";
         this.exitPromptShellMode();
+        this.updatePrompt();
+        this.prompt.focus();
       },
       onFinish: () => {
-        this.prompt.disabled = false;
         this.updatePrompt();
         this.prompt.focus();
       },
