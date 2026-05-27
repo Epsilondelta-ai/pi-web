@@ -1,5 +1,13 @@
 // @ts-nocheck
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../components/SortableWorkspaceSidebar", () => ({
+  default: (props) => {
+    globalThis.__lastSortableSidebarProps = props;
+    return "sortable sidebar";
+  },
+}));
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
 
 function okJson(body) {
@@ -41,6 +49,8 @@ describe("workspace folder/render/bootstrap coverage", () => {
         { id: "s2", title: "run", lastUsed: "now", live: true },
       ] },
     ];
+    app.renderWorkspaces();
+    expect(count.textContent).toBe("0 known");
     app.renderWorkspaces(workspaces);
     app.renderWorkspaces(workspaces);
     app.renderFolderListing({ path: "/tmp", displayPath: "tmp", folders: [
@@ -53,12 +63,56 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(recent.querySelectorAll(".ws-stat")[1].innerHTML).toContain("live");
     expect(app.querySelector("[data-workspace-group='w2'] .sessions").hidden).toBe(false);
     expect(app.querySelector("[data-workspace-group='w2'] .ws-name .dot").classList.contains("live")).toBe(true);
+    const sidebarEvents = [];
+    window.addEventListener("pi-sidebar-workspace-state", (event) => sidebarEvents.push(event.detail));
+    app.toggleWorkspace("w2");
+    expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w2", openWorkspaceId: "" });
+    delete app.dataset.activeWorkspaceId;
+    app.openActiveWorkspaceGroup("");
+    expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "", openWorkspaceId: "" });
+    const emptyGroup = app.createWorkspaceGroup({ id: "empty", name: "empty", path: "/empty", sessionCount: 0 });
+    expect(emptyGroup.querySelector(".clear-sessions-row")).toBeNull();
+    expect(app.workspaceHasActiveSession({ id: "empty" })).toBe(false);
     expect(input.value).toBe("/tmp");
     expect(path.textContent).toBe("tmp");
     expect(list.querySelector(".folder-row").dataset.path).toBe("/tmp/child");
 
     app.renderFolderListing({ path: "/empty", folders: [] });
     expect(list.querySelector(".folder-empty").textContent).toBe("no folders");
+  });
+
+  it("renders the React sortable sidebar and persists drag callbacks", async () => {
+    const app = await connectPiApp();
+    const section = app.querySelector(".sidebar .sb-section");
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "s1";
+
+    await act(async () => {
+      await app.renderSortableSidebarWorkspaces(section, [{
+        id: "w1",
+        name: "one",
+        path: "/one",
+        sessionCount: 1,
+        sessions: [{ id: "s1", title: "one", lastUsed: "now" }],
+      }]);
+    });
+
+    expect(section.querySelector("[data-sortable-workspaces]")).not.toBeNull();
+    expect(section.querySelector("[data-sortable-workspaces]").textContent).toBe("sortable sidebar");
+    globalThis.__lastSortableSidebarProps.onWorkspaceOrder(["w1"]);
+    globalThis.__lastSortableSidebarProps.onSessionOrder("w1", ["s1"]);
+    expect(localStorage.getItem("pi.workspaceOrder")).toContain("w1");
+    expect(localStorage.getItem("pi.sessionOrder")).toContain("s1");
+
+    await act(async () => {
+      await app.renderSortableSidebarWorkspaces(section, [{ id: "w1", name: "one", path: "/one", sessionCount: 0, sessions: [] }]);
+    });
+    expect(section.querySelectorAll("[data-sortable-workspaces]")).toHaveLength(1);
+
+    const detached = document.createElement("div");
+    await app.renderSortableSidebarWorkspaces(detached, []);
+    expect(detached.querySelector("[data-sortable-workspaces]")).toBeNull();
+    act(() => app.sidebarSortableRoot.unmount());
   });
 
   it("loads folders and opens workspaces through backend responses", async () => {

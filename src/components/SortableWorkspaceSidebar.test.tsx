@@ -7,7 +7,12 @@ vi.mock("@dnd-kit/core", () => ({
   DndContext: ({ children, onDragStart, onDragCancel, onDragEnd }: any) => <div data-dnd-context="true">
     <button type="button" data-test-drag-start onClick={() => onDragStart?.({ active: { id: "w1" } })}>drag start</button>
     <button type="button" data-test-drag-cancel onClick={() => onDragCancel?.()}>drag cancel</button>
-    <button type="button" data-test-drag-end onClick={() => onDragEnd?.({ active: { id: "w1" }, over: { id: "w1" } })}>drag end</button>
+    <button type="button" data-test-drag-end-same onClick={() => onDragEnd?.({ active: { id: "w1" }, over: { id: "w1" } })}>drag same</button>
+    <button type="button" data-test-drag-end-session-same onClick={() => onDragEnd?.({ active: { id: "s1" }, over: { id: "s1" } })}>drag session same</button>
+    <button type="button" data-test-drag-end-none onClick={() => onDragEnd?.({ active: { id: "w1" }, over: null })}>drag none</button>
+    <button type="button" data-test-drag-end-workspace onClick={() => onDragEnd?.({ active: { id: "w1" }, over: { id: "w2" } })}>drag workspace</button>
+    <button type="button" data-test-drag-end-session onClick={() => onDragEnd?.({ active: { id: "s1" }, over: { id: "s4" } })}>drag session</button>
+    <button type="button" data-test-drag-end-missing onClick={() => onDragEnd?.({ active: { id: "missing" }, over: { id: "s1" } })}>drag missing</button>
     {children}
   </div>,
   KeyboardSensor: vi.fn(),
@@ -33,7 +38,7 @@ vi.mock("@dnd-kit/sortable", () => ({
     setNodeRef: vi.fn(),
     transform: null,
     transition: undefined,
-    isDragging: false,
+    isDragging: (globalThis as any).__sortableDraggingId === id,
   }),
   verticalListSortingStrategy: {},
 }));
@@ -47,30 +52,40 @@ const workspaces = [
     path: "/one",
     sessionCount: 3,
     sessions: [
-      { id: "s1", title: "root", lastUsed: "now" },
-      { id: "s2", title: "child", parentId: "s1", lastUsed: "now" },
-      { id: "s3", title: "grandchild", parentId: "s2", lastUsed: "now" },
+      { id: "s1", title: "root", lastUsed: "now", active: true, kind: "subagent" },
+      { id: "s2", title: "child", parentId: "s1", lastUsed: "now", kind: "team" },
+      { id: "s3", title: "grandchild", parentId: "s2", lastUsed: "now", live: true, kind: "unknown" },
+      { id: "s4", title: "other root" },
     ],
   },
   { id: "w2", name: "two", path: "/two", sessionCount: 0, sessions: [] },
+  { id: "w3", name: "three", path: "/three", sessionCount: 0, live: true },
 ];
 
-function renderSidebar() {
+function renderSidebar(props = {}) {
   const host = document.createElement("div");
   document.body.append(host);
   const root = createRoot(host);
-  act(() => root.render(<SortableWorkspaceSidebar workspaces={workspaces} activeWorkspaceId="w1" activeSessionId="s1" onWorkspaceOrder={vi.fn()} onSessionOrder={vi.fn()} />));
-  return { host, root };
+  const onWorkspaceOrder = vi.fn();
+  const onSessionOrder = vi.fn();
+  act(() => root.render(<SortableWorkspaceSidebar workspaces={workspaces} activeWorkspaceId="w1" activeSessionId="s1" onWorkspaceOrder={onWorkspaceOrder} onSessionOrder={onSessionOrder} {...props} />));
+  return { host, root, onWorkspaceOrder, onSessionOrder };
 }
 
 describe("SortableWorkspaceSidebar", () => {
-  beforeEach(() => document.body.replaceChildren());
+  beforeEach(() => {
+    document.body.replaceChildren();
+    delete (globalThis as any).__sortableDraggingId;
+  });
 
   it("keeps recursive session descendants visible", () => {
-    expect(flattenTitles(sessionTree(workspaces[0].sessions))).toEqual(["root", "child", "grandchild"]);
+    expect(flattenTitles(sessionTree(workspaces[0].sessions))).toEqual(["root", "child", "grandchild", "other root"]);
     const { host, root } = renderSidebar();
-    expect([...host.querySelectorAll(".session-row[data-session]")].map((row) => row.getAttribute("data-session"))).toEqual(["s1", "s2", "s3"]);
+    expect([...host.querySelectorAll(".session-row[data-session]")].map((row) => row.getAttribute("data-session"))).toEqual(["s1", "s2", "s3", "s4"]);
     expect(host.querySelector('[data-session="s3"]')?.getAttribute("data-depth")).toBe("2");
+    expect(host.querySelector('[data-session="s1"] .session-kind-badge')?.textContent).toBe("sub");
+    expect(host.querySelector('[data-session="s2"] .session-kind-badge')?.textContent).toBe("team");
+    expect(host.querySelector('[data-session="s3"] .meta')?.textContent).toBe("waiting");
     act(() => root.unmount());
   });
 
@@ -79,6 +94,9 @@ describe("SortableWorkspaceSidebar", () => {
     expect((host.querySelector('[data-workspace-group="w1"] .sessions') as HTMLElement).hidden).toBe(false);
     act(() => (host.querySelector("[data-test-drag-start]") as HTMLButtonElement).click());
     expect([...host.querySelectorAll<HTMLElement>(".sessions")].every((sessions) => sessions.hidden)).toBe(true);
+    act(() => (host.querySelector("[data-test-drag-end-none]") as HTMLButtonElement).click());
+    expect((host.querySelector('[data-workspace-group="w1"] .sessions') as HTMLElement).hidden).toBe(false);
+    act(() => (host.querySelector("[data-test-drag-start]") as HTMLButtonElement).click());
     act(() => (host.querySelector("[data-test-drag-cancel]") as HTMLButtonElement).click());
     expect((host.querySelector('[data-workspace-group="w1"] .sessions') as HTMLElement).hidden).toBe(false);
     act(() => root.unmount());
@@ -99,6 +117,34 @@ describe("SortableWorkspaceSidebar", () => {
     expect((host.querySelector('[data-workspace-group="w1"] .sessions') as HTMLElement).hidden).toBe(true);
     expect((host.querySelector('[data-workspace-group="w2"] .sessions') as HTMLElement).hidden).toBe(false);
     expect(host.querySelector('.ws-row[data-workspace="w2"]')?.getAttribute("aria-current")).toBe("true");
+    act(() => window.dispatchEvent(new CustomEvent("pi-sidebar-workspace-state", { detail: {} })));
+    expect(host.querySelector('.ws-row[data-workspace="w2"]')?.getAttribute("aria-current")).toBe("false");
+    act(() => root.unmount());
+  });
+
+  it("reorders workspaces and root sessions while guarding invalid drops", () => {
+    const { host, root, onWorkspaceOrder, onSessionOrder } = renderSidebar();
+    act(() => (host.querySelectorAll("[data-test-drag-end-same]")[0] as HTMLButtonElement).click());
+    expect(onWorkspaceOrder).not.toHaveBeenCalled();
+    act(() => (host.querySelector("[data-test-drag-end-workspace]") as HTMLButtonElement).click());
+    expect(onWorkspaceOrder).toHaveBeenCalledWith(["w2", "w1", "w3"]);
+    act(() => (host.querySelector('[data-workspace-group="w1"] [data-test-drag-end-session-same]') as HTMLButtonElement).click());
+    act(() => (host.querySelector('[data-workspace-group="w1"] [data-test-drag-end-none]') as HTMLButtonElement).click());
+    act(() => (host.querySelector('[data-workspace-group="w1"] [data-test-drag-end-session]') as HTMLButtonElement).click());
+    expect(onSessionOrder).toHaveBeenCalledWith("w1", ["s4", "s1"]);
+    act(() => (host.querySelector('[data-workspace-group="w1"] [data-test-drag-end-missing]') as HTMLButtonElement).click());
+    act(() => (host.querySelector('[data-dnd-context="true"] > [data-test-drag-end-missing]') as HTMLButtonElement).click());
+    expect(onSessionOrder).toHaveBeenCalledTimes(1);
+    act(() => root.unmount());
+  });
+
+  it("updates from prop changes and marks active sortable shells", () => {
+    (globalThis as any).__sortableDraggingId = "w1";
+    const { host, root } = renderSidebar({ activeWorkspaceId: "" });
+    expect(host.querySelector('.workspace-sortable[data-dragging="true"]')).not.toBeNull();
+    act(() => root.render(<SortableWorkspaceSidebar workspaces={workspaces} activeWorkspaceId="w3" activeSessionId="s3" onWorkspaceOrder={vi.fn()} onSessionOrder={vi.fn()} />));
+    expect(host.querySelector('.ws-row[data-workspace="w3"]')?.getAttribute("aria-expanded")).toBe("true");
+    expect(host.querySelector('[data-session="s3"]')?.classList.contains("selected")).toBe(true);
     act(() => root.unmount());
   });
 });

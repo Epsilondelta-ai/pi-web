@@ -17,4 +17,14 @@ describe("workspace-order", () => {
     expect(ordered.map((workspace) => workspace.id)).toEqual(["w2", "w1", "w3"]);
     expect(ordered[1].sessions.map((session) => session.id)).toEqual(["s2", "s1", "s3"]);
   });
+
+  it("ignores malformed stored order JSON", () => {
+    localStorage.setItem("pi.workspaceOrder", "{");
+    localStorage.setItem("pi.sessionOrder", "{");
+
+    const ordered = applyStoredWorkspaceOrder([{ id: "w1", sessions: [{ id: "s1" }] }]);
+
+    expect(ordered.map((workspace) => workspace.id)).toEqual(["w1"]);
+    expect(ordered[0].sessions.map((session) => session.id)).toEqual(["s1"]);
+  });
 });

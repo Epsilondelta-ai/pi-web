@@ -59,8 +59,8 @@ export const workspaceRenderMethods = {
       workspaces,
       activeWorkspaceId: this.dataset.activeWorkspaceId || "",
       activeSessionId: this.dataset.activeSessionId || "",
-      onWorkspaceOrder: (ids) => this.reorderWorkspaces(ids),
-      onSessionOrder: (workspaceId, ids) => this.reorderWorkspaceSessions(workspaceId, ids),
+      onWorkspaceOrder: this.reorderWorkspaces.bind(this),
+      onSessionOrder: this.reorderWorkspaceSessions.bind(this),
     }));
   },
 
@@ -181,7 +181,7 @@ export const workspaceRenderMethods = {
     });
     this.syncActiveWorkspaceRows();
     window.dispatchEvent(new CustomEvent("pi-sidebar-workspace-state", {
-      detail: { activeWorkspaceId: this.dataset.activeWorkspaceId || "", openWorkspaceId: shouldOpen ? id : "" },
+      detail: { activeWorkspaceId: this.dataset.activeWorkspaceId, openWorkspaceId: shouldOpen ? id : "" },
     }));
   },
 
