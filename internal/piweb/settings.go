@@ -69,8 +69,8 @@ func settingsPaths(root string) (SettingsPaths, error) {
 		return SettingsPaths{}, err
 	}
 	return SettingsPaths{
-		Global:  filepath.Join(home, ".pi", "agent", "settings.json"),
-		Project: filepath.Join(root, ".pi", "settings.json"),
+		Global:  filepath.Join(home, ".pi", "web", "settings.json"),
+		Project: filepath.Join(root, ".pi", "pi-web.json"),
 	}, nil
 }
 

@@ -41,7 +41,7 @@ describe("settings schema", () => {
         },
         terminal: { imageWidthCells: 80 },
       },
-      paths: { global: "/home/me/.pi/agent/settings.json", project: "/repo/.pi/settings.json" },
+      paths: { global: "/home/me/.pi/web/settings.json", project: "/repo/.pi/pi-web.json" },
     })).toMatchObject({
       global: { customSetting: "keep" },
       effective: {

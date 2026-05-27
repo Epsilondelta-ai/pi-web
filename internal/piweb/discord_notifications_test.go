@@ -18,7 +18,7 @@ func TestNotifyDiscordResponseCompletedSendsConfiguredMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"}}}`
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(settings), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -68,7 +68,7 @@ func TestNotifyDiscordChoiceQuestionSendsConfiguredMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"}}}`
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(settings), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,7 +106,7 @@ func TestNotifyTelegramResponseCompletedSendsConfiguredMessage(t *testing.T) {
 		t.Fatal(err)
 	}
 	settings := `{"remoteNotifications":{"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(settings), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -152,7 +152,7 @@ func TestNotifyTelegramResponseCompletedSkipsIncompleteSettings(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"remoteNotifications":{"telegram":{"enabled":true}}}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"remoteNotifications":{"telegram":{"enabled":true}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -180,7 +180,7 @@ func TestNotifyDiscordResponseCompletedSkipsIncompleteSettings(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"remoteNotifications":{"discord":{"enabled":true}}}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"remoteNotifications":{"discord":{"enabled":true}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

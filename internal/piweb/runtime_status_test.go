@@ -50,16 +50,16 @@ func TestRuntimeModelStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "web"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultProvider":"openai-codex","defaultModel":"gpt-5.4","defaultThinkingLevel":"low"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".pi", "web", "settings.json"), []byte(`{"defaultProvider":"openai-codex","defaultModel":"gpt-5.4","defaultThinkingLevel":"low"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"defaultModel":"gpt-5.5","defaultThinkingLevel":"high"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"defaultModel":"gpt-5.5","defaultThinkingLevel":"high"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -76,10 +76,10 @@ func TestWorkspaceRuntimeModelStatusUsesSettingsWithoutPiRPC(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "web"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultProvider":"zai","defaultModel":"glm-4.6","defaultThinkingLevel":"medium"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".pi", "web", "settings.json"), []byte(`{"defaultProvider":"zai","defaultModel":"glm-4.6","defaultThinkingLevel":"medium"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -102,14 +102,14 @@ func TestWorkspaceRuntimeQuotaStatusFallsBackToEnv(t *testing.T) {
 	}
 }
 
-func TestRuntimeQuotaIgnoresProjectFileAndClampsEnv(t *testing.T) {
+func TestRuntimeQuotaIgnoresProjectWebStatusAndClampsEnv(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("PI_WEB_5H_QUOTA", "120")
 	t.Setenv("PI_WEB_WEEKLY_QUOTA", "14")
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":1,"weeklyQuota":2}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"status":{"fiveHourQuota":1,"weeklyQuota":2}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	fiveHour, weekly := RuntimeQuota(root)
@@ -121,7 +121,7 @@ func TestRuntimeQuotaIgnoresProjectFileAndClampsEnv(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectFile(t *testing.T) {
+func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectWebStatus(t *testing.T) {
 	oldClient := http.DefaultClient
 	t.Cleanup(func() { http.DefaultClient = oldClient })
 	home := t.TempDir()
@@ -136,7 +136,7 @@ func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectFile(t *testing.T
 	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "auth.json"), []byte(`{"openai-codex":{"access":"oa","accountId":"acct"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "web-status.json"), []byte(`{"fiveHourQuota":86,"weeklyQuota":54}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"status":{"fiveHourQuota":86,"weeklyQuota":54}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
