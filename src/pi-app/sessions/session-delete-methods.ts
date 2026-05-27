@@ -30,8 +30,8 @@ export const sessionDeleteMethods = {
     try {
       const deletedSessionIds = this.workspaceSessionIds(workspaceId);
       await deleteWorkspaceSessionsRequest(workspaceId);
-      this.replaceWorkspaceSessionsInState(workspaceId, []);
       this.clearWorkspaceSessionRows(workspaceId);
+      this.replaceWorkspaceSessionsInState(workspaceId, []);
       if (deletedSessionIds.has(this.dataset.activeSessionId)
         || (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId)) {
         this.clearActiveSession(this.dataset.activeSessionId);
@@ -75,7 +75,7 @@ export const sessionDeleteMethods = {
     const groups = this.workspaceGroups(workspaceId);
     groups.forEach((group) => {
       const sessions = group.querySelector(".sessions");
-      sessions?.querySelectorAll(".session-row[data-session], .session-sortable").forEach((row) => row.remove());
+      sessions?.querySelectorAll(".session-row[data-session], .session-sortable, .sessions-empty").forEach((row) => row.remove());
     });
     this.refreshWorkspaceSessionControls(workspaceId);
   },
@@ -118,9 +118,13 @@ export const sessionDeleteMethods = {
     const countLabel = group.querySelector(".ws-count") || group.querySelector(".ws-meta");
     if (countLabel) countLabel.textContent = String(count);
     sessions?.querySelector("[data-action='delete-workspace-sessions']")?.remove();
+    sessions?.querySelector(".sessions-empty")?.remove();
     const newSessionRow = sessions?.querySelector(".new-session-row");
     if (sessions && newSessionRow && count > 0) {
       sessions.insertBefore(this.createDeleteWorkspaceSessionsRow(workspaceId), newSessionRow);
+    }
+    if (sessions && newSessionRow && count === 0) {
+      sessions.insertBefore(this.createEmptySessionsRow(), newSessionRow);
     }
   },
 

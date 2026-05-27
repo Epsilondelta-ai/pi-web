@@ -213,7 +213,7 @@ function speechLanguageListId(path) {
                       <span class="title">{session.title}</span><span class:list={["meta", (session.active || session.live) && "live"]} hidden={!(session.active || session.live)}>{session.active || session.live ? "waiting" : ""}</span>
                     </button>
                   ))}
-                  {(workspace.sessions || []).length === 0 && <div style="padding:12px 16px;color:var(--fg-3);font-size:12px;font-style:italic">no sessions yet · press N to start one</div>}
+                  {(workspace.sessions || []).length === 0 && <div class="sessions-empty">no sessions yet · press N to start one</div>}
                   {(workspace.sessions || []).length > 0 && <button type="button" class="session-row clear-sessions-row" data-action="delete-workspace-sessions" data-workspace={workspace.id}><span class="title"><Trash2 size={12} strokeWidth={1.75} aria-hidden="true" /> delete all sessions</span></button>}
                   <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="title"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /> new session</span></button>
                 </div>
