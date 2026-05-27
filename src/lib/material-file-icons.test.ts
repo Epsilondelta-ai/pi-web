@@ -10,14 +10,23 @@ describe("resolveMaterialFileIcon", () => {
     expect(resolveMaterialFileIcon({ kind: "file", name: "README.md" }).name).toBe("readme");
     expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).name).toBe("typescript");
     expect(resolveMaterialFileIcon({ kind: "file", name: "unknown" }).name).toBe("file");
-    expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
+    expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).url).not.toBe(
+      resolveMaterialFileIcon({ kind: "file", name: "unknown" }).url,
+    );
+    expect(resolveMaterialFileIcon({ kind: "dir", name: "src" }).url).not.toBe(
+      resolveMaterialFileIcon({ kind: "dir", name: "unknown-folder" }).url,
+    );
     expect(resolveMaterialFileIcon({ kind: "dir", name: "unknown-folder" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
   });
 
-  it("resolves compound extensions and path-only names", () => {
+  it("resolves compound extensions, path-only names, and missing icon assets", () => {
     expect(resolveMaterialFileIcon({ kind: "file", name: "types.d.ts" }).name).toBe("typescript-def");
     expect(resolveMaterialFileIcon({ kind: "file", name: "", path: "src/main.ts" }).name).toBe("typescript");
     expect(resolveMaterialFileIcon({ kind: "file", name: "archive.unknown" }).name).toBe("file");
     expect(resolveMaterialFileIcon({ kind: "file", name: "" }).name).toBe("file");
+    expect(resolveMaterialFileIcon({ kind: "file", name: "app.component.ts" })).toEqual({
+      name: "angular-component",
+      url: resolveMaterialFileIcon({ kind: "file", name: "unknown" }).url,
+    });
   });
 });
