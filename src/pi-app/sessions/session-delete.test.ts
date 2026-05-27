@@ -86,6 +86,22 @@ describe("pi-app session deletion", () => {
     expect(calls).toEqual(["clear", "replace"]);
   });
 
+  it("keeps React sortable sidebar mounted when deleting all sessions", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => ({}) }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.sidebarSortableRoot = { render: vi.fn() };
+    const calls = [];
+    app.clearWorkspaceSessionRows = vi.fn(() => calls.push("clear"));
+    app.replaceWorkspaceSessionsInState = vi.fn(() => calls.push("replace"));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    await app.deleteWorkspaceSessions("w1");
+
+    expect(calls).toEqual(["replace"]);
+  });
+
   it("covers session deletion state helper edge branches", async () => {
     const app = await connectPiApp();
     app.renderWorkspaces = vi.fn((workspaces) => { app.workspaceList = workspaces; });

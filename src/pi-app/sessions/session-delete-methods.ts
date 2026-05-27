@@ -30,7 +30,7 @@ export const sessionDeleteMethods = {
     try {
       const deletedSessionIds = this.workspaceSessionIds(workspaceId);
       await deleteWorkspaceSessionsRequest(workspaceId);
-      this.clearWorkspaceSessionRows(workspaceId);
+      if (!this.sidebarSortableRoot) this.clearWorkspaceSessionRows(workspaceId);
       this.replaceWorkspaceSessionsInState(workspaceId, []);
       if (deletedSessionIds.has(this.dataset.activeSessionId)
         || (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId)) {

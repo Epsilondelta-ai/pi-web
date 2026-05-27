@@ -121,7 +121,19 @@ export const workspaceFolderMethods = {
   },
 
   async openWorkspace(workspaceId) {
+    if (!workspaceId) return;
+    const workspace = (this.workspaceList || []).find((item) => item.id === workspaceId);
+    const firstSession = workspace?.sessions?.[0];
+    const firstSessionRow = firstSession?.id
+      ? this.querySelector(`[data-workspace-group='${workspaceId}'] [data-session='${firstSession.id}']`)
+      : null;
+    if (firstSessionRow) {
+      await this.pickSession(firstSessionRow);
+      this.route("workspace");
+      return;
+    }
     this.activateWorkspaceForSession(workspaceId, { loadContext: true, forceLoadContext: true });
+    this.clearActiveSession?.(this.dataset.activeSessionId);
     this.route("workspace");
   },
 };
