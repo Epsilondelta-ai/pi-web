@@ -378,7 +378,7 @@ func TestWorkspaceModelsEndpointFallsBackOnPiFailure(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"defaultProvider":"anthropic","defaultModel":"claude-test"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"defaultProvider":"anthropic","defaultModel":"claude-test"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	writeFakePi(t, root, `#!/bin/sh
@@ -433,12 +433,19 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	globalPath := filepath.Join(home, ".pi", "web", "settings.json")
-	projectPath := filepath.Join(root, ".pi", "pi-web.json")
+	globalPath := filepath.Join(home, ".pi", "agent", "settings.json")
+	projectPath := filepath.Join(root, ".pi", "settings.json")
+	webProjectPath := filepath.Join(root, ".pi", "pi-web.json")
+	if err := os.MkdirAll(filepath.Dir(globalPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(globalPath, []byte(`{"theme":"dark","compaction":{"enabled":true}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(projectPath, []byte(`{"defaultModel":"gpt-5.5"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(webProjectPath, []byte(`{"readResponsesAloud":true}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	store := NewMockStore()
@@ -461,7 +468,7 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 		t.Fatalf("unexpected settings body: %s", getRes.Body.String())
 	}
 
-	body := `{"scope":"project","settings":{"defaultModel":null,"transport":"sse","warnings":{"anthropicExtraUsage":null},"compaction":{"enabled":false}}}`
+	body := `{"scope":"project","settings":{"defaultModel":null,"transport":"sse","warnings":{"anthropicExtraUsage":null},"compaction":{"enabled":false},"readResponsesAloud":false}}`
 	putReq := httptest.NewRequest(http.MethodPut, "/api/workspaces/"+workspace.ID+"/settings", bytes.NewBufferString(body))
 	putRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(putRes, putReq)
@@ -474,7 +481,14 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 	}
 	if strings.Contains(string(saved), "defaultModel") || strings.Contains(string(saved), "warnings") ||
 		!strings.Contains(string(saved), `"transport": "sse"`) {
-		t.Fatalf("unexpected saved settings: %s", string(saved))
+		t.Fatalf("unexpected saved pi settings: %s", string(saved))
+	}
+	webSaved, err := os.ReadFile(webProjectPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(webSaved), `"readResponsesAloud": false`) || strings.Contains(string(webSaved), "transport") {
+		t.Fatalf("unexpected saved pi-web settings: %s", string(webSaved))
 	}
 	if !strings.Contains(putRes.Body.String(), `"enabled":false`) {
 		t.Fatalf("effective settings did not include project compaction override: %s", putRes.Body.String())
