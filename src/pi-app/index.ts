@@ -61,6 +61,7 @@ class PiApp extends HTMLElement {
     this.apiConnected = false;
     this.currentFolder = "~";
     this.running = false;
+    this.responseReceived = false;
     this.attachmentContents = [];
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
@@ -305,6 +306,7 @@ class PiApp extends HTMLElement {
     }
     if (event.type === "session.delta") {
       if (!this.running) this.setMode("running");
+      if (event.payload?.kind === "pi" && event.payload?.delta) this.responseReceived = true;
       this.appendDelta(event.payload);
       return;
     }
@@ -373,11 +375,14 @@ class PiApp extends HTMLElement {
     if (!wasRunning && willRun) {
       this.responseFailureToastShown = false;
       this.responseCompletionToastShown = false;
+      this.responseReceived = false;
     }
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = willRun;
-    if (wasRunning && mode === "idle" && !this.responseFailureToastShown) this.notifyResponseCompletedOnce?.();
+    if (wasRunning && mode === "idle" && this.responseReceived && !this.responseFailureToastShown) {
+      this.notifyResponseCompletedOnce?.();
+    }
     if (!willRun && mode === "cancelled") this.clearSessionCancellationPending(sessionId);
     this.syncCurrentSessionRunState?.(this.running);
     this.stopButton?.toggleAttribute("hidden", !this.running);

@@ -63,6 +63,26 @@ func TestHandlePiJSONEventPublishesFinalFallbackChoiceAfterStreaming(t *testing.
 	}
 }
 
+func TestHandlePiJSONEventTracksCompletedAssistantResponse(t *testing.T) {
+	broker := NewBroker()
+	store := NewMockStore()
+	state := &jsonStreamState{}
+	handlePiJSONEvent(`{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}`, broker, store, "8e7c-44ff", state)
+	if !state.assistantResponseCompleted {
+		t.Fatal("expected final assistant text to mark response completed")
+	}
+}
+
+func TestHandlePiJSONEventDoesNotCompleteToolOnlyAssistantMessage(t *testing.T) {
+	broker := NewBroker()
+	store := NewMockStore()
+	state := &jsonStreamState{}
+	handlePiJSONEvent(`{"type":"message_end","message":{"role":"assistant","content":[{"type":"toolCall","name":"bash","arguments":{"command":"pwd"}}]}}`, broker, store, "8e7c-44ff", state)
+	if state.assistantResponseCompleted {
+		t.Fatal("tool-only assistant placeholder should not mark response completed")
+	}
+}
+
 func TestHandlePiJSONEventSkipsFinalToolCallPlaceholders(t *testing.T) {
 	broker := NewBroker()
 	store := NewMockStore()

@@ -9,10 +9,11 @@ import (
 )
 
 type jsonStreamState struct {
-	streamedText            bool
-	streamedThinking        bool
-	fallbackChoiceNotified  bool
-	onFallbackChoiceMessage func()
+	streamedText               bool
+	streamedThinking           bool
+	assistantResponseCompleted bool
+	fallbackChoiceNotified     bool
+	onFallbackChoiceMessage    func()
 }
 
 func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID string, state *jsonStreamState) bool {
@@ -77,6 +78,9 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 				if state.onFallbackChoiceMessage != nil {
 					state.onFallbackChoiceMessage()
 				}
+			}
+			if msg.Kind == "pi" && strings.TrimSpace(msg.Text) != "" && !containsFallbackChoice(msg.Text) {
+				state.assistantResponseCompleted = true
 			}
 			if msg.Kind == "pi" && state.streamedText && !containsFallbackChoice(msg.Text) {
 				continue
