@@ -63,6 +63,9 @@ func DetectPiPackageUpdateStatus(ctx context.Context, workspacePaths []string) (
 			continue
 		}
 		for _, pkg := range piPackagesFromSettings(projectSettings, "project") {
+			if isPinnedPackage(pkg.Source) {
+				continue
+			}
 			key := piPackageIdentity(pkg.Source)
 			if key == "" || seen[key] {
 				continue
@@ -76,6 +79,9 @@ func DetectPiPackageUpdateStatus(ctx context.Context, workspacePaths []string) (
 	}
 	// Global packages (user scope)
 	for _, pkg := range piPackagesFromSettings(globalSettings, "user") {
+		if isPinnedPackage(pkg.Source) {
+			continue
+		}
 		key := piPackageIdentity(pkg.Source)
 		if key == "" || seen[key] {
 			continue
@@ -87,6 +93,11 @@ func DetectPiPackageUpdateStatus(ctx context.Context, workspacePaths []string) (
 		}
 	}
 	return PiPackageUpdateStatus{Updates: updates}, nil
+}
+
+func isPinnedPackage(source string) bool {
+	_, pinned, ok := parseNpmPiPackageSource(source)
+	return ok && pinned
 }
 
 func uniquePaths(paths []string) []string {

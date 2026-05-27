@@ -3,7 +3,9 @@ package piweb
 import (
 	"bytes"
 	"context"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -15,7 +17,7 @@ const (
 	PiUpdateFailed   = "failed"
 )
 
-type PiUpdateRunner func(context.Context, string) error
+type PiUpdateRunner func(ctx context.Context, source string, workspacePaths []string) error
 
 type PiUpdater struct {
 	mu     sync.Mutex
@@ -30,12 +32,31 @@ func NewPiUpdater(runner PiUpdateRunner) *PiUpdater {
 	return &PiUpdater{runner: runner, status: PiUpdateStatus{State: PiUpdateIdle}}
 }
 
-func RunPiUpdateCommand(ctx context.Context, source string) error {
-	args := []string{"update"}
-	if source != "" {
-		args = append(args, source)
+func RunPiUpdateCommand(ctx context.Context, source string, workspacePaths []string) error {
+	if source == "" {
+		// Update pi itself
+		if err := runPiCommand(ctx, "", "update", "--self"); err != nil {
+			return err
+		}
+		// Update extensions in each workspace that has packages
+		for _, dir := range workspacePaths {
+			if _, err := os.Stat(filepath.Join(dir, ".pi", "npm", "package.json")); err != nil {
+				continue
+			}
+			if err := runPiCommand(ctx, dir, "update", "--extensions"); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
+	return runPiCommand(ctx, "", "update", source)
+}
+
+func runPiCommand(ctx context.Context, dir string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "pi", args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
 	configureCommandProcessGroup(cmd)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -46,10 +67,17 @@ func RunPiUpdateCommand(ctx context.Context, source string) error {
 func (u *PiUpdater) Status() PiUpdateStatus {
 	u.mu.Lock()
 	defer u.mu.Unlock()
-	return u.status
+	status := u.status
+	// Reset terminal states so they are only shown once per update cycle.
+	// The frontend reads the status on page load and after each poll;
+	// without reset, every page load would re-trigger "updated"/"failed" toasts.
+	if status.State == PiUpdateUpdated || status.State == PiUpdateFailed {
+		u.status = PiUpdateStatus{State: PiUpdateIdle}
+	}
+	return status
 }
 
-func (u *PiUpdater) Start(ctx context.Context, source string) PiUpdateStatus {
+func (u *PiUpdater) Start(ctx context.Context, source string, workspacePaths []string) PiUpdateStatus {
 	u.mu.Lock()
 	if u.status.State == PiUpdateUpdating {
 		status := u.status
@@ -61,7 +89,7 @@ func (u *PiUpdater) Start(ctx context.Context, source string) PiUpdateStatus {
 	u.mu.Unlock()
 
 	go func() {
-		err := u.runner(ctx, source)
+		err := u.runner(ctx, source, workspacePaths)
 		u.mu.Lock()
 		defer u.mu.Unlock()
 		u.status.FinishedAt = time.Now().UTC().Format(time.RFC3339)

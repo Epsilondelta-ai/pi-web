@@ -115,6 +115,51 @@ func TestDetectPiPackageUpdateStatusScansWorkspacePaths(t *testing.T) {
 	}
 }
 
+func TestDetectPiPackageUpdateStatusIgnoresPinnedDeduping(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell script test")
+	}
+	root := t.TempDir()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	oldWd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(oldWd)
+
+	fakeNpm := filepath.Join(root, "fake-npm")
+	if err := os.WriteFile(fakeNpm, []byte("#!/bin/sh\nprintf '\"2.0.0\"\n'\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeJSONFile(t, filepath.Join(home, ".pi", "agent", "settings.json"), `{"npmCommand":["`+fakeNpm+`"]}`)
+
+	// workspace-1 has pinned version
+	ws1 := filepath.Join(root, "ws-1")
+	writeJSONFile(t, filepath.Join(ws1, ".pi", "settings.json"), `{"packages":["npm:@example/pkg@1.0.0"]}`)
+	writeJSONFile(t, filepath.Join(ws1, ".pi", "npm", "node_modules", "@example", "pkg", "package.json"), `{"version":"1.0.0"}`)
+
+	// workspace-2 has unpinned version
+	ws2 := filepath.Join(root, "ws-2")
+	writeJSONFile(t, filepath.Join(ws2, ".pi", "settings.json"), `{"packages":["npm:@example/pkg"]}`)
+	writeJSONFile(t, filepath.Join(ws2, ".pi", "npm", "node_modules", "@example", "pkg", "package.json"), `{"version":"1.5.0"}`)
+
+	status, err := DetectPiPackageUpdateStatus(context.Background(), []string{ws1, ws2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(status.Updates) != 1 {
+		t.Fatalf("expected one update from unpinned workspace, got %#v", status.Updates)
+	}
+	update := status.Updates[0]
+	if update.Source != "npm:@example/pkg" || update.CurrentVersion != "1.5.0" || update.Scope != "project" {
+		t.Fatalf("unexpected update: %#v", update)
+	}
+}
+
 func writeJSONFile(t *testing.T, path string, content string) {
 	t.Helper()
 	if strings.TrimSpace(content) == "" {

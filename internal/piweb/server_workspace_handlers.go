@@ -104,7 +104,7 @@ func (s *Server) startPiUpdate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, PiUpdateStatus{State: PiUpdateUpdated})
 		return
 	}
-	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context(), strings.TrimSpace(req.Source)))
+	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context(), strings.TrimSpace(req.Source), s.workspacePaths()))
 }
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
