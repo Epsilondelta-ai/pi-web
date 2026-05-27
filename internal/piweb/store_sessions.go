@@ -30,7 +30,7 @@ func (s *Store) CreateSession(workspaceID string) (Session, error) {
 			s.workspaces[i].Sessions = append([]Session{session}, s.workspaces[i].Sessions...)
 			s.workspaces[i].SessionCount = len(s.workspaces[i].Sessions)
 			s.workspaces[i].LastUsed = "now"
-			s.conversations[session.ID] = []Message{}
+			s.conversations[session.ID] = []Message{contextFilesBanner(root)}
 			s.sessionFiles[session.ID] = file
 			s.sessionCWD[session.ID] = root
 			return session, nil
