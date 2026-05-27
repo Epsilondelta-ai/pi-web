@@ -107,6 +107,8 @@ describe("performance split coverage", () => {
     const mounting = workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
     root.remove();
     await mounting;
+    app.workspaceTreeRoot?.unmount?.();
+    app.workspaceTreeMounted = false;
   });
 
   it("covers initial speech control branches", async () => {
