@@ -96,6 +96,8 @@ class PiApp extends HTMLElement {
     if (this.streamingRenderFrame) window.cancelAnimationFrame(this.streamingRenderFrame);
     if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
     this.destroyTranscriptVirtualScroller?.();
+    this.sidebarSortableRoot?.unmount?.();
+    this.sidebarSortableRoot = undefined;
     this.uninstallViewportSizing?.();
     this.uninstallFilePreviewUnloadGuard?.();
   }

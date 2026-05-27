@@ -73,6 +73,23 @@
   background: var(--bg-3);
 }
 
+.workspace-sortable,
+.session-sortable {
+  touch-action: none;
+}
+
+.workspace-sortable[data-dragging="true"],
+.session-sortable[data-dragging="true"] {
+  position: relative;
+  z-index: 4;
+  opacity: 0.82;
+}
+
+.workspace-sortable[data-dragging="true"] .workspace-group,
+.session-sortable[data-dragging="true"] .session-row:first-child {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.28), inset 0 0 0 1px var(--accent);
+}
+
 .workspace-shell {
   position: relative;
 }
