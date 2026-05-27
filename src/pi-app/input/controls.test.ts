@@ -120,6 +120,32 @@ describe("pi-app controls", () => {
     expect(app.querySelector(".tool-card[data-tool='shell'] .tc-body").textContent).toContain("one");
   });
 
+  it("keeps the prompt editable while prompt shell commands run", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    let finishShell;
+    globalThis.fetch = vi.fn(async () => new Promise((resolve) => {
+      finishShell = () => resolve({ ok: true, json: async () => ({ exitCode: 0, durationMs: 9, output: "done" }) });
+    }));
+
+    app.enterPromptShellMode();
+    app.prompt.value = "sleep 1";
+    const submitted = app.submitPrompt();
+    await Promise.resolve();
+
+    expect(app.promptShellMode).toBe(false);
+    expect(app.prompt.disabled).toBe(false);
+    expect(app.prompt.value).toBe("");
+    app.prompt.value = "next prompt";
+    app.updatePrompt();
+    expect(app.prompt.value).toBe("next prompt");
+
+    finishShell();
+    await submitted;
+    expect(app.querySelector(".tool-card[data-tool='shell'] .tc-body").textContent).toContain("done");
+  });
+
   it("toggles voice input and writes speech recognition text into the prompt", async () => {
     vi.useFakeTimers();
     const instances = [];
