@@ -12,29 +12,39 @@ const PENCIL_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="13" height="1
 const KIND_LABELS = { subagent: "sub", team: "team" };
 
 function SortableShell({ id, className, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  return <div ref={setNodeRef} className={className} style={{ transform: CSS.Transform.toString(transform), transition }} data-dragging={isDragging ? "true" : undefined} {...attributes} {...listeners}>{children}</div>;
+  const { attributes, listeners, setActivatorNodeRef, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const handleProps = { ...attributes, ...listeners, ref: setActivatorNodeRef, "data-drag-handle": id };
+  return <div ref={setNodeRef} className={className} style={{ transform: CSS.Transform.toString(transform), transition }} data-dragging={isDragging ? "true" : undefined}>{children(handleProps)}</div>;
 }
 
-function sessionTree(sessions) {
+export function sessionTree(sessions) {
   const ids = new Set(sessions.map((session) => session.id));
-  const children = new Map();
+  const childrenByParent = new Map();
   for (const session of sessions) {
     if (!session.parentId || !ids.has(session.parentId)) continue;
-    children.set(session.parentId, [...(children.get(session.parentId) || []), session]);
+    childrenByParent.set(session.parentId, [...(childrenByParent.get(session.parentId) || []), session]);
   }
-  return sessions
-    .filter((session) => !session.parentId || !ids.has(session.parentId))
-    .map((session) => ({ session, children: children.get(session.id) || [] }));
+  const toNode = (session) => ({
+    session,
+    children: (childrenByParent.get(session.id) || []).map(toNode),
+  });
+  return sessions.filter((session) => !session.parentId || !ids.has(session.parentId)).map(toNode);
 }
 
-function SessionRow({ workspaceId, session, activeSessionId, depth = 0 }) {
+function flattenTree(nodes, depth = 0) {
+  return nodes.flatMap(({ session, children }) => [
+    { session, depth },
+    ...flattenTree(children || [], depth + 1),
+  ]);
+}
+
+function SessionRow({ workspaceId, session, activeSessionId, depth = 0, dragHandleProps = null }) {
   const kind = KIND_LABELS[session.kind] ? session.kind : "";
   const live = !!(session.active || session.live);
   const selected = session.id === activeSessionId;
   const menuId = `session-menu-${session.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   return <div className={["session-row", selected && "selected", live && "active", session.parentId && "child-session", kind && `session-kind-${kind}`].filter(Boolean).join(" ")} data-session={session.id} data-workspace={workspaceId} data-title={session.title} data-last-used={session.lastUsed || ""} data-parent-session={session.parentId || undefined} data-kind={kind || undefined} data-depth={Math.min(depth, 2)}>
-    <button type="button" className="session-main" data-session={session.id} data-workspace={workspaceId} data-title={session.title}>
+    <button type="button" className="session-main" data-session={session.id} data-workspace={workspaceId} data-title={session.title} {...(dragHandleProps || {})}>
       <span className="session-title"><span className="title">{session.title}</span>{kind ? <span className="session-kind-badge">{KIND_LABELS[kind]}</span> : null}</span>
       <span className={["meta", live && "live"].filter(Boolean).join(" ")}>{live ? "waiting" : ""}</span>
     </button>
@@ -46,8 +56,9 @@ function SessionRow({ workspaceId, session, activeSessionId, depth = 0 }) {
   </div>;
 }
 
-function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, draggingWorkspaceId, onSessionOrder }) {
-  const open = workspace.id === activeWorkspaceId && draggingWorkspaceId !== workspace.id;
+function WorkspaceGroup({ workspace, activeWorkspaceId, openWorkspaceId, activeSessionId, isWorkspaceDragging, onSessionOrder, dragHandleProps }) {
+  const active = workspace.id === activeWorkspaceId;
+  const open = !isWorkspaceDragging && workspace.id === openWorkspaceId;
   const hasActiveSession = (workspace.sessions || []).some((session) => session.active || session.live);
   const roots = sessionTree(workspace.sessions || []);
   const rootIds = roots.map(({ session }) => session.id);
@@ -59,9 +70,9 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, draggin
     if (oldIndex < 0 || newIndex < 0) return;
     onSessionOrder(workspace.id, arrayMove(rootIds, oldIndex, newIndex));
   };
-  return <div className={["workspace-group", open && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-workspace-group={workspace.id}>
+  return <div className={["workspace-group", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-workspace-group={workspace.id}>
     <div className="workspace-shell">
-      <button type="button" className={["ws-row", open && "open", open && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={open ? "true" : "false"} aria-current={open ? "true" : "false"}>
+      <button type="button" className={["ws-row", open && "open", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={open ? "true" : "false"} aria-current={active ? "true" : "false"} {...dragHandleProps}>
         <span className="ws-stack"><span className="ws-name"><span className={["dot", (workspace.live || hasActiveSession) && "live"].filter(Boolean).join(" ")}></span><span className="label">{workspace.name}</span></span><span className="ws-path">{workspace.path}</span></span>
         <span className="ws-meta"><span className="ws-count">{workspace.sessionCount}</span></span>
       </button>
@@ -71,8 +82,7 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, draggin
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSessionDragEnd}>
         <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
           {roots.map(({ session, children }) => <SortableShell key={session.id} id={session.id} className="session-sortable">
-            <SessionRow workspaceId={workspace.id} session={session} activeSessionId={activeSessionId} />
-            {(children || []).map((child) => <SessionRow key={child.id} workspaceId={workspace.id} session={child} activeSessionId={activeSessionId} depth={1} />)}
+            {(sessionDragHandleProps) => flattenTree([{ session, children }]).map(({ session: treeSession, depth }, index) => <SessionRow key={treeSession.id} workspaceId={workspace.id} session={treeSession} activeSessionId={activeSessionId} depth={depth} dragHandleProps={index === 0 ? sessionDragHandleProps : null} />)}
           </SortableShell>)}
         </SortableContext>
       </DndContext>
@@ -84,12 +94,26 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, draggin
 
 export default function SortableWorkspaceSidebar({ workspaces, activeWorkspaceId, activeSessionId, onWorkspaceOrder, onSessionOrder }) {
   const [orderedWorkspaces, setOrderedWorkspaces] = useState(workspaces);
-  const [draggingWorkspaceId, setDraggingWorkspaceId] = useState("");
+  const [currentActiveWorkspaceId, setCurrentActiveWorkspaceId] = useState(activeWorkspaceId || "");
+  const [openWorkspaceId, setOpenWorkspaceId] = useState(activeWorkspaceId || "");
+  const [isWorkspaceDragging, setIsWorkspaceDragging] = useState(false);
   useEffect(() => setOrderedWorkspaces(workspaces), [workspaces]);
+  useEffect(() => {
+    setCurrentActiveWorkspaceId(activeWorkspaceId || "");
+    setOpenWorkspaceId(activeWorkspaceId || "");
+  }, [activeWorkspaceId]);
+  useEffect(() => {
+    const handleWorkspaceState = (event) => {
+      setCurrentActiveWorkspaceId(event.detail?.activeWorkspaceId || "");
+      setOpenWorkspaceId(event.detail?.openWorkspaceId || "");
+    };
+    window.addEventListener("pi-sidebar-workspace-state", handleWorkspaceState);
+    return () => window.removeEventListener("pi-sidebar-workspace-state", handleWorkspaceState);
+  }, []);
   const ids = useMemo(() => orderedWorkspaces.map((workspace) => workspace.id), [orderedWorkspaces]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleWorkspaceDragEnd = ({ active, over }) => {
-    setDraggingWorkspaceId("");
+    setIsWorkspaceDragging(false);
     if (!over || active.id === over.id) return;
     const oldIndex = ids.indexOf(active.id);
     const newIndex = ids.indexOf(over.id);
@@ -100,19 +124,21 @@ export default function SortableWorkspaceSidebar({ workspaces, activeWorkspaceId
     onWorkspaceOrder(nextIds);
   };
   const handleSessionOrder = (workspaceId, sessionIds) => {
-    const sessionIdSet = new Set(sessionIds);
+    const orderedRootIdSet = new Set(sessionIds);
     setOrderedWorkspaces((current) => current.map((workspace) => {
       if (workspace.id !== workspaceId) return workspace;
       const byId = new Map((workspace.sessions || []).map((session) => [session.id, session]));
-      const orderedSessions = sessionIds.map((id) => byId.get(id)).filter(Boolean);
-      const remainingSessions = (workspace.sessions || []).filter((session) => !sessionIdSet.has(session.id));
-      return { ...workspace, sessions: [...orderedSessions, ...remainingSessions] };
+      const orderedRoots = sessionIds.map((id) => byId.get(id)).filter(Boolean);
+      const remainingSessions = (workspace.sessions || []).filter((session) => !orderedRootIdSet.has(session.id));
+      return { ...workspace, sessions: [...orderedRoots, ...remainingSessions] };
     }));
     onSessionOrder(workspaceId, sessionIds);
   };
-  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={({ active }) => setDraggingWorkspaceId(String(active.id))} onDragCancel={() => setDraggingWorkspaceId("")} onDragEnd={handleWorkspaceDragEnd}>
+  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setIsWorkspaceDragging(true)} onDragCancel={() => setIsWorkspaceDragging(false)} onDragEnd={handleWorkspaceDragEnd}>
     <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-      {orderedWorkspaces.map((workspace) => <SortableShell key={workspace.id} id={workspace.id} className="workspace-sortable"><WorkspaceGroup workspace={workspace} activeWorkspaceId={activeWorkspaceId} activeSessionId={activeSessionId} draggingWorkspaceId={draggingWorkspaceId} onSessionOrder={handleSessionOrder} /></SortableShell>)}
+      {orderedWorkspaces.map((workspace) => <SortableShell key={workspace.id} id={workspace.id} className="workspace-sortable">
+        {(dragHandleProps) => <WorkspaceGroup workspace={workspace} activeWorkspaceId={currentActiveWorkspaceId} openWorkspaceId={openWorkspaceId} activeSessionId={activeSessionId} isWorkspaceDragging={isWorkspaceDragging} onSessionOrder={handleSessionOrder} dragHandleProps={dragHandleProps} />}
+      </SortableShell>)}
     </SortableContext>
   </DndContext>;
 }

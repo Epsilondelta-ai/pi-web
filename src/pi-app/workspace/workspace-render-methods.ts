@@ -180,6 +180,9 @@ export const workspaceRenderMethods = {
       row?.setAttribute("aria-expanded", String(open));
     });
     this.syncActiveWorkspaceRows();
+    window.dispatchEvent(new CustomEvent("pi-sidebar-workspace-state", {
+      detail: { activeWorkspaceId: this.dataset.activeWorkspaceId || "", openWorkspaceId: shouldOpen ? id : "" },
+    }));
   },
 
   syncActiveWorkspaceRows() {

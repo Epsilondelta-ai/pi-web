@@ -283,6 +283,9 @@ export const workspaceBootstrapMethods = {
       row?.classList.toggle("open", open);
       row?.setAttribute("aria-expanded", String(open));
     });
+    window.dispatchEvent(new CustomEvent("pi-sidebar-workspace-state", {
+      detail: { activeWorkspaceId: this.dataset.activeWorkspaceId || "", openWorkspaceId: workspaceId || "" },
+    }));
   },
 
   updateActiveWorkspaceLabel(workspaceId) {
