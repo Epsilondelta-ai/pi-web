@@ -76,7 +76,7 @@ func TestPiUpdateEndpoints(t *testing.T) {
 		PiPackageUpdateStatus: func(context.Context) (PiPackageUpdateStatus, error) {
 			return PiPackageUpdateStatus{Updates: []PiPackageUpdate{{Source: "npm:@example/pkg", DisplayName: "@example/pkg"}}}, nil
 		},
-		PiUpdateRunner: func(_ context.Context, source string) error {
+		PiUpdateRunner: func(_ context.Context, source string, _ string) error {
 			done <- source
 			return nil
 		},
@@ -117,6 +117,46 @@ func TestPiUpdateEndpoints(t *testing.T) {
 	server.Handler().ServeHTTP(statusRes, statusReq)
 	if statusRes.Code != http.StatusOK || !strings.Contains(statusRes.Body.String(), `"state":"updated"`) {
 		t.Fatalf("unexpected status response: %d %s", statusRes.Code, statusRes.Body.String())
+	}
+
+	badWorkspaceReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", strings.NewReader(`{"workspaceId":"missing"}`))
+	badWorkspaceReq.Header.Set("X-Pi-Web-Request", "pi-update")
+	badWorkspaceRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(badWorkspaceRes, badWorkspaceReq)
+	if badWorkspaceRes.Code != http.StatusNotFound {
+		t.Fatalf("expected missing workspace to reject update, got %d %s", badWorkspaceRes.Code, badWorkspaceRes.Body.String())
+	}
+}
+
+func TestPiUpdateEndpointRunsWorkspaceUpdateInWorkspaceDir(t *testing.T) {
+	store := NewMockStore()
+	workspace, err := store.OpenWorkspace(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan string, 1)
+	server := NewServer(Config{
+		EnablePiExecution: true,
+		PiUpdateRunner: func(_ context.Context, _ string, workspaceDir string) error {
+			done <- workspaceDir
+			return nil
+		},
+	}, store, NewBroker())
+
+	startReq := httptest.NewRequest(http.MethodPost, "/api/pi/update", strings.NewReader(`{"workspaceId":"`+workspace.ID+`"}`))
+	startReq.Header.Set("X-Pi-Web-Request", "pi-update")
+	startRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(startRes, startReq)
+	if startRes.Code != http.StatusAccepted {
+		t.Fatalf("unexpected start response: %d %s", startRes.Code, startRes.Body.String())
+	}
+	select {
+	case workspaceDir := <-done:
+		if workspaceDir != workspace.Path {
+			t.Fatalf("expected workspace update in %q, got %q", workspace.Path, workspaceDir)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("update runner did not run")
 	}
 }
 

@@ -270,6 +270,7 @@ export const workspaceBootstrapMethods = {
     void this.loadWorkspaceCommands(workspaceId);
     void this.loadRuntimeStatus(workspaceId);
     void (this.loadWorkspaceSettingsState?.(workspaceId))?.catch?.(() => undefined);
+    void (this.loadWorkspacePackageStatus?.(workspaceId))?.catch?.(() => undefined);
     if (this.dataset.tree === "on") void this.loadWorkspaceMeta(workspaceId);
   },
 

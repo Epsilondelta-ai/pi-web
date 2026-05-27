@@ -13,6 +13,7 @@ vi.mock("../../lib/api", () => ({
   getAuthProviders: vi.fn(),
   sendOAuthLoginInput: vi.fn(),
   startOAuthLogin: vi.fn(),
+  getPiPackageUpdateStatus: vi.fn(),
 }));
 
 import * as api from "../../lib/api";
@@ -112,9 +113,31 @@ describe("workspace residual method coverage", () => {
     app.prependLoadedMessages([]);
 
     app.apiConnected = true;
+    app.loadWorkspaceCommands = vi.fn();
+    app.loadRuntimeStatus = vi.fn();
+    app.loadWorkspaceSettingsState = vi.fn().mockResolvedValue(undefined);
+    app.loadWorkspaceMeta = vi.fn();
+    app.dataset.tree = "on";
+    app.loadWorkspacePackageStatus = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("package status"));
+    app.loadWorkspaceContext("w1");
+    app.loadWorkspaceContext("w1");
+    await Promise.resolve();
     app.loadWorkspaceContext = vi.fn();
     app.activateWorkspaceForSession("w1", { loadContext: true, forceLoadContext: true });
     expect(app.loadWorkspaceContext).toHaveBeenCalledWith("w1");
+    app.ensureWorkspaceTreeMounted = vi.fn();
+    await workspaceBootstrapMethods.loadWorkspaceMeta.call(app, "w1");
+    const root = document.createElement("div");
+    root.dataset.initialFiles = '[{"name":"a"}]';
+    app.appendChild(root);
+    app.ensureWorkspaceTreeMounted = vi.fn();
+    app.workspaceTreeMounted = false;
+    app.workspaceTreeMounting = false;
+    app.workspaceFiles = undefined;
+    app.querySelector = vi.fn(() => root);
+    await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
     app.openActiveWorkspaceGroup("w1");
     expect(app.querySelector(".sessions").hidden).toBe(false);
     app.updateActiveWorkspaceLabel("missing");

@@ -155,6 +155,12 @@ describe("status method branch coverage", () => {
     el.renderPiVersionStatus({ updateAvailable: true, currentVersion: "2", latestVersion: "2" });
     el.renderPiPackageUpdateStatus(undefined);
     el.renderPiPackageUpdateStatus({ updates: [] });
+    el.notifyWorkspacePackageUpdateAvailable = vi.fn();
+    el.renderPiPackageUpdateStatus({ scope: "workspace", workspaceId: "ws-1", updates: [{ source: "npm:pkg" }] });
+    expect(el.notifyWorkspacePackageUpdateAvailable).toHaveBeenCalledWith([{ source: "npm:pkg" }], "ws-1");
+    vi.mocked(api.getPiPackageUpdateStatus).mockResolvedValueOnce({ scope: "workspace", workspaceId: "ws-1", updates: [{ source: "npm:ws-pkg" }] });
+    await el.loadWorkspacePackageStatus("ws-1");
+    expect(el.notifyWorkspacePackageUpdateAvailable).toHaveBeenCalledWith([{ source: "npm:ws-pkg" }], "ws-1");
     el.notifyPiUpdateRunning = vi.fn();
     el.notifyPiUpdateComplete = vi.fn();
     el.notifyPiUpdateFailed = vi.fn();

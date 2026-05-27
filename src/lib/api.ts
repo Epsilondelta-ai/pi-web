@@ -38,19 +38,22 @@ export function getPiVersionStatus() {
   return request("/api/pi/version");
 }
 
-export function getPiPackageUpdateStatus() {
-  return request("/api/pi/package-updates");
+export function getPiPackageUpdateStatus(workspaceId?: string) {
+  const path = workspaceId
+    ? `/api/pi/package-updates?workspaceId=${encodeURIComponent(workspaceId)}`
+    : "/api/pi/package-updates";
+  return request(path);
 }
 
 export function getPiUpdateStatus() {
   return request("/api/pi/update");
 }
 
-export function startPiUpdate(source = "") {
+export function startPiUpdate(source = "", workspaceId = "") {
   return request("/api/pi/update", {
     method: "POST",
     headers: { "X-Pi-Web-Request": "pi-update" },
-    body: JSON.stringify({ source }),
+    body: JSON.stringify({ source, workspaceId }),
   });
 }
 

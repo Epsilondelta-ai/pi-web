@@ -53,7 +53,13 @@ func (s *Server) piVersionStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) piPackageUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	status := PiPackageUpdateStatus{}
-	if s.config.EnablePiExecution {
+	if !s.config.EnablePiExecution {
+		writeJSON(w, http.StatusOK, status)
+		return
+	}
+	workspaceID := r.URL.Query().Get("workspaceId")
+	if workspaceID == "" {
+		// Global check
 		if s.config.PiPackageUpdateStatus != nil {
 			resolved, err := s.config.PiPackageUpdateStatus(r.Context())
 			if err != nil {
@@ -62,12 +68,26 @@ func (s *Server) piPackageUpdateStatus(w http.ResponseWriter, r *http.Request) {
 				status = resolved
 			}
 		} else {
-			resolved, err := DetectPiPackageUpdateStatus(r.Context())
+			resolved, err := DetectGlobalPackageUpdates(r.Context())
 			if err != nil {
 				status.Error = err.Error()
 			} else {
 				status = resolved
 			}
+		}
+	} else {
+		// Workspace-specific check
+		workspacePath, err := s.store.WorkspacePath(workspaceID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, err)
+			return
+		}
+		resolved, err := DetectWorkspacePackageUpdates(r.Context(), workspacePath)
+		if err != nil {
+			status.Error = err.Error()
+		} else {
+			status = resolved
+			status.WorkspaceID = workspaceID
 		}
 	}
 	writeJSON(w, http.StatusOK, status)
@@ -83,7 +103,8 @@ func (s *Server) startPiUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Source string `json:"source"`
+		Source      string `json:"source"`
+		WorkspaceID string `json:"workspaceId"`
 	}
 	if r.Body != nil {
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -92,7 +113,16 @@ func (s *Server) startPiUpdate(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, PiUpdateStatus{State: PiUpdateUpdated})
 		return
 	}
-	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context(), strings.TrimSpace(req.Source)))
+	workspaceDir := ""
+	if req.WorkspaceID != "" {
+		dir, err := s.store.WorkspacePath(req.WorkspaceID)
+		if err != nil {
+			writeStoreError(w, err)
+			return
+		}
+		workspaceDir = dir
+	}
+	writeJSON(w, http.StatusAccepted, s.piUpdater.Start(s.context(), strings.TrimSpace(req.Source), workspaceDir))
 }
 func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")

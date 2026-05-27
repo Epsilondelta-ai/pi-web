@@ -179,14 +179,19 @@ function packageUpdateLabel(update) {
   return `${update.displayName} (${update.currentVersion} → ${update.latestVersion})`;
 }
 
-function piPackageUpdateConfirmHtml(updates) {
+function piPackageUpdateConfirmHtml(updates, workspaceId = "") {
   const locale = currentUiLocale();
+  const isWorkspace = !!workspaceId;
+  const title = isWorkspace
+    ? escapeHtml(uiMessage(locale, "piWorkspacePackageUpdateQuestion"))
+    : escapeHtml(uiMessage(locale, "piPackageUpdateQuestion"));
   const packageLines = updates
     .map((update) => `<small class="toast-line toast-prompt">${escapeHtml(packageUpdateLabel(update))}</small>`)
     .join("");
+  const wsAttr = isWorkspace ? ` data-workspace-id="${escapeHtml(workspaceId)}"` : "";
   return [
     `<span class="toast-dot" aria-hidden="true"></span>`,
-    `<span class="toast-copy"><strong>${escapeHtml(uiMessage(locale, "piPackageUpdateQuestion"))}</strong>`,
+    `<span class="toast-copy"${wsAttr}><strong>${title}</strong>`,
     `<small class="toast-line toast-prompt">${escapeHtml(String(updates.length))} package(s)</small>`,
     packageLines,
     `<span class="toast-actions">`,
@@ -316,7 +321,7 @@ export const toastMethods = {
   },
 
   notifyPiPackageUpdateAvailable(updates) {
-    const key = `pi-package-update-question:${packageUpdateKey(updates)}`;
+    const key = `pi-package-update-question:global:${packageUpdateKey(updates)}`;
     this.systemToastKeys ??= new Set();
     const alreadyShown = this.systemToastKeys.has(key);
     const ignored = this.isPiPackageUpdateIgnored(key);
@@ -330,6 +335,30 @@ export const toastMethods = {
       if (answer === "yes") {
         this.dismissToast(notification);
         void this.startPiUpdateFlow?.();
+      }
+      if (answer === "no") {
+        this.rememberIgnoredPiPackageUpdate?.(key);
+        this.dismissToast(notification);
+      }
+    });
+    this.syncToastDismissAll();
+  },
+
+  notifyWorkspacePackageUpdateAvailable(updates, workspaceId) {
+    const key = `pi-package-update-question:workspace:${workspaceId}:${packageUpdateKey(updates)}`;
+    this.systemToastKeys ??= new Set();
+    const alreadyShown = this.systemToastKeys.has(key);
+    const ignored = this.isPiPackageUpdateIgnored(key);
+    if (alreadyShown || ignored) return;
+    this.systemToastKeys.add(key);
+    const notification = this.ensureToastRegion().open({ type: "warning", message: piPackageUpdateConfirmHtml(updates, workspaceId) });
+    notification.on(NotyfEvent.Click, (payload = {}) => {
+      const event = (payload as { event?: Event }).event;
+      const target = event?.target as Element | null | undefined;
+      const answer = target?.closest?.("[data-pi-package-update-confirm]")?.getAttribute("data-pi-package-update-confirm");
+      if (answer === "yes") {
+        this.dismissToast(notification);
+        void this.startPiUpdateFlow?.("", workspaceId);
       }
       if (answer === "no") {
         this.rememberIgnoredPiPackageUpdate?.(key);

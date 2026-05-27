@@ -25,6 +25,14 @@ export const versionMethods = {
     } catch {}
   },
 
+  async loadWorkspacePackageStatus(workspaceId: string) {
+    try {
+      const packageStatus = await getPiPackageUpdateStatus(workspaceId);
+      packageStatus.workspaceId = workspaceId;
+      this.renderPiPackageUpdateStatus(packageStatus);
+    } catch {}
+  },
+
   renderVersionStatus(status) {
     const button = this.querySelector("[data-action='show-update-tip']");
     if (!button) return;
@@ -44,7 +52,11 @@ export const versionMethods = {
   renderPiPackageUpdateStatus(status) {
     const updates = Array.isArray(status?.updates) ? status.updates : [];
     if (!updates.length) return;
-    this.notifyPiPackageUpdateAvailable?.(updates);
+    if (status?.scope === "workspace") {
+      this.notifyWorkspacePackageUpdateAvailable?.(updates, status.workspaceId);
+    } else {
+      this.notifyPiPackageUpdateAvailable?.(updates);
+    }
   },
 
   renderPiUpdateStatus(status) {
@@ -56,9 +68,9 @@ export const versionMethods = {
     if (status?.state === "failed") this.notifyPiUpdateFailed?.(status.error);
   },
 
-  async startPiUpdateFlow(source = "") {
+  async startPiUpdateFlow(source = "", workspaceId = "") {
     try {
-      this.renderPiUpdateStatus(await startPiUpdate(source));
+      this.renderPiUpdateStatus(await startPiUpdate(source, workspaceId));
       this.startPiUpdatePolling?.();
     } catch (error) {
       this.notifyPiUpdateFailed?.(error?.message || String(error));
