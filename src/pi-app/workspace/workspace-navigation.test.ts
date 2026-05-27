@@ -34,6 +34,10 @@ describe("pi-app workspace navigation", () => {
     ]);
 
     app.querySelector("[data-workspace='juun'].ws-row").click();
+    expect(app.dataset.activeWorkspaceId).toBe("hahn");
+    expect(activeWorkspace.textContent).not.toBe("juun-ai");
+    expect(app.querySelector("[data-workspace='hahn'].ws-row").getAttribute("aria-current")).toBe("true");
+    expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-expanded")).toBe("true");
     expect(app.loadWorkspaceMeta).not.toHaveBeenCalled();
     await app.newSession("juun");
 
@@ -55,6 +59,7 @@ describe("pi-app workspace navigation", () => {
     bare.dataset.workspaceGroup = "bare";
     bare.innerHTML = `<button class="ws-row"></button>`;
     app.append(bare);
+    expect(() => app.openActiveWorkspaceGroup("bare")).not.toThrow();
     expect(() => app.toggleWorkspace("bare")).not.toThrow();
     app.querySelector(".sidebar .sb-section").remove();
     expect(() => app.renderSidebarWorkspaces([{ id: "w1", name: "one", path: "/one", sessions: [] }])).not.toThrow();
