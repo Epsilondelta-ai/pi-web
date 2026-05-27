@@ -23,7 +23,9 @@ function sessionTree(sessions) {
     if (!session.parentId || !ids.has(session.parentId)) continue;
     children.set(session.parentId, [...(children.get(session.parentId) || []), session]);
   }
-  return sessions.filter((session) => !session.parentId || !ids.has(session.parentId)).map((session) => ({ session, children }));
+  return sessions
+    .filter((session) => !session.parentId || !ids.has(session.parentId))
+    .map((session) => ({ session, children: children.get(session.id) || [] }));
 }
 
 function SessionRow({ workspaceId, session, activeSessionId, depth = 0 }) {
