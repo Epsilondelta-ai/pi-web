@@ -59,6 +59,7 @@ describe("pi-app workspace navigation", () => {
     bare.dataset.workspaceGroup = "bare";
     bare.innerHTML = `<button class="ws-row"></button>`;
     app.append(bare);
+    expect(() => app.openActiveWorkspaceGroup("bare")).not.toThrow();
     expect(() => app.toggleWorkspace("bare")).not.toThrow();
     app.querySelector(".sidebar .sb-section").remove();
     expect(() => app.renderSidebarWorkspaces([{ id: "w1", name: "one", path: "/one", sessions: [] }])).not.toThrow();
