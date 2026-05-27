@@ -19,10 +19,14 @@ describe("resolveMaterialFileIcon", () => {
     expect(resolveMaterialFileIcon({ kind: "dir", name: "unknown-folder" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
   });
 
-  it("resolves compound extensions and path-only names", () => {
+  it("resolves compound extensions, path-only names, and missing icon assets", () => {
     expect(resolveMaterialFileIcon({ kind: "file", name: "types.d.ts" }).name).toBe("typescript-def");
     expect(resolveMaterialFileIcon({ kind: "file", name: "", path: "src/main.ts" }).name).toBe("typescript");
     expect(resolveMaterialFileIcon({ kind: "file", name: "archive.unknown" }).name).toBe("file");
     expect(resolveMaterialFileIcon({ kind: "file", name: "" }).name).toBe("file");
+    expect(resolveMaterialFileIcon({ kind: "file", name: "app.component.ts" })).toEqual({
+      name: "angular-component",
+      url: resolveMaterialFileIcon({ kind: "file", name: "unknown" }).url,
+    });
   });
 });
