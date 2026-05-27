@@ -1,5 +1,6 @@
 import { escapeHtml } from "../../lib/renderers";
 import { appendGroupedSessionRows } from "../sessions/session-hierarchy";
+import { applyStoredWorkspaceOrder, storeSessionOrder, storeWorkspaceOrder } from "./workspace-order";
 
 const LUCIDE_PLUS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>`;
 const LUCIDE_TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
@@ -9,10 +10,12 @@ const LUCIDE_CHEVRON_RIGHT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width
 
 export const workspaceRenderMethods = {
   renderWorkspaces(workspaces) {
+    const orderedWorkspaces = applyStoredWorkspaceOrder(workspaces || []);
+    this.workspaceList = orderedWorkspaces;
     const count = this.querySelector("[data-workspace-count]");
-    if (count) count.textContent = `${workspaces.length} known`;
-    this.renderRecentWorkspaces(workspaces);
-    this.renderSidebarWorkspaces(workspaces);
+    if (count) count.textContent = `${orderedWorkspaces.length} known`;
+    this.renderRecentWorkspaces(orderedWorkspaces);
+    this.renderSidebarWorkspaces(orderedWorkspaces);
     this.syncUnreadCompletedSessions?.();
     this.syncBackgroundSessionWatches?.();
   },
@@ -27,13 +30,57 @@ export const workspaceRenderMethods = {
   renderSidebarWorkspaces(workspaces) {
     const section = this.querySelector(".sidebar .sb-section");
     if (!section) return;
-    section.querySelectorAll(".workspace-group").forEach((group) => group.remove());
+    section.querySelectorAll(":scope > .workspace-group").forEach((group) => group.remove());
     let anchor = section.querySelector(".sb-head");
     for (const workspace of workspaces) {
       const group = this.createWorkspaceGroup(workspace);
       anchor.insertAdjacentElement("afterend", group);
       anchor = group;
     }
+    this.sidebarSortableCleanup?.();
+    const activateSortableSidebar = () => {
+      this.sidebarSortableCleanup?.();
+      void this.renderSortableSidebarWorkspaces(section, workspaces);
+    };
+    section.addEventListener("pointerenter", activateSortableSidebar, { once: true });
+    section.addEventListener("focusin", activateSortableSidebar, { once: true });
+    this.sidebarSortableCleanup = () => {
+      section.removeEventListener("pointerenter", activateSortableSidebar);
+      section.removeEventListener("focusin", activateSortableSidebar);
+      this.sidebarSortableCleanup = undefined;
+    };
+  },
+
+  async renderSortableSidebarWorkspaces(section, workspaces) {
+    const [{ default: React }, { createRoot }, { default: SortableWorkspaceSidebar }] = await Promise.all([
+      import("react"),
+      import("react-dom/client"),
+      import("../../components/SortableWorkspaceSidebar"),
+    ]);
+    if (!globalThis.window || !section.isConnected) return;
+    let rootHost = section.querySelector("[data-sortable-workspaces]");
+    if (!rootHost) {
+      rootHost = document.createElement("div");
+      rootHost.dataset.sortableWorkspaces = "";
+      section.querySelector(".sb-head")?.insertAdjacentElement("afterend", rootHost);
+    }
+    section.querySelectorAll(":scope > .workspace-group").forEach((group) => group.remove());
+    if (!this.sidebarSortableRoot) this.sidebarSortableRoot = createRoot(rootHost);
+    this.sidebarSortableRoot.render(React.createElement(SortableWorkspaceSidebar, {
+      workspaces,
+      activeWorkspaceId: this.dataset.activeWorkspaceId || "",
+      activeSessionId: this.dataset.activeSessionId || "",
+      onWorkspaceOrder: this.reorderWorkspaces.bind(this),
+      onSessionOrder: this.reorderWorkspaceSessions.bind(this),
+    }));
+  },
+
+  reorderWorkspaces(ids) {
+    storeWorkspaceOrder(ids);
+  },
+
+  reorderWorkspaceSessions(workspaceId, ids) {
+    storeSessionOrder(workspaceId, ids);
   },
 
   createRecentWorkspace(workspace) {
@@ -144,6 +191,9 @@ export const workspaceRenderMethods = {
       row?.setAttribute("aria-expanded", String(open));
     });
     this.syncActiveWorkspaceRows();
+    window.dispatchEvent(new CustomEvent("pi-sidebar-workspace-state", {
+      detail: { activeWorkspaceId: this.dataset.activeWorkspaceId, openWorkspaceId: shouldOpen ? id : "" },
+    }));
   },
 
   syncActiveWorkspaceRows() {
