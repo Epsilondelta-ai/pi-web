@@ -118,11 +118,26 @@ describe("workspace residual method coverage", () => {
     app.loadWorkspaceSettingsState = vi.fn().mockResolvedValue(undefined);
     app.loadWorkspaceMeta = vi.fn();
     app.dataset.tree = "on";
-    vi.mocked(api.getPiPackageUpdateStatus).mockResolvedValueOnce({ scope: "workspace", workspaceId: "w1", updates: [] });
-    await app.loadWorkspaceContext("w1");
+    app.loadWorkspacePackageStatus = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("package status"));
+    app.loadWorkspaceContext("w1");
+    app.loadWorkspaceContext("w1");
+    await Promise.resolve();
     app.loadWorkspaceContext = vi.fn();
     app.activateWorkspaceForSession("w1", { loadContext: true, forceLoadContext: true });
     expect(app.loadWorkspaceContext).toHaveBeenCalledWith("w1");
+    app.ensureWorkspaceTreeMounted = vi.fn();
+    await workspaceBootstrapMethods.loadWorkspaceMeta.call(app, "w1");
+    const root = document.createElement("div");
+    root.dataset.initialFiles = '[{"name":"a"}]';
+    app.appendChild(root);
+    app.ensureWorkspaceTreeMounted = vi.fn();
+    app.workspaceTreeMounted = false;
+    app.workspaceTreeMounting = false;
+    app.workspaceFiles = undefined;
+    app.querySelector = vi.fn(() => root);
+    await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
     app.openActiveWorkspaceGroup("w1");
     expect(app.querySelector(".sessions").hidden).toBe(false);
     app.updateActiveWorkspaceLabel("missing");
