@@ -49,6 +49,10 @@ func WorkspaceSettings(root string) (WorkspaceSettingsResponse, error) {
 	if err != nil {
 		return WorkspaceSettingsResponse{}, err
 	}
+	piGlobal = filterSettingsByKind(piGlobal, false)
+	webGlobal = filterSettingsByKind(webGlobal, true)
+	piProject = filterSettingsByKind(piProject, false)
+	webProject = filterSettingsByKind(webProject, true)
 	global := mergeSettingsMaps(piGlobal, webGlobal)
 	project := mergeSettingsMaps(piProject, webProject)
 	effective := defaultSettings()
@@ -188,6 +192,16 @@ func splitSettingsPatch(settings map[string]any) (map[string]any, map[string]any
 		}
 	}
 	return piSettings, webSettings
+}
+
+func filterSettingsByKind(settings map[string]any, piWeb bool) map[string]any {
+	filtered := map[string]any{}
+	for key, value := range settings {
+		if isPiWebSetting(key) == piWeb {
+			filtered[key] = cloneSettingValue(value)
+		}
+	}
+	return filtered
 }
 
 func isPiWebSetting(key string) bool {

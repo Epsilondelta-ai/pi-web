@@ -445,7 +445,7 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 	if err := os.WriteFile(projectPath, []byte(`{"defaultModel":"gpt-5.5"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(webProjectPath, []byte(`{"readResponsesAloud":true}`), 0o600); err != nil {
+	if err := os.WriteFile(webProjectPath, []byte(`{"defaultModel":"legacy-wrong","readResponsesAloud":true}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	store := NewMockStore()
@@ -463,6 +463,7 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 	}
 	if !strings.Contains(getRes.Body.String(), `"theme":"dark"`) ||
 		!strings.Contains(getRes.Body.String(), `"defaultModel":"gpt-5.5"`) ||
+		strings.Contains(getRes.Body.String(), "legacy-wrong") ||
 		!strings.Contains(getRes.Body.String(), `"transport":"auto"`) ||
 		!strings.Contains(getRes.Body.String(), `"imageWidthCells":60`) {
 		t.Fatalf("unexpected settings body: %s", getRes.Body.String())
