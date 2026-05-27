@@ -54,6 +54,7 @@ func (s *Server) piVersionStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) piPackageUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	status := PiPackageUpdateStatus{}
 	if s.config.EnablePiExecution {
+		workspacePaths := s.workspacePaths()
 		if s.config.PiPackageUpdateStatus != nil {
 			resolved, err := s.config.PiPackageUpdateStatus(r.Context())
 			if err != nil {
@@ -62,7 +63,7 @@ func (s *Server) piPackageUpdateStatus(w http.ResponseWriter, r *http.Request) {
 				status = resolved
 			}
 		} else {
-			resolved, err := DetectPiPackageUpdateStatus(r.Context())
+			resolved, err := DetectPiPackageUpdateStatus(r.Context(), workspacePaths)
 			if err != nil {
 				status.Error = err.Error()
 			} else {
@@ -71,6 +72,17 @@ func (s *Server) piPackageUpdateStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, status)
+}
+
+func (s *Server) workspacePaths() []string {
+	workspaces := s.store.Workspaces()
+	paths := make([]string, 0, len(workspaces))
+	for _, ws := range workspaces {
+		if ws.Path != "" {
+			paths = append(paths, ws.Path)
+		}
+	}
+	return paths
 }
 
 func (s *Server) piUpdateStatus(w http.ResponseWriter, _ *http.Request) {

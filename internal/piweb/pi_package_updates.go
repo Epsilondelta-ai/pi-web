@@ -34,7 +34,7 @@ type configuredPiPackage struct {
 
 var npmPackageSpecPattern = regexp.MustCompile(`^(@?[^@]+(?:/[^@]+)?)(?:@(.+))?$`)
 
-func DetectPiPackageUpdateStatus(ctx context.Context) (PiPackageUpdateStatus, error) {
+func DetectPiPackageUpdateStatus(ctx context.Context, workspacePaths []string) (PiPackageUpdateStatus, error) {
 	if os.Getenv("PI_OFFLINE") != "" {
 		return PiPackageUpdateStatus{}, nil
 	}
@@ -46,27 +46,59 @@ func DetectPiPackageUpdateStatus(ctx context.Context) (PiPackageUpdateStatus, er
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
-	paths := SettingsPaths{
-		Global:  filepath.Join(home, ".pi", "agent", "settings.json"),
-		Project: filepath.Join(cwd, ".pi", "settings.json"),
-	}
-	globalSettings, err := readSettingsFile(paths.Global)
+	globalSettingsPath := filepath.Join(home, ".pi", "agent", "settings.json")
+	globalSettings, err := readSettingsFile(globalSettingsPath)
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
-	projectSettings, err := readSettingsFile(paths.Project)
-	if err != nil {
-		return PiPackageUpdateStatus{}, err
-	}
-	packages := dedupePiPackages(append(piPackagesFromSettings(projectSettings, "project"), piPackagesFromSettings(globalSettings, "user")...))
+	allPaths := uniquePaths(append([]string{cwd}, workspacePaths...))
+	seen := map[string]bool{}
+	npmCmd := npmCommandFromSettings(globalSettings)
 	updates := make([]PiPackageUpdate, 0)
-	for _, pkg := range packages {
-		update, ok := checkNpmPackageUpdate(ctx, pkg, cwd, paths.Global, npmCommandFromSettings(globalSettings))
+	// Project packages from cwd and all known workspace paths (higher priority)
+	for _, dir := range allPaths {
+		projectSettingsPath := filepath.Join(dir, ".pi", "settings.json")
+		projectSettings, err := readSettingsFile(projectSettingsPath)
+		if err != nil {
+			continue
+		}
+		for _, pkg := range piPackagesFromSettings(projectSettings, "project") {
+			key := piPackageIdentity(pkg.Source)
+			if key == "" || seen[key] {
+				continue
+			}
+			seen[key] = true
+			update, ok := checkNpmPackageUpdate(ctx, pkg, dir, globalSettingsPath, npmCmd)
+			if ok {
+				updates = append(updates, update)
+			}
+		}
+	}
+	// Global packages (user scope)
+	for _, pkg := range piPackagesFromSettings(globalSettings, "user") {
+		key := piPackageIdentity(pkg.Source)
+		if key == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		update, ok := checkNpmPackageUpdate(ctx, pkg, cwd, globalSettingsPath, npmCmd)
 		if ok {
 			updates = append(updates, update)
 		}
 	}
 	return PiPackageUpdateStatus{Updates: updates}, nil
+}
+
+func uniquePaths(paths []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(paths))
+	for _, p := range paths {
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func piPackagesFromSettings(settings map[string]any, scope string) []configuredPiPackage {
