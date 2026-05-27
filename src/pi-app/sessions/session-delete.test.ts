@@ -64,9 +64,26 @@ describe("pi-app session deletion", () => {
 
     expect([...app.querySelectorAll("[data-workspace-group='w1'] .session-row[data-session]")]).toEqual([]);
     expect(app.querySelector("[data-workspace-group='w1'] .session-sortable")).toBeNull();
+    expect(app.querySelector("[data-workspace-group='w1'] .sessions-empty").textContent).toContain("no sessions yet");
     expect(app.workspaceList[0].sessions).toEqual([]);
     expect(app.workspaceList[0].sessionCount).toBe(0);
     expect(app.dataset.activeSessionId).toBe("");
+  });
+
+  it("clears rows before replacing sidebar state", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => ({}) }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.workspaceList = [{ id: "w1", sessions: [{ id: "s1", title: "one" }], sessionCount: 1 }];
+    const calls = [];
+    app.clearWorkspaceSessionRows = vi.fn(() => calls.push("clear"));
+    app.replaceWorkspaceSessionsInState = vi.fn(() => calls.push("replace"));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    await app.deleteWorkspaceSessions("w1");
+
+    expect(calls).toEqual(["clear", "replace"]);
   });
 
   it("covers session deletion state helper edge branches", async () => {

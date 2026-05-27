@@ -617,6 +617,10 @@ describe("pi-app messages", () => {
     app.markCodeCopyButton(button, "copied");
     expect(button.dataset.copyStatus).toBe("copied");
     expect(firstTimer).not.toBe(button.copyResetTimer);
+    await new Promise((resolve) => window.setTimeout(resolve, 1410));
+    expect(button.dataset.copyStatus).toBe("");
+    expect(button.textContent).toBe("copy");
+    expect(button.copyResetTimer).toBeUndefined();
     app.markCodeCopyButton(undefined, "copied");
     await app.copyCodeBlock(undefined);
     const codeButton = document.createElement("button");

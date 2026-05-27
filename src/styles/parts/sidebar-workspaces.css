@@ -180,6 +180,13 @@ button.session-row:not(.new-session-row) {
   cursor: pointer;
 }
 .session-row:last-child { border-bottom: 0; }
+.sessions-empty {
+  padding: 12px 16px;
+  color: var(--fg-3);
+  font-size: 12px;
+  font-style: italic;
+  border-bottom: 1px solid var(--border-dim);
+}
 .session-row:hover { background: var(--bg-3); }
 .session-row.selected { background: var(--bg-3); }
 .session-row.active { background: var(--bg-4); }

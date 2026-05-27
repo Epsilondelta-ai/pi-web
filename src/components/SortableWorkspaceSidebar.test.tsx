@@ -92,6 +92,15 @@ describe("SortableWorkspaceSidebar", () => {
     expect(reorderWorkspaceSessionList(workspace, "w1", ["s2", "s1"]).sessions.map((session) => session.id)).toEqual(["s2", "s1", "child"]);
   });
 
+  it("shows an empty-state row when a workspace has no sessions", () => {
+    const { host, root } = renderSidebar({ activeWorkspaceId: "w2", activeSessionId: "" });
+
+    expect(host.querySelector('[data-workspace-group="w2"] .sessions-empty')?.textContent).toContain("no sessions yet");
+    expect(host.querySelector('[data-workspace-group="w2"] .clear-sessions-row')).toBeNull();
+    expect(host.querySelector('[data-workspace-group="w2"] .new-session-row')).not.toBeNull();
+    act(() => root.unmount());
+  });
+
   it("keeps recursive session descendants visible", () => {
     expect(flattenTitles(sessionTree(workspaces[0].sessions))).toEqual(["root", "child", "grandchild", "other root"]);
     const { host, root } = renderSidebar();

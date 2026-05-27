@@ -99,7 +99,7 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, openWorkspaceId, activeS
           </SortableShell>)}
         </SortableContext>
       </DndContext>
-      {workspace.sessions.length > 0 ? <button type="button" className="session-row clear-sessions-row" data-action="delete-workspace-sessions" data-workspace={workspace.id}><span className="title">{TRASH_ICON} delete all sessions</span></button> : null}
+      {workspace.sessions.length > 0 ? <button type="button" className="session-row clear-sessions-row" data-action="delete-workspace-sessions" data-workspace={workspace.id}><span className="title">{TRASH_ICON} delete all sessions</span></button> : <div className="sessions-empty">no sessions yet · press N to start one</div>}
       <button type="button" className="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span className="title">{PLUS_ICON} new session</span></button>
     </div>
   </div>;

@@ -159,6 +159,7 @@ export const workspaceRenderMethods = {
     const sessions = group.querySelector(".sessions");
     appendGroupedSessionRows(sessions, workspace.id, workspace.sessions, this.createSessionRow.bind(this));
     if ((workspace.sessions || []).length > 0) sessions.append(this.createDeleteWorkspaceSessionsRow(workspace.id));
+    else sessions.append(this.createEmptySessionsRow());
     sessions.append(this.createNewSessionRow(workspace.id));
   },
 
@@ -169,6 +170,13 @@ export const workspaceRenderMethods = {
     row.dataset.action = "delete-workspace-sessions";
     row.dataset.workspace = workspaceId;
     row.innerHTML = `<span class="title">${LUCIDE_TRASH_ICON} delete all sessions</span>`;
+    return row;
+  },
+
+  createEmptySessionsRow() {
+    const row = document.createElement("div");
+    row.className = "sessions-empty";
+    row.textContent = "no sessions yet · press N to start one";
     return row;
   },
 
