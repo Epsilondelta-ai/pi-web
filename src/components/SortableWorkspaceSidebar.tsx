@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -46,12 +46,12 @@ function SessionRow({ workspaceId, session, activeSessionId, depth = 0 }) {
   </div>;
 }
 
-function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, onSessionOrder }) {
-  const open = workspace.id === activeWorkspaceId;
+function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, draggingWorkspaceId, onSessionOrder }) {
+  const open = workspace.id === activeWorkspaceId && draggingWorkspaceId !== workspace.id;
   const hasActiveSession = (workspace.sessions || []).some((session) => session.active || session.live);
   const roots = sessionTree(workspace.sessions || []);
   const rootIds = roots.map(({ session }) => session.id);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleSessionDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id) return;
     const oldIndex = rootIds.indexOf(active.id);
@@ -83,18 +83,36 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, activeSessionId, onSessi
 }
 
 export default function SortableWorkspaceSidebar({ workspaces, activeWorkspaceId, activeSessionId, onWorkspaceOrder, onSessionOrder }) {
-  const ids = workspaces.map((workspace) => workspace.id);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const [orderedWorkspaces, setOrderedWorkspaces] = useState(workspaces);
+  const [draggingWorkspaceId, setDraggingWorkspaceId] = useState("");
+  useEffect(() => setOrderedWorkspaces(workspaces), [workspaces]);
+  const ids = useMemo(() => orderedWorkspaces.map((workspace) => workspace.id), [orderedWorkspaces]);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleWorkspaceDragEnd = ({ active, over }) => {
+    setDraggingWorkspaceId("");
     if (!over || active.id === over.id) return;
     const oldIndex = ids.indexOf(active.id);
     const newIndex = ids.indexOf(over.id);
     if (oldIndex < 0 || newIndex < 0) return;
-    onWorkspaceOrder(arrayMove(ids, oldIndex, newIndex));
+    const next: any[] = arrayMove(orderedWorkspaces, oldIndex, newIndex);
+    const nextIds = next.map((workspace) => workspace.id);
+    setOrderedWorkspaces(next);
+    onWorkspaceOrder(nextIds);
   };
-  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleWorkspaceDragEnd}>
+  const handleSessionOrder = (workspaceId, sessionIds) => {
+    const sessionIdSet = new Set(sessionIds);
+    setOrderedWorkspaces((current) => current.map((workspace) => {
+      if (workspace.id !== workspaceId) return workspace;
+      const byId = new Map((workspace.sessions || []).map((session) => [session.id, session]));
+      const orderedSessions = sessionIds.map((id) => byId.get(id)).filter(Boolean);
+      const remainingSessions = (workspace.sessions || []).filter((session) => !sessionIdSet.has(session.id));
+      return { ...workspace, sessions: [...orderedSessions, ...remainingSessions] };
+    }));
+    onSessionOrder(workspaceId, sessionIds);
+  };
+  return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={({ active }) => setDraggingWorkspaceId(String(active.id))} onDragCancel={() => setDraggingWorkspaceId("")} onDragEnd={handleWorkspaceDragEnd}>
     <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-      {workspaces.map((workspace) => <SortableShell key={workspace.id} id={workspace.id} className="workspace-sortable"><WorkspaceGroup workspace={workspace} activeWorkspaceId={activeWorkspaceId} activeSessionId={activeSessionId} onSessionOrder={onSessionOrder} /></SortableShell>)}
+      {orderedWorkspaces.map((workspace) => <SortableShell key={workspace.id} id={workspace.id} className="workspace-sortable"><WorkspaceGroup workspace={workspace} activeWorkspaceId={activeWorkspaceId} activeSessionId={activeSessionId} draggingWorkspaceId={draggingWorkspaceId} onSessionOrder={handleSessionOrder} /></SortableShell>)}
     </SortableContext>
   </DndContext>;
 }

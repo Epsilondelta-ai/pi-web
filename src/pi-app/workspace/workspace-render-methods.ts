@@ -30,7 +30,7 @@ export const workspaceRenderMethods = {
   renderSidebarWorkspaces(workspaces) {
     const section = this.querySelector(".sidebar .sb-section");
     if (!section) return;
-    section.querySelectorAll(".workspace-group, .workspace-sortable").forEach((group) => group.remove());
+    section.querySelectorAll(":scope > .workspace-group").forEach((group) => group.remove());
     let anchor = section.querySelector(".sb-head");
     for (const workspace of workspaces) {
       const group = this.createWorkspaceGroup(workspace);
@@ -66,12 +66,10 @@ export const workspaceRenderMethods = {
 
   reorderWorkspaces(ids) {
     storeWorkspaceOrder(ids);
-    this.renderWorkspaces(this.workspaceList || []);
   },
 
   reorderWorkspaceSessions(workspaceId, ids) {
     storeSessionOrder(workspaceId, ids);
-    this.renderWorkspaces(this.workspaceList || []);
   },
 
   createRecentWorkspace(workspace) {
