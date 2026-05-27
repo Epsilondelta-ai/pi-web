@@ -233,6 +233,7 @@ async function mountTextPreviewEditor(app, state, container) {
   try {
     const { CodeMirrorFileEditor } = await loadCodeMirrorFileEditor();
     if (state.editorLoadToken !== token || app.filePreview !== state || !container.isConnected) return;
+    container.textContent = "";
     state.editor = new CodeMirrorFileEditor(container, {
       file,
       content,
