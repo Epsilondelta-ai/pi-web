@@ -1,4 +1,5 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { randomUUID } from "node:crypto";
 import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -58,7 +59,7 @@ async function readJsonObject(path: string): Promise<Record<string, unknown> | u
 }
 
 async function writePrivateJson(path: string, value: Record<string, unknown>): Promise<void> {
-  const tempPath = `${path}.tmp-${process.pid}-${Date.now()}`;
+  const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${randomUUID()}`;
   const data = `${JSON.stringify(value, null, 2)}\n`;
   const handle = await open(tempPath, "w", 0o600);
   try {
