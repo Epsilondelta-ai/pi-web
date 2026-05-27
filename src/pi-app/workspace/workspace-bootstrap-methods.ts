@@ -145,8 +145,8 @@ export const workspaceBootstrapMethods = {
     if (button) button.disabled = true;
     try {
       const { workspaces } = await getWorkspaces();
-      const workspaceList = workspaces || [];
       const activeWorkspaceId = this.dataset.activeWorkspaceId;
+      const workspaceList = this.withRefreshFallbackWorkspace(workspaces || [], activeWorkspaceId);
       this.renderWorkspaces(workspaceList);
       if (activeWorkspaceId) this.openActiveWorkspaceGroup(activeWorkspaceId);
     } catch {
@@ -154,6 +154,13 @@ export const workspaceBootstrapMethods = {
     } finally {
       if (button) button.disabled = false;
     }
+  },
+
+  withRefreshFallbackWorkspace(workspaceList, activeWorkspaceId) {
+    if (!activeWorkspaceId || workspaceList.some((workspace) => workspace.id === activeWorkspaceId)) return workspaceList;
+    const fallback = (this.workspaceList || []).find((workspace) => workspace.id === activeWorkspaceId);
+    if (!fallback) return workspaceList;
+    return [{ ...fallback, sessions: [], sessionCount: 0, live: false }, ...workspaceList];
   },
 
   async refreshTree() {

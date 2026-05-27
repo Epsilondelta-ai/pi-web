@@ -13,6 +13,7 @@ export const sessionDeleteMethods = {
       await deleteSessionRequest(sessionId);
       const workspaceId = this.findWorkspaceIdForSession(sessionId);
       const deletedSessionIds = this.removeSessionRowsWithDescendants(sessionId);
+      this.removeWorkspaceSessionsFromState(workspaceId, deletedSessionIds);
       this.refreshWorkspaceSessionControls(workspaceId);
       if (deletedSessionIds.has(this.dataset.activeSessionId)) this.clearActiveSession(this.dataset.activeSessionId);
     } catch {
@@ -27,9 +28,12 @@ export const sessionDeleteMethods = {
     const suffix = count ? ` (${count} shown)` : "";
     if (!confirm(`Delete all sessions in this workspace${suffix}? This removes local JSONL files.`)) return;
     try {
+      const deletedSessionIds = this.workspaceSessionIds(workspaceId);
       await deleteWorkspaceSessionsRequest(workspaceId);
+      this.replaceWorkspaceSessionsInState(workspaceId, []);
       this.clearWorkspaceSessionRows(workspaceId);
-      if (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId) {
+      if (deletedSessionIds.has(this.dataset.activeSessionId)
+        || (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId)) {
         this.clearActiveSession(this.dataset.activeSessionId);
       }
     } catch {
@@ -63,15 +67,46 @@ export const sessionDeleteMethods = {
         changed = true;
       });
     }
-    deletedSessionIds.forEach((id) => this.querySelector(`[data-session='${id}']`)?.remove());
+    deletedSessionIds.forEach((id) => this.querySelector(`.session-row[data-session='${id}']`)?.remove());
     return deletedSessionIds;
   },
 
   clearWorkspaceSessionRows(workspaceId) {
-    const group = this.findWorkspaceGroup?.(workspaceId)
-      || this.querySelector(`[data-workspace-group='${workspaceId}']`);
-    group?.querySelectorAll(":scope > .sessions > .session-row[data-session]").forEach((row) => row.remove());
+    const groups = this.workspaceGroups(workspaceId);
+    groups.forEach((group) => {
+      const sessions = group.querySelector(".sessions");
+      sessions?.querySelectorAll(".session-row[data-session], .session-sortable").forEach((row) => row.remove());
+    });
     this.refreshWorkspaceSessionControls(workspaceId);
+  },
+
+  workspaceSessionIds(workspaceId) {
+    return new Set([
+      ...this.querySelectorAll(`[data-workspace-group='${workspaceId}'] .session-row[data-session]`),
+    ].map((row) => row.dataset.session).filter(Boolean));
+  },
+
+  removeWorkspaceSessionsFromState(workspaceId, deletedSessionIds) {
+    if (!workspaceId || !deletedSessionIds?.size || !Array.isArray(this.workspaceList)) return;
+    const nextSessions = (this.workspaceList.find((workspace) => workspace.id === workspaceId)?.sessions || [])
+      .filter((session) => !deletedSessionIds.has(session.id));
+    this.replaceWorkspaceSessionsInState(workspaceId, nextSessions);
+  },
+
+  replaceWorkspaceSessionsInState(workspaceId, sessions) {
+    if (!workspaceId || !Array.isArray(this.workspaceList)) return;
+    const nextWorkspaces = this.workspaceList.map((workspace) => {
+      if (workspace.id !== workspaceId) return workspace;
+      const nextSessions = sessions || [];
+      return {
+        ...workspace,
+        sessions: nextSessions,
+        sessionCount: nextSessions.length,
+        live: nextSessions.some((session) => session.active || session.live),
+      };
+    });
+    this.renderWorkspaces(nextWorkspaces);
+    if (this.dataset.activeWorkspaceId) this.openActiveWorkspaceGroup(this.dataset.activeWorkspaceId);
   },
 
   refreshWorkspaceSessionControls(workspaceId) {
@@ -89,9 +124,13 @@ export const sessionDeleteMethods = {
     }
   },
 
+  workspaceGroups(workspaceId) {
+    return [...this.querySelectorAll(`[data-workspace-group='${workspaceId}']`)];
+  },
+
   countWorkspaceSessions(workspaceId) {
     return this.querySelectorAll(
-      `[data-workspace-group='${workspaceId}'] > .sessions > .session-row[data-session]`,
+      `[data-workspace-group='${workspaceId}'] > .sessions .session-row[data-session]`,
     ).length;
   },
 
