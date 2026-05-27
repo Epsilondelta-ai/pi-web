@@ -37,7 +37,18 @@ export const workspaceRenderMethods = {
       anchor.insertAdjacentElement("afterend", group);
       anchor = group;
     }
-    void this.renderSortableSidebarWorkspaces(section, workspaces);
+    this.sidebarSortableCleanup?.();
+    const activateSortableSidebar = () => {
+      this.sidebarSortableCleanup?.();
+      void this.renderSortableSidebarWorkspaces(section, workspaces);
+    };
+    section.addEventListener("pointerenter", activateSortableSidebar, { once: true });
+    section.addEventListener("focusin", activateSortableSidebar, { once: true });
+    this.sidebarSortableCleanup = () => {
+      section.removeEventListener("pointerenter", activateSortableSidebar);
+      section.removeEventListener("focusin", activateSortableSidebar);
+      this.sidebarSortableCleanup = undefined;
+    };
   },
 
   async renderSortableSidebarWorkspaces(section, workspaces) {

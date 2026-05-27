@@ -23,7 +23,10 @@ describe("workspace folder/render/bootstrap coverage", () => {
     installPiAppFixture();
     globalThis.PI_WEB_API_BASE = "http://backend.test";
   });
-  afterEach(cleanupPiAppFixture);
+  afterEach(() => {
+    vi.useRealTimers();
+    cleanupPiAppFixture();
+  });
 
   it("renders recent workspaces, sidebar groups, and folder rows", async () => {
     const app = await connectPiApp();
@@ -53,6 +56,10 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(count.textContent).toBe("0 known");
     app.renderWorkspaces(workspaces);
     app.renderWorkspaces(workspaces);
+    await act(async () => {
+      app.querySelector(".sidebar .sb-section").dispatchEvent(new Event("pointerenter"));
+      await Promise.resolve();
+    });
     app.renderFolderListing({ path: "/tmp", displayPath: "tmp", folders: [
       { name: "child", path: "/tmp/child", displayPath: "~/child" },
     ] });
@@ -87,6 +94,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.dataset.activeWorkspaceId = "w1";
     app.dataset.activeSessionId = "s1";
 
+    section.append(app.createWorkspaceGroup({ id: "legacy", name: "legacy", path: "/legacy", sessionCount: 0, sessions: [] }));
     await act(async () => {
       await app.renderSortableSidebarWorkspaces(section, [{
         id: "w1",
@@ -104,6 +112,8 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(localStorage.getItem("pi.workspaceOrder")).toContain("w1");
     expect(localStorage.getItem("pi.sessionOrder")).toContain("s1");
 
+    delete app.dataset.activeWorkspaceId;
+    delete app.dataset.activeSessionId;
     await act(async () => {
       await app.renderSortableSidebarWorkspaces(section, [{ id: "w1", name: "one", path: "/one", sessionCount: 0, sessions: [] }]);
     });
