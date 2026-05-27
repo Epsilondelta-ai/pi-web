@@ -138,6 +138,8 @@ describe("workspace residual method coverage", () => {
     app.workspaceFiles = undefined;
     app.querySelector = vi.fn(() => root);
     await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
+    app.workspaceTreeRoot?.unmount?.();
+    app.workspaceTreeMounted = false;
     app.openActiveWorkspaceGroup("w1");
     expect(app.querySelector(".sessions").hidden).toBe(false);
     app.updateActiveWorkspaceLabel("missing");

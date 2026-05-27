@@ -37,6 +37,7 @@ describe("pi-app toast notifications", () => {
     setActiveToastContext(app);
 
     app.applyEvent({ type: "session.status", payload: { status: "running" } });
+    app.applyEvent({ type: "session.delta", payload: { kind: "pi", delta: "done" } });
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
 
     const toast = document.querySelector(".session-toast.success");
