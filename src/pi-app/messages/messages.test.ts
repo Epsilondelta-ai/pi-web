@@ -678,6 +678,10 @@ describe("pi-app messages", () => {
     app.clearStreamingState("pi");
     expect(app.pendingStreamingRow).toBeUndefined();
 
+    app.responseReceived = false;
+    app.notifyPiMessageCommitted({ kind: "pi", text: "" });
+    expect(app.responseReceived).toBe(false);
+
     const loading = app.simpleMessage("loading", "pi >", "loading");
     loading.classList.add("loading");
     app.transcriptItems = [null, { nodes: [null, loading] }];

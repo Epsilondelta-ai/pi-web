@@ -247,6 +247,24 @@
   border-color: var(--danger);
   color: var(--danger);
 }
+.msg .body.markdown-body table {
+  border-collapse: collapse;
+  margin: 0 0 0.75em;
+  width: 100%;
+}
+.msg .body.markdown-body th,
+.msg .body.markdown-body td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+}
+.msg .body.markdown-body th {
+  background: var(--bg-3);
+  color: var(--fg-0);
+  font-weight: 500;
+}
+.msg .body.markdown-body tbody tr:nth-child(even) {
+  background: var(--bg-2);
+}
 .msg .body.markdown-body blockquote {
   border-left: 2px solid var(--border);
   color: var(--fg-2);

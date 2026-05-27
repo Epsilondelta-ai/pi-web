@@ -3,6 +3,7 @@ package piweb
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -38,7 +39,18 @@ func TestWebStoreLoadsOnlyWebRecents(t *testing.T) {
 
 func TestCreateSession(t *testing.T) {
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
+	home := t.TempDir()
+	t.Setenv("HOME", home)
 	workspaceRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "AGENTS.md"), []byte("global"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workspaceRoot, "AGENTS.md"), []byte("project"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	store := NewMockStore()
 	workspace, err := store.OpenWorkspace(workspaceRoot)
 	if err != nil {
@@ -54,6 +66,16 @@ func TestCreateSession(t *testing.T) {
 	}
 	if _, err := os.Stat(file); err != nil {
 		t.Fatal(err)
+	}
+	_, messages, err := store.Session(session.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 1 || messages[0].Kind != "banner" {
+		t.Fatalf("expected context banner, got %#v", messages)
+	}
+	if !strings.Contains(messages[0].Text, "loaded AGENTS.md files · 2") || !strings.Contains(messages[0].Text, filepath.Join(workspaceRoot, "AGENTS.md")) {
+		t.Fatalf("unexpected context banner: %q", messages[0].Text)
 	}
 }
 
@@ -98,7 +120,7 @@ func TestStoreRefreshPreservesInMemoryMessages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(messages) != 1 || messages[0].Text != "still here" {
+	if len(messages) != 2 || messages[1].Text != "still here" {
 		t.Fatalf("expected in-memory message to survive refresh, got %#v", messages)
 	}
 }
