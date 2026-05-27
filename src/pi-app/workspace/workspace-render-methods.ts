@@ -30,6 +30,10 @@ export const workspaceRenderMethods = {
   renderSidebarWorkspaces(workspaces) {
     const section = this.querySelector(".sidebar .sb-section");
     if (!section) return;
+    if (this.sidebarSortableRoot && section.querySelector("[data-sortable-workspaces]")) {
+      void this.renderSortableSidebarWorkspaces(section, workspaces);
+      return;
+    }
     section.querySelectorAll(":scope > .workspace-group").forEach((group) => group.remove());
     let anchor = section.querySelector(".sb-head");
     for (const workspace of workspaces) {

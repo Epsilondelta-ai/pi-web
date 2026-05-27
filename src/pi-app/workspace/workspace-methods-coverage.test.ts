@@ -118,6 +118,11 @@ describe("workspace folder/render/bootstrap coverage", () => {
       await app.renderSortableSidebarWorkspaces(section, [{ id: "w1", name: "one", path: "/one", sessionCount: 0, sessions: [] }]);
     });
     expect(section.querySelectorAll("[data-sortable-workspaces]")).toHaveLength(1);
+    await act(async () => {
+      app.renderSidebarWorkspaces([{ id: "w2", name: "two", path: "/two", sessionCount: 0, sessions: [] }]);
+      await Promise.resolve();
+    });
+    expect(globalThis.__lastSortableSidebarProps.workspaces[0].id).toBe("w2");
 
     const detached = document.createElement("div");
     await app.renderSortableSidebarWorkspaces(detached, []);
@@ -280,6 +285,15 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.renderWorkspaces = vi.fn();
     await app.refreshWorkspaces();
     expect(app.renderWorkspaces).toHaveBeenCalledWith([]);
+
+    app.dataset.activeWorkspaceId = "w1";
+    app.workspaceList = [{ id: "w1", name: "one", path: "/one", sessions: [{ id: "s1" }], sessionCount: 1, live: true }];
+    globalThis.fetch = vi.fn(async () => okJson({ workspaces: [] }));
+    app.openActiveWorkspaceGroup = vi.fn();
+    await app.refreshWorkspaces();
+    expect(app.renderWorkspaces).toHaveBeenLastCalledWith([
+      { id: "w1", name: "one", path: "/one", sessions: [], sessionCount: 0, live: false },
+    ]);
 
     app.apiConnected = true;
     app.dataset.activeWorkspaceId = "w-empty";
