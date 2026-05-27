@@ -50,16 +50,19 @@ func TestRuntimeModelStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".pi", "web"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".pi", "web", "settings.json"), []byte(`{"defaultProvider":"openai-codex","defaultModel":"gpt-5.4","defaultThinkingLevel":"low"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultProvider":"openai-codex","defaultModel":"gpt-5.4","defaultThinkingLevel":"low"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"defaultModel":"gpt-5.5","defaultThinkingLevel":"high"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"defaultModel":"gpt-5.5","defaultThinkingLevel":"high"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"defaultModel":"legacy-wrong","defaultThinkingLevel":"xhigh"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -76,10 +79,10 @@ func TestWorkspaceRuntimeModelStatusUsesSettingsWithoutPiRPC(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".pi", "web"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(home, ".pi", "web", "settings.json"), []byte(`{"defaultProvider":"zai","defaultModel":"glm-4.6","defaultThinkingLevel":"medium"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultProvider":"zai","defaultModel":"glm-4.6","defaultThinkingLevel":"medium"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
