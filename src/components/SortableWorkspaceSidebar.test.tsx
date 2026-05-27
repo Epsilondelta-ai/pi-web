@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import SortableWorkspaceSidebar, { sessionTree } from "./SortableWorkspaceSidebar";
+import SortableWorkspaceSidebar, { applySortableMove, reorderWorkspaceSessionList, sessionTree } from "./SortableWorkspaceSidebar";
 
 vi.mock("@dnd-kit/core", () => ({
   DndContext: ({ children, onDragStart, onDragCancel, onDragEnd }: any) => <div data-dnd-context="true">
@@ -76,6 +76,20 @@ describe("SortableWorkspaceSidebar", () => {
   beforeEach(() => {
     document.body.replaceChildren();
     delete (globalThis as any).__sortableDraggingId;
+  });
+
+  it("covers sortable move and session-order helpers", () => {
+    const onMove = vi.fn();
+    applySortableMove(["a", "b", "c"], "a", undefined, onMove);
+    applySortableMove(["a", "b", "c"], "a", "a", onMove);
+    applySortableMove(["a", "b", "c"], "missing", "a", onMove);
+    expect(onMove).not.toHaveBeenCalled();
+    applySortableMove(["a", "b", "c"], "a", "c", onMove);
+    expect(onMove).toHaveBeenCalledWith(["b", "c", "a"]);
+
+    const workspace = { id: "w1", sessions: [{ id: "s1" }, { id: "s2" }, { id: "child", parentId: "s1" }] };
+    expect(reorderWorkspaceSessionList({ id: "w2", sessions: [] }, "w1", ["s2"])).toEqual({ id: "w2", sessions: [] });
+    expect(reorderWorkspaceSessionList(workspace, "w1", ["s2", "s1"]).sessions.map((session) => session.id)).toEqual(["s2", "s1", "child"]);
   });
 
   it("keeps recursive session descendants visible", () => {

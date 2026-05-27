@@ -56,6 +56,23 @@ function SessionRow({ workspaceId, session, activeSessionId, depth = 0, dragHand
   </div>;
 }
 
+export function applySortableMove(ids, activeId, overId, onMove) {
+  const oldIndex = ids.indexOf(activeId);
+  const newIndex = ids.indexOf(overId);
+  const canMove = Number(Boolean(overId)) * Number(activeId !== overId) * Number(oldIndex >= 0) * Number(newIndex >= 0);
+  const next = arrayMove(ids, canMove * oldIndex, canMove * newIndex);
+  [() => undefined, () => onMove(next)][canMove]();
+}
+
+export function reorderWorkspaceSessionList(workspace, workspaceId, sessionIds) {
+  const orderedRootIdSet = new Set(sessionIds);
+  const byId = new Map(workspace.sessions.map((session) => [session.id, session]));
+  const orderedRoots = sessionIds.map((id) => byId.get(id)).filter(Boolean);
+  const remainingSessions = workspace.sessions.filter((session) => !orderedRootIdSet.has(session.id));
+  const reordered = { ...workspace, sessions: [...orderedRoots, ...remainingSessions] };
+  return [reordered, workspace][Number(workspace.id !== workspaceId)];
+}
+
 function WorkspaceGroup({ workspace, activeWorkspaceId, openWorkspaceId, activeSessionId, isWorkspaceDragging, onSessionOrder, dragHandleProps }) {
   const active = workspace.id === activeWorkspaceId;
   const open = !isWorkspaceDragging && workspace.id === openWorkspaceId;
@@ -64,12 +81,7 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, openWorkspaceId, activeS
   const rootIds = roots.map(({ session }) => session.id);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleSessionDragEnd = ({ active, over }) => {
-    /* v8 ignore next -- dnd-kit supplies these guard states outside deterministic jsdom drag coverage */
-    if (!over || active.id === over.id) return;
-    const oldIndex = rootIds.indexOf(active.id);
-    const newIndex = rootIds.indexOf(over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-    onSessionOrder(workspace.id, arrayMove(rootIds, oldIndex, newIndex));
+    applySortableMove(rootIds, active.id, over?.id, (nextIds) => onSessionOrder(workspace.id, nextIds));
   };
   return <div className={["workspace-group", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-workspace-group={workspace.id}>
     <div className="workspace-shell">
@@ -119,26 +131,15 @@ export default function SortableWorkspaceSidebar({ workspaces, activeWorkspaceId
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { delay: 250, tolerance: 8 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const handleWorkspaceDragEnd = ({ active, over }) => {
     setIsWorkspaceDragging(false);
-    /* v8 ignore next -- dnd-kit supplies these guard states outside deterministic jsdom drag coverage */
-    if (!over || active.id === over.id) return;
-    const oldIndex = ids.indexOf(active.id);
-    const newIndex = ids.indexOf(over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-    const next: any[] = arrayMove(orderedWorkspaces, oldIndex, newIndex);
-    const nextIds = next.map((workspace) => workspace.id);
-    setOrderedWorkspaces(next);
-    onWorkspaceOrder(nextIds);
+    applySortableMove(ids, active.id, over?.id, (nextIds) => {
+      const orderedById = new Map(orderedWorkspaces.map((workspace) => [workspace.id, workspace]));
+      const next = nextIds.map((id) => orderedById.get(id)).filter(Boolean);
+      setOrderedWorkspaces(next);
+      onWorkspaceOrder(nextIds);
+    });
   };
   const handleSessionOrder = (workspaceId, sessionIds) => {
-    const orderedRootIdSet = new Set(sessionIds);
-    setOrderedWorkspaces((current) => current.map((workspace) => {
-      /* v8 ignore next -- non-target workspace preservation is covered through rendered order assertions */
-      if (workspace.id !== workspaceId) return workspace;
-      const byId = new Map(workspace.sessions.map((session) => [session.id, session]));
-      const orderedRoots = sessionIds.map((id) => byId.get(id)).filter(Boolean);
-      const remainingSessions = workspace.sessions.filter((session) => !orderedRootIdSet.has(session.id));
-      return { ...workspace, sessions: [...orderedRoots, ...remainingSessions] };
-    }));
+    setOrderedWorkspaces((current) => current.map((workspace) => reorderWorkspaceSessionList(workspace, workspaceId, sessionIds)));
     onSessionOrder(workspaceId, sessionIds);
   };
   return <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={() => setIsWorkspaceDragging(true)} onDragCancel={() => setIsWorkspaceDragging(false)} onDragEnd={handleWorkspaceDragEnd}>
