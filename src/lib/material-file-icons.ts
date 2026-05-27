@@ -1,7 +1,9 @@
 import materialIcons from "material-icon-theme/dist/material-icons.json";
-import fileIconUrl from "material-icon-theme/icons/file.svg?url";
-import folderIconUrl from "material-icon-theme/icons/folder.svg?url";
-import folderOpenIconUrl from "material-icon-theme/icons/folder-open.svg?url";
+const iconUrls = import.meta.glob("/node_modules/material-icon-theme/icons/*.svg", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
 
 type IconDefinition = { iconPath?: string };
 type MaterialIconManifest = {
@@ -51,9 +53,9 @@ function extensionCandidates(basename: string): string[] {
 }
 
 function iconUrl(iconName: string): string {
-  if (iconName === "folder") return folderIconUrl;
-  if (iconName === "folder-open") return folderOpenIconUrl;
-  return fileIconUrl;
+  return (
+    iconUrls[`/node_modules/material-icon-theme/icons/${iconName}.svg`] || iconUrls["/node_modules/material-icon-theme/icons/file.svg"]
+  );
 }
 
 function normalizeName(name: string): string {

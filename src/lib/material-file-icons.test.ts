@@ -10,7 +10,12 @@ describe("resolveMaterialFileIcon", () => {
     expect(resolveMaterialFileIcon({ kind: "file", name: "README.md" }).name).toBe("readme");
     expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).name).toBe("typescript");
     expect(resolveMaterialFileIcon({ kind: "file", name: "unknown" }).name).toBe("file");
-    expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
+    expect(resolveMaterialFileIcon({ kind: "file", name: "main.ts" }).url).not.toBe(
+      resolveMaterialFileIcon({ kind: "file", name: "unknown" }).url,
+    );
+    expect(resolveMaterialFileIcon({ kind: "dir", name: "src" }).url).not.toBe(
+      resolveMaterialFileIcon({ kind: "dir", name: "unknown-folder" }).url,
+    );
     expect(resolveMaterialFileIcon({ kind: "dir", name: "unknown-folder" }).url).toMatch(/^(data:image\/svg\+xml|\/)/);
   });
 
