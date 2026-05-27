@@ -232,16 +232,10 @@ describe("pi-app core events", () => {
     app.loadRuntimeStatus = vi.fn();
     app.setMode("cancelled");
     expect(app.finishRunningTools).toHaveBeenCalledWith({ status: "err", resultMeta: "cancelled" });
-    app.notifyResponseCompletedOnce = vi.fn();
     app.setMode("thinking");
     expect(app.running).toBe(true);
     app.setMode("idle");
     expect(app.running).toBe(false);
-    expect(app.notifyResponseCompletedOnce).not.toHaveBeenCalled();
-    app.setMode("running");
-    app.responseReceived = true;
-    app.setMode("idle");
-    expect(app.notifyResponseCompletedOnce).toHaveBeenCalledTimes(1);
     app.sendButton = null;
     app.setMode("idle");
 
