@@ -42,9 +42,13 @@ func DetectPiPackageUpdateStatus(ctx context.Context) (PiPackageUpdateStatus, er
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
-	paths, err := settingsPaths(cwd)
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
+	}
+	paths := SettingsPaths{
+		Global:  filepath.Join(home, ".pi", "agent", "settings.json"),
+		Project: filepath.Join(cwd, ".pi", "settings.json"),
 	}
 	globalSettings, err := readSettingsFile(paths.Global)
 	if err != nil {

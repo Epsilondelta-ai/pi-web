@@ -9,3 +9,4 @@ coverage/
 .pi/tasks/
 .pi/web-status.json
 .pi/settings.json
+.pi/pi-web.json

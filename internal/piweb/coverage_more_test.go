@@ -470,10 +470,10 @@ func TestCoverageBrokerSettingsSessionsAndHelpers(t *testing.T) {
 	if _, err := settingsPathForScope(SettingsPaths{}, "bad"); err == nil {
 		t.Fatal("expected bad settings scope")
 	}
-	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "web"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	global := filepath.Join(home, ".pi", "agent", "settings.json")
+	global := filepath.Join(home, ".pi", "web", "settings.json")
 	if err := os.WriteFile(global, []byte(`bad`), 0o600); err != nil {
 		t.Fatal(err)
 	}

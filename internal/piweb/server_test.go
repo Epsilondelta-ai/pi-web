@@ -338,7 +338,7 @@ func TestWorkspaceModelsEndpointFallsBackOnPiFailure(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".pi", "settings.json"), []byte(`{"defaultProvider":"anthropic","defaultModel":"claude-test"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"defaultProvider":"anthropic","defaultModel":"claude-test"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	writeFakePi(t, root, `#!/bin/sh
@@ -387,14 +387,14 @@ func TestWorkspaceSettingsEndpointReadsAndSavesSettings(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "web"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	globalPath := filepath.Join(home, ".pi", "agent", "settings.json")
-	projectPath := filepath.Join(root, ".pi", "settings.json")
+	globalPath := filepath.Join(home, ".pi", "web", "settings.json")
+	projectPath := filepath.Join(root, ".pi", "pi-web.json")
 	if err := os.WriteFile(globalPath, []byte(`{"theme":"dark","compaction":{"enabled":true}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}

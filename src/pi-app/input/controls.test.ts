@@ -730,7 +730,7 @@ describe("pi-app controls", () => {
                 enableSpeechInput: true,
                 speechInput: { language: "ko-KR", useLocalWhisper: true, whisperModel: "base" },
               },
-              paths: { project: "/demo/.pi/settings.json", global: "/home/me/.pi/agent/settings.json" },
+              paths: { project: "/demo/.pi/pi-web.json", global: "/home/me/.pi/web/settings.json" },
             },
           };
         }
@@ -752,7 +752,7 @@ describe("pi-app controls", () => {
 
     await app.openSettingsModal();
     expect(app.querySelector("[data-settings-modal]").hidden).toBe(false);
-    expect(app.querySelector("[data-settings-path]").textContent).toBe("/demo/.pi/settings.json");
+    expect(app.querySelector("[data-settings-path]").textContent).toBe("/demo/.pi/pi-web.json");
     expect(app.querySelector("[data-setting='defaultProvider']").value).toBe("zai");
     expect(app.querySelector("[data-setting='defaultModel']").value).toBe("gpt-5.5");
     expect(app.querySelector("[data-setting='readResponsesAloud']").type).toBe("checkbox");
