@@ -296,6 +296,10 @@
   background: var(--accent);
   color: #002211;
 }
+.prompt-bar.shell-mode .send-btn {
+  background: #ffd64d;
+  color: #2a1500;
+}
 .stop-btn {
   background: var(--danger);
   color: white;
