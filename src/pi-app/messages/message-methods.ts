@@ -195,14 +195,13 @@ export const messageMethods = {
 
   notifyPiMessageCommitted(message) {
     if (message.kind !== "pi") return;
-    if (message.text) this.responseReceived = true;
-    if (this.isReadAloudEnabled()) this.speakAssistantText(message.text);
     const choices = parseFallbackChoices(message.text);
+    if (message.text && !choices.length) this.responseReceived = true;
+    if (this.isReadAloudEnabled()) this.speakAssistantText(message.text);
     if (!this.deferTranscriptRender && choices.length) {
+      this.fallbackChoiceNotified = true;
       this.notifyChoiceRequested?.();
-      return;
     }
-    if (this.running) this.notifyResponseCompletedOnce?.();
   },
 
   attachThinkingStream(messageRow) {

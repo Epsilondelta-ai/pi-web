@@ -145,6 +145,40 @@ func TestNotifyTelegramResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	}
 }
 
+func TestNotifyRemoteResponseCompletedSkipsDefaultNewSessionHello(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"},"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousDiscordBaseURL := discordAPIBaseURL
+	previousTelegramBaseURL := telegramAPIBaseURL
+	discordAPIBaseURL = server.URL
+	telegramAPIBaseURL = server.URL
+	defer func() {
+		discordAPIBaseURL = previousDiscordBaseURL
+		telegramAPIBaseURL = previousTelegramBaseURL
+	}()
+
+	if err := notifyRemoteResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "new session"}, []Message{{Kind: "user", Text: "hello"}}); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("default new session hello completion should not send remote notifications")
+	}
+}
+
 func TestNotifyRemoteResponseCompletedSkipsAgentChildSessions(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()

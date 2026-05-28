@@ -62,6 +62,7 @@ class PiApp extends HTMLElement {
     this.currentFolder = "~";
     this.running = false;
     this.responseReceived = false;
+    this.fallbackChoiceNotified = false;
     this.attachmentContents = [];
     this.spinnerIndex = 0;
     this.piDeltaBuffer = "";
@@ -389,12 +390,13 @@ class PiApp extends HTMLElement {
       this.responseFailureToastShown = false;
       this.responseCompletionToastShown = false;
       this.responseReceived = false;
+      this.fallbackChoiceNotified = false;
     }
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = willRun;
     if (wasRunning && !willRun) void this.refreshWorkspaces?.({ quiet: true });
-    if (wasRunning && mode === "idle" && this.responseReceived && !this.responseFailureToastShown) {
+    if (wasRunning && mode === "idle" && this.responseReceived && !this.responseFailureToastShown && !this.fallbackChoiceNotified) {
       this.notifyResponseCompletedOnce?.();
     }
     if (!willRun && mode === "cancelled") this.clearSessionCancellationPending(sessionId);

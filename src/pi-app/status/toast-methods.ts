@@ -528,7 +528,7 @@ export const toastMethods = {
 
   watchBackgroundSession(row) {
     const sessionId = row.dataset.session;
-    const watch: any = { failed: false, row, wasRunning: true };
+    const watch: any = { failed: false, row, wasRunning: true, fallbackChoiceNotified: false };
     watch.source = sessionEvents(sessionId, {
       replay: false,
       onError: () => undefined,
@@ -546,6 +546,7 @@ export const toastMethods = {
       return;
     }
     if (event.type === "session.message" && parseFallbackChoices(event.payload?.text).length) {
+      watch.fallbackChoiceNotified = true;
       this.notifyChoiceRequested(context);
       return;
     }
@@ -554,7 +555,7 @@ export const toastMethods = {
     if (status === "running" || status === "thinking") watch.wasRunning = true;
     if (status !== "idle" && status !== "cancelled") return;
     this.dismissBackgroundSessionWatch(event.sessionId, watch);
-    if (watch.wasRunning && status === "idle" && !watch.failed) {
+    if (watch.wasRunning && status === "idle" && !watch.failed && !watch.fallbackChoiceNotified) {
       this.notifySessionCompleted(context);
       void this.readCompletedBackgroundSessionAloud(event.sessionId);
     }

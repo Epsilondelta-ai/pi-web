@@ -715,6 +715,12 @@ describe("pi-app messages", () => {
     expect(app.pendingStreamingRow).toBeUndefined();
 
     app.responseReceived = false;
+    app.notifyResponseCompletedOnce = vi.fn();
+    app.running = true;
+    app.notifyPiMessageCommitted({ kind: "pi", text: "done" });
+    expect(app.responseReceived).toBe(true);
+    expect(app.notifyResponseCompletedOnce).not.toHaveBeenCalled();
+    app.responseReceived = false;
     app.notifyPiMessageCommitted({ kind: "pi", text: "" });
     expect(app.responseReceived).toBe(false);
 
