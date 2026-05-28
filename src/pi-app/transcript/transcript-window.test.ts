@@ -656,4 +656,17 @@ describe("pi-app transcript window", () => {
     expect(app.term.scrollTop).toBe(1000);
     expect(app.transcriptFollowBottom).toBe(true);
   });
+
+  it("treats wheel-up and touch scroll gestures as explicit bottom-follow release", async () => {
+    const app = await connectPiApp();
+    app.transcriptFollowBottom = true;
+
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
+    expect(app.transcriptFollowBottom).toBe(false);
+
+    app.scrollTranscriptToBottom();
+    app.term.dispatchEvent(new TouchEvent("touchstart", { touches: [{ clientY: 100 } as Touch] }));
+    app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 110 } as Touch] }));
+    expect(app.transcriptFollowBottom).toBe(false);
+  });
 });
