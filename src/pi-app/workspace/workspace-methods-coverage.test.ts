@@ -76,8 +76,8 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w2", openWorkspaceId: "" });
     app.toggleWorkspace("w1");
     await Promise.resolve();
-    expect(app.dataset.activeWorkspaceId).toBe("w1");
-    expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w1", openWorkspaceId: "w1" });
+    expect(app.dataset.activeWorkspaceId).toBe("w2");
+    expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w2", openWorkspaceId: "w1" });
     delete app.dataset.activeWorkspaceId;
     app.openActiveWorkspaceGroup("");
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "", openWorkspaceId: "" });

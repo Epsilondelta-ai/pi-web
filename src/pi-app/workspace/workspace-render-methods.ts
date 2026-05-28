@@ -191,10 +191,6 @@ export const workspaceRenderMethods = {
   },
 
   toggleWorkspace(id) {
-    if (id && id !== this.dataset.activeWorkspaceId) {
-      void this.openWorkspace?.(id);
-      return;
-    }
     const targetSessions = this.findWorkspaceGroup?.(id)?.querySelector(".sessions");
     const shouldOpen = !!targetSessions?.hidden;
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
