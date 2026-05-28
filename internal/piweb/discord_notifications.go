@@ -27,6 +27,9 @@ type telegramNotificationSettings struct {
 }
 
 func notifyRemoteResponseCompleted(root string, session Session, messages []Message) error {
+	if isAgentChildSession(session) {
+		return nil
+	}
 	return errors.Join(
 		notifyDiscordResponseCompleted(root, session, messages),
 		notifyTelegramResponseCompleted(root, session, messages),
@@ -41,6 +44,9 @@ func notifyRemoteChoiceQuestion(root string, session Session, messages []Message
 }
 
 func notifyDiscordResponseCompleted(root string, session Session, messages []Message) error {
+	if isAgentChildSession(session) {
+		return nil
+	}
 	settings, err := WorkspaceSettings(root)
 	if err != nil {
 		return err
@@ -53,6 +59,9 @@ func notifyDiscordResponseCompleted(root string, session Session, messages []Mes
 }
 
 func notifyTelegramResponseCompleted(root string, session Session, messages []Message) error {
+	if isAgentChildSession(session) {
+		return nil
+	}
 	settings, err := WorkspaceSettings(root)
 	if err != nil {
 		return err
@@ -86,6 +95,10 @@ func notifyTelegramChoiceQuestion(root string, session Session, messages []Messa
 		return nil
 	}
 	return sendTelegramMessage(telegram, telegramChoiceQuestionMessage(session, latestChoiceQuestion(messages)))
+}
+
+func isAgentChildSession(session Session) bool {
+	return session.ParentID != "" || session.Kind == SessionKindSubagent || session.Kind == SessionKindTeam
 }
 
 func discordCompletionSettings(settings map[string]any) discordNotificationSettings {

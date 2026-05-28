@@ -225,6 +225,18 @@ function toastContextSessionId(context) {
   return context.sessionId;
 }
 
+function isAgentChildSessionContext(context) {
+  if (!context || typeof context === "string") return false;
+  return !!context.parentSessionId || context.sessionKind === "subagent" || context.sessionKind === "team";
+}
+
+function sessionContextFromRow(row) {
+  return {
+    parentSessionId: row?.dataset.parentSession || "",
+    sessionKind: row?.dataset.kind || "",
+  };
+}
+
 function displayName(name, id) {
   const label = String(name || "").trim();
   const value = String(id || "").trim();
@@ -431,6 +443,7 @@ export const toastMethods = {
 
   currentToastContext() {
     const sessionId = this.dataset.activeSessionId;
+    const row = sessionId ? this.querySelector(`.session-row[data-session='${sessionId}']`) : null;
     return {
       workspaceName: displayName(
         this.querySelector("[data-active-workspace]")?.textContent,
@@ -442,13 +455,16 @@ export const toastMethods = {
       ),
       prompt: this.readLastSessionPrompt(sessionId),
       sessionId,
+      ...sessionContextFromRow(row),
     };
   },
 
   notifySessionCompleted(context) {
-    const sessionId = toastContextSessionId(context || this.currentToastContext());
+    const toastContext = context || this.currentToastContext();
+    if (isAgentChildSessionContext(toastContext)) return;
+    const sessionId = toastContextSessionId(toastContext);
     this.markUnreadCompletedSession(sessionId);
-    this.showToast("success", undefined, context);
+    this.showToast("success", undefined, toastContext);
   },
 
   notifyResponseCompletedOnce(context) {
@@ -628,6 +644,7 @@ export const toastMethods = {
       sessionName: displayName(row?.dataset.title, sessionId),
       prompt: this.readLastSessionPrompt(sessionId),
       sessionId,
+      ...sessionContextFromRow(row),
     };
   },
 };

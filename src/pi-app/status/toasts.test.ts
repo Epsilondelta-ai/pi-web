@@ -47,6 +47,24 @@ describe("pi-app toast notifications", () => {
     expect(toast.querySelector(".toast-prompt").textContent).toBe("explain the failure and suggest a fix");
   });
 
+  it("does not show a completion toast for active agent child sessions", async () => {
+    const app = await connectPiApp();
+    setActiveToastContext(app);
+    const row = document.createElement("div");
+    row.className = "session-row selected child-session session-kind-subagent";
+    row.dataset.session = "s1";
+    row.dataset.workspace = "w1";
+    row.dataset.title = "new session";
+    row.dataset.parentSession = "parent-session";
+    row.dataset.kind = "subagent";
+    app.append(row);
+
+    app.notifySessionCompleted();
+
+    expect(document.querySelector(".session-toast.success")).toBeNull();
+    expect(row.classList.contains("unread-completed")).toBe(false);
+  });
+
   it("shows a red failure toast and suppresses completion after a response error", async () => {
     const app = await connectPiApp();
     setActiveToastContext(app);
@@ -284,6 +302,46 @@ describe("pi-app toast notifications", () => {
     expect(app.dataset.activeSessionId).toBe("background-session");
     expect(app.loadSession).toHaveBeenCalledWith("background-session");
     expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(false);
+  });
+
+  it("does not notify when an inactive watched agent child session completes", async () => {
+    const sources = [];
+    class FakeEventSource {
+      constructor(url) {
+        this.url = url;
+        this.listeners = {};
+        this.close = vi.fn();
+        sources.push(this);
+      }
+      addEventListener(type, callback) { this.listeners[type] = callback; }
+    }
+    vi.stubGlobal("EventSource", FakeEventSource);
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.dataset.activeSessionId = "active-session";
+    app.dataset.activeWorkspaceId = "active-workspace";
+
+    app.writeLastSessionPrompt("child-session", "hello");
+    app.renderWorkspaces([
+      { id: "active-workspace", name: "active", sessionCount: 1, sessions: [{ id: "active-session", title: "now" }] },
+      { id: "other-workspace", name: "other", sessionCount: 1, sessions: [
+        { id: "parent-session", title: "parent" },
+        { id: "child-session", title: "new session", active: true, parentId: "parent-session", kind: "subagent" },
+      ] },
+    ]);
+
+    expect(sources).toHaveLength(1);
+    sources[0].listeners["session.status"]({
+      data: JSON.stringify({
+        type: "session.status",
+        sessionId: "child-session",
+        payload: { status: "idle" },
+      }),
+    });
+
+    expect(document.querySelector(".session-toast.success")).toBeNull();
+    expect(app.querySelector("[data-session='child-session']").classList.contains("unread-completed")).toBe(false);
+    expect(sources[0].close).toHaveBeenCalled();
   });
 
   it("drops unread completed sessions that are no longer visible", async () => {

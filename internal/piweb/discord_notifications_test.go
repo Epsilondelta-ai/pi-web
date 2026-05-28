@@ -145,6 +145,46 @@ func TestNotifyTelegramResponseCompletedSendsConfiguredMessage(t *testing.T) {
 	}
 }
 
+func TestNotifyRemoteResponseCompletedSkipsAgentChildSessions(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"},"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousDiscordBaseURL := discordAPIBaseURL
+	previousTelegramBaseURL := telegramAPIBaseURL
+	discordAPIBaseURL = server.URL
+	telegramAPIBaseURL = server.URL
+	defer func() {
+		discordAPIBaseURL = previousDiscordBaseURL
+		telegramAPIBaseURL = previousTelegramBaseURL
+	}()
+
+	for _, session := range []Session{
+		{ID: "sub", ParentID: "parent", Title: "new session"},
+		{ID: "kind-sub", Kind: SessionKindSubagent, Title: "new session"},
+		{ID: "kind-team", Kind: SessionKindTeam, Title: "new session"},
+	} {
+		if err := notifyRemoteResponseCompleted(root, session, []Message{{Kind: "user", Text: "hello"}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if called {
+		t.Fatal("agent child sessions should not send remote completion notifications")
+	}
+}
+
 func TestNotifyTelegramResponseCompletedSkipsIncompleteSettings(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
