@@ -51,7 +51,7 @@ export class CodeMirrorFileEditor {
   }
 
   focus() {
-    this.view?.focus();
+    this.view?.contentDOM.focus({ preventScroll: true });
   }
 
   getValue() {

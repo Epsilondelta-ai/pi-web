@@ -246,6 +246,7 @@ async function mountTextPreviewEditor(app, state, container) {
       },
       onSave: () => void app.saveFilePreview?.(),
     });
+    state.editor.focus();
   } catch (error) {
     container.textContent = error instanceof Error ? error.message : String(error);
   }

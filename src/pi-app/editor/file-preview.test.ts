@@ -88,6 +88,13 @@ describe("file preview CodeMirror editor", () => {
     expect(app.querySelector(".fp-head small").textContent).toContain("modified");
   });
 
+  it("focuses the editor after opening a text file", async () => {
+    const app = mountPreview();
+    await renderPreview(app, { path: "new-file.txt", mime: "text/plain", previewKind: "text", content: "" });
+
+    expect(app.filePreview.editor.view.hasFocus).toBe(true);
+  });
+
   it("searches file content with highlighted next and previous matches", async () => {
     const app = mountPreview();
     await renderPreview(app, { path: "demo.txt", mime: "text/plain", previewKind: "text", content: "alpha beta alpha" });
