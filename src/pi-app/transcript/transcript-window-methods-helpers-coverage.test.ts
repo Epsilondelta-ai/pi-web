@@ -64,28 +64,43 @@ describe("transcript window direct method branches", () => {
     owner.transcriptFollowBottom = false;
     owner.isTermPinnedToBottom = vi.fn(() => true);
     owner.handleTranscriptScroll();
-    expect(owner.transcriptFollowBottom).toBe(true);
+    expect(owner.transcriptFollowBottom).toBe(false);
   });
 
   it("covers gesture follow-release fallbacks", () => {
+    const term = document.createElement("div");
+    const child = document.createElement("div");
+    term.append(child);
+    const outside = document.createElement("div");
     const owner: any = {
       ...transcriptWindowMethods,
+      term,
       updateTranscriptScrollButton: vi.fn(),
       stopFollowingTranscriptBottom: vi.fn(),
     };
 
+    expect(transcriptWindowMethods.isTranscriptGestureEvent.call({ term: undefined }, {})).toBe(false);
+    expect(owner.isTranscriptGestureEvent({ composedPath: () => [outside], target: outside })).toBe(false);
+    expect(owner.isTranscriptGestureEvent({ target: outside })).toBe(false);
+    expect(owner.isTranscriptGestureEvent({})).toBe(true);
+
     owner.handleTranscriptUserWheel();
-    owner.handleTranscriptUserWheel({ deltaY: 1 });
+    owner.handleTranscriptUserWheel({ deltaY: 1, target: child });
+    owner.handleTranscriptPointerDown({ target: outside });
+    owner.handleTranscriptKeyDown({ key: "ArrowUp", target: outside });
+    owner.handleTranscriptKeyDown({ key: "ArrowDown", target: child });
+    expect(owner.transcriptPointerStartedInTerm).toBe(false);
+    expect(owner.transcriptKeyboardScrollPending).toBeUndefined();
     expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
 
     owner.handleTranscriptTouchStart();
     expect(owner.transcriptLastTouchY).toBeUndefined();
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 3 }] });
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }] });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 3 }], target: child });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }], target: child });
     expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
 
-    owner.handleTranscriptUserWheel({ deltaY: -1 });
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }] });
+    owner.handleTranscriptUserWheel({ deltaY: -1, target: child });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }], target: child });
     expect(owner.stopFollowingTranscriptBottom).toHaveBeenCalledTimes(2);
   });
 });

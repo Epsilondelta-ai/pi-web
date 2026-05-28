@@ -409,6 +409,16 @@ describe("pi-app messages", () => {
     expect(glyphs[6].textContent).toBe("●");
   });
 
+  it("renders retry tool markers as warnings", async () => {
+    const app = await connectPiApp();
+    app.renderMessages([{ kind: "tool", tool: "pi", status: "retry", resultMeta: "retrying 1/3", body: "Automatic retry marker" }]);
+    const tool = app.querySelector(".tool-card");
+    expect(tool.dataset.status).toBe("retry");
+    expect(tool.querySelector(".tc-meta").textContent).toContain("retrying 1/3");
+    expect(tool.querySelector(".tc-meta .retry")).not.toBeNull();
+    expect(app.retryToolStatus({})).toContain("retrying");
+  });
+
   it("marks stale running tools complete when assistant output resumes", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);

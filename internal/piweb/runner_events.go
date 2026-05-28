@@ -13,7 +13,20 @@ type jsonStreamState struct {
 	streamedThinking           bool
 	assistantResponseCompleted bool
 	fallbackChoiceNotified     bool
+	emptyAssistantRetries      int
+	idleTimeoutRetries         int
 	onFallbackChoiceMessage    func()
+}
+
+func (state *jsonStreamState) assistantTurnSucceeded() bool {
+	return state.assistantResponseCompleted || state.fallbackChoiceNotified
+}
+
+func (state *jsonStreamState) resetAssistantTurn() {
+	state.streamedText = false
+	state.streamedThinking = false
+	state.assistantResponseCompleted = false
+	state.fallbackChoiceNotified = false
 }
 
 func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID string, state *jsonStreamState) bool {
