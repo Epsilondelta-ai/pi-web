@@ -36,6 +36,7 @@ export const transcriptWindowMethods = {
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
     this.transcriptFollowBottom = true;
+    this.transcriptLastScrollTop = this.term?.scrollTop || 0;
     this.transcriptNextItemId = 1;
     this.transcriptResizeObservers = new Map();
     this.answeredChoiceIds = new Set();
@@ -70,21 +71,15 @@ export const transcriptWindowMethods = {
     this.transcriptScrollGuardInstalled = true;
     this.scrollTerm = ({ force = false } = {}) => {
       if (!force && this.transcriptFollowBottom === false) return;
-      if (this.scrollFrame) {
-        this.scrollFrameForce ||= force;
-        if (force) {
-          this.scrollTermToBottomImmediately();
-          this.updateTranscriptScrollButton();
-        }
-        return;
+      if (force) {
+        this.scrollTermToBottomImmediately();
+        this.updateTranscriptScrollButton();
       }
-      this.scrollFrameForce = force;
+      if (this.scrollFrame) return;
       this.scrollFrame = window.requestAnimationFrame(() => {
-        const scrollFrameForce = this.scrollFrameForce;
         this.scrollFrame = undefined;
-        this.scrollFrameForce = false;
         const scroll = () => {
-          if (!scrollFrameForce && this.transcriptFollowBottom === false) return;
+          if (this.transcriptFollowBottom === false) return;
           this.scrollTermToBottomImmediately();
           this.updateTranscriptScrollButton();
         };
@@ -100,11 +95,18 @@ export const transcriptWindowMethods = {
     const previousScrollBehavior = term.style.scrollBehavior;
     term.style.scrollBehavior = "auto";
     term.scrollTop = term.scrollHeight;
+    this.transcriptLastScrollTop = term.scrollTop;
     term.style.scrollBehavior = previousScrollBehavior;
   },
 
   handleTranscriptScroll() {
-    this.transcriptFollowBottom = this.isTermPinnedToBottom();
+    const term = this.term;
+    const scrollTop = term?.scrollTop || 0;
+    const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
+    const pinned = this.isTermPinnedToBottom();
+    if (pinned) this.transcriptFollowBottom = true;
+    else if (scrollTop < previousScrollTop - 1) this.transcriptFollowBottom = false;
+    this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
   },
@@ -139,6 +141,7 @@ export const transcriptWindowMethods = {
   resetTranscriptWindow() {
     this.destroyTranscriptVirtualScroller();
     this.transcriptItems = [];
+    this.transcriptLastScrollTop = 0;
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
     this.transcriptFollowBottom = true;
@@ -217,7 +220,7 @@ export const transcriptWindowMethods = {
   },
 
   shouldStickToBottom() {
-    return this.transcriptFollowBottom !== false && this.isTermPinnedToBottom();
+    return this.transcriptFollowBottom !== false;
   },
 
   renderVirtualTranscriptItem(item) {
