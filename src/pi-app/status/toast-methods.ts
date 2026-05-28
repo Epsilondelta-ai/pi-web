@@ -570,9 +570,10 @@ export const toastMethods = {
 
   async readCompletedBackgroundSessionAloud(sessionId) {
     if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId)) return;
+    const generation = this.readAloudGeneration || 0;
     try {
       const result = await getSession(sessionId, { limit: 20 });
-      if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId)) return;
+      if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId) || (this.readAloudGeneration || 0) !== generation) return;
       const messages = result?.messages || [];
       const assistantMessage = [...messages].reverse().find((message) => message?.kind === "pi" && message.text);
       if (assistantMessage?.text) this.speakAssistantText?.(assistantMessage.text);

@@ -326,6 +326,16 @@ describe("pi-app toast notifications", () => {
     await staleRead;
     expect(app.speakAssistantText).not.toHaveBeenCalledWith("stale answer");
     app.readResponsesAloud = true;
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ messages: [{ kind: "pi", text: "newer playback answer" }] }),
+    });
+    const supersededRead = app.readCompletedBackgroundSessionAloud("superseded-session");
+    app.readAloudGeneration = (app.readAloudGeneration || 0) + 1;
+    await supersededRead;
+    expect(app.speakAssistantText).not.toHaveBeenCalledWith("newer playback answer");
     app.dataset.activeSessionId = "active-session";
     await app.readCompletedBackgroundSessionAloud("active-session");
     expect(fetch).not.toHaveBeenCalledWith("http://backend.test/api/sessions/active-session?limit=20", expect.anything());
