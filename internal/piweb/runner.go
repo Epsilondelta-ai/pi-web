@@ -252,6 +252,10 @@ func (r *Runner) waitForPiAttempt(
 		case <-activity:
 			resetTimer(streamLLMEventIdleTimeout)
 		case <-timer.C:
+			if state.assistantTurnSucceeded() {
+				attemptCancel()
+				return piAttemptResult{success: true}
+			}
 			attemptCancel()
 			return retryIdleTimeoutTurn(broker, store, sessionID, state)
 		case <-ctx.Done():

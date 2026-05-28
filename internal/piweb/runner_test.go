@@ -151,6 +151,39 @@ done
 	}
 }
 
+func TestStartPiPromptDoesNotRetryCompletedAssistantWhenAgentEndIsDelayed(t *testing.T) {
+	overrideLLMIdleTimeouts(t, 30*time.Millisecond, 30*time.Millisecond)
+	logPath := installFakePi(t, `#!/bin/sh
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "$PI_FAKE_LOG"
+  printf '%s\n' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}'
+  sleep 10
+done
+`)
+	store := runnerTestStore(t)
+	broker := NewBroker()
+	runner := NewRunner()
+
+	if err := runner.StartPiPrompt(context.Background(), broker, store, "s1", "fix it", nil, "fix it"); err != nil {
+		t.Fatalf("StartPiPrompt failed: %v", err)
+	}
+	waitForRunnerIdle(t, runner, "s1")
+
+	if lines := readPromptLog(t, logPath); len(lines) != 1 {
+		t.Fatalf("completed assistant must not be retried when agent_end is delayed, got %d prompts: %#v", len(lines), lines)
+	}
+	_, messages, err := store.Session("s1")
+	if err != nil {
+		t.Fatalf("Session failed: %v", err)
+	}
+	if countRetryMarkers(messages, "LLM idle timeout") != 0 {
+		t.Fatalf("completed assistant should not save idle retry markers, got %#v", messages)
+	}
+	if got := messages[len(messages)-1]; got.Kind != "pi" || got.Text != "done" {
+		t.Fatalf("expected completed assistant message, got %#v", got)
+	}
+}
+
 func TestStartPiPromptRetriesIdleTimeoutUntilMessageArrives(t *testing.T) {
 	overrideLLMIdleTimeouts(t, 30*time.Millisecond, 30*time.Millisecond)
 	logPath := installFakePi(t, `#!/bin/sh
