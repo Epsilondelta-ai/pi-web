@@ -18,6 +18,7 @@ export const workspaceRenderMethods = {
     this.renderSidebarWorkspaces(orderedWorkspaces);
     this.syncUnreadCompletedSessions?.();
     this.syncBackgroundSessionWatches?.();
+    this.syncAgentSessionStatusPolling?.();
   },
 
   renderRecentWorkspaces(workspaces) {

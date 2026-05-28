@@ -97,6 +97,49 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(list.querySelector(".folder-empty").textContent).toBe("no folders");
   });
 
+  it("polls workspace sessions while child agents are live", async () => {
+    vi.useFakeTimers();
+    await customElements.whenDefined("pi-app");
+    const app = document.querySelector("pi-app");
+    app.apiConnected = true;
+    app.dataset.activeWorkspaceId = "w1";
+    globalThis.fetch = vi.fn(async () => okJson({ workspaces: [
+      { id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [] },
+    ] }));
+
+    app.renderWorkspaces([{ id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [
+      { id: "parent", title: "parent" },
+      { id: "child", title: "child", parentId: "parent", kind: "subagent", live: true },
+    ] }]);
+
+    expect(app.agentSessionStatusTimer).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(globalThis.fetch).toHaveBeenCalledWith("http://backend.test/api/workspaces", {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    app.renderWorkspaces([{ id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [] }]);
+    expect(app.agentSessionStatusTimer).toBeUndefined();
+  });
+
+  it("keeps polling briefly while hidden child agent sessions appear", async () => {
+    vi.useFakeTimers();
+    await customElements.whenDefined("pi-app");
+    const app = document.querySelector("pi-app");
+    app.apiConnected = true;
+    globalThis.fetch = vi.fn(async () => okJson({ workspaces: [] }));
+
+    app.startAgentSessionDiscoveryPolling();
+
+    expect(app.agentSessionStatusTimer).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(globalThis.fetch).toHaveBeenCalled();
+
+    app.agentSessionDiscoveryUntil = Date.now() - 1;
+    app.syncAgentSessionStatusPolling();
+    expect(app.agentSessionStatusTimer).toBeUndefined();
+  });
+
   it("renders the React sortable sidebar and persists drag callbacks", async () => {
     const app = await connectPiApp();
     const section = app.querySelector(".sidebar .sb-section");

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func annotateSubagentSessions(sessionDir string, sessions []ParsedSession) {
@@ -24,6 +25,7 @@ func annotateSubagentSessions(sessionDir string, sessions []ParsedSession) {
 		}
 		sessions[index].Session.ParentID = parentID
 		sessions[index].Session.Kind = SessionKindSubagent
+		markChildSessionLiveFromFile(&sessions[index])
 	}
 }
 
@@ -65,6 +67,61 @@ func cleanSessionPath(path string) string {
 		return filepath.Clean(absolute)
 	}
 	return filepath.Clean(path)
+}
+
+func markChildSessionLiveFromFile(session *ParsedSession) {
+	if !isPossiblyRunningChildSession(session.File, session.ModTime) {
+		return
+	}
+	session.Session.Live = true
+	session.Session.Active = true
+	session.Session.LastUsed = "live"
+}
+
+func isPossiblyRunningChildSession(path string, modTime time.Time) bool {
+	if path == "" || time.Since(modTime) > 30*time.Minute {
+		return false
+	}
+	lastRole, lastStopReason := lastSessionMessageState(path)
+	if lastRole == "" || lastRole == "assistant" && isTerminalAssistantStopReason(lastStopReason) {
+		return false
+	}
+	return true
+}
+
+func isTerminalAssistantStopReason(reason string) bool {
+	switch strings.ToLower(strings.TrimSpace(reason)) {
+	case "", "tooluse", "tool_use":
+		return false
+	default:
+		return true
+	}
+}
+
+func lastSessionMessageState(path string) (string, string) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", ""
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 1024), 10*1024*1024)
+	var last agentMessage
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		var entry sessionEntry
+		if err := json.Unmarshal([]byte(line), &entry); err != nil || entry.Type != "message" {
+			continue
+		}
+		var message agentMessage
+		if err := json.Unmarshal(entry.Message, &message); err == nil {
+			last = message
+		}
+	}
+	return last.Role, last.StopReason
 }
 
 func readSessionHeader(path string) (sessionHeader, error) {

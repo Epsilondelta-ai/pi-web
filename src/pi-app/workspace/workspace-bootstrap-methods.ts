@@ -139,10 +139,10 @@ export const workspaceBootstrapMethods = {
     } catch {}
   },
 
-  async refreshWorkspaces() {
+  async refreshWorkspaces(options: any = {}) {
     if (!this.apiConnected) return;
     const button = this.querySelector("[data-action='refresh-workspaces']");
-    if (button) button.disabled = true;
+    if (button && !options.quiet) button.disabled = true;
     try {
       const { workspaces } = await getWorkspaces();
       const activeWorkspaceId = this.dataset.activeWorkspaceId;
@@ -152,8 +152,35 @@ export const workspaceBootstrapMethods = {
     } catch {
       this.setConnection("err");
     } finally {
-      if (button) button.disabled = false;
+      if (button && !options.quiet) button.disabled = false;
     }
+  },
+
+  startAgentSessionDiscoveryPolling() {
+    this.agentSessionDiscoveryUntil = Date.now() + 45000;
+    this.syncAgentSessionStatusPolling?.();
+  },
+
+  syncAgentSessionStatusPolling() {
+    const shouldPoll = this.shouldPollAgentSessionStatus?.();
+    if (shouldPoll && !this.agentSessionStatusTimer) {
+      this.agentSessionStatusTimer = window.setInterval(() => {
+        void this.refreshWorkspaces?.({ quiet: true });
+        this.syncAgentSessionStatusPolling?.();
+      }, 1500);
+      return;
+    }
+    if (!shouldPoll && this.agentSessionStatusTimer) {
+      clearInterval(this.agentSessionStatusTimer);
+      this.agentSessionStatusTimer = undefined;
+    }
+  },
+
+  shouldPollAgentSessionStatus() {
+    if (!this.apiConnected) return false;
+    if (this.running) return true;
+    if ((this.agentSessionDiscoveryUntil || 0) > Date.now()) return true;
+    return !!this.querySelector(".session-row.child-session.active[data-session]");
   },
 
   withRefreshFallbackWorkspace(workspaceList, activeWorkspaceId) {
