@@ -65,6 +65,18 @@ describe("pi-app toast notifications", () => {
     expect(row.classList.contains("unread-completed")).toBe(false);
   });
 
+  it("does not show a completion toast for fallback choice questions", async () => {
+    const app = await connectPiApp();
+    setActiveToastContext(app);
+
+    app.applyEvent({ type: "session.status", payload: { status: "running" } });
+    app.applyEvent({ type: "session.message", payload: { kind: "pi", text: fallbackChoiceJson } });
+    app.applyEvent({ type: "session.status", payload: { status: "idle" } });
+
+    expect(document.querySelector(".session-toast.choice").textContent).toContain("선택지 요청");
+    expect(document.querySelector(".session-toast.success")).toBeNull();
+  });
+
   it("shows a red failure toast and suppresses completion after a response error", async () => {
     const app = await connectPiApp();
     setActiveToastContext(app);
@@ -471,6 +483,14 @@ describe("pi-app toast notifications", () => {
     expect(app.notifyResponseFailure).toHaveBeenCalled();
     expect(app.notifyChoiceRequested).toHaveBeenCalled();
     expect(app.dismissBackgroundSessionWatch).toHaveBeenCalled();
+
+    const choiceWatch = { row, source: { close: vi.fn() }, failed: false, wasRunning: true };
+    app.dismissBackgroundSessionWatch.mockClear();
+    app.notifySessionCompleted.mockClear();
+    app.handleBackgroundSessionEvent({ type: "session.message", payload: { text: fallbackChoiceJson } }, choiceWatch);
+    app.handleBackgroundSessionEvent({ type: "session.status", payload: { status: "idle" }, sessionId: "s2" }, choiceWatch);
+    expect(app.dismissBackgroundSessionWatch).toHaveBeenCalled();
+    expect(app.notifySessionCompleted).not.toHaveBeenCalled();
   });
 
   it("restores unread completed session glow from local storage until the session is opened", async () => {

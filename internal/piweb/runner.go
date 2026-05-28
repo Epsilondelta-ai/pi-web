@@ -147,15 +147,15 @@ func (r *Runner) StartPiPrompt(
 			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
 			return
 		}
-		broker.Publish(sessionID, "session.status", map[string]string{
-			"status":     "idle",
-			"finishedAt": time.Now().UTC().Format(time.RFC3339),
-		})
 		if state.assistantResponseCompleted && !state.fallbackChoiceNotified {
 			if session, messages, err := store.Session(sessionID); err == nil {
 				_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
 			}
 		}
+		broker.Publish(sessionID, "session.status", map[string]string{
+			"status":     "idle",
+			"finishedAt": time.Now().UTC().Format(time.RFC3339),
+		})
 	}()
 	return nil
 }
