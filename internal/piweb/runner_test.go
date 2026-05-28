@@ -107,7 +107,7 @@ while IFS= read -r line; do
   printf '%s\n' "$line" >> "$PI_FAKE_LOG"
   count=$(wc -l < "$PI_FAKE_LOG")
   if [ "$count" -lt 4 ]; then
-    printf '%s\n' '{"type":"agent_end"}'
+    exit 0
   else
     printf '%s\n' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}'
     printf '%s\n' '{"type":"agent_end"}'
@@ -184,6 +184,41 @@ done
 	}
 }
 
+func TestStartPiPromptWaitsForAssistantAfterEarlyAgentEnd(t *testing.T) {
+	overrideLLMIdleTimeouts(t, 100*time.Millisecond, 100*time.Millisecond)
+	logPath := installFakePi(t, `#!/bin/sh
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "$PI_FAKE_LOG"
+  printf '%s\n' '{"type":"agent_end"}'
+  sleep 0.02
+  printf '%s\n' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}'
+  exit 0
+done
+`)
+	store := runnerTestStore(t)
+	broker := NewBroker()
+	runner := NewRunner()
+
+	if err := runner.StartPiPrompt(context.Background(), broker, store, "s1", "fix it", nil, "fix it"); err != nil {
+		t.Fatalf("StartPiPrompt failed: %v", err)
+	}
+	waitForRunnerIdle(t, runner, "s1")
+
+	if lines := readPromptLog(t, logPath); len(lines) != 1 {
+		t.Fatalf("early agent_end must not cause retry before assistant message, got %d prompts: %#v", len(lines), lines)
+	}
+	_, messages, err := store.Session("s1")
+	if err != nil {
+		t.Fatalf("Session failed: %v", err)
+	}
+	if countRetryMarkers(messages, "empty assistant") != 0 || countRetryMarkers(messages, "LLM idle timeout") != 0 {
+		t.Fatalf("completed assistant should not save retry markers, got %#v", messages)
+	}
+	if got := messages[len(messages)-1]; got.Kind != "pi" || got.Text != "done" {
+		t.Fatalf("expected completed assistant message, got %#v", got)
+	}
+}
+
 func TestStartPiPromptRetriesIdleTimeoutUntilMessageArrives(t *testing.T) {
 	overrideLLMIdleTimeouts(t, 30*time.Millisecond, 30*time.Millisecond)
 	logPath := installFakePi(t, `#!/bin/sh
@@ -226,7 +261,7 @@ func TestStartPiPromptFailsAfterThreeEmptyAssistantRetries(t *testing.T) {
 	logPath := installFakePi(t, `#!/bin/sh
 while IFS= read -r line; do
   printf '%s\n' "$line" >> "$PI_FAKE_LOG"
-  printf '%s\n' '{"type":"agent_end"}'
+  exit 0
 done
 `)
 	store := runnerTestStore(t)
