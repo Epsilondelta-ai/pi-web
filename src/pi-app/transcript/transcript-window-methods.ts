@@ -166,7 +166,7 @@ export const transcriptWindowMethods = {
     const scrollTop = term?.scrollTop || 0;
     const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
-    if (pinned) this.transcriptFollowBottom = true;
+    if (pinned && this.transcriptFollowBottom !== false) this.transcriptFollowBottom = true;
     else if (scrollTop < previousScrollTop - 1) this.stopFollowingTranscriptBottom();
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
@@ -188,7 +188,7 @@ export const transcriptWindowMethods = {
 
   updateTranscriptScrollButton() {
     if (!this.transcriptScrollButton) return;
-    this.transcriptScrollButton.hidden = this.isTermPinnedToBottom();
+    this.transcriptScrollButton.hidden = this.transcriptFollowBottom !== false && this.isTermPinnedToBottom();
   },
 
   adoptRenderedTranscript() {

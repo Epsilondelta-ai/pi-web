@@ -672,4 +672,28 @@ describe("pi-app transcript window", () => {
     app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 110 } as Touch] }));
     expect(app.transcriptFollowBottom).toBe(false);
   });
+
+  it("does not re-enable follow from a near-bottom scroll event after an explicit release", async () => {
+    const app = await connectPiApp();
+    let scrollTop = 880;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.scrollTerm({ force: true });
+    scrollTop = 870;
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
+    app.handleTranscriptScroll();
+
+    expect(app.transcriptFollowBottom).toBe(false);
+    expect(app.transcriptScrollButton.hidden).toBe(false);
+
+    app.scrollTerm();
+
+    expect(scrollTop).toBe(870);
+  });
 });

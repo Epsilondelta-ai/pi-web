@@ -64,7 +64,7 @@ describe("transcript window direct method branches", () => {
     owner.transcriptFollowBottom = false;
     owner.isTermPinnedToBottom = vi.fn(() => true);
     owner.handleTranscriptScroll();
-    expect(owner.transcriptFollowBottom).toBe(true);
+    expect(owner.transcriptFollowBottom).toBe(false);
   });
 
   it("covers gesture follow-release fallbacks", () => {
