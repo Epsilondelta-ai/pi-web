@@ -847,9 +847,11 @@ describe("pi-app controls", () => {
       settings: {
         defaultModel: "my-model",
         compaction: { enabled: false },
-        voice: { language: "ja-JP" },
-        speechInput: { language: "ja", whisperModel: "tiny" },
       },
+    });
+    expect(JSON.parse(localStorage.getItem("pi-web.localSettings.project:w1"))).toMatchObject({
+      voice: { language: "ja-JP" },
+      speechInput: { language: "ja", whisperModel: "tiny" },
     });
   });
 
@@ -892,9 +894,10 @@ describe("pi-app controls", () => {
 
     await app.saveSettingsForm(new Event("submit"));
     const putCall = globalThis.fetch.mock.calls.find(([, options]) => options?.method === "PUT");
-    const settings = JSON.parse(putCall[1].body).settings;
-    expect(settings).not.toHaveProperty("enableSpeechInput");
-    expect(settings).not.toHaveProperty("speechInput");
+    expect(putCall).toBeUndefined();
+    const localSettings = JSON.parse(localStorage.getItem("pi-web.localSettings.project:w1"));
+    expect(localSettings).not.toHaveProperty("enableSpeechInput");
+    expect(localSettings).not.toHaveProperty("speechInput");
   });
 
   it("sets app height from the visual viewport for mobile browser chrome", async () => {

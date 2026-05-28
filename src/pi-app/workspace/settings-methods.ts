@@ -114,6 +114,127 @@ export function settingsValueChanged(scopedSettings, effective, path, value) {
   return effectiveValue !== value;
 }
 
+export const LOCAL_SETTINGS_PATHS = new Set([
+  "readResponsesAloud",
+  "voice.language",
+  "enableSpeechInput",
+  "speechInput.language",
+  "speechInput.useLocalWhisper",
+  "speechInput.whisperModel",
+  "hideThinkingBlock",
+  "collapseChangelog",
+  "quietStartup",
+  "warnings.anthropicExtraUsage",
+  "terminal.showImages",
+  "terminal.imageWidthCells",
+  "terminal.clearOnShrink",
+  "terminal.showTerminalProgress",
+  "images.autoResize",
+  "images.blockImages",
+  "showHardwareCursor",
+  "editorPaddingX",
+  "autocompleteMaxVisible",
+  "treeFilterMode",
+  "doubleEscapeAction",
+  "steeringMode",
+  "followUpMode",
+  "enableSkillCommands",
+]);
+
+export function localSettingsKey(scope, workspaceId) {
+  return scope === "project" && workspaceId ? `pi-web.localSettings.project:${workspaceId}` : "pi-web.localSettings.global";
+}
+
+export function readLocalSettings(scope, workspaceId) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(localSettingsKey(scope, workspaceId)) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function writeLocalSettings(scope, workspaceId, settings) {
+  try {
+    const key = localSettingsKey(scope, workspaceId);
+    if (Object.keys(settings).length) localStorage.setItem(key, JSON.stringify(settings));
+    else localStorage.removeItem(key);
+  } catch {}
+}
+
+export function deleteEmptyContainers(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  for (const [key, child] of Object.entries(value)) {
+    if (child && typeof child === "object" && !Array.isArray(child)) {
+      deleteEmptyContainers(child);
+      if (!Object.keys(child).length) delete value[key];
+    }
+  }
+  return value;
+}
+
+export function deletePath(settings, path) {
+  const parts = path.split(".");
+  let target = settings;
+  for (const part of parts.slice(0, -1)) {
+    target = target?.[part];
+    if (!target || typeof target !== "object") return;
+  }
+  delete target[parts.at(-1)];
+  deleteEmptyContainers(settings);
+}
+
+export function mergeSettings(...settingsList) {
+  const merged = {};
+  for (const settings of settingsList) {
+    if (!settings || typeof settings !== "object") continue;
+    for (const [key, value] of Object.entries(settings)) {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        merged[key] = mergeSettings(merged[key], value);
+      } else {
+        merged[key] = value;
+      }
+    }
+  }
+  return merged;
+}
+
+export function pruneLocalSettingsPatch(patch) {
+  const localPatch = {};
+  const remotePatch = structuredClone(patch);
+  for (const path of LOCAL_SETTINGS_PATHS) {
+    const value = valueAt(patch, path);
+    if (value !== undefined) {
+      setPatchValue(localPatch, path, value);
+      deletePath(remotePatch, path);
+    }
+  }
+  return { localPatch, remotePatch: deleteEmptyContainers(remotePatch) };
+}
+
+export function applyLocalSettingsState(settingsState, workspaceId) {
+  if (!settingsState) return settingsState;
+  const globalLocal = readLocalSettings("global", workspaceId);
+  const projectLocal = readLocalSettings("project", workspaceId);
+  return {
+    ...settingsState,
+    global: mergeSettings(settingsState.global || {}, globalLocal),
+    project: mergeSettings(settingsState.project || {}, projectLocal),
+    effective: mergeSettings(settingsState.effective || {}, globalLocal, projectLocal),
+  };
+}
+
+export function saveLocalSettingsPatch(scope, workspaceId, patch) {
+  const stored = readLocalSettings(scope, workspaceId);
+  for (const path of LOCAL_SETTINGS_PATHS) {
+    const value = valueAt(patch, path);
+    if (value === undefined) continue;
+    if (value === null) deletePath(stored, path);
+    else setPatchValue(stored, path, value);
+  }
+  writeLocalSettings(scope, workspaceId, stored);
+}
+
 export function passwordEffectiveLabel(field, effectiveValue) {
   if (field.type === "password" && effectiveValue) return "set";
   return describeEffective(effectiveValue);
@@ -123,7 +244,7 @@ export const settingsMethods = {
   async loadWorkspaceSettingsState(workspaceId = this.dataset.activeWorkspaceId) {
     if (!workspaceId || !this.apiConnected) return;
     const { settings } = await getWorkspaceSettings(workspaceId);
-    this.settingsState = parseWorkspaceSettings(settings);
+    this.settingsState = applyLocalSettingsState(parseWorkspaceSettings(settings), workspaceId);
     this.syncSettingsStateToApp();
   },
 
@@ -156,7 +277,7 @@ export const settingsMethods = {
       this.setConnection("err");
       return;
     }
-    this.settingsState = parseWorkspaceSettings(settingsResult.value.settings);
+    this.settingsState = applyLocalSettingsState(parseWorkspaceSettings(settingsResult.value.settings), workspaceId);
     this.populateBrowserVoiceLanguageOptions();
     if (authResult.status === "fulfilled") {
       this.authState = authResult.value;
@@ -479,8 +600,12 @@ export const settingsMethods = {
     try {
       const scope = settingsScopeSchema.parse(scopeValue);
       const patch = parseSettingsPatch(this.settingsPatchFromForm(form));
-      const { settings } = await saveWorkspaceSettings(workspaceId, scope, patch);
-      this.settingsState = parseWorkspaceSettings(settings);
+      const { localPatch, remotePatch } = pruneLocalSettingsPatch(patch);
+      saveLocalSettingsPatch(scope, workspaceId, localPatch);
+      const result = Object.keys(remotePatch).length
+        ? await saveWorkspaceSettings(workspaceId, scope, remotePatch)
+        : await getWorkspaceSettings(workspaceId);
+      this.settingsState = applyLocalSettingsState(parseWorkspaceSettings(result.settings), workspaceId);
       this.fillSettingsForm();
       this.syncSettingsStateToApp();
       this.setSettingsStatus("saved");
