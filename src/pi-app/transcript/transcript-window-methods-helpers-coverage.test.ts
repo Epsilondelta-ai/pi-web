@@ -25,7 +25,7 @@ describe("transcript window direct method branches", () => {
   });
 
   it("covers scroll handling with missing and pinned terms", () => {
-    const owner = {
+    const owner: any = {
       ...transcriptWindowMethods,
       term: undefined,
       updateTranscriptScrollButton: vi.fn(),
