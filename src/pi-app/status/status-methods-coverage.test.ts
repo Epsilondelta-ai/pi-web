@@ -196,6 +196,10 @@ describe("status method branch coverage", () => {
     expect(el.isPiPackageUpdateIgnored("pkg-key")).toBe(false);
     el.rememberIgnoredPiPackageUpdate("pkg-key");
     Object.defineProperty(globalThis, "localStorage", { configurable: true, value: originalLocalStorage });
+    localStorage.setItem("piweb:ignored-pi-package-update", "legacy-key");
+    expect(el.isPiPackageUpdateIgnored("legacy-key")).toBe(true);
+    localStorage.setItem("piweb:ignored-pi-package-update", JSON.stringify({ key: "object" }));
+    expect(el.isPiPackageUpdateIgnored("object")).toBe(false);
     vi.spyOn(window, "setTimeout").mockImplementation(((cb) => { cb(); return 1; }) as any);
     el.showUpdateTip();
     el.querySelector("[data-update-tip]").remove();

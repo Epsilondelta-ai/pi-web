@@ -134,6 +134,14 @@ describe("SortableWorkspaceSidebar", () => {
     act(() => root.unmount());
   });
 
+  it("honors the initial open workspace prop during lazy mount", () => {
+    const { host, root } = renderSidebar({ openWorkspaceId: "w2" });
+    expect((host.querySelector('[data-workspace-group="w1"] .sessions') as HTMLElement).hidden).toBe(true);
+    expect((host.querySelector('[data-workspace-group="w2"] .sessions') as HTMLElement).hidden).toBe(false);
+    expect(host.querySelector('.ws-row[data-workspace="w1"]')?.getAttribute("aria-current")).toBe("true");
+    act(() => root.unmount());
+  });
+
   it("tracks external workspace open state events without stale props", () => {
     const { host, root } = renderSidebar();
     act(() => window.dispatchEvent(new CustomEvent("pi-sidebar-workspace-state", { detail: { activeWorkspaceId: "w2", openWorkspaceId: "w2" } })));

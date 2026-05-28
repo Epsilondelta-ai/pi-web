@@ -9,6 +9,16 @@ import {
 const IGNORED_PI_UPDATE_KEY = "piweb:ignored-pi-update";
 const IGNORED_PI_PACKAGE_UPDATE_KEY = "piweb:ignored-pi-package-update";
 
+function ignoredPackageUpdates(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : [];
+  } catch {
+    return [String(raw)];
+  }
+}
+
 export const versionMethods = {
   async loadVersionStatus() {
     try {
@@ -107,7 +117,7 @@ export const versionMethods = {
 
   isPiPackageUpdateIgnored(key) {
     try {
-      return localStorage.getItem(IGNORED_PI_PACKAGE_UPDATE_KEY) === key;
+      return ignoredPackageUpdates(localStorage.getItem(IGNORED_PI_PACKAGE_UPDATE_KEY)).includes(key);
     } catch {
       return false;
     }
@@ -115,7 +125,9 @@ export const versionMethods = {
 
   rememberIgnoredPiPackageUpdate(key) {
     try {
-      localStorage.setItem(IGNORED_PI_PACKAGE_UPDATE_KEY, key);
+      const next = new Set(ignoredPackageUpdates(localStorage.getItem(IGNORED_PI_PACKAGE_UPDATE_KEY)));
+      next.add(key);
+      localStorage.setItem(IGNORED_PI_PACKAGE_UPDATE_KEY, JSON.stringify([...next]));
     } catch {}
   },
 

@@ -109,16 +109,16 @@ function normalizeWorkspaces(workspaces) {
   return workspaces.map((workspace) => ({ ...workspace, sessions: workspace.sessions || [] }));
 }
 
-export default function SortableWorkspaceSidebar({ workspaces, activeWorkspaceId, activeSessionId, onWorkspaceOrder, onSessionOrder }) {
+export default function SortableWorkspaceSidebar({ workspaces, activeWorkspaceId, activeSessionId, openWorkspaceId: initialOpenWorkspaceId = "", onWorkspaceOrder, onSessionOrder }) {
   const [orderedWorkspaces, setOrderedWorkspaces] = useState(() => normalizeWorkspaces(workspaces));
   const [currentActiveWorkspaceId, setCurrentActiveWorkspaceId] = useState(activeWorkspaceId || "");
-  const [openWorkspaceId, setOpenWorkspaceId] = useState(activeWorkspaceId || "");
+  const [openWorkspaceId, setOpenWorkspaceId] = useState(initialOpenWorkspaceId || activeWorkspaceId || "");
   const [isWorkspaceDragging, setIsWorkspaceDragging] = useState(false);
   useEffect(() => setOrderedWorkspaces(normalizeWorkspaces(workspaces)), [workspaces]);
   useEffect(() => {
     setCurrentActiveWorkspaceId(activeWorkspaceId || "");
-    setOpenWorkspaceId(activeWorkspaceId || "");
-  }, [activeWorkspaceId]);
+    setOpenWorkspaceId(initialOpenWorkspaceId || activeWorkspaceId || "");
+  }, [activeWorkspaceId, initialOpenWorkspaceId]);
   useEffect(() => {
     const handleWorkspaceState = (event) => {
       setCurrentActiveWorkspaceId(event.detail?.activeWorkspaceId || "");

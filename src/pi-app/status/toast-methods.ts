@@ -205,6 +205,10 @@ function packageUpdateKey(updates) {
   return updates.map((update) => `${update.source}:${update.currentVersion}:${update.latestVersion}`).join("|");
 }
 
+function packageUpdateIgnoreKey(updates) {
+  return updates.map((update) => `${update.source}:${update.latestVersion || "latest"}`).sort().join("|");
+}
+
 export function toastContextWorkspace(context) {
   if (!context || typeof context === "string") return context || "워크스페이스 없음";
   return context.workspaceName || context.workspace || context.label || "워크스페이스 없음";
@@ -223,6 +227,18 @@ function toastContextPrompt(context) {
 function toastContextSessionId(context) {
   if (!context || typeof context === "string") return undefined;
   return context.sessionId;
+}
+
+function isAgentChildSessionContext(context) {
+  if (!context || typeof context === "string") return false;
+  return !!context.parentSessionId || context.sessionKind === "subagent" || context.sessionKind === "team";
+}
+
+function sessionContextFromRow(row) {
+  return {
+    parentSessionId: row?.dataset.parentSession || "",
+    sessionKind: row?.dataset.kind || "",
+  };
 }
 
 function displayName(name, id) {
@@ -322,9 +338,10 @@ export const toastMethods = {
 
   notifyPiPackageUpdateAvailable(updates) {
     const key = `pi-package-update-question:global:${packageUpdateKey(updates)}`;
+    const ignoreKey = `pi-package-update-ignore:global:${packageUpdateIgnoreKey(updates)}`;
     this.systemToastKeys ??= new Set();
     const alreadyShown = this.systemToastKeys.has(key);
-    const ignored = this.isPiPackageUpdateIgnored(key);
+    const ignored = this.isPiPackageUpdateIgnored(ignoreKey);
     if (alreadyShown || ignored) return;
     this.systemToastKeys.add(key);
     const notification = this.ensureToastRegion().open({ type: "warning", message: piPackageUpdateConfirmHtml(updates) });
@@ -337,7 +354,7 @@ export const toastMethods = {
         void this.startPiUpdateFlow?.();
       }
       if (answer === "no") {
-        this.rememberIgnoredPiPackageUpdate?.(key);
+        this.rememberIgnoredPiPackageUpdate?.(ignoreKey);
         this.dismissToast(notification);
       }
     });
@@ -346,9 +363,10 @@ export const toastMethods = {
 
   notifyWorkspacePackageUpdateAvailable(updates, workspaceId) {
     const key = `pi-package-update-question:workspace:${workspaceId}:${packageUpdateKey(updates)}`;
+    const ignoreKey = `pi-package-update-ignore:workspace:${workspaceId}:${packageUpdateIgnoreKey(updates)}`;
     this.systemToastKeys ??= new Set();
     const alreadyShown = this.systemToastKeys.has(key);
-    const ignored = this.isPiPackageUpdateIgnored(key);
+    const ignored = this.isPiPackageUpdateIgnored(ignoreKey);
     if (alreadyShown || ignored) return;
     this.systemToastKeys.add(key);
     const notification = this.ensureToastRegion().open({ type: "warning", message: piPackageUpdateConfirmHtml(updates, workspaceId) });
@@ -361,7 +379,7 @@ export const toastMethods = {
         void this.startPiUpdateFlow?.("", workspaceId);
       }
       if (answer === "no") {
-        this.rememberIgnoredPiPackageUpdate?.(key);
+        this.rememberIgnoredPiPackageUpdate?.(ignoreKey);
         this.dismissToast(notification);
       }
     });
@@ -431,6 +449,7 @@ export const toastMethods = {
 
   currentToastContext() {
     const sessionId = this.dataset.activeSessionId;
+    const row = sessionId ? this.querySelector(`.session-row[data-session='${sessionId}']`) : null;
     return {
       workspaceName: displayName(
         this.querySelector("[data-active-workspace]")?.textContent,
@@ -442,13 +461,16 @@ export const toastMethods = {
       ),
       prompt: this.readLastSessionPrompt(sessionId),
       sessionId,
+      ...sessionContextFromRow(row),
     };
   },
 
   notifySessionCompleted(context) {
-    const sessionId = toastContextSessionId(context || this.currentToastContext());
+    const toastContext = context || this.currentToastContext();
+    if (isAgentChildSessionContext(toastContext)) return;
+    const sessionId = toastContextSessionId(toastContext);
     this.markUnreadCompletedSession(sessionId);
-    this.showToast("success", undefined, context);
+    this.showToast("success", undefined, toastContext);
   },
 
   notifyResponseCompletedOnce(context) {
@@ -628,6 +650,7 @@ export const toastMethods = {
       sessionName: displayName(row?.dataset.title, sessionId),
       prompt: this.readLastSessionPrompt(sessionId),
       sessionId,
+      ...sessionContextFromRow(row),
     };
   },
 };

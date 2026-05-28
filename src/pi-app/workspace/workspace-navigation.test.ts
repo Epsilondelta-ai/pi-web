@@ -34,12 +34,12 @@ describe("pi-app workspace navigation", () => {
     ]);
 
     app.querySelector("[data-workspace='juun'].ws-row").click();
-    expect(app.dataset.activeWorkspaceId).toBe("juun");
-    expect(activeWorkspace.textContent).toBe("juun-ai");
-    expect(app.querySelector("[data-workspace='hahn'].ws-row").getAttribute("aria-current")).toBe("false");
-    expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-current")).toBe("true");
+    expect(app.dataset.activeWorkspaceId).toBe("hahn");
+    expect(activeWorkspace.textContent).toBe("");
+    expect(app.querySelector("[data-workspace='hahn'].ws-row").getAttribute("aria-current")).toBe("true");
+    expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-current")).toBe("false");
     expect(app.querySelector("[data-workspace='juun'].ws-row").getAttribute("aria-expanded")).toBe("true");
-    expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("juun");
+    expect(app.loadWorkspaceMeta).not.toHaveBeenCalledWith("juun");
     await app.newSession("juun");
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -54,7 +54,29 @@ describe("pi-app workspace navigation", () => {
     expect(app.querySelector("[data-session='s2'] .meta").hidden).toBe(true);
   });
 
-  it("opens the first session when switching to a workspace with sessions", async () => {
+  it("only expands a collapsed workspace row without switching sessions", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.loadSession = vi.fn();
+    app.route = vi.fn();
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "s1";
+    app.renderWorkspaces([
+      { id: "w1", name: "one", path: "/one", sessions: [{ id: "s1", title: "first" }] },
+      { id: "w2", name: "two", path: "/two", sessions: [{ id: "s2", title: "second" }] },
+    ]);
+
+    app.querySelector("[data-workspace='w2'].ws-row").click();
+
+    expect(app.dataset.activeWorkspaceId).toBe("w1");
+    expect(app.dataset.activeSessionId).toBe("s1");
+    expect(app.querySelector("[data-workspace-group='w2'] .sessions").hidden).toBe(false);
+    expect(app.querySelector("[data-workspace='w2'].ws-row").getAttribute("aria-expanded")).toBe("true");
+    expect(app.loadSession).not.toHaveBeenCalled();
+    expect(app.route).not.toHaveBeenCalled();
+  });
+
+  it("opens the first session when explicitly opening a workspace with sessions", async () => {
     const app = await connectPiApp();
     app.apiConnected = true;
     app.loadSession = vi.fn();

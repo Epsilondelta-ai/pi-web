@@ -153,7 +153,7 @@ func (r *Runner) StartPiPrompt(
 		})
 		if state.assistantResponseCompleted && !state.fallbackChoiceNotified {
 			if session, messages, err := store.Session(sessionID); err == nil {
-				_ = notifyRemoteResponseCompleted(cwd, session, messages)
+				_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
 			}
 		}
 	}()

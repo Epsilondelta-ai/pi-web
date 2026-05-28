@@ -282,6 +282,7 @@ export const workspaceBootstrapMethods = {
   },
 
   openActiveWorkspaceGroup(workspaceId) {
+    this.sidebarOpenWorkspaceId = workspaceId || "";
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
       const open = group.dataset.workspaceGroup === workspaceId;
       const sessions = group.querySelector(".sessions");

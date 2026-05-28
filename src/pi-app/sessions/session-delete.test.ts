@@ -86,6 +86,41 @@ describe("pi-app session deletion", () => {
     expect(calls).toEqual(["clear", "replace"]);
   });
 
+  it("does not mutate React sortable sidebar DOM when deleting one session", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => ({}) }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.sidebarSortableRoot = { render: vi.fn() };
+    app.renderSortableSidebarWorkspaces = vi.fn(() => Promise.resolve());
+    app.dataset.activeWorkspaceId = "w1";
+    app.workspaceList = [{
+      id: "w1",
+      name: "demo",
+      path: "/demo",
+      sessionCount: 3,
+      sessions: [
+        { id: "p1", title: "parent" },
+        { id: "c1", title: "child", parentId: "p1" },
+        { id: "s2", title: "keep" },
+      ],
+    }];
+    const section = app.querySelector(".sidebar .sb-section");
+    const rootHost = document.createElement("div");
+    rootHost.dataset.sortableWorkspaces = "";
+    section.append(rootHost);
+    section.append(app.createWorkspaceGroup(app.workspaceList[0]));
+    app.removeSessionRows = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    await app.deleteSession("p1");
+    await Promise.resolve();
+
+    expect(app.removeSessionRows).not.toHaveBeenCalled();
+    expect(app.workspaceList[0].sessions.map((session) => session.id)).toEqual(["s2"]);
+    expect(app.renderSortableSidebarWorkspaces).toHaveBeenCalledWith(section, app.workspaceList);
+  });
+
   it("keeps React sortable sidebar mounted when deleting all sessions", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => ({}) }));
@@ -114,6 +149,13 @@ describe("pi-app session deletion", () => {
     app.replaceWorkspaceSessionsInState("other");
     expect(app.workspaceList[0].sessions).toEqual([]);
     expect(app.openActiveWorkspaceGroup).not.toHaveBeenCalled();
+
+    const row = document.createElement("div");
+    row.className = "session-row";
+    row.dataset.session = "row-session";
+    app.append(row);
+    expect([...app.removeSessionRowsWithDescendants("row-session")]).toEqual(["row-session"]);
+    expect([...app.deletedSessionIdsFromList(undefined, "missing")]).toEqual(["missing"]);
 
     app.removeWorkspaceSessionsFromState("", new Set(["gone"]));
     app.removeWorkspaceSessionsFromState("other", new Set());

@@ -162,6 +162,7 @@ describe("pi-app core events coverage", () => {
     app.running = false;
     subscriber.onTextDelta("hello");
     app.running = true;
+    subscriber.onTextDelta("hello");
     subscriber.onTextDelta("hello again");
     subscriber.onTextEnd("done");
     const textOnlySubscriber = app.aguiSubscriber("s1");
@@ -186,8 +187,9 @@ describe("pi-app core events coverage", () => {
 
     expect(app.confirmConnection).toHaveBeenCalled();
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: "hello" });
+    expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: " again" });
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "think", delta: "think" });
-    expect(app.finalizePiStream).toHaveBeenCalledWith("hellohello again");
+    expect(app.finalizePiStream).toHaveBeenCalledWith("hello again");
     expect(app.finalizePiStream).toHaveBeenCalledWith("final only");
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "args" });
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "result" });

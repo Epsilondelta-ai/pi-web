@@ -231,6 +231,16 @@ class PiApp extends HTMLElement {
 
   aguiSubscriber(sessionId) {
     let textBuffer = "";
+    const nextTextDelta = (value) => {
+      const delta = String(value);
+      if (textBuffer && delta.startsWith(textBuffer)) {
+        const nextDelta = delta.slice(textBuffer.length);
+        textBuffer = delta;
+        return nextDelta;
+      }
+      textBuffer += delta;
+      return delta;
+    };
     return {
       onRunStarted: () => {
         if (this.dataset.activeSessionId !== sessionId) return;
@@ -240,9 +250,9 @@ class PiApp extends HTMLElement {
       },
       onTextDelta: (delta) => {
         if (this.dataset.activeSessionId !== sessionId || !delta) return;
-        textBuffer += delta;
+        const visibleDelta = nextTextDelta(delta);
         this.setMode("running");
-        this.appendDelta({ kind: "pi", delta });
+        if (visibleDelta) this.appendDelta({ kind: "pi", delta: visibleDelta });
       },
       onTextEnd: (text) => {
         if (this.dataset.activeSessionId !== sessionId || (!text && !textBuffer)) return;

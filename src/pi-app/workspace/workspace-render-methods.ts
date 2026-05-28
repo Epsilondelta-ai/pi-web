@@ -74,6 +74,7 @@ export const workspaceRenderMethods = {
       workspaces,
       activeWorkspaceId: this.dataset.activeWorkspaceId || "",
       activeSessionId: this.dataset.activeSessionId || "",
+      openWorkspaceId: this.sidebarOpenWorkspaceId || this.dataset.activeWorkspaceId || "",
       onWorkspaceOrder: this.reorderWorkspaces.bind(this),
       onSessionOrder: this.reorderWorkspaceSessions.bind(this),
     }));
@@ -191,12 +192,9 @@ export const workspaceRenderMethods = {
   },
 
   toggleWorkspace(id) {
-    if (id && id !== this.dataset.activeWorkspaceId) {
-      void this.openWorkspace?.(id);
-      return;
-    }
     const targetSessions = this.findWorkspaceGroup?.(id)?.querySelector(".sessions");
     const shouldOpen = !!targetSessions?.hidden;
+    this.sidebarOpenWorkspaceId = shouldOpen ? id : "";
     this.querySelectorAll("[data-workspace-group]").forEach((group) => {
       const sessions = group.querySelector(".sessions");
       const row = group.querySelector(".ws-row");
