@@ -1,7 +1,7 @@
 import { Notyf, NotyfEvent } from "notyf";
 import { currentUiLocale } from "../../i18n/client";
 import { uiMessage } from "../../i18n/ui";
-import { sessionEvents } from "../../lib/api";
+import { getSession, sessionEvents } from "../../lib/api";
 import { escapeHtml } from "../../lib/renderers";
 import { parseFallbackChoices } from "../input/fallback-choices";
 
@@ -554,7 +554,10 @@ export const toastMethods = {
     if (status === "running" || status === "thinking") watch.wasRunning = true;
     if (status !== "idle" && status !== "cancelled") return;
     this.dismissBackgroundSessionWatch(event.sessionId, watch);
-    if (watch.wasRunning && status === "idle" && !watch.failed) this.notifySessionCompleted(context);
+    if (watch.wasRunning && status === "idle" && !watch.failed) {
+      this.notifySessionCompleted(context);
+      void this.readCompletedBackgroundSessionAloud(event.sessionId);
+    }
   },
 
   dismissBackgroundSessionWatch(sessionId, watch) {
@@ -563,6 +566,24 @@ export const toastMethods = {
     this.markSessionRunning?.(watch.row, false);
     this.updateSessionMeta?.(watch.row, false);
     this.syncActiveWorkspaceRows?.();
+  },
+
+  async readCompletedBackgroundSessionAloud(sessionId) {
+    if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId)) return;
+    const generation = this.readAloudGeneration || 0;
+    try {
+      const result = await getSession(sessionId, { limit: 20 });
+      if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId) || (this.readAloudGeneration || 0) !== generation) return;
+      const messages = result?.messages || [];
+      const assistantMessage = [...messages].reverse().find((message) => message?.kind === "pi" && message.text);
+      if (assistantMessage?.text) this.speakAssistantText?.(assistantMessage.text);
+    } catch {
+      // Completion toast still matters; read-aloud fetch failure should not mark the session failed.
+    }
+  },
+
+  canReadCompletedBackgroundSessionAloud(sessionId) {
+    return !!sessionId && this.isReadAloudEnabled?.() && sessionId !== this.dataset.activeSessionId;
   },
 
   readLastSessionPrompts() {

@@ -270,10 +270,19 @@ describe("pi-app toast notifications", () => {
       addEventListener(type, callback) { this.listeners[type] = callback; }
     }
     vi.stubGlobal("EventSource", FakeEventSource);
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ messages: [{ kind: "user", text: "prompt" }, { kind: "pi", text: "background answer" }] }),
+    }));
     const app = await connectPiApp();
     app.apiConnected = true;
     app.dataset.activeSessionId = "active-session";
     app.dataset.activeWorkspaceId = "active-workspace";
+    app.readResponsesAloud = true;
+    app.speakAssistantText = vi.fn();
 
     app.writeLastSessionPrompt("background-session", "finish the background task");
     app.renderWorkspaces([
@@ -300,6 +309,36 @@ describe("pi-app toast notifications", () => {
     expect(toast.querySelector(".toast-prompt").textContent).toBe("finish the background task");
     expect(sources[0].close).toHaveBeenCalled();
     expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(true);
+    await vi.waitFor(() => expect(app.speakAssistantText).toHaveBeenCalledWith("background answer"));
+    expect(fetch).toHaveBeenCalledWith("http://backend.test/api/sessions/background-session?limit=20", expect.anything());
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, statusText: "OK", json: async () => ({}) });
+    await app.readCompletedBackgroundSessionAloud("empty-session");
+    fetch.mockRejectedValueOnce(new Error("offline"));
+    await expect(app.readCompletedBackgroundSessionAloud("offline-session")).resolves.toBeUndefined();
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ messages: [{ kind: "pi", text: "stale answer" }] }),
+    });
+    const staleRead = app.readCompletedBackgroundSessionAloud("stale-session");
+    app.readResponsesAloud = false;
+    await staleRead;
+    expect(app.speakAssistantText).not.toHaveBeenCalledWith("stale answer");
+    app.readResponsesAloud = true;
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ messages: [{ kind: "pi", text: "newer playback answer" }] }),
+    });
+    const supersededRead = app.readCompletedBackgroundSessionAloud("superseded-session");
+    app.readAloudGeneration = (app.readAloudGeneration || 0) + 1;
+    await supersededRead;
+    expect(app.speakAssistantText).not.toHaveBeenCalledWith("newer playback answer");
+    app.dataset.activeSessionId = "active-session";
+    await app.readCompletedBackgroundSessionAloud("active-session");
+    expect(fetch).not.toHaveBeenCalledWith("http://backend.test/api/sessions/active-session?limit=20", expect.anything());
 
     app.loadSession = vi.fn();
     toast.click();

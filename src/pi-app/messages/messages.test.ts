@@ -261,6 +261,38 @@ describe("pi-app messages", () => {
     app.speakAssistantText("bonjour");
     expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ lang: "fr-FR" }));
 
+    const frenchVoice = { lang: "fr-FR", name: "French" };
+    const resume = vi.fn();
+    let readAloudIntervalCallback = () => undefined;
+    vi.spyOn(globalThis, "setInterval").mockImplementation((callback) => {
+      readAloudIntervalCallback = callback as () => void;
+      callback();
+      return 1 as never;
+    });
+    vi.stubGlobal("speechSynthesis", { speak, cancel, resume, getVoices: () => [frenchVoice] });
+    app.speakAssistantText(`${"long sentence. ".repeat(20)}`);
+    expect(resume).toHaveBeenCalled();
+    const firstChunk = speak.mock.calls.at(-1)?.[0];
+    expect(firstChunk.text.length).toBeLessThanOrEqual(180);
+    expect(firstChunk.voice).toBe(frenchVoice);
+    firstChunk.onend();
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ voice: frenchVoice }));
+    const secondChunk = speak.mock.calls.at(-1)?.[0];
+    secondChunk.onend();
+    expect(app.readAloudMonitor).toBeUndefined();
+    expect(app.readAloudUtterances.length).toBeGreaterThan(1);
+    expect(app.speechTextChunks("x".repeat(400)).map((chunk) => chunk.length)).toEqual([180, 180, 40]);
+    expect(app.speechTextChunks("")).toEqual([""]);
+    expect(app.readAloudVoice()).toBe(null);
+    app.speakAssistantText("still speaking");
+    expect(app.readAloudMonitor).toBeTruthy();
+    const stoppedChunk = speak.mock.calls.at(-1)?.[0];
+    app.stopReadingResponse();
+    readAloudIntervalCallback();
+    stoppedChunk.onend();
+    expect(speak).toHaveBeenLastCalledWith(stoppedChunk);
+    expect(app.readAloudMonitor).toBeUndefined();
+
     const createElement = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tagName, options) => {
       const element = createElement(tagName, options);

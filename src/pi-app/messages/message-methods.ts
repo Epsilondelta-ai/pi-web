@@ -480,7 +480,7 @@ export const messageMethods = {
       }
     }
     for (const node of nodes) this.syncReadAloudButton(node);
-    if (!this.isReadAloudEnabled()) globalThis.speechSynthesis?.cancel?.();
+    if (!this.isReadAloudEnabled()) this.stopReadingResponse?.();
   },
 
   syncReadAloudButton(messageRow) {
@@ -535,6 +535,9 @@ export const messageMethods = {
   },
 
   stopReadingResponse() {
+    this.readAloudGeneration = (this.readAloudGeneration || 0) + 1;
+    this.clearReadAloudMonitor?.();
+    this.readAloudUtterances = [];
     globalThis.speechSynthesis?.cancel?.();
   },
 
@@ -543,11 +546,77 @@ export const messageMethods = {
     if (!content) return;
     const synth = globalThis.speechSynthesis;
     if (!synth || typeof SpeechSynthesisUtterance === "undefined") return;
-    synth.cancel?.();
-    const utterance = new SpeechSynthesisUtterance(content);
+    this.stopReadingResponse();
+    const generation = this.readAloudGeneration;
+    const language = this.readAloudLanguage();
+    const voice = this.readAloudVoice(language);
+    const chunks = this.speechTextChunks(content);
+    const utterances = chunks.map((chunk) => {
+      const utterance = new SpeechSynthesisUtterance(chunk);
+      utterance.lang = language;
+      if (voice) utterance.voice = voice;
+      return utterance;
+    });
+    const queue = [...utterances];
+    this.readAloudUtterances = utterances;
+    const speakNext = () => {
+      if (this.readAloudGeneration !== generation) return;
+      const utterance = queue.shift();
+      if (!utterance) {
+        this.clearReadAloudMonitor?.();
+        return;
+      }
+      utterance.onend = speakNext;
+      utterance.onerror = speakNext;
+      synth.speak?.(utterance);
+    };
+    this.readAloudMonitor = globalThis.setInterval?.(() => {
+      if (this.readAloudGeneration === generation) synth.resume?.();
+    }, 5000);
+    speakNext();
+  },
+
+  clearReadAloudMonitor() {
+    if (!this.readAloudMonitor) return;
+    globalThis.clearInterval?.(this.readAloudMonitor);
+    this.readAloudMonitor = undefined;
+  },
+
+  readAloudLanguage() {
     const language = this.voiceLanguage || this.speechLanguage || "system";
-    utterance.lang = language === "system" ? fallbackValue(navigator.language, "en-US") : fallbackValue(language, "en-US");
-    synth.speak?.(utterance);
+    return language === "system" ? fallbackValue(navigator.language, "en-US") : fallbackValue(language, "en-US");
+  },
+
+  readAloudVoice(language) {
+    const voices = globalThis.speechSynthesis?.getVoices?.() || [];
+    const normalizedLanguage = String(language || "").toLowerCase();
+    const languageRoot = normalizedLanguage.split("-")[0];
+    return voices.find((voice) => voice.lang?.toLowerCase() === normalizedLanguage)
+      || voices.find((voice) => voice.lang?.toLowerCase().split("-")[0] === languageRoot)
+      || null;
+  },
+
+  speechTextChunks(text) {
+    const maxLength = 180;
+    const chunks = [];
+    const sentences = String(text || "").match(/[^.!?。！？]+[.!?。！？]*|\S+/g) || [];
+    let current = "";
+    for (const sentence of sentences) {
+      const next = [current, sentence.trim()].filter(Boolean).join(" ");
+      if (next.length <= maxLength) {
+        current = next;
+        continue;
+      }
+      if (current) chunks.push(current);
+      if (sentence.length <= maxLength) {
+        current = sentence.trim();
+        continue;
+      }
+      for (let index = 0; index < sentence.length; index += maxLength) chunks.push(sentence.slice(index, index + maxLength));
+      current = "";
+    }
+    if (current) chunks.push(current);
+    return chunks.length ? chunks : [String(text || "")];
   },
 
   speechTextFromAssistantText(text) {
