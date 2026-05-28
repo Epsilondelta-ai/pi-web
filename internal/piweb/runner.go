@@ -149,7 +149,9 @@ func (r *Runner) StartPiPrompt(
 		}
 		if state.assistantResponseCompleted && !state.fallbackChoiceNotified {
 			if session, messages, err := store.Session(sessionID); err == nil {
-				_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
+				go func() {
+					_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
+				}()
 			}
 		}
 		broker.Publish(sessionID, "session.status", map[string]string{
