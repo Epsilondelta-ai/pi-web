@@ -35,6 +35,10 @@ const fallbackChoiceSystemPrompt = `Pi Web UI fallback choice protocol:
 const maxEmptyAssistantRetries = 3
 
 const emptyAssistantRetryError = "Pi finished without an assistant message after 3 automatic retries. Please retry or continue manually."
+const llmIdleRetryError = "Pi did not receive any LLM response or event before the idle timeout after 3 automatic retries. Please retry manually."
+
+var firstLLMEventIdleTimeout = 90 * time.Second
+var streamLLMEventIdleTimeout = 120 * time.Second
 
 type Runner struct {
 	mu      sync.Mutex
@@ -64,22 +68,7 @@ func (r *Runner) StartPiPrompt(
 		return ErrNotFound
 	}
 	ctx, cancel := context.WithCancel(parent)
-	cmd := exec.CommandContext(ctx, "pi", piRPCArgs(sessionFile)...)
-	cmd.Dir = cwd
-	configureCommandProcessGroup(cmd)
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		cancel()
-		return err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		cancel()
-		return err
-	}
-	stderr, _ := cmd.StderrPipe()
-
-	activeRun := &activePiRun{cancel: cancel, stdin: stdin}
+	activeRun := &activePiRun{cancel: cancel}
 	r.mu.Lock()
 	if _, exists := r.running[sessionID]; exists {
 		r.mu.Unlock()
@@ -88,17 +77,6 @@ func (r *Runner) StartPiPrompt(
 	}
 	r.running[sessionID] = activeRun
 	r.mu.Unlock()
-
-	if err := cmd.Start(); err != nil {
-		r.forgetRun(sessionID, activeRun)
-		cancel()
-		return err
-	}
-	if err := activeRun.send(rpcPromptCommand(text, images, "")); err != nil {
-		r.forgetRun(sessionID, activeRun)
-		cancel()
-		return err
-	}
 
 	go func() {
 		defer func() {
@@ -110,11 +88,6 @@ func (r *Runner) StartPiPrompt(
 		broker.Publish(sessionID, "session.message", user)
 		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
 
-		go func() {
-			<-ctx.Done()
-			terminateCommandProcessGroup(cmd)
-		}()
-
 		state := &jsonStreamState{
 			onFallbackChoiceMessage: func() {
 				if session, messages, err := store.Session(sessionID); err == nil {
@@ -122,79 +95,210 @@ func (r *Runner) StartPiPrompt(
 				}
 			},
 		}
-		stdoutDone := make(chan struct{})
-		agentDone := make(chan struct{}, maxEmptyAssistantRetries+1)
-		go streamPipe(stdout, func(line string) {
-			if isPiRPCAgentEnd(line) {
-				select {
-				case agentDone <- struct{}{}:
-				default:
-				}
-			}
-			if !handlePiJSONEvent(line, broker, store, sessionID, state) {
-				broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
-			}
-		}, stdoutDone)
-		go streamPipe(stderr, func(line string) {
-			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
-		}, nil)
-
-		emptyAssistantFailed := false
+		promptText := text
 		for {
-			select {
-			case <-agentDone:
-				if state.assistantTurnSucceeded() {
-					_ = stdin.Close()
-					goto waitForProcess
-				}
-				if state.emptyAssistantRetries >= maxEmptyAssistantRetries {
-					emptyAssistantFailed = true
-					broker.Publish(sessionID, "error", map[string]string{"error": emptyAssistantRetryError})
-					_ = stdin.Close()
-					goto waitForProcess
-				}
-				state.emptyAssistantRetries++
-				broker.Publish(sessionID, "session.status", map[string]string{
-					"status": "running",
-					"detail": fmt.Sprintf("empty assistant response; retrying %d/%d", state.emptyAssistantRetries, maxEmptyAssistantRetries),
-				})
-				state.resetAssistantTurn()
-				if err := activeRun.send(rpcPromptCommand(emptyAssistantRecoveryPrompt(text), images, "")); err != nil {
-					emptyAssistantFailed = true
-					broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
-					_ = stdin.Close()
-					goto waitForProcess
-				}
-			case <-ctx.Done():
-				goto waitForProcess
-			case <-stdoutDone:
-				goto waitForProcess
+			result, err := r.runPiAttempt(ctx, activeRun, broker, store, sessionID, sessionFile, cwd, promptText, images, state)
+			if ctx.Err() != nil {
+				return
 			}
-		}
-
-	waitForProcess:
-		err := cmd.Wait()
-		if ctx.Err() != nil {
-			return
-		}
-		if err != nil {
-			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
+			if result.success {
+				if state.assistantResponseCompleted && !state.fallbackChoiceNotified {
+					if session, messages, err := store.Session(sessionID); err == nil {
+						go func() {
+							_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
+						}()
+					}
+				}
+				broker.Publish(sessionID, "session.status", map[string]string{
+					"status":     "idle",
+					"finishedAt": time.Now().UTC().Format(time.RFC3339),
+				})
+				return
+			}
+			if result.retry {
+				promptText = emptyAssistantRecoveryPrompt(text)
+				continue
+			}
+			if err != nil && !result.errorPublished {
+				broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
+			}
 			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
 			return
 		}
-		if state.assistantResponseCompleted && !state.fallbackChoiceNotified && !emptyAssistantFailed {
-			if session, messages, err := store.Session(sessionID); err == nil {
-				go func() {
-					_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
-				}()
-			}
-		}
-		broker.Publish(sessionID, "session.status", map[string]string{
-			"status":     "idle",
-			"finishedAt": time.Now().UTC().Format(time.RFC3339),
-		})
 	}()
 	return nil
+}
+
+type piAttemptResult struct {
+	success        bool
+	retry          bool
+	errorPublished bool
+}
+
+func (r *Runner) runPiAttempt(
+	ctx context.Context,
+	activeRun *activePiRun,
+	broker *Broker,
+	store *Store,
+	sessionID string,
+	sessionFile string,
+	cwd string,
+	promptText string,
+	images []PromptAttachment,
+	state *jsonStreamState,
+) (piAttemptResult, error) {
+	attemptCtx, attemptCancel := context.WithCancel(ctx)
+	defer attemptCancel()
+	cmd := exec.CommandContext(attemptCtx, "pi", piRPCArgs(sessionFile)...)
+	cmd.Dir = cwd
+	configureCommandProcessGroup(cmd)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return piAttemptResult{}, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return piAttemptResult{}, err
+	}
+	stderr, _ := cmd.StderrPipe()
+	activeRun.setStdin(stdin)
+	if err := cmd.Start(); err != nil {
+		return piAttemptResult{}, err
+	}
+	go func() {
+		<-attemptCtx.Done()
+		terminateCommandProcessGroup(cmd)
+	}()
+	if err := activeRun.send(rpcPromptCommand(promptText, images, "")); err != nil {
+		attemptCancel()
+		_ = cmd.Wait()
+		return piAttemptResult{}, err
+	}
+
+	stdoutDone := make(chan struct{})
+	agentDone := make(chan struct{}, 1)
+	activity := make(chan struct{}, 1)
+	noteActivity := func() {
+		select {
+		case activity <- struct{}{}:
+		default:
+		}
+	}
+	go streamPipe(stdout, func(line string) {
+		noteActivity()
+		if isPiRPCAgentEnd(line) {
+			select {
+			case agentDone <- struct{}{}:
+			default:
+			}
+		}
+		if !handlePiJSONEvent(line, broker, store, sessionID, state) {
+			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+		}
+	}, stdoutDone)
+	go streamPipe(stderr, func(line string) {
+		noteActivity()
+		broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+	}, nil)
+
+	result := r.waitForPiAttempt(ctx, attemptCancel, broker, store, sessionID, state, agentDone, stdoutDone, activity)
+	if result.success || result.retry || result.errorPublished {
+		_ = stdin.Close()
+	}
+	err = cmd.Wait()
+	if result.retry || result.errorPublished {
+		return result, nil
+	}
+	return result, err
+}
+
+func (r *Runner) waitForPiAttempt(
+	ctx context.Context,
+	attemptCancel context.CancelFunc,
+	broker *Broker,
+	store *Store,
+	sessionID string,
+	state *jsonStreamState,
+	agentDone <-chan struct{},
+	stdoutDone <-chan struct{},
+	activity <-chan struct{},
+) piAttemptResult {
+	timer := time.NewTimer(firstLLMEventIdleTimeout)
+	defer timer.Stop()
+	resetTimer := func(timeout time.Duration) {
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(timeout)
+	}
+	for {
+		select {
+		case <-agentDone:
+			if state.assistantTurnSucceeded() {
+				return piAttemptResult{success: true}
+			}
+			return retryEmptyAssistantTurn(broker, store, sessionID, state)
+		case <-stdoutDone:
+			if state.assistantTurnSucceeded() {
+				return piAttemptResult{success: true}
+			}
+			return retryEmptyAssistantTurn(broker, store, sessionID, state)
+		case <-activity:
+			resetTimer(streamLLMEventIdleTimeout)
+		case <-timer.C:
+			attemptCancel()
+			return retryIdleTimeoutTurn(broker, store, sessionID, state)
+		case <-ctx.Done():
+			return piAttemptResult{}
+		}
+	}
+}
+
+func retryEmptyAssistantTurn(broker *Broker, store *Store, sessionID string, state *jsonStreamState) piAttemptResult {
+	if state.emptyAssistantRetries >= maxEmptyAssistantRetries {
+		publishRetryNotice(broker, store, sessionID, "empty assistant", maxEmptyAssistantRetries, maxEmptyAssistantRetries, "failed")
+		broker.Publish(sessionID, "error", map[string]string{"error": emptyAssistantRetryError})
+		return piAttemptResult{errorPublished: true}
+	}
+	state.emptyAssistantRetries++
+	publishRetryNotice(broker, store, sessionID, "empty assistant", state.emptyAssistantRetries, maxEmptyAssistantRetries, "retrying")
+	broker.Publish(sessionID, "session.status", map[string]string{
+		"status": "running",
+		"detail": fmt.Sprintf("empty assistant response; retrying %d/%d", state.emptyAssistantRetries, maxEmptyAssistantRetries),
+	})
+	state.resetAssistantTurn()
+	return piAttemptResult{retry: true}
+}
+
+func retryIdleTimeoutTurn(broker *Broker, store *Store, sessionID string, state *jsonStreamState) piAttemptResult {
+	if state.idleTimeoutRetries >= maxEmptyAssistantRetries {
+		publishRetryNotice(broker, store, sessionID, "LLM idle timeout", maxEmptyAssistantRetries, maxEmptyAssistantRetries, "failed")
+		broker.Publish(sessionID, "error", map[string]string{"error": llmIdleRetryError})
+		return piAttemptResult{errorPublished: true}
+	}
+	state.idleTimeoutRetries++
+	publishRetryNotice(broker, store, sessionID, "LLM idle timeout", state.idleTimeoutRetries, maxEmptyAssistantRetries, "retrying")
+	broker.Publish(sessionID, "session.status", map[string]string{
+		"status": "running",
+		"detail": fmt.Sprintf("LLM idle timeout; retrying %d/%d", state.idleTimeoutRetries, maxEmptyAssistantRetries),
+	})
+	state.resetAssistantTurn()
+	return piAttemptResult{retry: true}
+}
+
+func publishRetryNotice(broker *Broker, store *Store, sessionID string, reason string, attempt int, max int, status string) {
+	msg := Message{
+		Kind:       "tool",
+		Tool:       "pi",
+		Status:     "err",
+		ResultMeta: fmt.Sprintf("%s %d/%d", status, attempt, max),
+		Body:       fmt.Sprintf("Automatic retry marker: %s (%s %d/%d).", reason, status, attempt, max),
+	}
+	_ = store.AppendMessage(sessionID, msg)
+	broker.Publish(sessionID, eventTypeForMessage(msg), msg)
 }
 
 func (r *Runner) Steer(sessionID string, text string, images []PromptAttachment) error {
@@ -248,7 +352,7 @@ func rpcPromptCommand(text string, images []PromptAttachment, streamingBehavior 
 }
 
 func emptyAssistantRecoveryPrompt(originalPrompt string) string {
-	return strings.TrimSpace(`The previous turn ended without any assistant message.
+	return strings.TrimSpace(`The previous turn ended or stalled without a completed assistant message.
 This is not a successful completion.
 Continue from the last valid session/tool state and complete the original request.
 Do not restart work that is already complete unless it is necessary.
@@ -276,9 +380,18 @@ func rpcImages(images []PromptAttachment) []rpcImage {
 	return result
 }
 
+func (r *activePiRun) setStdin(stdin io.WriteCloser) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.stdin = stdin
+}
+
 func (r *activePiRun) send(command any) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.stdin == nil {
+		return errors.New("session is not accepting input")
+	}
 	line, err := json.Marshal(command)
 	if err != nil {
 		return err

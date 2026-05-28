@@ -103,10 +103,9 @@ func TestHandlePiJSONEventSkipsFinalToolCallPlaceholders(t *testing.T) {
 
 func TestStartPiPromptRetriesEmptyAssistantUntilMessageArrives(t *testing.T) {
 	logPath := installFakePi(t, `#!/bin/sh
-count=0
 while IFS= read -r line; do
   printf '%s\n' "$line" >> "$PI_FAKE_LOG"
-  count=$((count + 1))
+  count=$(wc -l < "$PI_FAKE_LOG")
   if [ "$count" -lt 4 ]; then
     printf '%s\n' '{"type":"agent_end"}'
   else
@@ -128,7 +127,7 @@ done
 	if len(lines) != 4 {
 		t.Fatalf("expected original prompt plus 3 retries, got %d: %#v", len(lines), lines)
 	}
-	if !strings.Contains(lines[1], "The previous turn ended without any assistant message.") {
+	if !strings.Contains(lines[1], "The previous turn ended or stalled without a completed assistant message.") {
 		t.Fatalf("retry prompt should explain empty assistant recovery in English: %s", lines[1])
 	}
 	if !strings.Contains(lines[1], "Original request:\\nfix it") {
@@ -138,6 +137,9 @@ done
 	if err != nil {
 		t.Fatalf("Session failed: %v", err)
 	}
+	if countRetryMarkers(messages, "empty assistant") != 3 {
+		t.Fatalf("expected 3 saved empty assistant retry markers, got %#v", messages)
+	}
 	if got := messages[len(messages)-1]; got.Kind != "pi" || got.Text != "done" {
 		t.Fatalf("expected final assistant message after retry, got %#v", got)
 	}
@@ -145,6 +147,44 @@ done
 		if event.Type == "error" {
 			t.Fatalf("successful retry should not publish error: %#v", event)
 		}
+	}
+}
+
+func TestStartPiPromptRetriesIdleTimeoutUntilMessageArrives(t *testing.T) {
+	overrideLLMIdleTimeouts(t, 30*time.Millisecond, 30*time.Millisecond)
+	logPath := installFakePi(t, `#!/bin/sh
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "$PI_FAKE_LOG"
+  count=$(wc -l < "$PI_FAKE_LOG")
+  if [ "$count" -lt 4 ]; then
+    sleep 10
+  else
+    printf '%s\n' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}'
+    printf '%s\n' '{"type":"agent_end"}'
+  fi
+done
+`)
+	store := runnerTestStore(t)
+	broker := NewBroker()
+	runner := NewRunner()
+
+	if err := runner.StartPiPrompt(context.Background(), broker, store, "s1", "fix it", nil, "fix it"); err != nil {
+		t.Fatalf("StartPiPrompt failed: %v", err)
+	}
+	waitForRunnerIdle(t, runner, "s1")
+
+	if lines := readPromptLog(t, logPath); len(lines) != 4 {
+		t.Fatalf("expected original prompt plus 3 idle retries, got %d: %#v", len(lines), lines)
+	}
+	_, messages, err := store.Session("s1")
+	if err != nil {
+		t.Fatalf("Session failed: %v", err)
+	}
+	if countRetryMarkers(messages, "LLM idle timeout") != 3 {
+		t.Fatalf("expected 3 saved idle timeout retry markers, got %#v", messages)
+	}
+	if got := messages[len(messages)-1]; got.Kind != "pi" || got.Text != "done" {
+		t.Fatalf("expected final assistant message after idle retry, got %#v", got)
 	}
 }
 
@@ -231,4 +271,26 @@ func readPromptLog(t *testing.T, path string) []string {
 		t.Fatalf("read prompt log: %v", err)
 	}
 	return strings.Split(strings.TrimSpace(string(content)), "\n")
+}
+
+func countRetryMarkers(messages []Message, reason string) int {
+	count := 0
+	for _, message := range messages {
+		if message.Kind == "tool" && message.Tool == "pi" && strings.Contains(message.Body, reason) {
+			count++
+		}
+	}
+	return count
+}
+
+func overrideLLMIdleTimeouts(t *testing.T, first time.Duration, stream time.Duration) {
+	t.Helper()
+	oldFirst := firstLLMEventIdleTimeout
+	oldStream := streamLLMEventIdleTimeout
+	firstLLMEventIdleTimeout = first
+	streamLLMEventIdleTimeout = stream
+	t.Cleanup(func() {
+		firstLLMEventIdleTimeout = oldFirst
+		streamLLMEventIdleTimeout = oldStream
+	})
 }

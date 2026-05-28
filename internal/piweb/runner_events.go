@@ -14,6 +14,7 @@ type jsonStreamState struct {
 	assistantResponseCompleted bool
 	fallbackChoiceNotified     bool
 	emptyAssistantRetries      int
+	idleTimeoutRetries         int
 	onFallbackChoiceMessage    func()
 }
 
