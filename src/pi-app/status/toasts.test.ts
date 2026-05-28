@@ -311,6 +311,10 @@ describe("pi-app toast notifications", () => {
     expect(app.querySelector("[data-session='background-session']").classList.contains("unread-completed")).toBe(true);
     await vi.waitFor(() => expect(app.speakAssistantText).toHaveBeenCalledWith("background answer"));
     expect(fetch).toHaveBeenCalledWith("http://backend.test/api/sessions/background-session?limit=20", expect.anything());
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, statusText: "OK", json: async () => ({}) });
+    await app.readCompletedBackgroundSessionAloud("empty-session");
+    fetch.mockRejectedValueOnce(new Error("offline"));
+    await expect(app.readCompletedBackgroundSessionAloud("offline-session")).resolves.toBeUndefined();
 
     app.loadSession = vi.fn();
     toast.click();

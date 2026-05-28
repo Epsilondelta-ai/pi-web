@@ -263,14 +263,26 @@ describe("pi-app messages", () => {
 
     const frenchVoice = { lang: "fr-FR", name: "French" };
     const resume = vi.fn();
+    vi.spyOn(globalThis, "setInterval").mockImplementation((callback) => {
+      callback();
+      return 1 as never;
+    });
     vi.stubGlobal("speechSynthesis", { speak, cancel, resume, getVoices: () => [frenchVoice] });
     app.speakAssistantText(`${"long sentence. ".repeat(20)}`);
+    expect(resume).toHaveBeenCalled();
     const firstChunk = speak.mock.calls.at(-1)?.[0];
     expect(firstChunk.text.length).toBeLessThanOrEqual(180);
     expect(firstChunk.voice).toBe(frenchVoice);
     firstChunk.onend();
     expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ voice: frenchVoice }));
+    const secondChunk = speak.mock.calls.at(-1)?.[0];
+    secondChunk.onend();
+    expect(app.readAloudMonitor).toBeUndefined();
     expect(app.readAloudUtterances.length).toBeGreaterThan(1);
+    expect(app.speechTextChunks("x".repeat(400)).map((chunk) => chunk.length)).toEqual([180, 180, 40]);
+    expect(app.speechTextChunks("")).toEqual([""]);
+    expect(app.readAloudVoice()).toBe(null);
+    app.speakAssistantText("still speaking");
     expect(app.readAloudMonitor).toBeTruthy();
     app.stopReadingResponse();
     expect(app.readAloudMonitor).toBeUndefined();
