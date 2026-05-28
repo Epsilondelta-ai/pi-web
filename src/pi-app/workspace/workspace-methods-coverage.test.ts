@@ -133,6 +133,13 @@ describe("workspace folder/render/bootstrap coverage", () => {
     });
     expect(globalThis.__lastSortableSidebarProps.workspaces[0].id).toBe("w2");
 
+    const staleSection = document.createElement("section");
+    document.body.append(staleSection);
+    const staleRender = app.renderSortableSidebarWorkspaces(staleSection, [{ id: "old", sessions: [] }]);
+    app.sidebarSortableRenderToken = Symbol("newer-render");
+    await staleRender;
+    expect(staleSection.querySelector("[data-sortable-workspaces]")).toBeNull();
+
     const detached = document.createElement("div");
     await app.renderSortableSidebarWorkspaces(detached, []);
     expect(detached.querySelector("[data-sortable-workspaces]")).toBeNull();
