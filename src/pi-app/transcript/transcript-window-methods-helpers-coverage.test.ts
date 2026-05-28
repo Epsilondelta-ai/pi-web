@@ -24,6 +24,30 @@ describe("transcript window direct method branches", () => {
     expect(owner.transcriptItemNodes(0)).toEqual([]);
   });
 
+  it("covers bottom-follow fallback counters", () => {
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      callback(0);
+      return 1;
+    });
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { scrollTop: 0, scrollHeight: 100, clientHeight: 100 },
+      followTranscriptBottomOnce: vi.fn(() => true),
+      updateTranscriptBottomFollowStability: vi.fn(),
+      shouldContinueTranscriptBottomFollow: vi.fn(() => false),
+    };
+
+    owner.scheduleTranscriptBottomFollowFrame();
+    expect(owner.transcriptBottomFollowFramesRemaining).toBe(0);
+    expect(owner.shouldContinueTranscriptBottomFollow()).toBe(false);
+    expect(transcriptWindowMethods.shouldContinueTranscriptBottomFollow.call({
+      transcriptBottomFollowFramesRemaining: 1,
+      transcriptBottomFollowStableFrames: 2,
+    })).toBe(false);
+    expect(transcriptWindowMethods.shouldContinueTranscriptBottomFollow.call({})).toBe(false);
+    raf.mockRestore();
+  });
+
   it("covers scroll handling with missing and pinned terms", () => {
     const owner: any = {
       ...transcriptWindowMethods,
