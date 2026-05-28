@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"strings"
@@ -30,6 +31,10 @@ const fallbackChoiceSystemPrompt = `Pi Web UI fallback choice protocol:
     "allowCustom":false
   }
 - Keep id stable, short, and unique. Use at most 8 options. Use inert plain text only.`
+
+const maxEmptyAssistantRetries = 3
+
+const emptyAssistantRetryError = "Pi finished without an assistant message after 3 automatic retries. Please retry or continue manually."
 
 type Runner struct {
 	mu      sync.Mutex
@@ -118,11 +123,13 @@ func (r *Runner) StartPiPrompt(
 			},
 		}
 		stdoutDone := make(chan struct{})
-		agentDone := make(chan struct{})
-		var doneOnce sync.Once
+		agentDone := make(chan struct{}, maxEmptyAssistantRetries+1)
 		go streamPipe(stdout, func(line string) {
 			if isPiRPCAgentEnd(line) {
-				doneOnce.Do(func() { close(agentDone) })
+				select {
+				case agentDone <- struct{}{}:
+				default:
+				}
 			}
 			if !handlePiJSONEvent(line, broker, store, sessionID, state) {
 				broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
@@ -132,12 +139,40 @@ func (r *Runner) StartPiPrompt(
 			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
 		}, nil)
 
-		select {
-		case <-agentDone:
-			_ = stdin.Close()
-		case <-ctx.Done():
-		case <-stdoutDone:
+		emptyAssistantFailed := false
+		for {
+			select {
+			case <-agentDone:
+				if state.assistantTurnSucceeded() {
+					_ = stdin.Close()
+					goto waitForProcess
+				}
+				if state.emptyAssistantRetries >= maxEmptyAssistantRetries {
+					emptyAssistantFailed = true
+					broker.Publish(sessionID, "error", map[string]string{"error": emptyAssistantRetryError})
+					_ = stdin.Close()
+					goto waitForProcess
+				}
+				state.emptyAssistantRetries++
+				broker.Publish(sessionID, "session.status", map[string]string{
+					"status": "running",
+					"detail": fmt.Sprintf("empty assistant response; retrying %d/%d", state.emptyAssistantRetries, maxEmptyAssistantRetries),
+				})
+				state.resetAssistantTurn()
+				if err := activeRun.send(rpcPromptCommand(emptyAssistantRecoveryPrompt(text), images, "")); err != nil {
+					emptyAssistantFailed = true
+					broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
+					_ = stdin.Close()
+					goto waitForProcess
+				}
+			case <-ctx.Done():
+				goto waitForProcess
+			case <-stdoutDone:
+				goto waitForProcess
+			}
 		}
+
+	waitForProcess:
 		err := cmd.Wait()
 		if ctx.Err() != nil {
 			return
@@ -147,7 +182,7 @@ func (r *Runner) StartPiPrompt(
 			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
 			return
 		}
-		if state.assistantResponseCompleted && !state.fallbackChoiceNotified {
+		if state.assistantResponseCompleted && !state.fallbackChoiceNotified && !emptyAssistantFailed {
 			if session, messages, err := store.Session(sessionID); err == nil {
 				go func() {
 					_ = notifyRemoteResponseCompletedForFile(cwd, sessionFile, session, messages)
@@ -210,6 +245,16 @@ type rpcImage struct {
 
 func rpcPromptCommand(text string, images []PromptAttachment, streamingBehavior string) rpcPrompt {
 	return rpcPrompt{Type: "prompt", Message: text, Images: rpcImages(images), StreamingBehavior: streamingBehavior}
+}
+
+func emptyAssistantRecoveryPrompt(originalPrompt string) string {
+	return strings.TrimSpace(`The previous turn ended without any assistant message.
+This is not a successful completion.
+Continue from the last valid session/tool state and complete the original request.
+Do not restart work that is already complete unless it is necessary.
+
+Original request:
+` + originalPrompt)
 }
 
 func rpcImages(images []PromptAttachment) []rpcImage {

@@ -1,9 +1,13 @@
 package piweb
 
 import (
+	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStreamPipeHandlesLargeJSONLines(t *testing.T) {
@@ -95,4 +99,136 @@ func TestHandlePiJSONEventSkipsFinalToolCallPlaceholders(t *testing.T) {
 	if len(messages) != 5 {
 		t.Fatalf("assistant tool call placeholders should not be stored: %#v", messages)
 	}
+}
+
+func TestStartPiPromptRetriesEmptyAssistantUntilMessageArrives(t *testing.T) {
+	logPath := installFakePi(t, `#!/bin/sh
+count=0
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "$PI_FAKE_LOG"
+  count=$((count + 1))
+  if [ "$count" -lt 4 ]; then
+    printf '%s\n' '{"type":"agent_end"}'
+  else
+    printf '%s\n' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}'
+    printf '%s\n' '{"type":"agent_end"}'
+  fi
+done
+`)
+	store := runnerTestStore(t)
+	broker := NewBroker()
+	runner := NewRunner()
+
+	if err := runner.StartPiPrompt(context.Background(), broker, store, "s1", "fix it", nil, "fix it"); err != nil {
+		t.Fatalf("StartPiPrompt failed: %v", err)
+	}
+	waitForRunnerIdle(t, runner, "s1")
+
+	lines := readPromptLog(t, logPath)
+	if len(lines) != 4 {
+		t.Fatalf("expected original prompt plus 3 retries, got %d: %#v", len(lines), lines)
+	}
+	if !strings.Contains(lines[1], "The previous turn ended without any assistant message.") {
+		t.Fatalf("retry prompt should explain empty assistant recovery in English: %s", lines[1])
+	}
+	if !strings.Contains(lines[1], "Original request:\\nfix it") {
+		t.Fatalf("retry prompt should include original request: %s", lines[1])
+	}
+	_, messages, err := store.Session("s1")
+	if err != nil {
+		t.Fatalf("Session failed: %v", err)
+	}
+	if got := messages[len(messages)-1]; got.Kind != "pi" || got.Text != "done" {
+		t.Fatalf("expected final assistant message after retry, got %#v", got)
+	}
+	for _, event := range broker.Replay("s1", 0) {
+		if event.Type == "error" {
+			t.Fatalf("successful retry should not publish error: %#v", event)
+		}
+	}
+}
+
+func TestStartPiPromptFailsAfterThreeEmptyAssistantRetries(t *testing.T) {
+	logPath := installFakePi(t, `#!/bin/sh
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> "$PI_FAKE_LOG"
+  printf '%s\n' '{"type":"agent_end"}'
+done
+`)
+	store := runnerTestStore(t)
+	broker := NewBroker()
+	runner := NewRunner()
+
+	if err := runner.StartPiPrompt(context.Background(), broker, store, "s1", "fix it", nil, "fix it"); err != nil {
+		t.Fatalf("StartPiPrompt failed: %v", err)
+	}
+	waitForRunnerIdle(t, runner, "s1")
+
+	if lines := readPromptLog(t, logPath); len(lines) != 4 {
+		t.Fatalf("expected original prompt plus 3 retries, got %d: %#v", len(lines), lines)
+	}
+	var gotError string
+	for _, event := range broker.Replay("s1", 0) {
+		if event.Type != "error" {
+			continue
+		}
+		if payload, ok := event.Payload.(map[string]string); ok {
+			gotError = payload["error"]
+		}
+	}
+	if gotError != emptyAssistantRetryError {
+		t.Fatalf("expected empty assistant retry error, got %q", gotError)
+	}
+}
+
+func installFakePi(t *testing.T, script string) string {
+	t.Helper()
+	dir := t.TempDir()
+	logPath := filepath.Join(dir, "prompts.log")
+	piPath := filepath.Join(dir, "pi")
+	if err := os.WriteFile(piPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake pi: %v", err)
+	}
+	t.Setenv("PI_FAKE_LOG", logPath)
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return logPath
+}
+
+func runnerTestStore(t *testing.T) *Store {
+	t.Helper()
+	dir := t.TempDir()
+	store := emptyStore("")
+	store.workspaces = []Workspace{{ID: "w1", Name: "w1", Path: dir, Sessions: []Session{{ID: "s1", Title: "test", Workspace: "w1"}}}}
+	store.conversations["s1"] = nil
+	store.workspacePath["w1"] = dir
+	sessionFile := filepath.Join(dir, "session.jsonl")
+	if err := os.WriteFile(sessionFile, nil, 0o600); err != nil {
+		t.Fatalf("write session file: %v", err)
+	}
+	store.sessionFiles["s1"] = sessionFile
+	store.sessionCWD["s1"] = dir
+	store.workspaceSessionDir["w1"] = dir
+	store.refreshDisabledWorkspace["w1"] = true
+	return store
+}
+
+func waitForRunnerIdle(t *testing.T, runner *Runner, sessionID string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if !runner.IsRunning(sessionID) {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("runner still active for session %s", sessionID)
+}
+
+func readPromptLog(t *testing.T, path string) []string {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read prompt log: %v", err)
+	}
+	return strings.Split(strings.TrimSpace(string(content)), "\n")
 }
