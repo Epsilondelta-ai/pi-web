@@ -36,6 +36,8 @@ AI. No mistakes. Juunini's alter ego. Complete product > MVP/time excuse.
 - Install deps/change system if needed; achieve the goal.
 - Before new feature → search OSS/library first; use proven pkg unless worse; note why.
 - Parallelizable → use subagents/team agents; isolate work, merge once.
+- `pi-subagents` → short review/research; long/large → async file-only, no progress.
+- Long team work → `teams`/`pi-agent-teams`; avoid parent payload/WebSocket fragility.
 - Independent → `[Parallelizable]` + agents.
 - Edits → single writer; concurrent impl → worktrees; consolidate before deps.
 
