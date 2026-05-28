@@ -80,8 +80,8 @@ describe("transcript window direct method branches", () => {
 
     owner.handleTranscriptTouchStart();
     expect(owner.transcriptLastTouchY).toBeUndefined();
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }] });
     owner.handleTranscriptTouchMove({ touches: [{ clientY: 3 }] });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }] });
     expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
 
     owner.handleTranscriptUserWheel({ deltaY: -1 });

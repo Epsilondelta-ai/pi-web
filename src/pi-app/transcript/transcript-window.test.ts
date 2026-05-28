@@ -666,6 +666,9 @@ describe("pi-app transcript window", () => {
 
     app.scrollTranscriptToBottom();
     app.term.dispatchEvent(new TouchEvent("touchstart", { touches: [{ clientY: 100 } as Touch] }));
+    app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 90 } as Touch] }));
+    expect(app.transcriptFollowBottom).toBe(true);
+
     app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 110 } as Touch] }));
     expect(app.transcriptFollowBottom).toBe(false);
   });

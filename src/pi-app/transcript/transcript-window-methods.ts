@@ -155,7 +155,7 @@ export const transcriptWindowMethods = {
   handleTranscriptTouchMove(event) {
     const currentY = event?.touches?.[0]?.clientY;
     const previousY = this.transcriptLastTouchY;
-    if (Number.isFinite(currentY) && Number.isFinite(previousY) && Math.abs(currentY - previousY) > 4) {
+    if (Number.isFinite(currentY) && Number.isFinite(previousY) && currentY > previousY + 4) {
       this.stopFollowingTranscriptBottom();
     }
     this.transcriptLastTouchY = currentY;
