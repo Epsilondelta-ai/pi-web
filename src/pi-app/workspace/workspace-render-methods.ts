@@ -77,7 +77,7 @@ export const workspaceRenderMethods = {
       workspaces,
       activeWorkspaceId: this.dataset.activeWorkspaceId || "",
       activeSessionId: this.dataset.activeSessionId || "",
-      openWorkspaceId: this.sidebarOpenWorkspaceId || this.dataset.activeWorkspaceId || "",
+      openWorkspaceId: this.sidebarOpenWorkspaceId ?? this.dataset.activeWorkspaceId ?? "",
       onWorkspaceOrder: this.reorderWorkspaces.bind(this),
       onSessionOrder: this.reorderWorkspaceSessions.bind(this),
     }));
@@ -121,8 +121,10 @@ export const workspaceRenderMethods = {
     const group = document.createElement("div");
     group.className = "workspace-group";
     group.dataset.workspaceGroup = workspace.id;
-    const open = workspace.id === this.dataset.activeWorkspaceId;
-    group.classList.toggle("active", open);
+    const active = workspace.id === this.dataset.activeWorkspaceId;
+    const openWorkspaceId = this.sidebarOpenWorkspaceId ?? this.dataset.activeWorkspaceId ?? "";
+    const open = workspace.id === openWorkspaceId;
+    group.classList.toggle("active", active);
     group.classList.toggle("has-active-session", this.workspaceHasActiveSession(workspace));
     group.innerHTML = this.workspaceGroupTemplate(workspace, open);
     this.fillWorkspaceGroup(group, workspace);

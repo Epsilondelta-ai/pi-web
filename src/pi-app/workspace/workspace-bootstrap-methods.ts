@@ -148,7 +148,8 @@ export const workspaceBootstrapMethods = {
       const activeWorkspaceId = this.dataset.activeWorkspaceId;
       const workspaceList = this.withRefreshFallbackWorkspace(workspaces || [], activeWorkspaceId);
       this.renderWorkspaces(workspaceList);
-      if (activeWorkspaceId) this.openActiveWorkspaceGroup(activeWorkspaceId);
+      const openWorkspaceId = this.sidebarOpenWorkspaceId ?? activeWorkspaceId;
+      if (openWorkspaceId) this.openActiveWorkspaceGroup(openWorkspaceId);
     } catch {
       this.setConnection("err");
     } finally {

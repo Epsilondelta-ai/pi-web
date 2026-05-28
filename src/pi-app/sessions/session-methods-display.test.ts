@@ -110,6 +110,12 @@ describe("pi-app session method display states", () => {
     activeTitle.remove();
     app.activateCreatedSession("missing", { id: "s2", title: "missing", lastUsed: "now" });
     expect(app.dataset.activeSessionId).toBe("s2");
+
+    app.workspaceList = [{ id: "w1", name: "demo", path: "/demo", sessionCount: 1, sessions: [{ id: "old", title: "old" }] }];
+    app.sidebarSortableRoot = { render: vi.fn() };
+    app.activateCreatedSession("w1", { id: "s3", title: "sortable", lastUsed: "now" });
+    expect(app.workspaceList[0].sessions.map((session) => session.id)).toEqual(["s3", "old"]);
+    expect(app.workspaceList[0].sessionCount).toBe(2);
   });
 
   it("handles display helpers and menu variants", async () => {
