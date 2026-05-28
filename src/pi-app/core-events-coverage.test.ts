@@ -186,8 +186,9 @@ describe("pi-app core events coverage", () => {
 
     expect(app.confirmConnection).toHaveBeenCalled();
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: "hello" });
+    expect(app.appendDelta).toHaveBeenCalledWith({ kind: "pi", delta: " again" });
     expect(app.appendDelta).toHaveBeenCalledWith({ kind: "think", delta: "think" });
-    expect(app.finalizePiStream).toHaveBeenCalledWith("hellohello again");
+    expect(app.finalizePiStream).toHaveBeenCalledWith("hello again");
     expect(app.finalizePiStream).toHaveBeenCalledWith("final only");
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "args" });
     expect(app.appendToolOutput).toHaveBeenCalledWith({ tool: "bash", chunk: "result" });
