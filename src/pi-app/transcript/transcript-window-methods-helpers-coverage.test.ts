@@ -66,4 +66,26 @@ describe("transcript window direct method branches", () => {
     owner.handleTranscriptScroll();
     expect(owner.transcriptFollowBottom).toBe(true);
   });
+
+  it("covers gesture follow-release fallbacks", () => {
+    const owner: any = {
+      ...transcriptWindowMethods,
+      updateTranscriptScrollButton: vi.fn(),
+      stopFollowingTranscriptBottom: vi.fn(),
+    };
+
+    owner.handleTranscriptUserWheel();
+    owner.handleTranscriptUserWheel({ deltaY: 1 });
+    expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
+
+    owner.handleTranscriptTouchStart();
+    expect(owner.transcriptLastTouchY).toBeUndefined();
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 3 }] });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }] });
+    expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
+
+    owner.handleTranscriptUserWheel({ deltaY: -1 });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }] });
+    expect(owner.stopFollowingTranscriptBottom).toHaveBeenCalledTimes(2);
+  });
 });

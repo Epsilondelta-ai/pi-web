@@ -45,6 +45,9 @@ export const transcriptWindowMethods = {
     this.transcriptScrollButton = this.ensureTranscriptScrollButton();
     this.installTranscriptScrollGuard();
     this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
+    this.term?.addEventListener("wheel", (event) => this.handleTranscriptUserWheel(event), { passive: true });
+    this.term?.addEventListener("touchstart", (event) => this.handleTranscriptTouchStart(event), { passive: true });
+    this.term?.addEventListener("touchmove", (event) => this.handleTranscriptTouchMove(event), { passive: true });
     this.adoptRenderedTranscript();
     this.updateTranscriptScrollButton();
   },
@@ -136,13 +139,35 @@ export const transcriptWindowMethods = {
     term.style.scrollBehavior = previousScrollBehavior;
   },
 
+  stopFollowingTranscriptBottom() {
+    this.transcriptFollowBottom = false;
+    this.updateTranscriptScrollButton();
+  },
+
+  handleTranscriptUserWheel(event) {
+    if ((event?.deltaY || 0) < 0) this.stopFollowingTranscriptBottom();
+  },
+
+  handleTranscriptTouchStart(event) {
+    this.transcriptLastTouchY = event?.touches?.[0]?.clientY;
+  },
+
+  handleTranscriptTouchMove(event) {
+    const currentY = event?.touches?.[0]?.clientY;
+    const previousY = this.transcriptLastTouchY;
+    if (Number.isFinite(currentY) && Number.isFinite(previousY) && currentY > previousY + 4) {
+      this.stopFollowingTranscriptBottom();
+    }
+    this.transcriptLastTouchY = currentY;
+  },
+
   handleTranscriptScroll() {
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
     const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
     if (pinned) this.transcriptFollowBottom = true;
-    else if (scrollTop < previousScrollTop - 1) this.transcriptFollowBottom = false;
+    else if (scrollTop < previousScrollTop - 1) this.stopFollowingTranscriptBottom();
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
