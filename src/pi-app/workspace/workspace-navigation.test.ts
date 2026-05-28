@@ -61,10 +61,25 @@ describe("pi-app workspace navigation", () => {
     app.route = vi.fn();
     app.dataset.activeWorkspaceId = "w1";
     app.dataset.activeSessionId = "s1";
-    app.renderWorkspaces([
+    const workspaces = [
       { id: "w1", name: "one", path: "/one", sessions: [{ id: "s1", title: "first" }] },
       { id: "w2", name: "two", path: "/two", sessions: [{ id: "s2", title: "second" }] },
-    ]);
+    ];
+    app.renderWorkspaces(workspaces);
+
+    app.querySelector("[data-workspace='w1'].ws-row").click();
+    app.renderWorkspaces(workspaces);
+    expect(app.querySelector("[data-workspace-group='w1'] .sessions").hidden).toBe(true);
+    expect(app.querySelector("[data-workspace='w1'].ws-row").getAttribute("aria-expanded")).toBe("false");
+    expect(app.querySelector("[data-workspace='w1'].ws-row").getAttribute("aria-current")).toBe("true");
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ workspaces }),
+    }));
+    await app.refreshWorkspaces();
+    expect(app.querySelector("[data-workspace-group='w1'] .sessions").hidden).toBe(true);
 
     app.querySelector("[data-workspace='w2'].ws-row").click();
 

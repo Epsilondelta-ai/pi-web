@@ -187,11 +187,14 @@ export const sessionMethods = {
     this.resetActiveSessionState();
     storeActiveSession(workspaceId, session.id);
     this.markSelectedSessionRow(session.id);
-    const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
-    if (group && !group.querySelector(`[data-session='${session.id}']`)) {
-      group.insertBefore(this.createSessionRow(workspaceId, session), group.querySelector(".new-session-row"));
+    this.addWorkspaceSessionToState(workspaceId, session);
+    if (!this.sidebarSortableRoot) {
+      const group = this.querySelector(`[data-workspace-group='${workspaceId}'] .sessions`);
+      if (group && !group.querySelector(`[data-session='${session.id}']`)) {
+        group.insertBefore(this.createSessionRow(workspaceId, session), group.querySelector(".new-session-row"));
+      }
+      this.refreshWorkspaceSessionControls(workspaceId);
     }
-    this.refreshWorkspaceSessionControls(workspaceId);
     this.markSelectedSessionRow(session.id);
     this.syncActiveWorkspaceRows?.();
     const title = this.querySelector("[data-active-session-title]");
@@ -201,6 +204,23 @@ export const sessionMethods = {
     }
     this.renderMessages([]);
     this.connectEvents(session.id);
+  },
+
+  addWorkspaceSessionToState(workspaceId, session) {
+    if (!workspaceId || !session?.id || !Array.isArray(this.workspaceList)) return;
+    const nextWorkspaces = this.workspaceList.map((workspace) => {
+      if (workspace.id !== workspaceId) return workspace;
+      const sessions = (workspace.sessions || []).filter((item) => item.id !== session.id);
+      const nextSessions = [session, ...sessions];
+      return {
+        ...workspace,
+        sessions: nextSessions,
+        sessionCount: nextSessions.length,
+        live: nextSessions.some((item) => item.active || item.live),
+      };
+    });
+    this.renderWorkspaces(nextWorkspaces);
+    this.openActiveWorkspaceGroup(workspaceId);
   },
 
   resetActiveSessionState() {

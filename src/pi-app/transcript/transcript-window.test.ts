@@ -426,6 +426,7 @@ describe("pi-app transcript window", () => {
     expect(scrollWrites).toEqual([
       { behavior: "auto", value: 1000 },
       { behavior: "auto", value: 1000 },
+      { behavior: "auto", value: 1000 },
     ]);
     expect(app.term.style.scrollBehavior).toBe("smooth");
   });
@@ -470,12 +471,12 @@ describe("pi-app transcript window", () => {
     app.scrollTerm({ force: true });
 
     expect(cancelFrame).not.toHaveBeenCalled();
-    expect(scrollWrites).toEqual([1100, 1200]);
+    expect(scrollWrites).toEqual([1000, 1100, 1200]);
 
     runFrames();
     runFrames();
 
-    expect(scrollWrites).toEqual([1100, 1200, 1200, 1200]);
+    expect(scrollWrites).toEqual([1000, 1100, 1200, 1200, 1200]);
   });
 
   it("does not run a pending bottom scroll after the user scrolls up", async () => {
@@ -505,6 +506,95 @@ describe("pi-app transcript window", () => {
 
     expect(scrollTop).toBe(100);
     expect(app.transcriptFollowBottom).toBe(false);
+  });
+
+  it("does not run a forced follow-up scroll after the user scrolls up", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    let scrollTop = 900;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.scrollTerm({ force: true });
+    app.term.scrollTop = 100;
+    app.handleTranscriptScroll();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
+  });
+
+  it("does not overwrite the pending follow baseline before a delayed user scroll event", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    let scrollTop = 900;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.scrollTerm();
+    app.term.scrollTop = 100;
+    app.scrollTerm();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
+  });
+
+  it("keeps following when bottom-pinned content grows before the scroll frame", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    let scrollTop = 900;
+    let scrollHeight = 1000;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.transcriptFollowBottom = true;
+    scrollHeight = 1200;
+    app.appendTranscriptNode(app.messageNode({ kind: "pi", text: "new tail" }), { stickToBottom: true });
+    app.handleTranscriptScroll();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollTop).toBe(1200);
+    expect(app.transcriptFollowBottom).toBe(true);
   });
 
   it("stops following when the user scrolls up and resumes only from the bottom button", async () => {

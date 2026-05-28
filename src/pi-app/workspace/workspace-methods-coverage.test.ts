@@ -83,6 +83,11 @@ describe("workspace folder/render/bootstrap coverage", () => {
       await app.renderSortableSidebarWorkspaces(app.querySelector(".sidebar .sb-section"), app.workspaceList);
     });
     expect(globalThis.__lastSortableSidebarProps.openWorkspaceId).toBe("w1");
+    app.sidebarOpenWorkspaceId = "";
+    await act(async () => {
+      await app.renderSortableSidebarWorkspaces(app.querySelector(".sidebar .sb-section"), app.workspaceList);
+    });
+    expect(globalThis.__lastSortableSidebarProps.openWorkspaceId).toBe("");
     delete app.dataset.activeWorkspaceId;
     app.openActiveWorkspaceGroup("");
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "", openWorkspaceId: "" });
