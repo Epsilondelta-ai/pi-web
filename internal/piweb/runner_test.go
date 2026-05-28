@@ -140,6 +140,7 @@ done
 	if countRetryMarkers(messages, "empty assistant") != 3 {
 		t.Fatalf("expected 3 saved empty assistant retry markers, got %#v", messages)
 	}
+	assertSessionFileRetryMarkers(t, store, 3)
 	if got := messages[len(messages)-1]; got.Kind != "pi" || got.Text != "done" {
 		t.Fatalf("expected final assistant message after retry, got %#v", got)
 	}
@@ -221,6 +222,27 @@ done
 	}
 }
 
+func TestRecoveryPromptIsHiddenWhenSessionFileIsParsed(t *testing.T) {
+	prompt := emptyAssistantRecoveryPrompt("fix it")
+	encodedPrompt, _ := json.Marshal(prompt)
+	messages := ParsePiSessionLineMessages(`{"type":"message","message":{"role":"user","content":` + string(encodedPrompt) + `}}`)
+	if len(messages) != 0 {
+		t.Fatalf("expected recovery prompt to be hidden, got %#v", messages)
+	}
+}
+
+func TestRetryMarkerParsesAsRetryToolMessage(t *testing.T) {
+	body := retryMarkerPrefix + " empty assistant (retrying 1/3)."
+	encodedBody, _ := json.Marshal(body)
+	messages := ParsePiSessionLineMessages(`{"type":"message","message":{"role":"toolResult","toolName":"pi","content":` + string(encodedBody) + `}}`)
+	if len(messages) != 1 {
+		t.Fatalf("expected retry marker message, got %#v", messages)
+	}
+	if got := messages[0]; got.Kind != "tool" || got.Tool != "pi" || got.Status != "retry" || got.CollapsedByDefault {
+		t.Fatalf("expected expanded retry tool marker, got %#v", got)
+	}
+}
+
 func installFakePi(t *testing.T, script string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -281,6 +303,21 @@ func countRetryMarkers(messages []Message, reason string) int {
 		}
 	}
 	return count
+}
+
+func assertSessionFileRetryMarkers(t *testing.T, store *Store, want int) {
+	t.Helper()
+	path, _, ok := store.SessionRuntime("s1")
+	if !ok {
+		t.Fatal("missing session runtime")
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read session file: %v", err)
+	}
+	if got := strings.Count(string(content), retryMarkerPrefix); got != want {
+		t.Fatalf("expected %d persisted retry markers, got %d in %s", want, got, string(content))
+	}
 }
 
 func overrideLLMIdleTimeouts(t *testing.T, first time.Duration, stream time.Duration) {

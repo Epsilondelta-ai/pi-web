@@ -36,6 +36,8 @@ const maxEmptyAssistantRetries = 3
 
 const emptyAssistantRetryError = "Pi finished without an assistant message after 3 automatic retries. Please retry or continue manually."
 const llmIdleRetryError = "Pi did not receive any LLM response or event before the idle timeout after 3 automatic retries. Please retry manually."
+const piWebRecoveryPromptPrefix = "The previous turn ended or stalled without a completed assistant message."
+const retryMarkerPrefix = "Automatic retry marker:"
 
 var firstLLMEventIdleTimeout = 90 * time.Second
 var streamLLMEventIdleTimeout = 120 * time.Second
@@ -205,6 +207,7 @@ func (r *Runner) runPiAttempt(
 	if result.success || result.retry || result.errorPublished {
 		_ = stdin.Close()
 	}
+	activeRun.clearStdin(stdin)
 	err = cmd.Wait()
 	if result.retry || result.errorPublished {
 		return result, nil
@@ -290,14 +293,20 @@ func retryIdleTimeoutTurn(broker *Broker, store *Store, sessionID string, state 
 }
 
 func publishRetryNotice(broker *Broker, store *Store, sessionID string, reason string, attempt int, max int, status string) {
+	messageStatus := "retry"
+	if status == "failed" {
+		messageStatus = "err"
+	}
 	msg := Message{
-		Kind:       "tool",
-		Tool:       "pi",
-		Status:     "err",
-		ResultMeta: fmt.Sprintf("%s %d/%d", status, attempt, max),
-		Body:       fmt.Sprintf("Automatic retry marker: %s (%s %d/%d).", reason, status, attempt, max),
+		Kind:               "tool",
+		Tool:               "pi",
+		Status:             messageStatus,
+		ResultMeta:         fmt.Sprintf("%s %d/%d", status, attempt, max),
+		Body:               fmt.Sprintf("%s %s (%s %d/%d).", retryMarkerPrefix, reason, status, attempt, max),
+		CollapsedByDefault: false,
 	}
 	_ = store.AppendMessage(sessionID, msg)
+	_ = store.AppendSessionRetryNotice(sessionID, msg)
 	broker.Publish(sessionID, eventTypeForMessage(msg), msg)
 }
 
@@ -352,7 +361,7 @@ func rpcPromptCommand(text string, images []PromptAttachment, streamingBehavior 
 }
 
 func emptyAssistantRecoveryPrompt(originalPrompt string) string {
-	return strings.TrimSpace(`The previous turn ended or stalled without a completed assistant message.
+	return strings.TrimSpace(piWebRecoveryPromptPrefix + `
 This is not a successful completion.
 Continue from the last valid session/tool state and complete the original request.
 Do not restart work that is already complete unless it is necessary.
@@ -384,6 +393,14 @@ func (r *activePiRun) setStdin(stdin io.WriteCloser) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.stdin = stdin
+}
+
+func (r *activePiRun) clearStdin(stdin io.WriteCloser) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.stdin == stdin {
+		r.stdin = nil
+	}
 }
 
 func (r *activePiRun) send(command any) error {

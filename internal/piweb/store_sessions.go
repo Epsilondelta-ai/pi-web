@@ -395,6 +395,38 @@ func (s *Store) AppendMessage(sessionID string, msg Message) error {
 	s.conversations[sessionID] = append(s.conversations[sessionID], msg)
 	return nil
 }
+
+func (s *Store) AppendSessionRetryNotice(sessionID string, msg Message) error {
+	s.mu.RLock()
+	path := s.sessionFiles[sessionID]
+	s.mu.RUnlock()
+	if path == "" {
+		return nil
+	}
+	entry := map[string]any{
+		"type":      "message",
+		"id":        createSessionID(),
+		"parentId":  nil,
+		"timestamp": time.Now().UTC().Format(time.RFC3339Nano),
+		"message": map[string]any{
+			"role":     "toolResult",
+			"toolName": msg.Tool,
+			"content":  msg.Body,
+			"isError":  msg.Status == "err",
+		},
+	}
+	line, err := json.Marshal(entry)
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(append(line, '\n'))
+	return err
+}
 func (s *Store) SessionRuntime(sessionID string) (sessionFile, cwd string, ok bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
