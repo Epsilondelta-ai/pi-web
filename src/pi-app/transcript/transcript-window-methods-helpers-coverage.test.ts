@@ -23,4 +23,23 @@ describe("transcript window direct method branches", () => {
     owner.transcriptItems = [{ id: 2 }];
     expect(owner.transcriptItemNodes(0)).toEqual([]);
   });
+
+  it("covers scroll handling with missing and pinned terms", () => {
+    const owner = {
+      ...transcriptWindowMethods,
+      term: undefined,
+      updateTranscriptScrollButton: vi.fn(),
+      shouldLoadOlderTranscriptMessages: vi.fn(() => false),
+      isTermPinnedToBottom: vi.fn(() => false),
+    };
+
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptLastScrollTop).toBe(0);
+
+    owner.term = { scrollTop: 10 };
+    owner.transcriptFollowBottom = false;
+    owner.isTermPinnedToBottom = vi.fn(() => true);
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptFollowBottom).toBe(true);
+  });
 });
