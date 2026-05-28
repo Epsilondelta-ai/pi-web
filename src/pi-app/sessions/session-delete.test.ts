@@ -92,6 +92,7 @@ describe("pi-app session deletion", () => {
     const app = await connectPiApp();
     app.apiConnected = true;
     app.sidebarSortableRoot = { render: vi.fn() };
+    app.renderSortableSidebarWorkspaces = vi.fn(() => Promise.resolve());
     app.dataset.activeWorkspaceId = "w1";
     app.workspaceList = [{
       id: "w1",
@@ -117,6 +118,7 @@ describe("pi-app session deletion", () => {
 
     expect(app.removeSessionRows).not.toHaveBeenCalled();
     expect(app.workspaceList[0].sessions.map((session) => session.id)).toEqual(["s2"]);
+    expect(app.renderSortableSidebarWorkspaces).toHaveBeenCalledWith(section, app.workspaceList);
   });
 
   it("keeps React sortable sidebar mounted when deleting all sessions", async () => {
