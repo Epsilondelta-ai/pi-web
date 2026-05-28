@@ -64,6 +64,11 @@ describe("pi-app session method display states", () => {
     group.querySelector(".ws-meta").remove();
     group.querySelector(".new-session-row").remove();
     app.refreshWorkspaceSessionControls("w1");
+
+    app.dataset.activeSessionId = "";
+    app.syncCurrentSessionRunState(true);
+    app.dataset.activeSessionId = "missing";
+    app.syncCurrentSessionRunState(true);
   });
 
   it("starts new sessions for backend, fallback, and failure states", async () => {
@@ -116,6 +121,15 @@ describe("pi-app session method display states", () => {
     app.activateCreatedSession("w1", { id: "s3", title: "sortable", lastUsed: "now" });
     expect(app.workspaceList[0].sessions.map((session) => session.id)).toEqual(["s3", "old"]);
     expect(app.workspaceList[0].sessionCount).toBe(2);
+
+    app.addWorkspaceSessionToState("", { id: "ignored" });
+    app.addWorkspaceSessionToState("w1", {});
+    app.workspaceList = undefined;
+    app.addWorkspaceSessionToState("w1", { id: "ignored" });
+    app.workspaceList = [{ id: "other", name: "other", path: "/other", sessions: [] }, { id: "w1", name: "demo", path: "/demo" }];
+    app.addWorkspaceSessionToState("w1", { id: "live", title: "live", active: true });
+    expect(app.workspaceList[1].sessions.map((session) => session.id)).toEqual(["live"]);
+    expect(app.workspaceList[1].live).toBe(true);
   });
 
   it("handles display helpers and menu variants", async () => {
