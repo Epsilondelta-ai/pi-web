@@ -8,7 +8,10 @@ import { workspaceBootstrapMethods } from "./workspace/workspace-bootstrap-metho
 
 describe("performance split coverage", () => {
   beforeEach(installPiAppFixture);
-  afterEach(cleanupPiAppFixture);
+  afterEach(async () => {
+    cleanupPiAppFixture();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
 
   it("covers lightweight input fallbacks before lazy speech loads", async () => {
     const app = await connectPiApp();
