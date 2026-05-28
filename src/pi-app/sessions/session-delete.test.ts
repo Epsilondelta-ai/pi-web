@@ -137,6 +137,52 @@ describe("pi-app session deletion", () => {
     expect(calls).toEqual(["replace"]);
   });
 
+  it("clears active session before rendering sortable sidebar replacement state", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => ({}) }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.sidebarSortableRoot = { render: vi.fn() };
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "s1";
+    app.workspaceList = [{ id: "w1", sessions: [{ id: "s1", title: "one" }], sessionCount: 1 }];
+    app.append(app.createWorkspaceGroup(app.workspaceList[0]));
+    const calls = [];
+    app.clearActiveSession = vi.fn(() => {
+      calls.push(`clear:${app.dataset.activeSessionId}`);
+      app.dataset.activeSessionId = "";
+    });
+    app.renderWorkspaces = vi.fn(() => calls.push(`render:${app.dataset.activeSessionId}`));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    await app.deleteSession("s1");
+
+    expect(calls).toEqual(["clear:s1", "render:"]);
+  });
+
+  it("clears active workspace session before rendering empty sortable sidebar state", async () => {
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async () => ({ ok: true, status: 200, statusText: "OK", json: async () => ({}) }));
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.sidebarSortableRoot = { render: vi.fn() };
+    app.dataset.activeWorkspaceId = "w1";
+    app.dataset.activeSessionId = "s1";
+    const calls = [];
+    app.workspaceSessionIds = vi.fn(() => new Set(["s1"]));
+    app.clearActiveSession = vi.fn(() => {
+      calls.push(`clear:${app.dataset.activeSessionId}`);
+      app.dataset.activeSessionId = "";
+    });
+    app.renderWorkspaces = vi.fn(() => calls.push(`render:${app.dataset.activeSessionId}`));
+    app.workspaceList = [{ id: "w1", sessions: [{ id: "s1", title: "one" }], sessionCount: 1 }];
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    await app.deleteWorkspaceSessions("w1");
+
+    expect(calls).toEqual(["clear:s1", "render:"]);
+  });
+
   it("covers session deletion state helper edge branches", async () => {
     const app = await connectPiApp();
     app.renderWorkspaces = vi.fn((workspaces) => { app.workspaceList = workspaces; });
