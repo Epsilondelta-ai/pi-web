@@ -71,16 +71,23 @@ export const transcriptWindowMethods = {
     this.scrollTerm = ({ force = false } = {}) => {
       if (!force && this.transcriptFollowBottom === false) return;
       if (this.scrollFrame) {
-        if (!force) return;
-        window.cancelAnimationFrame?.(this.scrollFrame);
-        this.scrollFrame = undefined;
+        this.scrollFrameForce ||= force;
+        if (force) {
+          this.scrollTermToBottomImmediately();
+          this.updateTranscriptScrollButton();
+        }
+        return;
       }
-      const scroll = () => {
-        this.scrollTermToBottomImmediately();
-        this.updateTranscriptScrollButton();
-      };
+      this.scrollFrameForce = force;
       this.scrollFrame = window.requestAnimationFrame(() => {
+        const scrollFrameForce = this.scrollFrameForce;
         this.scrollFrame = undefined;
+        this.scrollFrameForce = false;
+        const scroll = () => {
+          if (!scrollFrameForce && this.transcriptFollowBottom === false) return;
+          this.scrollTermToBottomImmediately();
+          this.updateTranscriptScrollButton();
+        };
         scroll();
         window.requestAnimationFrame(scroll);
       });

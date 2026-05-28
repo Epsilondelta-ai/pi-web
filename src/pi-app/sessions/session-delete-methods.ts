@@ -13,10 +13,11 @@ export const sessionDeleteMethods = {
       await deleteSessionRequest(sessionId);
       const workspaceId = this.findWorkspaceIdForSession(sessionId);
       const deletedSessionIds = this.deletedSessionIdsWithDescendants(workspaceId, sessionId);
+      const shouldClearActiveSession = deletedSessionIds.has(this.dataset.activeSessionId);
+      if (shouldClearActiveSession) this.clearActiveSession(this.dataset.activeSessionId);
       if (!this.sidebarSortableRoot) this.removeSessionRows(deletedSessionIds);
       this.removeWorkspaceSessionsFromState(workspaceId, deletedSessionIds);
       if (!this.sidebarSortableRoot) this.refreshWorkspaceSessionControls(workspaceId);
-      if (deletedSessionIds.has(this.dataset.activeSessionId)) this.clearActiveSession(this.dataset.activeSessionId);
     } catch {
       this.setConnection("err");
     }
@@ -31,12 +32,11 @@ export const sessionDeleteMethods = {
     try {
       const deletedSessionIds = this.workspaceSessionIds(workspaceId);
       await deleteWorkspaceSessionsRequest(workspaceId);
+      const shouldClearActiveSession = deletedSessionIds.has(this.dataset.activeSessionId)
+        || (workspaceId === this.dataset.activeWorkspaceId && !!this.dataset.activeSessionId);
+      if (shouldClearActiveSession) this.clearActiveSession(this.dataset.activeSessionId);
       if (!this.sidebarSortableRoot) this.clearWorkspaceSessionRows(workspaceId);
       this.replaceWorkspaceSessionsInState(workspaceId, []);
-      if (deletedSessionIds.has(this.dataset.activeSessionId)
-        || (workspaceId === this.dataset.activeWorkspaceId && this.dataset.activeSessionId)) {
-        this.clearActiveSession(this.dataset.activeSessionId);
-      }
     } catch {
       this.setConnection("err");
     }

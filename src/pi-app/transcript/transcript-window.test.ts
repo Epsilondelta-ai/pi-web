@@ -430,6 +430,83 @@ describe("pi-app transcript window", () => {
     expect(app.term.style.scrollBehavior).toBe("smooth");
   });
 
+  it("coalesces repeated forced bottom scrolls without canceling the pending frame", async () => {
+    let nextFrameId = 0;
+    const frames = new Map();
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      const id = ++nextFrameId;
+      frames.set(id, callback);
+      return id;
+    });
+    const cancelFrame = vi.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => {
+      frames.delete(id);
+    });
+    const runFrames = () => {
+      const callbacks = [...frames.values()];
+      frames.clear();
+      callbacks.forEach((callback) => callback(0));
+    };
+
+    const app = await connectPiApp();
+    frames.clear();
+    app.scrollFrame = undefined;
+    let scrollHeight = 1000;
+    let scrollTop = 0;
+    const scrollWrites = [];
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => {
+        scrollWrites.push(value);
+        scrollTop = value;
+      },
+    });
+
+    app.scrollTerm({ force: true });
+    scrollHeight = 1100;
+    app.scrollTerm({ force: true });
+    scrollHeight = 1200;
+    app.scrollTerm({ force: true });
+
+    expect(cancelFrame).not.toHaveBeenCalled();
+    expect(scrollWrites).toEqual([1100, 1200]);
+
+    runFrames();
+    runFrames();
+
+    expect(scrollWrites).toEqual([1100, 1200, 1200, 1200]);
+  });
+
+  it("does not run a pending bottom scroll after the user scrolls up", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    let scrollTop = 900;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.scrollTerm();
+    app.term.scrollTop = 100;
+    app.handleTranscriptScroll();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
+  });
+
   it("stops following when the user scrolls up and resumes only from the bottom button", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
