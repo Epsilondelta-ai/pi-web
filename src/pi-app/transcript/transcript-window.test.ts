@@ -597,6 +597,36 @@ describe("pi-app transcript window", () => {
     expect(app.transcriptFollowBottom).toBe(true);
   });
 
+  it("continues following delayed bottom growth across several frames", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    let scrollTop = 900;
+    let scrollHeight = 1000;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.scrollTerm({ force: true });
+    for (const height of [1100, 1250, 1400]) {
+      scrollHeight = height;
+      frames.splice(0).forEach((callback) => callback(0));
+    }
+
+    expect(scrollTop).toBe(1400);
+    expect(app.transcriptFollowBottom).toBe(true);
+  });
+
   it("stops following when the user scrolls up and resumes only from the bottom button", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
