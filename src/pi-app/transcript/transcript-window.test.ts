@@ -537,6 +537,35 @@ describe("pi-app transcript window", () => {
     expect(app.transcriptFollowBottom).toBe(false);
   });
 
+  it("does not overwrite the pending follow baseline before a delayed user scroll event", async () => {
+    const frames = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+
+    const app = await connectPiApp();
+    frames.length = 0;
+    app.scrollFrame = undefined;
+    let scrollTop = 900;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.scrollTerm();
+    app.term.scrollTop = 100;
+    app.scrollTerm();
+    frames.splice(0).forEach((callback) => callback(0));
+    frames.splice(0).forEach((callback) => callback(0));
+
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
+  });
+
   it("keeps following when bottom-pinned content grows before the scroll frame", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {

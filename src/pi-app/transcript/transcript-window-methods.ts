@@ -76,10 +76,17 @@ export const transcriptWindowMethods = {
         this.updateTranscriptScrollButton();
       }
       if (this.scrollFrame) return;
+      const followScrollTop = this.term?.scrollTop || 0;
+      if (!force) this.transcriptLastScrollTop = followScrollTop;
       this.scrollFrame = window.requestAnimationFrame(() => {
         this.scrollFrame = undefined;
         const scroll = () => {
           if (this.transcriptFollowBottom === false) return;
+          if ((this.term?.scrollTop || 0) < followScrollTop - 1) {
+            this.transcriptFollowBottom = false;
+            this.updateTranscriptScrollButton();
+            return;
+          }
           this.scrollTermToBottomImmediately();
           this.updateTranscriptScrollButton();
         };
