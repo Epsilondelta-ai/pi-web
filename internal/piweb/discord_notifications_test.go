@@ -237,7 +237,7 @@ func TestNotifyRemoteResponseCompletedSkipsNestedSessionFile(t *testing.T) {
 	}
 	sessionDir := t.TempDir()
 	parentFile := filepath.Join(sessionDir, "parent.jsonl")
-	childDir := filepath.Join(sessionDir, "parent")
+	childDir := filepath.Join(sessionDir, "parent", "run-id", "run-0")
 	childFile := filepath.Join(childDir, "child.jsonl")
 	if err := os.MkdirAll(childDir, 0o700); err != nil {
 		t.Fatal(err)

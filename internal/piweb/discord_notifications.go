@@ -121,11 +121,17 @@ func isAgentChildSessionFile(sessionFile string) bool {
 			return true
 		}
 	}
-	parentDir := filepath.Dir(clean)
-	parentSessionFile := filepath.Join(filepath.Dir(parentDir), filepath.Base(parentDir)+".jsonl")
-	if parentSessionFile != clean {
+	for dir := filepath.Dir(clean); dir != "." && dir != string(filepath.Separator); dir = filepath.Dir(dir) {
+		parentSessionFile := filepath.Join(filepath.Dir(dir), filepath.Base(dir)+".jsonl")
+		if parentSessionFile == clean {
+			continue
+		}
 		if _, err := os.Stat(parentSessionFile); err == nil {
 			return true
+		}
+		next := filepath.Dir(dir)
+		if next == dir {
+			break
 		}
 	}
 	return false
