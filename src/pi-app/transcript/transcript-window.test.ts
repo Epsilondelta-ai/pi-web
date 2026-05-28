@@ -674,6 +674,21 @@ describe("pi-app transcript window", () => {
     expect(app.transcriptFollowBottom).toBe(false);
   });
 
+  it("ignores wheel-up and touch gestures that start outside the transcript area", async () => {
+    const app = await connectPiApp();
+    const modal = document.createElement("div");
+    modal.setAttribute("role", "dialog");
+    app.term.append(modal);
+    app.transcriptFollowBottom = true;
+
+    modal.dispatchEvent(new WheelEvent("wheel", { bubbles: true, deltaY: -1 }));
+    expect(app.transcriptFollowBottom).toBe(true);
+
+    modal.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [{ clientY: 100 } as Touch] }));
+    app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 120 } as Touch] }));
+    expect(app.transcriptFollowBottom).toBe(true);
+  });
+
   it("does not re-enable follow from a near-bottom scroll event after an explicit release", async () => {
     const app = await connectPiApp();
     let scrollTop = 880;

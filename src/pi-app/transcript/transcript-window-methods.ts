@@ -8,6 +8,15 @@ const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
 const TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES = 12;
 const TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES = 2;
+const TRANSCRIPT_GESTURE_BLOCKING_SELECTOR = [
+  "[role='dialog']",
+  "[aria-modal='true']",
+  "dialog",
+  ".settings-modal",
+  ".file-preview-modal",
+  ".slash-pop",
+  ".drop-overlay",
+].join(",");
 
 export function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -138,15 +147,30 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
+  isTranscriptGestureEvent(event) {
+    const term = this.term;
+    if (!term) return false;
+    const path = event?.composedPath?.();
+    if (path?.length && !path.includes(term)) return false;
+    const target = event?.target;
+    if (!target) return true;
+    if (!term.contains?.(target)) return false;
+    const blockingElement = target.closest?.(TRANSCRIPT_GESTURE_BLOCKING_SELECTOR);
+    return !blockingElement || blockingElement.hidden || blockingElement.hasAttribute?.("hidden");
+  },
+
   handleTranscriptUserWheel(event) {
+    if (!this.isTranscriptGestureEvent(event)) return;
     if ((event?.deltaY || 0) < 0) this.stopFollowingTranscriptBottom();
   },
 
   handleTranscriptTouchStart(event) {
-    this.transcriptLastTouchY = event?.touches?.[0]?.clientY;
+    this.transcriptTouchStartedInTerm = this.isTranscriptGestureEvent(event);
+    this.transcriptLastTouchY = this.transcriptTouchStartedInTerm ? event?.touches?.[0]?.clientY : undefined;
   },
 
   handleTranscriptTouchMove(event) {
+    if (!this.transcriptTouchStartedInTerm || !this.isTranscriptGestureEvent(event)) return;
     const currentY = event?.touches?.[0]?.clientY;
     const previousY = this.transcriptLastTouchY;
     if (Number.isFinite(currentY) && Number.isFinite(previousY) && currentY > previousY + 4) {

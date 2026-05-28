@@ -68,8 +68,10 @@ describe("transcript window direct method branches", () => {
   });
 
   it("covers gesture follow-release fallbacks", () => {
+    const term = document.createElement("div");
     const owner: any = {
       ...transcriptWindowMethods,
+      term,
       updateTranscriptScrollButton: vi.fn(),
       stopFollowingTranscriptBottom: vi.fn(),
     };
