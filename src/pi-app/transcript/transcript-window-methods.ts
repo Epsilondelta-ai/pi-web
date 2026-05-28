@@ -55,6 +55,8 @@ export const transcriptWindowMethods = {
     this.installTranscriptScrollGuard();
     this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
     this.term?.addEventListener("wheel", (event) => this.handleTranscriptUserWheel(event), { passive: true });
+    this.term?.addEventListener("pointerdown", (event) => this.handleTranscriptPointerDown(event), { passive: true });
+    this.term?.addEventListener("keydown", (event) => this.handleTranscriptKeyDown(event));
     this.term?.addEventListener("touchstart", (event) => this.handleTranscriptTouchStart(event), { passive: true });
     this.term?.addEventListener("touchmove", (event) => this.handleTranscriptTouchMove(event), { passive: true });
     this.adoptRenderedTranscript();
@@ -164,6 +166,15 @@ export const transcriptWindowMethods = {
     if ((event?.deltaY || 0) < 0) this.stopFollowingTranscriptBottom();
   },
 
+  handleTranscriptPointerDown(event) {
+    this.transcriptPointerStartedInTerm = this.isTranscriptGestureEvent(event);
+  },
+
+  handleTranscriptKeyDown(event) {
+    if (!this.isTranscriptGestureEvent(event)) return;
+    if (["ArrowUp", "PageUp", "Home"].includes(event?.key)) this.transcriptKeyboardScrollPending = true;
+  },
+
   handleTranscriptTouchStart(event) {
     this.transcriptTouchStartedInTerm = this.isTranscriptGestureEvent(event);
     this.transcriptLastTouchY = this.transcriptTouchStartedInTerm ? event?.touches?.[0]?.clientY : undefined;
@@ -182,8 +193,14 @@ export const transcriptWindowMethods = {
   handleTranscriptScroll() {
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
+    const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
-    if (pinned && this.transcriptFollowBottom !== false) this.transcriptFollowBottom = true;
+    const explicitScrollRelease = scrollTop < previousScrollTop - 1
+      && (this.transcriptPointerStartedInTerm || this.transcriptKeyboardScrollPending);
+    if (explicitScrollRelease) this.stopFollowingTranscriptBottom();
+    else if (pinned && this.transcriptFollowBottom !== false) this.transcriptFollowBottom = true;
+    this.transcriptPointerStartedInTerm = false;
+    this.transcriptKeyboardScrollPending = false;
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();

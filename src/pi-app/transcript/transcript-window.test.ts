@@ -689,6 +689,32 @@ describe("pi-app transcript window", () => {
     expect(app.transcriptFollowBottom).toBe(true);
   });
 
+  it("releases follow on direct scrollbar or keyboard upward scroll", async () => {
+    const app = await connectPiApp();
+    let scrollTop = 900;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    app.transcriptFollowBottom = true;
+    app.transcriptLastScrollTop = 900;
+    app.term.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    scrollTop = 700;
+    app.handleTranscriptScroll();
+    expect(app.transcriptFollowBottom).toBe(false);
+
+    app.scrollTranscriptToBottom();
+    app.transcriptLastScrollTop = 900;
+    app.term.dispatchEvent(new KeyboardEvent("keydown", { key: "PageUp", bubbles: true }));
+    scrollTop = 700;
+    app.handleTranscriptScroll();
+    expect(app.transcriptFollowBottom).toBe(false);
+  });
+
   it("does not re-enable follow from a near-bottom scroll event after an explicit release", async () => {
     const app = await connectPiApp();
     let scrollTop = 880;

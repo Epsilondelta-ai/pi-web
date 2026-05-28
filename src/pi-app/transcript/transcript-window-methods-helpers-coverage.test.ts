@@ -86,6 +86,11 @@ describe("transcript window direct method branches", () => {
 
     owner.handleTranscriptUserWheel();
     owner.handleTranscriptUserWheel({ deltaY: 1, target: child });
+    owner.handleTranscriptPointerDown({ target: outside });
+    owner.handleTranscriptKeyDown({ key: "ArrowUp", target: outside });
+    owner.handleTranscriptKeyDown({ key: "ArrowDown", target: child });
+    expect(owner.transcriptPointerStartedInTerm).toBe(false);
+    expect(owner.transcriptKeyboardScrollPending).toBeUndefined();
     expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
 
     owner.handleTranscriptTouchStart();
