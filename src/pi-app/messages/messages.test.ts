@@ -416,6 +416,7 @@ describe("pi-app messages", () => {
     expect(tool.dataset.status).toBe("retry");
     expect(tool.querySelector(".tc-meta").textContent).toContain("retrying 1/3");
     expect(tool.querySelector(".tc-meta .retry")).not.toBeNull();
+    expect(app.retryToolStatus({})).toContain("retrying");
   });
 
   it("marks stale running tools complete when assistant output resumes", async () => {

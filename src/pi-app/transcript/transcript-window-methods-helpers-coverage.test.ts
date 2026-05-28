@@ -69,6 +69,9 @@ describe("transcript window direct method branches", () => {
 
   it("covers gesture follow-release fallbacks", () => {
     const term = document.createElement("div");
+    const child = document.createElement("div");
+    term.append(child);
+    const outside = document.createElement("div");
     const owner: any = {
       ...transcriptWindowMethods,
       term,
@@ -76,18 +79,23 @@ describe("transcript window direct method branches", () => {
       stopFollowingTranscriptBottom: vi.fn(),
     };
 
+    expect(transcriptWindowMethods.isTranscriptGestureEvent.call({ term: undefined }, {})).toBe(false);
+    expect(owner.isTranscriptGestureEvent({ composedPath: () => [outside], target: outside })).toBe(false);
+    expect(owner.isTranscriptGestureEvent({ target: outside })).toBe(false);
+    expect(owner.isTranscriptGestureEvent({})).toBe(true);
+
     owner.handleTranscriptUserWheel();
-    owner.handleTranscriptUserWheel({ deltaY: 1 });
+    owner.handleTranscriptUserWheel({ deltaY: 1, target: child });
     expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
 
     owner.handleTranscriptTouchStart();
     expect(owner.transcriptLastTouchY).toBeUndefined();
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 3 }] });
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }] });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 3 }], target: child });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 1 }], target: child });
     expect(owner.stopFollowingTranscriptBottom).not.toHaveBeenCalled();
 
-    owner.handleTranscriptUserWheel({ deltaY: -1 });
-    owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }] });
+    owner.handleTranscriptUserWheel({ deltaY: -1, target: child });
+    owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }], target: child });
     expect(owner.stopFollowingTranscriptBottom).toHaveBeenCalledTimes(2);
   });
 });
