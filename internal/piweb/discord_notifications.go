@@ -50,7 +50,7 @@ func notifyRemoteChoiceQuestion(root string, session Session, messages []Message
 }
 
 func notifyDiscordResponseCompleted(root string, session Session, messages []Message) error {
-	if isAgentChildSession(session) {
+	if isAgentChildSession(session) || shouldSkipRemoteCompletionNotification(session, messages) {
 		return nil
 	}
 	settings, err := WorkspaceSettings(root)
@@ -65,7 +65,7 @@ func notifyDiscordResponseCompleted(root string, session Session, messages []Mes
 }
 
 func notifyTelegramResponseCompleted(root string, session Session, messages []Message) error {
-	if isAgentChildSession(session) {
+	if isAgentChildSession(session) || shouldSkipRemoteCompletionNotification(session, messages) {
 		return nil
 	}
 	settings, err := WorkspaceSettings(root)
@@ -105,6 +105,11 @@ func notifyTelegramChoiceQuestion(root string, session Session, messages []Messa
 
 func isAgentChildSession(session Session) bool {
 	return session.ParentID != "" || session.Kind == SessionKindSubagent || session.Kind == SessionKindTeam
+}
+
+func shouldSkipRemoteCompletionNotification(session Session, messages []Message) bool {
+	return strings.EqualFold(strings.TrimSpace(session.Title), "new session") &&
+		strings.EqualFold(strings.TrimSpace(latestUserQuestion(messages)), "hello")
 }
 
 func isAgentChildSessionFile(sessionFile string) bool {
