@@ -232,8 +232,7 @@ class PiApp extends HTMLElement {
   aguiSubscriber(sessionId) {
     let textBuffer = "";
     const nextTextDelta = (value) => {
-      const delta = String(value || "");
-      if (!delta) return "";
+      const delta = String(value);
       if (textBuffer && delta.startsWith(textBuffer)) {
         const nextDelta = delta.slice(textBuffer.length);
         textBuffer = delta;

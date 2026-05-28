@@ -148,6 +148,13 @@ describe("pi-app session deletion", () => {
     expect(app.workspaceList[0].sessions).toEqual([]);
     expect(app.openActiveWorkspaceGroup).not.toHaveBeenCalled();
 
+    const row = document.createElement("div");
+    row.className = "session-row";
+    row.dataset.session = "row-session";
+    app.append(row);
+    expect([...app.removeSessionRowsWithDescendants("row-session")]).toEqual(["row-session"]);
+    expect([...app.deletedSessionIdsFromList(undefined, "missing")]).toEqual(["missing"]);
+
     app.removeWorkspaceSessionsFromState("", new Set(["gone"]));
     app.removeWorkspaceSessionsFromState("other", new Set());
     delete app.workspaceList;

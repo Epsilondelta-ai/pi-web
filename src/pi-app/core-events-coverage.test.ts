@@ -162,6 +162,7 @@ describe("pi-app core events coverage", () => {
     app.running = false;
     subscriber.onTextDelta("hello");
     app.running = true;
+    subscriber.onTextDelta("hello");
     subscriber.onTextDelta("hello again");
     subscriber.onTextEnd("done");
     const textOnlySubscriber = app.aguiSubscriber("s1");

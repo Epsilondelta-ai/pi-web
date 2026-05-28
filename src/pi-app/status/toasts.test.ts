@@ -366,6 +366,16 @@ describe("pi-app toast notifications", () => {
     expect([...document.querySelectorAll(".session-toast.warning")].at(-1).textContent).toContain("T");
     app.dismissToast(undefined);
 
+    app.notifySessionCompleted("string context");
+    app.notifyPiPackageUpdateAvailable([
+      { source: "npm:no-latest", displayName: "no-latest", currentVersion: "0.0.1" },
+    ]);
+    const noLatestWarning = [...document.querySelectorAll(".session-toast.warning")]
+      .filter((toast) => toast.textContent.includes("no-latest"))
+      .at(-1);
+    noLatestWarning.querySelector("[data-pi-package-update-confirm='no']").click();
+    expect(app.isPiPackageUpdateIgnored("pi-package-update-ignore:global:npm:no-latest:latest")).toBe(true);
+
     app.notifyRuntimeWarning("invalid_grant for provider anthropic");
     app.notifyRuntimeWarning("Unauthorized for provider openai");
     app.notifyRuntimeWarning("models.json error for custom");
