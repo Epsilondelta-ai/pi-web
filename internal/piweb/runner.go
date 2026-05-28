@@ -243,7 +243,7 @@ func (r *Runner) waitForPiAttempt(
 			if state.assistantTurnSucceeded() {
 				return piAttemptResult{success: true}
 			}
-			return retryEmptyAssistantTurn(broker, store, sessionID, state)
+			resetTimer(streamLLMEventIdleTimeout)
 		case <-stdoutDone:
 			if state.assistantTurnSucceeded() {
 				return piAttemptResult{success: true}
