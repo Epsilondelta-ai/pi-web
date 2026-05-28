@@ -54,14 +54,46 @@ describe("pi-app workspace navigation", () => {
     expect(app.querySelector("[data-session='s2'] .meta").hidden).toBe(true);
   });
 
+  it("opens the first session when switching to a workspace with sessions", async () => {
+    const app = await connectPiApp();
+    app.apiConnected = true;
+    app.loadSession = vi.fn();
+    app.route = vi.fn();
+    app.activateWorkspaceForSession = vi.fn();
+    app.workspaceList = [{ id: "w2", name: "two", path: "/two", sessions: [{ id: "s2", title: "second" }] }];
+    app.append(app.createWorkspaceGroup(app.workspaceList[0]));
+
+    await app.openWorkspace("w2");
+
+    expect(app.dataset.activeSessionId).toBe("s2");
+    expect(app.loadSession).toHaveBeenCalledWith("s2");
+    expect(app.route).toHaveBeenCalledWith("workspace");
+    expect(app.activateWorkspaceForSession).toHaveBeenCalledWith("w2", { loadContext: true, forceLoadContext: true });
+  });
+
   it("keeps workspace rendering no-ops safe without optional containers", async () => {
     const app = await connectPiApp();
     const bare = document.createElement("div");
+    const empty = document.createElement("div");
     bare.dataset.workspaceGroup = "bare";
+    empty.dataset.workspaceGroup = "empty";
     bare.innerHTML = `<button class="ws-row"></button>`;
-    app.append(bare);
+    app.dataset.activeWorkspaceId = "bare";
+    app.append(bare, empty);
     expect(() => app.openActiveWorkspaceGroup("bare")).not.toThrow();
     expect(() => app.toggleWorkspace("bare")).not.toThrow();
+    app.dataset.activeWorkspaceId = "empty";
+    expect(() => app.toggleWorkspace("empty")).not.toThrow();
+    delete app.dataset.activeWorkspaceId;
+    expect(() => app.toggleWorkspace("")).not.toThrow();
+    const emptyIdGroup = document.createElement("div");
+    emptyIdGroup.dataset.workspaceGroup = "";
+    emptyIdGroup.innerHTML = `<div class="sessions" hidden></div>`;
+    app.append(emptyIdGroup);
+    expect(() => app.toggleWorkspace("")).not.toThrow();
+    await app.openWorkspace("");
+    delete app.workspaceList;
+    await app.openWorkspace("missing");
     app.querySelector(".sidebar .sb-section").remove();
     expect(() => app.renderSidebarWorkspaces([{ id: "w1", name: "one", path: "/one", sessions: [] }])).not.toThrow();
     expect(() => app.renderRecentWorkspaces([{ id: "w1", name: "one", path: "/one", sessions: [] }])).not.toThrow();
