@@ -87,6 +87,7 @@ class PiApp extends HTMLElement {
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
     this.backgroundSessionWatches?.clear?.();
+    if (this.agentSessionStatusTimer) clearInterval(this.agentSessionStatusTimer);
     if (this.spinnerTimer) clearInterval(this.spinnerTimer);
     if (this.runtimeStatusTimer) clearInterval(this.runtimeStatusTimer);
     if (this.piUpdateTimer) clearInterval(this.piUpdateTimer);
@@ -392,11 +393,13 @@ class PiApp extends HTMLElement {
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = willRun;
+    if (wasRunning && !willRun) void this.refreshWorkspaces?.({ quiet: true });
     if (wasRunning && mode === "idle" && this.responseReceived && !this.responseFailureToastShown) {
       this.notifyResponseCompletedOnce?.();
     }
     if (!willRun && mode === "cancelled") this.clearSessionCancellationPending(sessionId);
     this.syncCurrentSessionRunState?.(this.running);
+    this.syncAgentSessionStatusPolling?.();
     this.stopButton?.toggleAttribute("hidden", !this.running);
     if (this.sendButton) this.updatePrompt();
     this.syncLoadingMessage?.();

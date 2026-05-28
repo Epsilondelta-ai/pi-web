@@ -79,6 +79,7 @@ func LoadTeamChildSessions(parentIDs map[string]struct{}) []ParsedSession {
 			}
 			parsed.Session.ParentID = teamID
 			parsed.Session.Kind = SessionKindTeam
+			markChildSessionLiveFromFile(&parsed)
 			sessions = append(sessions, parsed)
 		}
 	}

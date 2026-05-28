@@ -120,6 +120,59 @@ func TestLoadPiSessionsAnnotatesParentSessionHeader(t *testing.T) {
 	}
 }
 
+func TestLoadPiSessionSummariesMarksActiveSubagentLive(t *testing.T) {
+	dir := t.TempDir()
+	parentFile := writeTestSessionFile(t, dir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	parentBase := strings.TrimSuffix(filepath.Base(parentFile), filepath.Ext(parentFile))
+	childDir := filepath.Join(dir, parentBase, "run-1")
+	if err := os.MkdirAll(childDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	childFile := filepath.Join(childDir, "child.jsonl")
+	data := `{"type":"session","version":3,"id":"child","timestamp":"2026-01-01T00:00:01.000Z","cwd":"/tmp/project"}
+{"type":"message","id":"a","timestamp":"2026-01-01T00:00:02.000Z","message":{"role":"user","content":"work"}}
+`
+	if err := os.WriteFile(childFile, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	sessions, err := LoadPiSessionSummaries(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := findParsedSession(t, sessions, "child")
+	if !child.Session.Live || !child.Session.Active || child.Session.LastUsed != "live" {
+		t.Fatalf("expected active child to be live: %#v", child.Session)
+	}
+}
+
+func TestLoadPiSessionSummariesDoesNotMarkCompletedSubagentLive(t *testing.T) {
+	dir := t.TempDir()
+	parentFile := writeTestSessionFile(t, dir, "parent", "2026-01-01T00:00:00.000Z", "/tmp/project")
+	parentBase := strings.TrimSuffix(filepath.Base(parentFile), filepath.Ext(parentFile))
+	childDir := filepath.Join(dir, parentBase, "run-1")
+	if err := os.MkdirAll(childDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	childFile := filepath.Join(childDir, "child.jsonl")
+	data := `{"type":"session","version":3,"id":"child","timestamp":"2026-01-01T00:00:01.000Z","cwd":"/tmp/project"}
+{"type":"message","id":"a","timestamp":"2026-01-01T00:00:02.000Z","message":{"role":"user","content":"work"}}
+{"type":"message","id":"b","timestamp":"2026-01-01T00:00:03.000Z","message":{"role":"assistant","content":[{"type":"text","text":"done"}],"stopReason":"endTurn"}}
+`
+	if err := os.WriteFile(childFile, []byte(data), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	sessions, err := LoadPiSessionSummaries(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	child := findParsedSession(t, sessions, "child")
+	if child.Session.Live || child.Session.Active || child.Session.LastUsed == "live" {
+		t.Fatalf("expected completed child to be idle: %#v", child.Session)
+	}
+}
+
 func TestNewPiStoreAddsTeamChildSessions(t *testing.T) {
 	root := t.TempDir()
 	teamsRoot := t.TempDir()
