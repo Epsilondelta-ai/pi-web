@@ -399,6 +399,7 @@ class PiApp extends HTMLElement {
     }
     if (!willRun && mode === "cancelled") this.clearSessionCancellationPending(sessionId);
     this.syncCurrentSessionRunState?.(this.running);
+    if (willRun) this.startAgentSessionDiscoveryPolling?.();
     this.syncAgentSessionStatusPolling?.();
     this.stopButton?.toggleAttribute("hidden", !this.running);
     if (this.sendButton) this.updatePrompt();

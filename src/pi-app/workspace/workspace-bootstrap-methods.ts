@@ -156,11 +156,17 @@ export const workspaceBootstrapMethods = {
     }
   },
 
+  startAgentSessionDiscoveryPolling() {
+    this.agentSessionDiscoveryUntil = Date.now() + 45000;
+    this.syncAgentSessionStatusPolling?.();
+  },
+
   syncAgentSessionStatusPolling() {
     const shouldPoll = this.shouldPollAgentSessionStatus?.();
     if (shouldPoll && !this.agentSessionStatusTimer) {
       this.agentSessionStatusTimer = window.setInterval(() => {
         void this.refreshWorkspaces?.({ quiet: true });
+        this.syncAgentSessionStatusPolling?.();
       }, 1500);
       return;
     }
@@ -173,6 +179,7 @@ export const workspaceBootstrapMethods = {
   shouldPollAgentSessionStatus() {
     if (!this.apiConnected) return false;
     if (this.running) return true;
+    if ((this.agentSessionDiscoveryUntil || 0) > Date.now()) return true;
     return !!this.querySelector(".session-row.child-session.active[data-session]");
   },
 
