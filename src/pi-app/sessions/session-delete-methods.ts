@@ -12,9 +12,10 @@ export const sessionDeleteMethods = {
     try {
       await deleteSessionRequest(sessionId);
       const workspaceId = this.findWorkspaceIdForSession(sessionId);
-      const deletedSessionIds = this.removeSessionRowsWithDescendants(sessionId);
+      const deletedSessionIds = this.deletedSessionIdsWithDescendants(workspaceId, sessionId);
+      if (!this.sidebarSortableRoot) this.removeSessionRows(deletedSessionIds);
       this.removeWorkspaceSessionsFromState(workspaceId, deletedSessionIds);
-      this.refreshWorkspaceSessionControls(workspaceId);
+      if (!this.sidebarSortableRoot) this.refreshWorkspaceSessionControls(workspaceId);
       if (deletedSessionIds.has(this.dataset.activeSessionId)) this.clearActiveSession(this.dataset.activeSessionId);
     } catch {
       this.setConnection("err");
@@ -56,7 +57,29 @@ export const sessionDeleteMethods = {
     }
   },
 
-  removeSessionRowsWithDescendants(sessionId) {
+  deletedSessionIdsWithDescendants(workspaceId, sessionId) {
+    const sessions = Array.isArray(this.workspaceList)
+      ? this.workspaceList.find((workspace) => workspace.id === workspaceId)?.sessions
+      : null;
+    if (Array.isArray(sessions)) return this.deletedSessionIdsFromList(sessions, sessionId);
+    return this.deletedSessionIdsFromRows(sessionId);
+  },
+
+  deletedSessionIdsFromList(sessions, sessionId) {
+    const deletedSessionIds = new Set([sessionId]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const session of sessions || []) {
+        if (deletedSessionIds.has(session.id) || !deletedSessionIds.has(session.parentId)) continue;
+        deletedSessionIds.add(session.id);
+        changed = true;
+      }
+    }
+    return deletedSessionIds;
+  },
+
+  deletedSessionIdsFromRows(sessionId) {
     const deletedSessionIds = new Set([sessionId]);
     let changed = true;
     while (changed) {
@@ -67,7 +90,16 @@ export const sessionDeleteMethods = {
         changed = true;
       });
     }
-    deletedSessionIds.forEach((id) => this.querySelector(`.session-row[data-session='${id}']`)?.remove());
+    return deletedSessionIds;
+  },
+
+  removeSessionRows(deletedSessionIds) {
+    deletedSessionIds?.forEach((id) => this.querySelector(`.session-row[data-session='${id}']`)?.remove());
+  },
+
+  removeSessionRowsWithDescendants(sessionId) {
+    const deletedSessionIds = this.deletedSessionIdsFromRows(sessionId);
+    this.removeSessionRows(deletedSessionIds);
     return deletedSessionIds;
   },
 
