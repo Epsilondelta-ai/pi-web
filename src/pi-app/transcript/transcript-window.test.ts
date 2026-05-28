@@ -479,7 +479,7 @@ describe("pi-app transcript window", () => {
     expect(scrollWrites).toEqual([1000, 1100, 1200, 1200, 1200]);
   });
 
-  it("does not run a pending bottom scroll after the user scrolls up", async () => {
+  it("keeps pending bottom follow when scrollTop changes without a release gesture", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -504,11 +504,11 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollTop).toBe(100);
-    expect(app.transcriptFollowBottom).toBe(false);
+    expect(scrollTop).toBe(1000);
+    expect(app.transcriptFollowBottom).toBe(true);
   });
 
-  it("does not run a forced follow-up scroll after the user scrolls up", async () => {
+  it("keeps forced follow-up when scrollTop changes without a release gesture", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -533,11 +533,11 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollTop).toBe(100);
-    expect(app.transcriptFollowBottom).toBe(false);
+    expect(scrollTop).toBe(1000);
+    expect(app.transcriptFollowBottom).toBe(true);
   });
 
-  it("does not overwrite the pending follow baseline before a delayed user scroll event", async () => {
+  it("keeps following after repeated scroll requests without a release gesture", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -562,8 +562,8 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollTop).toBe(100);
-    expect(app.transcriptFollowBottom).toBe(false);
+    expect(scrollTop).toBe(1000);
+    expect(app.transcriptFollowBottom).toBe(true);
   });
 
   it("keeps following when bottom-pinned content grows before the scroll frame", async () => {
@@ -641,6 +641,7 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     app.scrollTerm();

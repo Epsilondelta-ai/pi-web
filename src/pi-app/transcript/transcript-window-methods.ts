@@ -117,13 +117,7 @@ export const transcriptWindowMethods = {
 
   followTranscriptBottomOnce() {
     const term = this.term;
-    const baseline = this.transcriptFollowBaseline || 0;
     if (!term || this.transcriptFollowBottom === false) return false;
-    if (term.scrollTop < baseline - 1) {
-      this.transcriptFollowBottom = false;
-      this.updateTranscriptScrollButton();
-      return false;
-    }
     this.scrollTermToBottomImmediately();
     this.updateTranscriptScrollButton();
     return this.transcriptFollowBottom !== false;
@@ -164,10 +158,8 @@ export const transcriptWindowMethods = {
   handleTranscriptScroll() {
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
-    const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
     if (pinned && this.transcriptFollowBottom !== false) this.transcriptFollowBottom = true;
-    else if (scrollTop < previousScrollTop - 1) this.stopFollowingTranscriptBottom();
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
