@@ -6,6 +6,8 @@ import {
 
 const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
+const TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES = 12;
+const TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES = 2;
 
 export function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -75,25 +77,53 @@ export const transcriptWindowMethods = {
         this.scrollTermToBottomImmediately();
         this.updateTranscriptScrollButton();
       }
+      this.transcriptBottomFollowFramesRemaining = TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES;
+      this.transcriptBottomFollowStableFrames = 0;
+      this.transcriptBottomFollowLastHeight = undefined;
       if (this.scrollFrame) return;
-      const followScrollTop = this.term?.scrollTop || 0;
-      if (!force) this.transcriptLastScrollTop = followScrollTop;
-      this.scrollFrame = window.requestAnimationFrame(() => {
-        this.scrollFrame = undefined;
-        const scroll = () => {
-          if (this.transcriptFollowBottom === false) return;
-          if ((this.term?.scrollTop || 0) < followScrollTop - 1) {
-            this.transcriptFollowBottom = false;
-            this.updateTranscriptScrollButton();
-            return;
-          }
-          this.scrollTermToBottomImmediately();
-          this.updateTranscriptScrollButton();
-        };
-        scroll();
-        window.requestAnimationFrame(scroll);
-      });
+      if (!force) this.transcriptLastScrollTop = this.term?.scrollTop || 0;
+      this.scheduleTranscriptBottomFollowFrame();
     };
+  },
+
+  scheduleTranscriptBottomFollowFrame() {
+    this.transcriptFollowBaseline = this.term?.scrollTop || 0;
+    this.scrollFrame = window.requestAnimationFrame(() => {
+      this.scrollFrame = undefined;
+      if (!this.followTranscriptBottomOnce()) return;
+      this.updateTranscriptBottomFollowStability();
+      this.transcriptBottomFollowFramesRemaining = Math.max((this.transcriptBottomFollowFramesRemaining || 0) - 1, 0);
+      if (this.shouldContinueTranscriptBottomFollow()) this.scheduleTranscriptBottomFollowFrame();
+    });
+  },
+
+  updateTranscriptBottomFollowStability() {
+    const height = this.term?.scrollHeight || 0;
+    if (this.isTermPinnedToBottom() && height === this.transcriptBottomFollowLastHeight) {
+      this.transcriptBottomFollowStableFrames = (this.transcriptBottomFollowStableFrames || 0) + 1;
+    } else {
+      this.transcriptBottomFollowStableFrames = 0;
+    }
+    this.transcriptBottomFollowLastHeight = height;
+  },
+
+  shouldContinueTranscriptBottomFollow() {
+    return (this.transcriptBottomFollowFramesRemaining || 0) > 0
+      && (this.transcriptBottomFollowStableFrames || 0) < TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES;
+  },
+
+  followTranscriptBottomOnce() {
+    const term = this.term;
+    const baseline = this.transcriptFollowBaseline || 0;
+    if (!term || this.transcriptFollowBottom === false) return false;
+    if (term.scrollTop < baseline - 1) {
+      this.transcriptFollowBottom = false;
+      this.updateTranscriptScrollButton();
+      return false;
+    }
+    this.scrollTermToBottomImmediately();
+    this.updateTranscriptScrollButton();
+    return this.transcriptFollowBottom !== false;
   },
 
   scrollTermToBottomImmediately() {
