@@ -261,6 +261,20 @@ describe("pi-app messages", () => {
     app.speakAssistantText("bonjour");
     expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ lang: "fr-FR" }));
 
+    const frenchVoice = { lang: "fr-FR", name: "French" };
+    const resume = vi.fn();
+    vi.stubGlobal("speechSynthesis", { speak, cancel, resume, getVoices: () => [frenchVoice] });
+    app.speakAssistantText(`${"long sentence. ".repeat(20)}`);
+    const firstChunk = speak.mock.calls.at(-1)?.[0];
+    expect(firstChunk.text.length).toBeLessThanOrEqual(180);
+    expect(firstChunk.voice).toBe(frenchVoice);
+    firstChunk.onend();
+    expect(speak).toHaveBeenLastCalledWith(expect.objectContaining({ voice: frenchVoice }));
+    expect(app.readAloudUtterances.length).toBeGreaterThan(1);
+    expect(app.readAloudMonitor).toBeTruthy();
+    app.stopReadingResponse();
+    expect(app.readAloudMonitor).toBeUndefined();
+
     const createElement = document.createElement.bind(document);
     vi.spyOn(document, "createElement").mockImplementation((tagName, options) => {
       const element = createElement(tagName, options);
