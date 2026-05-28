@@ -263,7 +263,9 @@ describe("pi-app messages", () => {
 
     const frenchVoice = { lang: "fr-FR", name: "French" };
     const resume = vi.fn();
+    let readAloudIntervalCallback = () => undefined;
     vi.spyOn(globalThis, "setInterval").mockImplementation((callback) => {
+      readAloudIntervalCallback = callback as () => void;
       callback();
       return 1 as never;
     });
@@ -284,7 +286,11 @@ describe("pi-app messages", () => {
     expect(app.readAloudVoice()).toBe(null);
     app.speakAssistantText("still speaking");
     expect(app.readAloudMonitor).toBeTruthy();
+    const stoppedChunk = speak.mock.calls.at(-1)?.[0];
     app.stopReadingResponse();
+    readAloudIntervalCallback();
+    stoppedChunk.onend();
+    expect(speak).toHaveBeenLastCalledWith(stoppedChunk);
     expect(app.readAloudMonitor).toBeUndefined();
 
     const createElement = document.createElement.bind(document);

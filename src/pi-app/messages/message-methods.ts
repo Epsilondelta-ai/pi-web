@@ -535,6 +535,7 @@ export const messageMethods = {
   },
 
   stopReadingResponse() {
+    this.readAloudGeneration = (this.readAloudGeneration || 0) + 1;
     this.clearReadAloudMonitor?.();
     this.readAloudUtterances = [];
     globalThis.speechSynthesis?.cancel?.();
@@ -546,6 +547,7 @@ export const messageMethods = {
     const synth = globalThis.speechSynthesis;
     if (!synth || typeof SpeechSynthesisUtterance === "undefined") return;
     this.stopReadingResponse();
+    const generation = this.readAloudGeneration;
     const language = this.readAloudLanguage();
     const voice = this.readAloudVoice(language);
     const chunks = this.speechTextChunks(content);
@@ -558,6 +560,7 @@ export const messageMethods = {
     const queue = [...utterances];
     this.readAloudUtterances = utterances;
     const speakNext = () => {
+      if (this.readAloudGeneration !== generation) return;
       const utterance = queue.shift();
       if (!utterance) {
         this.clearReadAloudMonitor?.();
@@ -567,7 +570,9 @@ export const messageMethods = {
       utterance.onerror = speakNext;
       synth.speak?.(utterance);
     };
-    this.readAloudMonitor = globalThis.setInterval?.(() => synth.resume?.(), 5000);
+    this.readAloudMonitor = globalThis.setInterval?.(() => {
+      if (this.readAloudGeneration === generation) synth.resume?.();
+    }, 5000);
     speakNext();
   },
 
