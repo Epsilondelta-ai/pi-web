@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -27,7 +29,11 @@ type telegramNotificationSettings struct {
 }
 
 func notifyRemoteResponseCompleted(root string, session Session, messages []Message) error {
-	if isAgentChildSession(session) {
+	return notifyRemoteResponseCompletedForFile(root, "", session, messages)
+}
+
+func notifyRemoteResponseCompletedForFile(root string, sessionFile string, session Session, messages []Message) error {
+	if isAgentChildSession(session) || isAgentChildSessionFile(sessionFile) {
 		return nil
 	}
 	return errors.Join(
@@ -99,6 +105,30 @@ func notifyTelegramChoiceQuestion(root string, session Session, messages []Messa
 
 func isAgentChildSession(session Session) bool {
 	return session.ParentID != "" || session.Kind == SessionKindSubagent || session.Kind == SessionKindTeam
+}
+
+func isAgentChildSessionFile(sessionFile string) bool {
+	if strings.TrimSpace(sessionFile) == "" {
+		return false
+	}
+	if header, err := readSessionHeader(sessionFile); err == nil && header.ParentSession != "" {
+		return true
+	}
+	clean := cleanSessionPath(sessionFile)
+	if teamsDir := DefaultPiTeamsDir(); teamsDir != "" {
+		teamRoot := cleanSessionPath(teamsDir) + string(filepath.Separator)
+		if strings.HasPrefix(clean, teamRoot) {
+			return true
+		}
+	}
+	parentDir := filepath.Dir(clean)
+	parentSessionFile := filepath.Join(filepath.Dir(parentDir), filepath.Base(parentDir)+".jsonl")
+	if parentSessionFile != clean {
+		if _, err := os.Stat(parentSessionFile); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func discordCompletionSettings(settings map[string]any) discordNotificationSettings {
