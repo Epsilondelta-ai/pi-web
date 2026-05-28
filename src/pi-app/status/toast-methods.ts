@@ -569,15 +569,20 @@ export const toastMethods = {
   },
 
   async readCompletedBackgroundSessionAloud(sessionId) {
-    if (!sessionId || !this.isReadAloudEnabled?.() || sessionId === this.dataset.activeSessionId) return;
+    if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId)) return;
     try {
       const result = await getSession(sessionId, { limit: 20 });
+      if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId)) return;
       const messages = result?.messages || [];
       const assistantMessage = [...messages].reverse().find((message) => message?.kind === "pi" && message.text);
       if (assistantMessage?.text) this.speakAssistantText?.(assistantMessage.text);
     } catch {
       // Completion toast still matters; read-aloud fetch failure should not mark the session failed.
     }
+  },
+
+  canReadCompletedBackgroundSessionAloud(sessionId) {
+    return !!sessionId && this.isReadAloudEnabled?.() && sessionId !== this.dataset.activeSessionId;
   },
 
   readLastSessionPrompts() {

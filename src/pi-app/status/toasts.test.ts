@@ -315,6 +315,20 @@ describe("pi-app toast notifications", () => {
     await app.readCompletedBackgroundSessionAloud("empty-session");
     fetch.mockRejectedValueOnce(new Error("offline"));
     await expect(app.readCompletedBackgroundSessionAloud("offline-session")).resolves.toBeUndefined();
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({ messages: [{ kind: "pi", text: "stale answer" }] }),
+    });
+    const staleRead = app.readCompletedBackgroundSessionAloud("stale-session");
+    app.readResponsesAloud = false;
+    await staleRead;
+    expect(app.speakAssistantText).not.toHaveBeenCalledWith("stale answer");
+    app.readResponsesAloud = true;
+    app.dataset.activeSessionId = "active-session";
+    await app.readCompletedBackgroundSessionAloud("active-session");
+    expect(fetch).not.toHaveBeenCalledWith("http://backend.test/api/sessions/active-session?limit=20", expect.anything());
 
     app.loadSession = vi.fn();
     toast.click();
