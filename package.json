@@ -72,7 +72,6 @@
     "react": "^19.2.6",
     "react-arborist": "^3.7.0",
     "react-dom": "^19.2.6",
-    "shiki": "4.0.2",
     "virtual-scroller": "^1.16.4",
     "zod": "^4.4.3"
   },
