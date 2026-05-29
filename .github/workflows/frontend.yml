@@ -40,6 +40,7 @@ jobs:
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
@@ -64,6 +65,7 @@ jobs:
         run: bun run typecheck
 
       - name: Test coverage
+        timeout-minutes: 10
         run: bun run test:coverage
 
       - name: Build UI
