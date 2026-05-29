@@ -26,9 +26,9 @@ type Config struct {
 }
 
 type Server struct {
-	store        *Store
-	broker       *Broker
-	runner       *Runner
+	store        ServerStore
+	broker       ServerBroker
+	runner       ServerRunner
 	piUpdater    *PiUpdater
 	mux          *http.ServeMux
 	config       Config

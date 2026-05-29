@@ -10,9 +10,10 @@ import (
 
 func TestWorkspaceEndpointMarksRunningSessionsLive(t *testing.T) {
 	server := NewServer(Config{}, NewMockStore(), NewBroker())
-	server.runner.mu.Lock()
-	server.runner.running["aa11-2233"] = &activePiRun{}
-	server.runner.mu.Unlock()
+	runner := server.runner.(*Runner)
+	runner.mu.Lock()
+	runner.running["aa11-2233"] = &activePiRun{}
+	runner.mu.Unlock()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/workspaces", nil)
 	res := httptest.NewRecorder()
@@ -40,9 +41,10 @@ func TestWorkspaceEndpointMarksRunningSessionsLive(t *testing.T) {
 
 func TestSessionEndpointReportsRunningStatus(t *testing.T) {
 	server := NewServer(Config{}, NewMockStore(), NewBroker())
-	server.runner.mu.Lock()
-	server.runner.running["8e7c-44ff"] = &activePiRun{}
-	server.runner.mu.Unlock()
+	runner := server.runner.(*Runner)
+	runner.mu.Lock()
+	runner.running["8e7c-44ff"] = &activePiRun{}
+	runner.mu.Unlock()
 
 	req := httptest.NewRequest(http.MethodGet, "/api/sessions/8e7c-44ff", nil)
 	res := httptest.NewRecorder()

@@ -50,6 +50,7 @@ type ServerBroker interface {
 	EventSink
 	PublishMockPrompt(ctx context.Context, store SessionMessageStore, sessionID, text string)
 	ServeSession(w http.ResponseWriter, r *http.Request, sessionID string)
+	Subscribe(sessionID string) (<-chan Event, func())
 }
 
 // ServerRunner is the process boundary consumed by HTTP handlers.

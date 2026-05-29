@@ -960,7 +960,7 @@ done
 		t.Fatal(err)
 	}
 	server := NewServer(Config{EnablePiExecution: true}, store, NewBroker())
-	server.runner.running[session.ID] = &activePiRun{cancel: func() {}, stdin: nopWriteCloser{io.Discard}}
+	server.runner.(*Runner).running[session.ID] = &activePiRun{cancel: func() {}, stdin: nopWriteCloser{io.Discard}}
 	h := server.Handler()
 	for _, tc := range []struct {
 		method string
