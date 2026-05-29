@@ -29,4 +29,5 @@ Rules:
 - Keep real subpackages only when root code actually imports them; no unused duplicate packages.
 - Put dependency-free DTOs/helpers in `internal/piweb/shared`.
 - Put event broker primitives in `internal/piweb/eventbus`; `piweb.Broker` is the facade.
+- Keep runner dependencies narrowed through `EventSink` and `SessionMessageStore` before moving process code.
 - Split another real package only as part of wiring root callers to that package in the same change.

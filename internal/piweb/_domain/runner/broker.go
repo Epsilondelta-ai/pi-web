@@ -35,7 +35,7 @@ func shouldReplayHistory(r *http.Request, after uint64) bool {
 	return eventbus.ShouldReplayHistory(r, after)
 }
 
-func (b *Broker) PublishMockPrompt(ctx context.Context, store *Store, sessionID, text string) {
+func (b *Broker) PublishMockPrompt(ctx context.Context, store SessionMessageStore, sessionID, text string) {
 	user := Message{Kind: "user", Text: text}
 	_ = store.AppendMessage(sessionID, user)
 	b.Publish(sessionID, "session.message", user)
