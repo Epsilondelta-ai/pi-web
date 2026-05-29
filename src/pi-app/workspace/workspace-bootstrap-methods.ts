@@ -250,6 +250,7 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryCursor = page.cursor || "";
     this.sessionHistoryHasMore = !!page.hasMore;
     this.sessionHistoryLoading = false;
+    this.showSessionMain?.();
     this.renderMessages(messages);
     this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });

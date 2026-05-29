@@ -25,6 +25,11 @@ describe("pi-app session bootstrap", () => {
     }));
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
+    const sessionMain = app.querySelector("[data-main='session']");
+    const emptyMain = document.createElement("main");
+    sessionMain.hidden = true;
+    emptyMain.dataset.main = "empty";
+    app.append(emptyMain);
     app.loadWorkspaceCommands = vi.fn();
     app.loadRuntimeStatus = vi.fn();
     app.loadWorkspaceMeta = vi.fn();
@@ -33,6 +38,9 @@ describe("pi-app session bootstrap", () => {
     await app.bootstrapAPI();
     expect(app.dataset.activeWorkspaceId).toBe("w2");
     expect(app.dataset.activeSessionId).toBe("s2");
+    expect(sessionMain.hidden).toBe(false);
+    expect(emptyMain.hidden).toBe(true);
+    expect(app.termInner.querySelector("[data-welcome-banner]")).not.toBeNull();
     expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w2");
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: false });
   });
