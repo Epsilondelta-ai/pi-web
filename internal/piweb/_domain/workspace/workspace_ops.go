@@ -50,7 +50,12 @@ func (b *cappedOutputBuffer) Result() string {
 	return output
 }
 
-func CloneGitWorkspace(ctx context.Context, store *Store, req CloneWorkspaceRequest) (Workspace, string, error) {
+type WorkspaceOpStore interface {
+	OpenWorkspace(path string) (Workspace, error)
+	WorkspacePath(workspaceID string) (string, error)
+}
+
+func CloneGitWorkspace(ctx context.Context, store WorkspaceOpStore, req CloneWorkspaceRequest) (Workspace, string, error) {
 	parent, err := ValidateWorkspacePath(req.ParentPath)
 	if err != nil {
 		return Workspace{}, "", err
@@ -91,7 +96,7 @@ func CloneGitWorkspace(ctx context.Context, store *Store, req CloneWorkspaceRequ
 	return workspace, string(output), err
 }
 
-func RunWorkspaceShellCommand(ctx context.Context, store *Store, workspaceID string, command string) (ShellCommandResult, error) {
+func RunWorkspaceShellCommand(ctx context.Context, store WorkspaceOpStore, workspaceID string, command string) (ShellCommandResult, error) {
 	command = strings.TrimSpace(command)
 	if command == "" {
 		return ShellCommandResult{}, errors.New("command is required")

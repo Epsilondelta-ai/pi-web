@@ -19,6 +19,8 @@ type SessionMessageStore interface {
 
 // ServerStore is the persistence boundary consumed by HTTP handlers.
 type ServerStore interface {
+	SessionMessageStore
+	WorkspaceOpStore
 	AppendMessage(sessionID string, msg Message) error
 	AutoNameSession(sessionID, prompt string) (Session, bool, error)
 	CreateFile(workspaceID, rel, kind, content string) (FileContent, error)
