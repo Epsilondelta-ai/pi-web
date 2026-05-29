@@ -1,19 +1,22 @@
 # Backend layout
 
-The backend is a Go server embedded into the root `pi-web` binary package.
+Root-level `backend/` is documentation only. The Go backend implementation lives under `internal/piweb`.
 
 ```text
 .
-├── *.go                     # CLI, update command, binary entrypoint
-├── internal/piweb/          # HTTP API, pi runner, session/workspace store
-└── static/                  # embedded Astro build for release binaries
+├── main.go / server.go       # binary entrypoint, CLI flags, static embedding, update command
+├── internal/piweb/facade.go  # public backend facade used by root entrypoint
+├── internal/piweb/backend/   # HTTP API, runner, store, workspace/session implementation
+├── internal/piweb/shared/    # shared DTOs and redaction helpers
+├── internal/piweb/eventbus/  # SSE event broker primitives
+└── static/                   # embedded Astro build for release binaries
 ```
 
-## Rules
+Rules:
+- Do not put implementation code in root `backend/`; it is a docs/navigation folder.
+- Root Go files own process startup and binary concerns only.
+- `internal/piweb` root stays facade-only.
+- Implementation code belongs in `internal/piweb/backend` until it is split into wired domain packages.
+- Static assets stay under `static` so release binaries include the UI.
 
-- Root Go files own process startup, CLI flags, version/update behavior, and static embedding.
-- `internal/piweb` owns testable server behavior and workspace/session domain logic.
-- Static assets are committed under `static` so release binaries include a complete UI.
-- Keep Go tests next to the file/feature they cover.
-
-See `../internal/piweb/README.md` for the internal package map.
+See `../internal/piweb/README.md` for the internal backend package map.
