@@ -479,7 +479,7 @@ describe("pi-app transcript window", () => {
     expect(scrollWrites).toEqual([1000, 1100, 1200, 1200, 1200]);
   });
 
-  it("keeps pending bottom follow when scrollTop changes without a release gesture", async () => {
+  it("does not run a pending bottom scroll after the user scrolls up", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -504,11 +504,11 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollTop).toBe(1000);
-    expect(app.transcriptFollowBottom).toBe(true);
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
   });
 
-  it("keeps forced follow-up when scrollTop changes without a release gesture", async () => {
+  it("does not run a forced follow-up scroll after the user scrolls up", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -533,11 +533,11 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollTop).toBe(1000);
-    expect(app.transcriptFollowBottom).toBe(true);
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
   });
 
-  it("keeps following after repeated scroll requests without a release gesture", async () => {
+  it("does not overwrite the pending follow baseline before a delayed user scroll event", async () => {
     const frames = [];
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
       frames.push(callback);
@@ -562,8 +562,8 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    expect(scrollTop).toBe(1000);
-    expect(app.transcriptFollowBottom).toBe(true);
+    expect(scrollTop).toBe(100);
+    expect(app.transcriptFollowBottom).toBe(false);
   });
 
   it("keeps following when bottom-pinned content grows before the scroll frame", async () => {
@@ -641,7 +641,6 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     app.scrollTerm();
@@ -672,70 +671,5 @@ describe("pi-app transcript window", () => {
 
     app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 110 } as Touch] }));
     expect(app.transcriptFollowBottom).toBe(false);
-  });
-
-  it("ignores wheel-up and touch gestures that start outside the transcript area", async () => {
-    const app = await connectPiApp();
-    const modal = document.createElement("div");
-    modal.setAttribute("role", "dialog");
-    app.term.append(modal);
-    app.transcriptFollowBottom = true;
-
-    modal.dispatchEvent(new WheelEvent("wheel", { bubbles: true, deltaY: -1 }));
-    expect(app.transcriptFollowBottom).toBe(true);
-
-    modal.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, touches: [{ clientY: 100 } as Touch] }));
-    app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 120 } as Touch] }));
-    expect(app.transcriptFollowBottom).toBe(true);
-  });
-
-  it("releases follow on direct scrollbar or keyboard upward scroll", async () => {
-    const app = await connectPiApp();
-    let scrollTop = 900;
-    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
-    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
-    Object.defineProperty(app.term, "scrollTop", {
-      configurable: true,
-      get: () => scrollTop,
-      set: (value) => { scrollTop = value; },
-    });
-
-    app.transcriptFollowBottom = true;
-    app.transcriptLastScrollTop = 900;
-    app.term.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    scrollTop = 700;
-    app.handleTranscriptScroll();
-    expect(app.transcriptFollowBottom).toBe(false);
-
-    app.scrollTranscriptToBottom();
-    app.transcriptLastScrollTop = 900;
-    app.term.dispatchEvent(new KeyboardEvent("keydown", { key: "PageUp", bubbles: true }));
-    scrollTop = 700;
-    app.handleTranscriptScroll();
-    expect(app.transcriptFollowBottom).toBe(false);
-  });
-
-  it("does not re-enable follow from a near-bottom scroll event after an explicit release", async () => {
-    const app = await connectPiApp();
-    let scrollTop = 880;
-    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
-    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
-    Object.defineProperty(app.term, "scrollTop", {
-      configurable: true,
-      get: () => scrollTop,
-      set: (value) => { scrollTop = value; },
-    });
-
-    app.scrollTerm({ force: true });
-    scrollTop = 870;
-    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
-    app.handleTranscriptScroll();
-
-    expect(app.transcriptFollowBottom).toBe(false);
-    expect(app.transcriptScrollButton.hidden).toBe(false);
-
-    app.scrollTerm();
-
-    expect(scrollTop).toBe(870);
   });
 });

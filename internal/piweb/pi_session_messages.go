@@ -51,19 +51,11 @@ func convertAgentMessages(raw json.RawMessage) []Message {
 	case "assistant":
 		return assistantMessages(msg.Content)
 	case "toolResult":
-		body := contentText(msg.Content)
 		status := "ok"
-		collapsed := true
 		if msg.IsError {
 			status = "err"
 		}
-		if msg.ToolName == "pi" && strings.HasPrefix(body, retryMarkerPrefix) {
-			collapsed = false
-			if !msg.IsError {
-				status = "retry"
-			}
-		}
-		return []Message{{Kind: "tool", Tool: msg.ToolName, Status: status, Body: body, CollapsedByDefault: collapsed}}
+		return []Message{{Kind: "tool", Tool: msg.ToolName, Status: status, Body: contentText(msg.Content), CollapsedByDefault: true}}
 	case "bashExecution":
 		status := "ok"
 		if msg.ExitCode != nil && *msg.ExitCode != 0 {
@@ -81,9 +73,6 @@ func convertAgentMessages(raw json.RawMessage) []Message {
 }
 func userMessages(raw json.RawMessage) []Message {
 	text := strings.TrimSpace(imageFileTagPattern.ReplaceAllString(contentText(raw), ""))
-	if strings.HasPrefix(text, piWebRecoveryPromptPrefix) {
-		return nil
-	}
 	return []Message{{Kind: "user", Text: text, Attachments: contentImageAttachments(raw)}}
 }
 

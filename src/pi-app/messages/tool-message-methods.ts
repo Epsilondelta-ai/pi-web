@@ -105,7 +105,6 @@ export const toolMessageMethods = {
 
   toolStatus(message) {
     if (message.status === "running") return this.runningToolStatus();
-    if (message.status === "retry") return this.retryToolStatus(message);
     if (message.status === "err") return this.errorToolStatus(message);
     return this.completedToolStatus(message);
   },
@@ -120,11 +119,6 @@ export const toolMessageMethods = {
   errorToolStatus(message) {
     const result = escapeHtml(message.resultMeta || "failed");
     return `<span class="err">✗</span>${result}<span class="tc-caret">▾</span>`;
-  },
-
-  retryToolStatus(message) {
-    const result = escapeHtml(message.resultMeta || "retrying");
-    return `<span class="retry">↻</span>${result}<span class="tc-caret">▾</span>`;
   },
 
   completedToolStatus(message) {

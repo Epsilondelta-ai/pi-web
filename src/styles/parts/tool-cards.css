@@ -51,8 +51,6 @@
 }
 .tool-card .tc-meta .ok { color: var(--accent); }
 .tool-card .tc-meta .err { color: var(--danger); }
-.tool-card .tc-meta .retry { color: var(--warn); }
-.tool-card[data-status="retry"] .tc-head { border-color: color-mix(in srgb, var(--warn) 45%, var(--border-dim)); }
 .tool-card .tc-body {
   padding: var(--space-2) var(--space-3) var(--space-2) 32px;
   color: var(--fg-1);
