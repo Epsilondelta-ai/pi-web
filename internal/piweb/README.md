@@ -1,26 +1,30 @@
-# `piweb` internal package map
+# Backend layout
 
-`internal/piweb` is intentionally kept as one package for now so handlers, stores, and tests can share unexported helpers without introducing premature Go package boundaries.
+The backend is organized by domain under `internal/piweb/_domain`.
 
-Use filename prefixes as the navigation boundary:
+The root `internal/piweb/*.go` files are symlinks into those domain folders. This keeps Go's single `piweb` package intact while making file ownership visible by domain without a risky package-boundary rewrite.
 
-| Area | Files |
-| --- | --- |
-| HTTP server | `server*.go`, `server_*_test.go`, `server_static.go` |
-| Session APIs | `pi_session*.go`, `session_*.go`, `team_sessions.go` |
-| Workspace APIs | `workspace_ops.go`, `files.go`, `folders.go`, `file_preview.go`, `server_workspace_handlers.go` |
-| Runner/process events | `runner*.go`, `commands.go`, `broker.go` |
-| Store/database | `store*.go`, `web_db.go`, `store_*_test.go` |
-| Settings/runtime/quota | `settings.go`, `runtime_status.go`, `quota_*.go`, `pi_rpc_status.go` |
-| Shared types/helpers | `types.go`, `redact.go` |
+```text
+internal/piweb/
+├── _domain/
+│   ├── auth/           # API keys and OAuth login flow
+│   ├── commands/       # slash/native command discovery and cache
+│   ├── files/          # workspace files, folders, previews, context files
+│   ├── git/            # git status, history, commit details
+│   ├── notifications/  # Discord/Telegram notifications
+│   ├── runner/         # pi process runner, broker, SSE, AG-UI stream
+│   ├── runtime/        # model/runtime/quota/update/package status
+│   ├── server/         # HTTP server, routing, static files, handlers
+│   ├── sessions/       # pi session parsing, pagination, parent/team metadata
+│   ├── shared/         # shared types, models, redaction
+│   ├── store/          # workspace/session store and web DB persistence
+│   ├── test/           # broad coverage and integration-style package tests
+│   └── workspace/      # workspace settings and shell/git clone operations
+└── *.go -> _domain/... # compatibility symlinks for package piweb
+```
 
-## Split rule
-
-Create a new Go subpackage only when all of these are true:
-
-1. the code has a stable API boundary,
-2. it does not need access to unexported `piweb` internals,
-3. tests can stay meaningful without cross-package fixtures,
-4. the move reduces imports/coupling instead of adding adapters.
-
-Until then, prefer small files with feature prefixes over many tightly coupled subpackages.
+Rules:
+- Add new backend files to the matching `_domain/<domain>/` folder.
+- Add only the root symlink needed for Go package compatibility.
+- Do not create new root-owned Go files unless they are temporary migration shims.
+- Split into real Go subpackages only when the domain has a narrow exported API and no unexported cross-domain coupling.
