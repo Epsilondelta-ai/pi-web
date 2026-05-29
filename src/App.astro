@@ -52,7 +52,7 @@ const activeSessionID = activeSession?.id || "";
 const activeWorkspaceID = activeWorkspace?.id || "";
 const workspaceVisible = initialRoute !== "picker";
 const pickerVisible = initialRoute === "picker";
-const emptyVisible = initialSession === "empty";
+const emptyVisible = initialSession === "empty" || !activeSession;
 const sessionVisible = !emptyVisible;
 const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
 const bodyGrid = sidebarCollapsed ? (treeOpen ? "1fr 320px" : "1fr") : (treeOpen ? "280px 1fr 320px" : "280px 1fr");
