@@ -475,5 +475,7 @@ function speechLanguageListId(path) {
 </pi-app>
 
 <script>
-  import "./pi-app/index";
+  window.addEventListener("DOMContentLoaded", () => {
+    void import("./pi-app/index");
+  }, { once: true });
 </script>
