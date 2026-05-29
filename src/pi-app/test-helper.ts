@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { act } from "react";
 import { vi } from "vitest";
 import "./index";
 
@@ -184,9 +185,12 @@ export async function connectPiApp() {
 }
 
 export function cleanupPiAppFixture() {
-  document.querySelectorAll("pi-app").forEach((app) => {
-    app.workspaceTreeRoot?.unmount?.();
-    app.remove();
+  act(() => {
+    document.querySelectorAll("pi-app").forEach((app) => {
+      app.workspaceTreeRoot?.unmount?.();
+      app.sidebarSortableRoot?.unmount?.();
+      app.remove();
+    });
   });
   localStorage?.clear?.();
   vi.restoreAllMocks();

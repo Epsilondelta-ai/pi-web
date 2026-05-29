@@ -1,3 +1,4 @@
+import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { codeMirrorLanguageExtension } from "./editor/file-editor";
 import { filePreviewMethods, setCodeMirrorFileEditorLoaderForTest } from "./editor/file-preview-methods";
@@ -95,22 +96,32 @@ describe("performance split coverage", () => {
     app.workspaceTreeMounted = true;
     await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
     app.workspaceTreeMounted = false;
-    await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
+    await act(async () => {
+      await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
+    });
     expect(app.workspaceTreeMounted).toBe(true);
-    app.workspaceTreeMounted = false;
-    root.dataset.initialFiles = "";
-    await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
-    expect(app.workspaceTreeMounted).toBe(true);
-    app.workspaceTreeRoot?.unmount?.();
-    app.workspaceTreeMounted = false;
     root.remove();
+    const secondRoot = document.createElement("div");
+    secondRoot.dataset.workspaceTreeRoot = "";
+    app.append(secondRoot);
+    app.workspaceTreeRoot = undefined;
+    app.workspaceTreeMounted = false;
+    await act(async () => {
+      await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
+    });
+    expect(app.workspaceTreeMounted).toBe(true);
+    await act(async () => app.workspaceTreeRoot?.unmount?.());
+    app.workspaceTreeMounted = false;
+    secondRoot.remove();
     await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
     app.append(root);
     app.workspaceTreeMounted = false;
-    const mounting = workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
+    const mounting = act(async () => {
+      await workspaceBootstrapMethods.ensureWorkspaceTreeMounted.call(app);
+    });
     root.remove();
     await mounting;
-    app.workspaceTreeRoot?.unmount?.();
+    await act(async () => app.workspaceTreeRoot?.unmount?.());
     app.workspaceTreeMounted = false;
   });
 
@@ -120,7 +131,7 @@ describe("performance split coverage", () => {
     await app.ensureSpeechMethods();
     app.speechListening = true;
     app.enableSpeechInput = true;
-    app.syncSpeechInputControls();
+    await act(async () => app.syncSpeechInputControls());
     expect(app.micButton.getAttribute("aria-pressed")).toBe("true");
     app.speechListening = false;
     app.syncSpeechInputControls();

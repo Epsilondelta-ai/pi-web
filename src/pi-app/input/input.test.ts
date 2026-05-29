@@ -1,6 +1,7 @@
 // @ts-nocheck
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "../index";
+import { cleanupPiAppFixture } from "../test-helper";
 
 function renderApp() {
   document.body.innerHTML = `
@@ -19,6 +20,10 @@ function renderApp() {
 describe("pi-app prompt input", () => {
   beforeEach(() => {
     renderApp();
+  });
+
+  afterEach(() => {
+    cleanupPiAppFixture();
   });
 
   it("renders image attachments in user messages", async () => {
@@ -166,6 +171,27 @@ describe("pi-app prompt input", () => {
     app.pickPromptFileRef("src/App.astro");
     expect(app.prompt.value).toBe("check @src/App.astro ");
 
+    app.prompt.value = "open @api";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    app.querySelector(".prompt-file-ref-item").click();
+    expect(app.prompt.value).toBe("open @src/lib/api.ts ");
+
+    app.prompt.value = "jump @app";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    app.prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    app.prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(app.prompt.value).toBe("jump @src/App.astro ");
+
+    app.prompt.value = "hide @app";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    app.prompt.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(true);
+
     app.prompt.value = "ignore `@app";
     app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
     app.updatePrompt();
@@ -175,6 +201,51 @@ describe("pi-app prompt input", () => {
     app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
     app.updatePrompt();
     expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(true);
+
+    expect(app.currentPromptFileRef("x")).toBeNull();
+    app.promptShellMode = true;
+    expect(app.currentPromptFileRef("@app")).toBeNull();
+    app.promptShellMode = false;
+    app.prompt.value = "range @app";
+    app.prompt.setSelectionRange(0, app.prompt.value.length);
+    expect(app.currentPromptFileRef(app.prompt.value)).toBeNull();
+    app.prompt.value = "plain text";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    expect(app.currentPromptFileRef(app.prompt.value)).toBeNull();
+    app.prompt.value = "ignore `@app";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    expect(app.currentPromptFileRef(app.prompt.value)).toBeNull();
+    app.pickPromptFileRef("");
+    app.prompt.value = "plain";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.pickPromptFileRef("src/App.astro");
+    expect(app.prompt.value).toBe("plain");
+    app.prompt.value = "range @app";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePromptFileRefs();
+    expect(app.matchPromptFileRefs(null)).toHaveLength(4);
+    const oldPrompt = app.prompt;
+    app.prompt = null;
+    expect(app.currentPromptFileRef()).toBeNull();
+    expect(() => app.updatePromptFileRefs()).not.toThrow();
+    app.prompt = oldPrompt;
+    const oldWorkspaceFiles = app.workspaceFiles;
+    app.workspaceFiles = undefined;
+    expect(app.matchPromptFileRefs("app")).toEqual([]);
+    app.workspaceFiles = oldWorkspaceFiles;
+    expect(app.flattenWorkspaceFiles([null, {}, { type: "file", name: "README.md" }, { type: "dir", name: "./docs", path: ".\\docs" }])).toEqual([
+      { name: "README.md", path: "README.md", type: "file" },
+      { name: "./docs", path: "./docs", type: "dir" },
+    ]);
+    app.renderPromptFileRefs([{ type: "dir", name: "src", path: "src" }]);
+    expect(app.querySelector(".prompt-file-ref-item .pfr-kind").textContent).toBe("dir");
+    const popover = app.promptFileRefPopover;
+    popover.replaceChildren();
+    expect(() => app.renderPromptFileRefs([{ type: "file", name: "x", path: "x" }])).not.toThrow();
+    app.promptFileRefPopover = popover;
+    popover.remove();
+    expect(app.ensurePromptFileRefPopover()).not.toBe(popover);
+    expect(() => app.pickPromptFileRef("")).not.toThrow();
   });
 
   it("lazy-loads workspace metadata for @ prompt references", async () => {
@@ -197,6 +268,15 @@ describe("pi-app prompt input", () => {
     expect(loadedWorkspace).toBe("ws1");
     expect(app.promptFileRefLoading).toBe(false);
     expect(app.querySelector(".prompt-file-ref-item .pfr-path").textContent).toBe("README.md");
+    app.prompt.value = "see @read";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.workspaceFiles = [];
+    app.promptFileRefLoading = false;
+    app.loadWorkspaceMeta = async () => {
+      app.workspaceFiles = [{ type: "file", name: "README.md", path: "README.md" }];
+    };
+    app.updatePromptFileRefs(app.prompt.value);
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 
   it("handles file attachments, unnamed pasted images, glyphs, sizes, and no-op guards", async () => {
