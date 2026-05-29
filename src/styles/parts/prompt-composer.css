@@ -263,6 +263,42 @@
   outline: none;
 }
 .prompt-textarea::placeholder { color: var(--fg-3); }
+.prompt-file-ref-pop {
+  position: absolute;
+  left: 44px;
+  right: 56px;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-2);
+  box-shadow: var(--shadow-lg);
+}
+.prompt-file-ref-list { display: grid; gap: 3px; }
+.prompt-file-ref-item {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-1);
+  text-align: left;
+}
+.prompt-file-ref-item:hover,
+.prompt-file-ref-item.selected { background: var(--bg-3); }
+.pfr-kind { color: var(--fg-3); font-size: 10px; text-transform: uppercase; }
+.pfr-main { min-width: 0; display: grid; gap: 1px; }
+.pfr-name,
+.pfr-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pfr-name { font-weight: 600; }
+.pfr-path { color: var(--fg-3); font-size: var(--text-xs); }
 .prompt-actions {
   display: flex;
   gap: 4px;

@@ -2,6 +2,8 @@ import { cancelSession, createSession, runAguiSessionPrompt, runShellCommand, st
 import { fallbackChoicePrompt } from "./fallback-choices";
 
 const SHELL_PROMPT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg>`;
+const PROMPT_FILE_REF_LIMIT = 12;
+
 const WHISPER_MODELS = {
   "tiny-q5": { id: "whisper-tiny", size: "~30MB" },
   tiny: { id: "whisper-tiny", size: "~30MB" },
@@ -300,6 +302,10 @@ export const inputMethods = {
     if (action === "session-menu-toggle") this.toggleSessionMenu(actionTarget.closest(".session-row"));
     if (action === "rename-session") this.renameSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "delete-session") this.deleteSession(actionTarget.closest(".session-row")?.dataset.session);
+    if (action === "prompt-file-ref") {
+      this.pickPromptFileRef(actionTarget.dataset.path);
+      return;
+    }
     if (action === "fallback-choice") {
       this.submitFallbackChoice(
         actionTarget.dataset.choiceId,
@@ -459,6 +465,7 @@ export const inputMethods = {
     this.sendButton.classList.toggle("is-disabled", !canSend);
     this.slashPopover?.toggleAttribute("hidden", !(value.startsWith("/") && !value.includes("\n")));
     this.filterSlash(value);
+    this.updatePromptFileRefs(value);
     this.prompt.style.height = "auto";
     this.prompt.style.height = Math.min(180, this.prompt.scrollHeight) + "px";
   },
@@ -567,6 +574,109 @@ export const inputMethods = {
   pickSlash(command) {
     this.fillPrompt(command + " ");
     this.slashPopover?.setAttribute("hidden", "");
+  },
+
+  currentPromptFileRef(value = this.prompt?.value || "") {
+    if (!this.prompt || this.promptShellMode) return null;
+    const cursor = this.prompt.selectionStart ?? value.length;
+    if (cursor !== (this.prompt.selectionEnd ?? cursor)) return null;
+    const prefix = value.slice(0, cursor);
+    const match = /(^|\s)@([^\s@`]*)$/.exec(prefix);
+    if (!match) return null;
+    const at = prefix.length - match[2].length - 1;
+    if (value[at - 1] === "`") return null;
+    return { query: match[2], start: at, end: cursor };
+  },
+
+  updatePromptFileRefs(value = this.prompt?.value || "") {
+    const ref = this.currentPromptFileRef(value);
+    if (!ref || !ref.query) {
+      this.hidePromptFileRefs();
+      return;
+    }
+    if (!this.workspaceFiles?.length && !this.promptFileRefLoading) {
+      this.promptFileRefLoading = true;
+      void this.loadWorkspaceMeta?.(this.dataset.activeWorkspaceId).finally(() => {
+        this.promptFileRefLoading = false;
+        this.updatePromptFileRefs();
+      });
+    }
+    const items = this.matchPromptFileRefs(ref.query);
+    if (!items.length) {
+      this.hidePromptFileRefs();
+      return;
+    }
+    this.renderPromptFileRefs(items);
+  },
+
+  matchPromptFileRefs(query) {
+    const needle = String(query || "").toLowerCase();
+    return this.flattenWorkspaceFiles(this.workspaceFiles || [])
+      .filter((item) => item.path.toLowerCase().includes(needle) || item.name.toLowerCase().includes(needle))
+      .slice(0, PROMPT_FILE_REF_LIMIT);
+  },
+
+  flattenWorkspaceFiles(nodes = []) {
+    const out = [];
+    const visit = (node) => {
+      if (!node?.name) return;
+      const path = String(node.path || node.name).replace(/^\.\//, "").replace(/\\/g, "/");
+      out.push({ name: node.name, path, type: node.type === "dir" ? "dir" : "file" });
+      (node.children || []).forEach(visit);
+    };
+    nodes.forEach(visit);
+    return out;
+  },
+
+  ensurePromptFileRefPopover() {
+    if (this.promptFileRefPopover?.isConnected) return this.promptFileRefPopover;
+    const popover = document.createElement("div");
+    popover.className = "prompt-file-ref-pop";
+    popover.hidden = true;
+    const list = document.createElement("div");
+    list.className = "prompt-file-ref-list";
+    popover.append(list);
+    this.promptBar?.append(popover);
+    this.promptFileRefPopover = popover;
+    return popover;
+  },
+
+  renderPromptFileRefs(items) {
+    const popover = this.ensurePromptFileRefPopover();
+    const list = popover?.querySelector(".prompt-file-ref-list");
+    if (!list) return;
+    list.replaceChildren();
+    items.forEach((item, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "prompt-file-ref-item";
+      button.dataset.action = "prompt-file-ref";
+      button.dataset.path = item.path;
+      button.classList.toggle("selected", index === 0);
+      button.innerHTML = `<span class="pfr-kind"></span><span class="pfr-main"><span class="pfr-name"></span><span class="pfr-path"></span></span>`;
+      button.querySelector(".pfr-kind").textContent = item.type === "dir" ? "dir" : "file";
+      button.querySelector(".pfr-name").textContent = item.name;
+      button.querySelector(".pfr-path").textContent = item.path;
+      list.append(button);
+    });
+    popover.hidden = false;
+  },
+
+  hidePromptFileRefs() {
+    this.promptFileRefPopover?.setAttribute("hidden", "");
+  },
+
+  pickPromptFileRef(path) {
+    const ref = this.currentPromptFileRef();
+    if (!this.prompt || !ref || !path) return;
+    const value = this.prompt.value;
+    const insert = `@${path} `;
+    this.prompt.value = value.slice(0, ref.start) + insert + value.slice(ref.end);
+    const cursor = ref.start + insert.length;
+    this.prompt.setSelectionRange(cursor, cursor);
+    this.hidePromptFileRefs();
+    this.updatePrompt();
+    this.prompt.focus();
   },
 
   navigateList(event, selector, onSelect) {
