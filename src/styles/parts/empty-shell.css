@@ -58,9 +58,11 @@
 }
 .empty-tips code {
   background: transparent;
-  color: var(--fg-2);
+  color: var(--accent);
   padding: 0;
   text-align: center;
+  font-size: 1.15em;
+  font-weight: 700;
 }
 .empty-tips .dim { color: var(--fg-3); }
 
