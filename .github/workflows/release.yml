@@ -62,7 +62,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           mkdir -p release
           output="release/pi-web"
-          go build -ldflags "-X main.version=${GITHUB_REF_NAME}" -o "$output" .
+          go build -ldflags "-X main.version=${GITHUB_REF_NAME}" -o "$output" ./cmd/pi-web
           tar -C release -czf "release/pi-web_${version}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" pi-web
 
       - name: Upload release asset
