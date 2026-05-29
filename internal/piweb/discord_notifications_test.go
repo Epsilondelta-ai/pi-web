@@ -1,1 +1,357 @@
-_domain/notifications/discord_notifications_test.go
+package piweb
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestNotifyDiscordResponseCompletedSendsConfiguredMessage(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotPath, gotAuth string
+	var gotBody map[string]string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotAuth = r.Header.Get("Authorization")
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	previousBaseURL := discordAPIBaseURL
+	discordAPIBaseURL = server.URL
+	defer func() { discordAPIBaseURL = previousBaseURL }()
+
+	err := notifyDiscordResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "done @everyone\nnow"}, []Message{
+		{Kind: "user", Text: "first question"},
+		{Kind: "pi", Text: "answer"},
+		{Kind: "user", Text: "latest @here\nquestion"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/channels/123456/messages" {
+		t.Fatalf("unexpected path %q", gotPath)
+	}
+	if gotAuth != "Bot secret-token" {
+		t.Fatalf("unexpected auth %q", gotAuth)
+	}
+	content := gotBody["content"]
+	if !strings.Contains(content, "답변 완료: done @\u200be...") {
+		t.Fatalf("unexpected title content %q", content)
+	}
+	if !strings.Contains(content, "질문: latest @\u200bhere question") {
+		t.Fatalf("unexpected question content %q", content)
+	}
+}
+
+func TestNotifyDiscordChoiceQuestionSendsConfiguredMessage(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotBody map[string]string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	previousBaseURL := discordAPIBaseURL
+	discordAPIBaseURL = server.URL
+	defer func() { discordAPIBaseURL = previousBaseURL }()
+
+	choice := "```json\n{\"type\":\"piweb_choice\",\"id\":\"pick\",\"question\":\"Pick one?\",\"options\":[],\"allowCustom\":false}\n```"
+	err := notifyDiscordChoiceQuestion(root, Session{ID: "8e7c-44ff", Title: "choose now"}, []Message{{Kind: "pi", Text: choice}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := gotBody["content"]
+	if !strings.Contains(content, "❓ 선택지 질문: choose n...") {
+		t.Fatalf("unexpected title content %q", content)
+	}
+	if !strings.Contains(content, "질문: Pick one?") {
+		t.Fatalf("unexpected choice question content %q", content)
+	}
+}
+
+func TestNotifyTelegramResponseCompletedSendsConfiguredMessage(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotPath string
+	var gotBody map[string]string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+			t.Fatal(err)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	previousBaseURL := telegramAPIBaseURL
+	telegramAPIBaseURL = server.URL
+	defer func() { telegramAPIBaseURL = previousBaseURL }()
+
+	err := notifyTelegramResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "done @everyone\nnow"}, []Message{
+		{Kind: "user", Text: "latest @here\nquestion"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/bottelegram-token/sendMessage" {
+		t.Fatalf("unexpected path %q", gotPath)
+	}
+	if gotBody["chat_id"] != "456789" {
+		t.Fatalf("unexpected chat_id %q", gotBody["chat_id"])
+	}
+	content := gotBody["text"]
+	if !strings.Contains(content, "답변 완료: done @\u200be...") {
+		t.Fatalf("unexpected title content %q", content)
+	}
+	if !strings.Contains(content, "질문: latest @\u200bhere question") {
+		t.Fatalf("unexpected question content %q", content)
+	}
+}
+
+func TestNotifyRemoteResponseCompletedSkipsDefaultNewSessionHello(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"},"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousDiscordBaseURL := discordAPIBaseURL
+	previousTelegramBaseURL := telegramAPIBaseURL
+	discordAPIBaseURL = server.URL
+	telegramAPIBaseURL = server.URL
+	defer func() {
+		discordAPIBaseURL = previousDiscordBaseURL
+		telegramAPIBaseURL = previousTelegramBaseURL
+	}()
+
+	if err := notifyRemoteResponseCompleted(root, Session{ID: "8e7c-44ff", Title: "new session"}, []Message{{Kind: "user", Text: "hello"}}); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("default new session hello completion should not send remote notifications")
+	}
+}
+
+func TestNotifyRemoteResponseCompletedSkipsAgentChildSessions(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"},"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousDiscordBaseURL := discordAPIBaseURL
+	previousTelegramBaseURL := telegramAPIBaseURL
+	discordAPIBaseURL = server.URL
+	telegramAPIBaseURL = server.URL
+	defer func() {
+		discordAPIBaseURL = previousDiscordBaseURL
+		telegramAPIBaseURL = previousTelegramBaseURL
+	}()
+
+	for _, session := range []Session{
+		{ID: "sub", ParentID: "parent", Title: "new session"},
+		{ID: "kind-sub", Kind: SessionKindSubagent, Title: "new session"},
+		{ID: "kind-team", Kind: SessionKindTeam, Title: "new session"},
+	} {
+		if err := notifyRemoteResponseCompleted(root, session, []Message{{Kind: "user", Text: "hello"}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if called {
+		t.Fatal("agent child sessions should not send remote completion notifications")
+	}
+}
+
+func TestNotifyRemoteResponseCompletedSkipsParentSessionFile(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"},"telegram":{"enabled":true,"token":"telegram-token","chatId":"456789"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sessionFile := filepath.Join(t.TempDir(), "child.jsonl")
+	header := `{"type":"session","version":3,"id":"child","timestamp":"2026-05-28T00:00:00Z","cwd":"` + root + `","parentSession":"/tmp/parent.jsonl"}` + "\n"
+	if err := os.WriteFile(sessionFile, []byte(header), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousDiscordBaseURL := discordAPIBaseURL
+	previousTelegramBaseURL := telegramAPIBaseURL
+	discordAPIBaseURL = server.URL
+	telegramAPIBaseURL = server.URL
+	defer func() {
+		discordAPIBaseURL = previousDiscordBaseURL
+		telegramAPIBaseURL = previousTelegramBaseURL
+	}()
+
+	if err := notifyRemoteResponseCompletedForFile(root, sessionFile, Session{ID: "child", Title: "new session"}, []Message{{Kind: "user", Text: "hello"}}); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("parentSession files should not send remote completion notifications")
+	}
+}
+
+func TestNotifyRemoteResponseCompletedSkipsNestedSessionFile(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := `{"remoteNotifications":{"discord":{"enabled":true,"token":"secret-token","channelId":"123456"}}}`
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(settings), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	sessionDir := t.TempDir()
+	parentFile := filepath.Join(sessionDir, "parent.jsonl")
+	childDir := filepath.Join(sessionDir, "parent", "run-id", "run-0")
+	childFile := filepath.Join(childDir, "child.jsonl")
+	if err := os.MkdirAll(childDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(parentFile, []byte("{}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(childFile, []byte(`{"type":"session","version":3,"id":"child","timestamp":"2026-05-28T00:00:00Z","cwd":"`+root+`"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousBaseURL := discordAPIBaseURL
+	discordAPIBaseURL = server.URL
+	defer func() { discordAPIBaseURL = previousBaseURL }()
+
+	if err := notifyRemoteResponseCompletedForFile(root, childFile, Session{ID: "child", Title: "new session"}, []Message{{Kind: "user", Text: "hello"}}); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("nested session files should not send remote completion notifications")
+	}
+}
+
+func TestNotifyTelegramResponseCompletedSkipsIncompleteSettings(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"remoteNotifications":{"telegram":{"enabled":true}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousBaseURL := telegramAPIBaseURL
+	telegramAPIBaseURL = server.URL
+	defer func() { telegramAPIBaseURL = previousBaseURL }()
+
+	if err := notifyTelegramResponseCompleted(root, Session{ID: "8e7c-44ff"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("telegram API should not be called without token and chat ID")
+	}
+}
+
+func TestNotifyDiscordResponseCompletedSkipsIncompleteSettings(t *testing.T) {
+	home := t.TempDir()
+	root := t.TempDir()
+	t.Setenv("HOME", home)
+	if err := os.MkdirAll(filepath.Join(root, ".pi"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"remoteNotifications":{"discord":{"enabled":true}}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	called := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+	defer server.Close()
+	previousBaseURL := discordAPIBaseURL
+	discordAPIBaseURL = server.URL
+	defer func() { discordAPIBaseURL = previousBaseURL }()
+
+	if err := notifyDiscordResponseCompleted(root, Session{ID: "8e7c-44ff"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("discord API should not be called without token and channel ID")
+	}
+}
