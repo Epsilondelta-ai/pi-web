@@ -178,6 +178,18 @@ class PiApp extends HTMLElement {
         && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key);
       if (shouldNavigateSlashCommands) {
         this.navigateList(event, ".slash-item", (item) => this.pickSlash(item.dataset.slash));
+        return;
+      }
+      const shouldNavigatePromptFileRefs = this.promptFileRefPopover
+        && !this.promptFileRefPopover.hidden
+        && ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key);
+      if (shouldNavigatePromptFileRefs) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          this.hidePromptFileRefs();
+          return;
+        }
+        this.navigateList(event, ".prompt-file-ref-item", (item) => this.pickPromptFileRef(item.dataset.path));
       }
     });
     this.attachButton?.addEventListener("click", () => this.fileInput?.click());

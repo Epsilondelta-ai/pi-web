@@ -144,6 +144,61 @@ describe("pi-app prompt input", () => {
     expect(() => app.installPromptDropZone()).not.toThrow();
   });
 
+  it("lists workspace files for @ prompt references and ignores backtick-prefixed @", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.workspaceFiles = [
+      { type: "dir", name: "src", path: "src", children: [
+        { type: "file", name: "App.astro", path: "src/App.astro" },
+        { type: "file", name: "api.ts", path: "src/lib/api.ts" },
+      ] },
+      { type: "file", name: "package.json", path: "package.json" },
+    ];
+
+    app.prompt.value = "check @app";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+
+    expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(false);
+    expect(app.querySelector(".prompt-file-ref-item .pfr-path").textContent).toBe("src/App.astro");
+
+    app.pickPromptFileRef("src/App.astro");
+    expect(app.prompt.value).toBe("check @src/App.astro ");
+
+    app.prompt.value = "ignore `@app";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(true);
+
+    app.prompt.value = "missing @zzz";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(true);
+  });
+
+  it("lazy-loads workspace metadata for @ prompt references", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.dataset.activeWorkspaceId = "ws1";
+    let loadedWorkspace = "";
+    app.loadWorkspaceMeta = async (workspaceId) => {
+      loadedWorkspace = workspaceId;
+      app.workspaceFiles = [{ type: "file", name: "README.md", path: "README.md" }];
+    };
+
+    app.prompt.value = "see @read";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    expect(app.promptFileRefLoading).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(loadedWorkspace).toBe("ws1");
+    expect(app.promptFileRefLoading).toBe(false);
+    expect(app.querySelector(".prompt-file-ref-item .pfr-path").textContent).toBe("README.md");
+  });
+
   it("handles file attachments, unnamed pasted images, glyphs, sizes, and no-op guards", async () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
