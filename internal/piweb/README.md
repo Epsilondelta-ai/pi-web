@@ -9,10 +9,13 @@ internal/piweb/
 ├── shared/             # real Go package for DTOs and redaction helpers
 ├── auth/               # real Go package for auth and OAuth helpers
 ├── commands/           # real Go package for command discovery helpers
+├── eventbus/           # real Go package for SSE event broker primitives
 ├── files/              # real Go package for workspace file/folder helpers
 ├── git/                # real Go package for git history/commit detail operations
 ├── runtime/            # real Go package for quota payload calculations
+├── runnerapi/          # runner-facing interfaces
 ├── sessions/           # real Go package for session parsing and session file metadata
+├── storeapi/           # store-facing interfaces for dependency inversion
 ├── workspace/          # real Go package for clone/shell workspace operations
 ├── _domain/
 │   ├── auth/           # API keys and OAuth login flow
@@ -42,5 +45,7 @@ Rules:
 - Put auth/OAuth helpers in `internal/piweb/auth`.
 - Put command discovery helpers in `internal/piweb/commands`.
 - Put quota calculation helpers in `internal/piweb/runtime`.
+- Put event broker primitives in `internal/piweb/eventbus`.
+- Put store/runner contracts in `internal/piweb/storeapi` and `internal/piweb/runnerapi` before moving concrete orchestration.
 - Put clone/shell workspace operations behind the small `workspace.Store` interface in `internal/piweb/workspace`.
-- Split store/runner/server last; they remain orchestration-heavy until their dependencies are fully inverted.
+- Keep concrete store/runner/server in the root facade until their callers consume the extracted interfaces.
