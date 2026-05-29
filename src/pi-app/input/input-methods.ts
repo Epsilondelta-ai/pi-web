@@ -576,7 +576,7 @@ export const inputMethods = {
     this.slashPopover?.setAttribute("hidden", "");
   },
 
-  currentPromptFileRef(value) {
+  currentPromptFileRef(value = this.prompt?.value || "") {
     if (!this.prompt || this.promptShellMode) return null;
     const cursor = this.prompt.selectionStart;
     if (cursor !== this.prompt.selectionEnd) return null;
@@ -588,7 +588,7 @@ export const inputMethods = {
     return { query: match[2], start: at, end: cursor };
   },
 
-  updatePromptFileRefs(value) {
+  updatePromptFileRefs(value = this.prompt?.value || "") {
     const ref = this.currentPromptFileRef(value);
     if (!ref || !ref.query) {
       this.hidePromptFileRefs();
@@ -598,7 +598,7 @@ export const inputMethods = {
       this.promptFileRefLoading = true;
       void this.loadWorkspaceMeta?.(this.dataset.activeWorkspaceId).finally(() => {
         this.promptFileRefLoading = false;
-        this.updatePromptFileRefs(value);
+        this.updatePromptFileRefs();
       });
     }
     const items = this.matchPromptFileRefs(ref.query);

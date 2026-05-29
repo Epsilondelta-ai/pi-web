@@ -222,8 +222,13 @@ describe("pi-app prompt input", () => {
     expect(app.prompt.value).toBe("plain");
     app.prompt.value = "range @app";
     app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
-    app.updatePromptFileRefs(app.prompt.value);
+    app.updatePromptFileRefs();
     expect(app.matchPromptFileRefs(null)).toHaveLength(4);
+    const oldPrompt = app.prompt;
+    app.prompt = null;
+    expect(app.currentPromptFileRef()).toBeNull();
+    expect(() => app.updatePromptFileRefs()).not.toThrow();
+    app.prompt = oldPrompt;
     const oldWorkspaceFiles = app.workspaceFiles;
     app.workspaceFiles = undefined;
     expect(app.matchPromptFileRefs("app")).toEqual([]);
