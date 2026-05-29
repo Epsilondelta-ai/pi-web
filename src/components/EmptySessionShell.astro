@@ -1,0 +1,21 @@
+---
+interface Props {
+  workspaceName?: string;
+}
+
+const { workspaceName = "pi-web" } = Astro.props;
+---
+
+<div class="empty-shell">
+  <div class="empty-inner">
+    <div class="empty-title">
+      <span class="accent" data-empty-workspace>{workspaceName}</span>
+    </div>
+    <div class="empty-tips" aria-label="pi-web tips">
+      <div><code>!</code> <span data-i18n="emptyTipShell">run shell commands</span></div>
+      <div><code>@</code> <span data-i18n="emptyTipFiles">attach files</span></div>
+      <div><code>/</code> <span data-i18n="emptyTipCommands">use commands or skills</span></div>
+      <div class="empty-tip-line" data-i18n="emptyTipDrop">drag & drop files/images</div>
+    </div>
+  </div>
+</div>

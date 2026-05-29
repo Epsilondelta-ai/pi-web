@@ -58,7 +58,7 @@ describe("pi-app sessions", () => {
   });
 
 
-  it("opens a backend-created session immediately", async () => {
+  it("shows the empty shell for a backend-created blank session", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
@@ -81,9 +81,9 @@ describe("pi-app sessions", () => {
     await app.newSession("w1");
 
     expect(app.dataset.activeSessionId).toBe("s1");
-    expect(app.dataset.session).toBe("active");
-    expect(sessionMain.hidden).toBe(false);
-    expect(emptyMain.hidden).toBe(true);
+    expect(app.dataset.session).toBe("empty");
+    expect(sessionMain.hidden).toBe(true);
+    expect(emptyMain.hidden).toBe(false);
     expect(app.querySelector("[data-session='s1']").classList.contains("selected")).toBe(true);
     expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(false);
   });

@@ -5,7 +5,7 @@
   background: var(--bg-1);
   padding: var(--space-6) var(--space-4) var(--space-12);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
 }
 .empty-inner {
@@ -13,7 +13,7 @@
   max-width: 720px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 .empty-title {
   text-align: center;
@@ -29,12 +29,22 @@
 }
 
 .empty-tips {
-  text-align: center;
-  font-size: var(--text-xs);
+  align-self: center;
+  text-align: left;
+  font-size: var(--text-sm);
   color: var(--fg-3);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  gap: 6px;
+}
+.empty-tips > div {
+  display: grid;
+  grid-template-columns: 18px max-content;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+}
+.empty-tips > .empty-tip-line {
+  grid-template-columns: max-content;
 }
 .empty-tips kbd {
   display: inline-flex;
@@ -48,8 +58,11 @@
 }
 .empty-tips code {
   background: transparent;
-  color: var(--fg-2);
+  color: var(--accent);
   padding: 0;
+  text-align: center;
+  font-size: 1.15em;
+  font-weight: 700;
 }
 .empty-tips .dim { color: var(--fg-3); }
 

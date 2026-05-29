@@ -165,16 +165,19 @@ export const sessionMethods = {
         const { session } = await createSession(workspaceId);
         this.activateCreatedSession(workspaceId, session);
         this.route("workspace");
-        this.showSessionMain();
+        this.showEmptyMain(workspaceId);
         return;
       } catch {
         this.setConnection("err");
       }
     }
-    this.showEmptyMain();
+    this.showEmptyMain(workspaceId);
+  },
+
+  updateEmptySessionWorkspaceLabel(workspaceId) {
     const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent
       || workspaceId
-      || "workspace";
+      || "pi-web";
     const empty = this.querySelector("[data-empty-workspace]");
     const title = this.querySelector("[data-active-session-title]");
     if (empty) empty.textContent = label;
@@ -238,8 +241,9 @@ export const sessionMethods = {
     this.scrollTerm();
   },
 
-  showEmptyMain() {
+  showEmptyMain(workspaceId = this.dataset.activeWorkspaceId || "") {
     this.dataset.session = "empty";
+    this.updateEmptySessionWorkspaceLabel(workspaceId);
     this.querySelector("[data-main='session']")?.setAttribute("hidden", "");
     this.querySelector("[data-main='empty']")?.removeAttribute("hidden");
   },

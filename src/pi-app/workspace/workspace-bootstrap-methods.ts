@@ -51,6 +51,7 @@ export const workspaceBootstrapMethods = {
       void this.loadVersionStatus?.();
       if (activeSession) this.route("workspace");
       else if (this.dataset.route === "picker") await this.browseFolder();
+      else this.showEmptyMain?.(activeWorkspace?.id || "");
 
       if (activeWorkspace) {
         void this.loadWorkspaceCommands(activeWorkspace.id);
@@ -246,7 +247,10 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryCursor = page.cursor || "";
     this.sessionHistoryHasMore = !!page.hasMore;
     this.sessionHistoryLoading = false;
-    this.renderMessages(messages);
+    const sessionMessages = messages || [];
+    this.renderMessages(sessionMessages);
+    if (sessionMessages.length) this.showSessionMain?.();
+    else this.showEmptyMain?.(workspaceId || this.dataset.activeWorkspaceId || "");
     this.setMode(status || "idle");
     this.connectEvents(session.id, { replay: false });
   },

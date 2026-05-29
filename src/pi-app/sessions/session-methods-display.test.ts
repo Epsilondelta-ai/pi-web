@@ -77,7 +77,7 @@ describe("pi-app session method display states", () => {
     app.apiConnected = false;
     app.dataset.activeWorkspaceId = "";
     await app.newSession();
-    expect(shell.emptyWorkspace.textContent).toBe("workspace");
+    expect(shell.emptyWorkspace.textContent).toBe("pi-web");
 
     app.dataset.activeWorkspaceId = "w1";
     await app.newSession();
@@ -90,6 +90,16 @@ describe("pi-app session method display states", () => {
     app.dataset.activeSessionId = "existing";
     await app.newSession("w1");
     expect(shell.activeTitle.textContent).toBe("new session");
+
+    app.dataset.activeSessionId = "";
+    mockFetchJson({ session: { id: "created", title: "new session", lastUsed: "now" } });
+    app.apiConnected = true;
+    app.connectEvents = vi.fn();
+    await app.newSession("w1");
+    expect(shell.sessionMain.hidden).toBe(true);
+    expect(shell.emptyMain.hidden).toBe(false);
+    expect(shell.emptyWorkspace.textContent).toBe("w1");
+    expect(app.dataset.activeSessionId).toBe("created");
 
     app.dataset.activeSessionId = "";
     mockFetchJson({ error: "boom" }, false);

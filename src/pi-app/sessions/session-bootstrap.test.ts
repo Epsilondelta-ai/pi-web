@@ -25,6 +25,11 @@ describe("pi-app session bootstrap", () => {
     }));
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
+    const sessionMain = app.querySelector("[data-main='session']");
+    const emptyMain = document.createElement("main");
+    sessionMain.hidden = true;
+    emptyMain.dataset.main = "empty";
+    app.append(emptyMain);
     app.loadWorkspaceCommands = vi.fn();
     app.loadRuntimeStatus = vi.fn();
     app.loadWorkspaceMeta = vi.fn();
@@ -33,8 +38,42 @@ describe("pi-app session bootstrap", () => {
     await app.bootstrapAPI();
     expect(app.dataset.activeWorkspaceId).toBe("w2");
     expect(app.dataset.activeSessionId).toBe("s2");
+    expect(sessionMain.hidden).toBe(true);
+    expect(emptyMain.hidden).toBe(false);
+    expect(app.termInner.querySelector("[data-welcome-banner]")).not.toBeNull();
     expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w2");
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: false });
+  });
+
+  it("shows loaded content when the remembered session has messages", async () => {
+    localStorage.setItem("pi.activeSession", JSON.stringify({ workspaceId: "w2", sessionId: "s2" }));
+    globalThis.PI_WEB_API_BASE = "http://backend.test";
+    globalThis.fetch = vi.fn(async (url) => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => {
+        if (String(url).endsWith("/workspaces")) return { workspaces: testWorkspaces() };
+        return { session: { id: "s2", title: "second", workspaceId: "w2" }, messages: [{ kind: "pi", text: "loaded" }] };
+      },
+    }));
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    const sessionMain = app.querySelector("[data-main='session']");
+    const emptyMain = document.createElement("main");
+    sessionMain.hidden = true;
+    emptyMain.dataset.main = "empty";
+    app.append(emptyMain);
+    app.loadWorkspaceCommands = vi.fn();
+    app.loadRuntimeStatus = vi.fn();
+    app.loadWorkspaceMeta = vi.fn();
+    app.connectEvents = vi.fn();
+
+    await app.bootstrapAPI();
+
+    expect(sessionMain.hidden).toBe(false);
+    expect(emptyMain.hidden).toBe(true);
+    expect(app.termInner.textContent).toContain("loaded");
   });
 });
 

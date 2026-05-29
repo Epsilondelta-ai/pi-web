@@ -1,4 +1,5 @@
 ---
+import EmptySessionShell from "./components/EmptySessionShell.astro";
 import {
   ArrowDown,
   ArrowUp,
@@ -46,13 +47,13 @@ const {
 
 const activeWorkspace = workspaces[0];
 const activeSession = activeWorkspace?.sessions?.[0];
-const activeWorkspaceName = activeWorkspace?.name || "workspace";
+const activeWorkspaceName = activeWorkspace?.name || "pi-web";
 const activeSessionTitle = activeSession?.title || "no session";
 const activeSessionID = activeSession?.id || "";
 const activeWorkspaceID = activeWorkspace?.id || "";
 const workspaceVisible = initialRoute !== "picker";
 const pickerVisible = initialRoute === "picker";
-const emptyVisible = initialSession === "empty";
+const emptyVisible = initialSession === "empty" || !activeSession;
 const sessionVisible = !emptyVisible;
 const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
 const bodyGrid = sidebarCollapsed ? (treeOpen ? "1fr 320px" : "1fr") : (treeOpen ? "280px 1fr 320px" : "280px 1fr");
@@ -263,7 +264,7 @@ function speechLanguageListId(path) {
     </main>
 
     <main class="main" data-main="empty" hidden={emptyHidden}> 
-      <div class="empty-shell"><div class="empty-inner"><div class="empty-title">new session in <span class="accent" data-empty-workspace>{activeWorkspaceName}</span></div><div class="empty-sub">pi is idle. say the first thing.</div><div class="empty-tips"><div class="dim">session id will be assigned on first send.</div></div></div></div>
+      <EmptySessionShell workspaceName={activeWorkspaceName} />
     </main>
 
     <aside class="tree" aria-label="workspace details" hidden={treeHidden}> 
@@ -474,5 +475,7 @@ function speechLanguageListId(path) {
 </pi-app>
 
 <script>
-  import "./pi-app/index";
+  window.addEventListener("DOMContentLoaded", () => {
+    void import("./pi-app/index");
+  }, { once: true });
 </script>
