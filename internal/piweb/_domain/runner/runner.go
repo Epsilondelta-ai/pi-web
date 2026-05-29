@@ -179,6 +179,16 @@ func (r *Runner) IsRunning(sessionID string) bool {
 	return ok
 }
 
+func (r *Runner) RunningSessionIDs() map[string]bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	running := make(map[string]bool, len(r.running))
+	for sessionID := range r.running {
+		running[sessionID] = true
+	}
+	return running
+}
+
 func (r *Runner) forgetRun(sessionID string, run *activePiRun) {
 	r.mu.Lock()
 	if r.running[sessionID] == run {

@@ -212,13 +212,7 @@ func (s *Server) withLiveSessionFlags(sessions []Session) []Session {
 }
 
 func (s *Server) runningSessionIDs() map[string]bool {
-	s.runner.mu.Lock()
-	defer s.runner.mu.Unlock()
-	running := make(map[string]bool, len(s.runner.running))
-	for sessionID := range s.runner.running {
-		running[sessionID] = true
-	}
-	return running
+	return s.runner.RunningSessionIDs()
 }
 
 func (s *Server) deleteWorkspaceSessions(w http.ResponseWriter, r *http.Request) {

@@ -54,6 +54,7 @@ type ServerBroker interface {
 type ServerRunner interface {
 	Cancel(sessionID string) bool
 	IsRunning(sessionID string) bool
+	RunningSessionIDs() map[string]bool
 	StartPiPrompt(parent context.Context, events EventSink, store SessionMessageStore, sessionID string, text string, images []PromptAttachment, displayText string) error
 	Steer(sessionID string, text string, images []PromptAttachment) error
 }
