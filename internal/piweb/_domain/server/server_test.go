@@ -594,7 +594,7 @@ func TestCreateSessionEndpoint(t *testing.T) {
 
 func TestSteerPublishesQueuedUserMessage(t *testing.T) {
 	broker := NewBroker()
-	broker.heartbeat = time.Hour
+	broker.SetHeartbeat(time.Hour)
 	server := NewServer(Config{}, NewMockStore(), broker)
 	testServer := httptest.NewServer(server.Handler())
 	defer testServer.Close()
@@ -641,7 +641,7 @@ func TestPromptAcceptsMultipleInlineAttachments(t *testing.T) {
 
 func TestPromptPublishesSSE(t *testing.T) {
 	broker := NewBroker()
-	broker.heartbeat = time.Hour
+	broker.SetHeartbeat(time.Hour)
 	server := NewServer(Config{}, NewMockStore(), broker)
 	testServer := httptest.NewServer(server.Handler())
 	defer testServer.Close()

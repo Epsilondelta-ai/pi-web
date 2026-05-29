@@ -32,6 +32,24 @@ func NewBroker() *Broker {
 	}
 }
 
+func (b *Broker) SetBuffer(buffer int) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.buffer = buffer
+}
+
+func (b *Broker) SetHistorySize(size int) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.historySize = size
+}
+
+func (b *Broker) SetHeartbeat(heartbeat time.Duration) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.heartbeat = heartbeat
+}
+
 func (b *Broker) Subscribe(sessionID string) (<-chan shared.Event, func()) {
 	eventChannel := make(chan shared.Event, b.buffer)
 	b.mu.Lock()
@@ -154,8 +172,12 @@ func (b *Broker) ServeSession(w http.ResponseWriter, r *http.Request, sessionID 
 	}
 }
 
-func shouldReplayHistory(r *http.Request, after uint64) bool {
+func ShouldReplayHistory(r *http.Request, after uint64) bool {
 	return after > 0 || r.URL.Query().Get("replay") != "false"
+}
+
+func shouldReplayHistory(r *http.Request, after uint64) bool {
+	return ShouldReplayHistory(r, after)
 }
 
 func WriteSSE(w io.Writer, event shared.Event) error {

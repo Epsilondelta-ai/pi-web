@@ -407,8 +407,8 @@ func TestCoverageParsersQuotaAndRuntime(t *testing.T) {
 
 func TestCoverageBrokerSettingsSessionsAndHelpers(t *testing.T) {
 	broker := NewBroker()
-	broker.buffer = 1
-	broker.historySize = 1
+	broker.SetBuffer(1)
+	broker.SetHistorySize(1)
 	events, unsubscribe := broker.Subscribe("s")
 	broker.Publish("s", "one", map[string]string{"token": "abc123456789"})
 	broker.Publish("s", "two", "authorization: bearer secret")
