@@ -7,7 +7,11 @@ The root `internal/piweb/*.go` files are compatibility facades/symlinks into tho
 ```text
 internal/piweb/
 ├── shared/             # real Go package for DTOs and redaction helpers
+├── auth/               # real Go package for auth and OAuth helpers
+├── commands/           # real Go package for command discovery helpers
+├── files/              # real Go package for workspace file/folder helpers
 ├── git/                # real Go package for git history/commit detail operations
+├── runtime/            # real Go package for quota payload calculations
 ├── sessions/           # real Go package for session parsing and session file metadata
 ├── workspace/          # real Go package for clone/shell workspace operations
 ├── _domain/
@@ -34,5 +38,9 @@ Rules:
 - Put dependency-free DTOs/helpers in `internal/piweb/shared` first.
 - Put session file parsing/page/summarization code in `internal/piweb/sessions`.
 - Put standalone git history operations in `internal/piweb/git`.
+- Put file/folder helpers in `internal/piweb/files`.
+- Put auth/OAuth helpers in `internal/piweb/auth`.
+- Put command discovery helpers in `internal/piweb/commands`.
+- Put quota calculation helpers in `internal/piweb/runtime`.
 - Put clone/shell workspace operations behind the small `workspace.Store` interface in `internal/piweb/workspace`.
-- Split other real Go subpackages only when the domain has a narrow exported API and no unexported cross-domain coupling.
+- Split store/runner/server last; they remain orchestration-heavy until their dependencies are fully inverted.
