@@ -24,3 +24,6 @@ if (typeof Range !== "undefined" && !Range.prototype.getBoundingClientRect) {
     toJSON: () => ({}),
   }) as DOMRect;
 }
+if (typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => undefined;
+}

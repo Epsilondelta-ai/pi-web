@@ -576,19 +576,19 @@ export const inputMethods = {
     this.slashPopover?.setAttribute("hidden", "");
   },
 
-  currentPromptFileRef(value = this.prompt?.value || "") {
+  currentPromptFileRef(value) {
     if (!this.prompt || this.promptShellMode) return null;
-    const cursor = this.prompt.selectionStart ?? value.length;
-    if (cursor !== (this.prompt.selectionEnd ?? cursor)) return null;
+    const cursor = this.prompt.selectionStart;
+    if (cursor !== this.prompt.selectionEnd) return null;
     const prefix = value.slice(0, cursor);
-    const match = /(^|\s)@([^\s@`]*)$/.exec(prefix);
+    const match = /(^|[\s`])@([^\s@`]*)$/.exec(prefix);
     if (!match) return null;
     const at = prefix.length - match[2].length - 1;
     if (value[at - 1] === "`") return null;
     return { query: match[2], start: at, end: cursor };
   },
 
-  updatePromptFileRefs(value = this.prompt?.value || "") {
+  updatePromptFileRefs(value) {
     const ref = this.currentPromptFileRef(value);
     if (!ref || !ref.query) {
       this.hidePromptFileRefs();
@@ -598,7 +598,7 @@ export const inputMethods = {
       this.promptFileRefLoading = true;
       void this.loadWorkspaceMeta?.(this.dataset.activeWorkspaceId).finally(() => {
         this.promptFileRefLoading = false;
-        this.updatePromptFileRefs();
+        this.updatePromptFileRefs(value);
       });
     }
     const items = this.matchPromptFileRefs(ref.query);
@@ -667,9 +667,10 @@ export const inputMethods = {
   },
 
   pickPromptFileRef(path) {
-    const ref = this.currentPromptFileRef();
-    if (!this.prompt || !ref || !path) return;
+    if (!this.prompt || !path) return;
     const value = this.prompt.value;
+    const ref = this.currentPromptFileRef(value);
+    if (!ref) return;
     const insert = `@${path} `;
     this.prompt.value = value.slice(0, ref.start) + insert + value.slice(ref.end);
     const cursor = ref.start + insert.length;

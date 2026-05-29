@@ -56,10 +56,6 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(count.textContent).toBe("0 known");
     app.renderWorkspaces(workspaces);
     app.renderWorkspaces(workspaces);
-    await act(async () => {
-      app.querySelector(".sidebar .sb-section").dispatchEvent(new Event("pointerenter"));
-      await Promise.resolve();
-    });
     app.renderFolderListing({ path: "/tmp", displayPath: "tmp", folders: [
       { name: "child", path: "/tmp/child", displayPath: "~/child" },
     ] });
@@ -79,6 +75,10 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(app.dataset.activeWorkspaceId).toBe("w2");
     expect(app.sidebarOpenWorkspaceId).toBe("w1");
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "w2", openWorkspaceId: "w1" });
+    await act(async () => {
+      app.querySelector(".sidebar .sb-section").dispatchEvent(new Event("pointerenter"));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
     await act(async () => {
       await app.renderSortableSidebarWorkspaces(app.querySelector(".sidebar .sb-section"), app.workspaceList);
     });
