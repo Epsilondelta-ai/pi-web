@@ -47,8 +47,8 @@ func NewRunner() *Runner {
 }
 func (r *Runner) StartPiPrompt(
 	parent context.Context,
-	broker *Broker,
-	store *Store,
+	events EventSink,
+	store SessionMessageStore,
 	sessionID string,
 	text string,
 	images []PromptAttachment,
@@ -102,8 +102,8 @@ func (r *Runner) StartPiPrompt(
 		}()
 		user := Message{Kind: "user", Text: displayText, Attachments: images}
 		_ = store.AppendMessage(sessionID, user)
-		broker.Publish(sessionID, "session.message", user)
-		broker.Publish(sessionID, "session.status", map[string]string{"status": "running"})
+		events.Publish(sessionID, "session.message", user)
+		events.Publish(sessionID, "session.status", map[string]string{"status": "running"})
 
 		go func() {
 			<-ctx.Done()
@@ -124,12 +124,12 @@ func (r *Runner) StartPiPrompt(
 			if isPiRPCAgentEnd(line) {
 				doneOnce.Do(func() { close(agentDone) })
 			}
-			if !handlePiJSONEvent(line, broker, store, sessionID, state) {
-				broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+			if !handlePiJSONEvent(line, events, store, sessionID, state) {
+				events.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
 			}
 		}, stdoutDone)
 		go streamPipe(stderr, func(line string) {
-			broker.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
+			events.Publish(sessionID, "tool.output", map[string]string{"tool": "pi", "chunk": line})
 		}, nil)
 
 		select {
@@ -143,8 +143,8 @@ func (r *Runner) StartPiPrompt(
 			return
 		}
 		if err != nil {
-			broker.Publish(sessionID, "error", map[string]string{"error": err.Error()})
-			broker.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
+			events.Publish(sessionID, "error", map[string]string{"error": err.Error()})
+			events.Publish(sessionID, "session.status", map[string]string{"status": "idle"})
 			return
 		}
 		if state.assistantResponseCompleted && !state.fallbackChoiceNotified {
@@ -154,7 +154,7 @@ func (r *Runner) StartPiPrompt(
 				}()
 			}
 		}
-		broker.Publish(sessionID, "session.status", map[string]string{
+		events.Publish(sessionID, "session.status", map[string]string{
 			"status":     "idle",
 			"finishedAt": time.Now().UTC().Format(time.RFC3339),
 		})

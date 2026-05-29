@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func tailSessionFile(ctx context.Context, broker *Broker, store *Store, sessionID, path string, offset int64, emitted *atomic.Int64, done chan<- struct{}) {
+func tailSessionFile(ctx context.Context, events EventSink, store SessionMessageStore, sessionID, path string, offset int64, emitted *atomic.Int64, done chan<- struct{}) {
 	defer close(done)
 	ticker := time.NewTicker(120 * time.Millisecond)
 	defer ticker.Stop()
@@ -21,7 +21,7 @@ func tailSessionFile(ctx context.Context, broker *Broker, store *Store, sessionI
 		newOffset := readSessionLines(path, offset, func(line string) {
 			for _, msg := range ParsePiSessionLineMessages(line) {
 				_ = store.AppendMessage(sessionID, msg)
-				broker.Publish(sessionID, eventTypeForMessage(msg), msg)
+				events.Publish(sessionID, eventTypeForMessage(msg), msg)
 				emitted.Add(1)
 			}
 		})
@@ -36,7 +36,7 @@ func tailSessionFile(ctx context.Context, broker *Broker, store *Store, sessionI
 				readSessionLines(path, offset, func(line string) {
 					for _, msg := range ParsePiSessionLineMessages(line) {
 						_ = store.AppendMessage(sessionID, msg)
-						broker.Publish(sessionID, eventTypeForMessage(msg), msg)
+						events.Publish(sessionID, eventTypeForMessage(msg), msg)
 						emitted.Add(1)
 					}
 				})

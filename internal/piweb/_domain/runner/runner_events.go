@@ -16,7 +16,7 @@ type jsonStreamState struct {
 	onFallbackChoiceMessage    func()
 }
 
-func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID string, state *jsonStreamState) bool {
+func handlePiJSONEvent(line string, events EventSink, store SessionMessageStore, sessionID string, state *jsonStreamState) bool {
 	var event struct {
 		Type                  string          `json:"type"`
 		Command               string          `json:"command"`
@@ -42,7 +42,7 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 		return true
 	case "response":
 		if !event.Success && event.Error != "" {
-			broker.Publish(sessionID, "error", map[string]string{"error": event.Error, "command": event.Command})
+			events.Publish(sessionID, "error", map[string]string{"error": event.Error, "command": event.Command})
 		}
 		return true
 	case "message_update":
@@ -56,10 +56,10 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 		switch event.AssistantMessageEvent.Type {
 		case "thinking_delta", "reasoning_delta":
 			state.streamedThinking = true
-			broker.Publish(sessionID, "session.delta", map[string]string{"kind": "think", "delta": delta})
+			events.Publish(sessionID, "session.delta", map[string]string{"kind": "think", "delta": delta})
 		case "text_delta":
 			state.streamedText = true
-			broker.Publish(sessionID, "session.delta", map[string]string{"kind": "pi", "delta": delta})
+			events.Publish(sessionID, "session.delta", map[string]string{"kind": "pi", "delta": delta})
 		case "toolcall_delta", "toolcall_start", "toolcall_end", "text_start", "text_end", "thinking_start", "thinking_end", "start", "done":
 			return true
 		}
@@ -88,14 +88,14 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 			if msg.Kind == "think" && state.streamedThinking {
 				continue
 			}
-			broker.Publish(sessionID, eventTypeForMessage(msg), msg)
+			events.Publish(sessionID, eventTypeForMessage(msg), msg)
 		}
 		return true
 	case "tool_execution_start":
-		broker.Publish(sessionID, "tool.started", Message{Kind: "tool", Tool: event.ToolName, Args: string(event.Args), Status: "running", CollapsedByDefault: true})
+		events.Publish(sessionID, "tool.started", Message{Kind: "tool", Tool: event.ToolName, Args: string(event.Args), Status: "running", CollapsedByDefault: true})
 		return true
 	case "tool_execution_update":
-		broker.Publish(sessionID, "tool.output", map[string]string{"tool": event.ToolName, "chunk": jsonChunk(event.PartialResult)})
+		events.Publish(sessionID, "tool.output", map[string]string{"tool": event.ToolName, "chunk": jsonChunk(event.PartialResult)})
 		return true
 	case "tool_execution_end":
 		status := "ok"
@@ -104,7 +104,7 @@ func handlePiJSONEvent(line string, broker *Broker, store *Store, sessionID stri
 		}
 		msg := Message{Kind: "tool", Tool: event.ToolName, Args: string(event.Args), Status: status, Body: jsonChunk(event.Result), CollapsedByDefault: true}
 		_ = store.AppendMessage(sessionID, msg)
-		broker.Publish(sessionID, "tool.finished", msg)
+		events.Publish(sessionID, "tool.finished", msg)
 		return true
 	case "agent_end", "turn_end":
 		return true
