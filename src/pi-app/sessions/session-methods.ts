@@ -165,15 +165,13 @@ export const sessionMethods = {
         const { session } = await createSession(workspaceId);
         this.activateCreatedSession(workspaceId, session);
         this.route("workspace");
-        this.showEmptyMain();
-        this.updateEmptySessionWorkspaceLabel(workspaceId);
+        this.showEmptyMain(workspaceId);
         return;
       } catch {
         this.setConnection("err");
       }
     }
-    this.showEmptyMain();
-    this.updateEmptySessionWorkspaceLabel(workspaceId);
+    this.showEmptyMain(workspaceId);
   },
 
   updateEmptySessionWorkspaceLabel(workspaceId) {
@@ -243,8 +241,9 @@ export const sessionMethods = {
     this.scrollTerm();
   },
 
-  showEmptyMain() {
+  showEmptyMain(workspaceId = this.dataset.activeWorkspaceId || "") {
     this.dataset.session = "empty";
+    this.updateEmptySessionWorkspaceLabel(workspaceId);
     this.querySelector("[data-main='session']")?.setAttribute("hidden", "");
     this.querySelector("[data-main='empty']")?.removeAttribute("hidden");
   },
