@@ -156,7 +156,7 @@ describe("pi-app prompt input", () => {
     app.workspaceFiles = [
       { type: "dir", name: "src", path: "src", children: [
         { type: "file", name: "App.astro", path: "src/App.astro" },
-        { type: "file", name: "api.ts", path: "src/lib/api.ts" },
+        { type: "file", name: "api.ts", path: "src/shared/api/api.ts" },
       ] },
       { type: "file", name: "package.json", path: "package.json" },
     ];
@@ -175,7 +175,7 @@ describe("pi-app prompt input", () => {
     app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
     app.updatePrompt();
     app.querySelector(".prompt-file-ref-item").click();
-    expect(app.prompt.value).toBe("open @src/lib/api.ts ");
+    expect(app.prompt.value).toBe("open @src/shared/api/api.ts ");
 
     app.prompt.value = "jump @app";
     app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);

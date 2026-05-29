@@ -4,7 +4,7 @@ import {
   getPiVersionStatus,
   getVersionStatus,
   startPiUpdate,
-} from "../../lib/api";
+} from "../../shared/api/api";
 
 const IGNORED_PI_UPDATE_KEY = "piweb:ignored-pi-update";
 const IGNORED_PI_PACKAGE_UPDATE_KEY = "piweb:ignored-pi-package-update";

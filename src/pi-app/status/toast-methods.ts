@@ -1,8 +1,8 @@
 import { Notyf, NotyfEvent } from "notyf";
 import { currentUiLocale } from "../../i18n/client";
 import { uiMessage } from "../../i18n/ui";
-import { getSession, sessionEvents } from "../../lib/api";
-import { escapeHtml } from "../../lib/renderers";
+import { getSession, sessionEvents } from "../../shared/api/api";
+import { escapeHtml } from "../../shared/renderers/renderers";
 import { parseFallbackChoices } from "../input/fallback-choices";
 
 const TOAST_MESSAGES = {

@@ -1,4 +1,4 @@
-import { renderAnsiBody } from "../../lib/renderers";
+import { renderAnsiBody } from "../../shared/renderers/renderers";
 
 const LARGE_TOOL_BODY_CHARS = 16_000;
 const TOOL_BODY_PREVIEW_CHARS = 8_000;

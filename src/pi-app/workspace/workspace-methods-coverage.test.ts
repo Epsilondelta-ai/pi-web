@@ -2,7 +2,7 @@
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../components/SortableWorkspaceSidebar", () => ({
+vi.mock("./components/SortableWorkspaceSidebar", () => ({
   default: (props) => {
     globalThis.__lastSortableSidebarProps = props;
     return "sortable sidebar";

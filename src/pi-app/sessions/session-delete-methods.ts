@@ -1,7 +1,7 @@
 import {
   deleteSession as deleteSessionRequest,
   deleteWorkspaceSessions as deleteWorkspaceSessionsRequest,
-} from "../../lib/api";
+} from "../../shared/api/api";
 import { clearStoredActiveSession } from "./session-storage";
 
 export const sessionDeleteMethods = {

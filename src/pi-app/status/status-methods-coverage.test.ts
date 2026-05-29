@@ -3,10 +3,10 @@ import { layoutMethods } from "./layout-methods";
 import { runtimeStatusMethods } from "./runtime-status-methods";
 import { toastMethods } from "./toast-methods";
 import { versionMethods } from "./version-methods";
-import * as api from "../../lib/api";
+import * as api from "../../shared/api/api";
 
-vi.mock("../../lib/api", async () => {
-  const actual = await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
+vi.mock("../../shared/api/api", async () => {
+  const actual = await vi.importActual<typeof import("../../shared/api/api")>("../../shared/api/api");
   return {
     ...actual,
     getPiPackageUpdateStatus: vi.fn(),

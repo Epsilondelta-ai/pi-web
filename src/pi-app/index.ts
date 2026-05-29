@@ -1,7 +1,7 @@
 import { applyUiLocale, currentUiLocale, setUiLocale } from "../i18n/client";
 import { normalizeUiLocale } from "../i18n/locales";
-import { sessionEvents } from "../lib/api";
-import { escapeHtml } from "../lib/renderers";
+import { sessionEvents } from "../shared/api/api";
+import { escapeHtml } from "../shared/renderers/renderers";
 import { SPINNER_FRAME_COUNT } from "./constants";
 import { filePreviewMethods } from "./editor/file-preview-methods";
 import { attachmentMethods } from "./input/attachment-methods";

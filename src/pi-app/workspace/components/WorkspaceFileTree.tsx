@@ -6,9 +6,9 @@ import {
   renameWorkspaceFile,
   searchWorkspaceFiles,
   uploadWorkspaceFile,
-} from "../lib/api";
-import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../lib/file-tree-model";
-import { resolveMaterialFileIcon } from "../lib/material-file-icons";
+} from "../../../shared/api/api";
+import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../../../shared/file-tree/file-tree-model";
+import { resolveMaterialFileIcon } from "../../../shared/icons/material-file-icons";
 
 type WorkspaceTreeUpdate = { files?: RawFileNode[]; statusMap?: GitStatusMap; selectedPath?: string };
 type Props = { initialFiles?: RawFileNode[]; initialStatusMap?: GitStatusMap };

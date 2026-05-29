@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../lib/renderers";
+import { escapeHtml } from "../../shared/renderers/renderers";
 import { appendGroupedSessionRows } from "../sessions/session-hierarchy";
 import { applyStoredWorkspaceOrder, storeSessionOrder, storeWorkspaceOrder } from "./workspace-order";
 
@@ -62,7 +62,7 @@ export const workspaceRenderMethods = {
     const [{ default: React }, { createRoot }, { default: SortableWorkspaceSidebar }] = await Promise.all([
       import("react"),
       import("react-dom/client"),
-      import("../../components/SortableWorkspaceSidebar"),
+      import("./components/SortableWorkspaceSidebar"),
     ]);
     if (this.sidebarSortableRenderToken !== renderToken || !globalThis.window || !section.isConnected) return;
     let rootHost = section.querySelector("[data-sortable-workspaces]");

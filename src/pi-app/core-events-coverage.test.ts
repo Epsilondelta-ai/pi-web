@@ -326,7 +326,7 @@ describe("pi-app core events coverage", () => {
     app.eventSource = source;
     let handlers;
     globalThis.EventSource = undefined;
-    const api = await import("../lib/api");
+    const api = await import("../shared/api/api");
     vi.spyOn(api, "sessionEvents").mockImplementation((sessionId, options) => {
       handlers = options;
       return { close: vi.fn(), sessionId };

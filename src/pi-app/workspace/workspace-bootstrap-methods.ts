@@ -4,7 +4,7 @@ import {
   getWorkspaceCommands,
   getWorkspaceFiles,
   getWorkspaces,
-} from "../../lib/api";
+} from "../../shared/api/api";
 import { readStoredActiveSession, storeActiveSession } from "../sessions/session-storage";
 
 const SESSION_MESSAGE_PAGE_SIZE = 120;
@@ -103,7 +103,7 @@ export const workspaceBootstrapMethods = {
       const [{ default: React }, { createRoot }, { default: WorkspaceFileTree }] = await Promise.all([
         import("react"),
         import("react-dom/client"),
-        import("../../components/WorkspaceFileTree"),
+        import("./components/WorkspaceFileTree"),
       ]);
       if (!root.isConnected || this.workspaceTreeMounted) return;
       const initialFiles = this.workspaceFiles || parseInitialTreeFiles(root.dataset.initialFiles);

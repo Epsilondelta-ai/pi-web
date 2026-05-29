@@ -1,8 +1,8 @@
 import {
   createSession,
   renameSession as renameSessionRequest,
-} from "../../lib/api";
-import { escapeHtml } from "../../lib/renderers";
+} from "../../shared/api/api";
+import { escapeHtml } from "../../shared/renderers/renderers";
 import { sessionDeleteMethods } from "./session-delete-methods";
 import { decorateSessionRow, sessionKindLabel } from "./session-hierarchy";
 import { sessionMenuMethods } from "./session-menu-methods";

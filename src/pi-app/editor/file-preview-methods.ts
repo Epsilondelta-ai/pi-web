@@ -1,5 +1,5 @@
-import { getWorkspaceFile, saveWorkspaceFile } from "../../lib/api";
-import { fallbackValue } from "../../lib/fallbacks";
+import { getWorkspaceFile, saveWorkspaceFile } from "../../shared/api/api";
+import { fallbackValue } from "../../shared/fallbacks/fallbacks";
 import { codeMirrorLanguageName, editableFileState, isTextFile } from "./file-editor-state";
 
 function defaultCodeMirrorFileEditorLoader() {

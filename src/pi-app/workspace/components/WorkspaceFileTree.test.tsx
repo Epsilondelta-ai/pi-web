@@ -1,7 +1,7 @@
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile, searchWorkspaceFiles, uploadWorkspaceFile } from "../lib/api";
+import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile, searchWorkspaceFiles, uploadWorkspaceFile } from "../../../shared/api/api";
 import WorkspaceFileTree, { clearUploadInput, renderTreeContent, StatusBadge, treeRenderState } from "./WorkspaceFileTree";
 
 vi.mock("react-arborist", () => ({
@@ -24,7 +24,7 @@ vi.mock("react-arborist", () => ({
   },
 }));
 
-vi.mock("../lib/api", () => ({
+vi.mock("../../../shared/api/api", () => ({
   createWorkspaceFile: vi.fn().mockResolvedValue({}),
   deleteWorkspaceFile: vi.fn().mockResolvedValue({}),
   renameWorkspaceFile: vi.fn().mockResolvedValue({}),

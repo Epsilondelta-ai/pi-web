@@ -6,8 +6,8 @@ import {
   logoutProvider,
   saveAPIKey,
   saveWorkspaceSettings,
-} from "../../lib/api";
-import { fallbackValue } from "../../lib/fallbacks";
+} from "../../shared/api/api";
+import { fallbackValue } from "../../shared/fallbacks/fallbacks";
 import {
   SETTINGS_FIELDS,
   SPEECH_LANGUAGE_OPTIONS,
