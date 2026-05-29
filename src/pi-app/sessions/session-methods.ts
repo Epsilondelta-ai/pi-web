@@ -165,13 +165,18 @@ export const sessionMethods = {
         const { session } = await createSession(workspaceId);
         this.activateCreatedSession(workspaceId, session);
         this.route("workspace");
-        this.showSessionMain();
+        this.showEmptyMain();
+        this.updateEmptySessionWorkspaceLabel(workspaceId);
         return;
       } catch {
         this.setConnection("err");
       }
     }
     this.showEmptyMain();
+    this.updateEmptySessionWorkspaceLabel(workspaceId);
+  },
+
+  updateEmptySessionWorkspaceLabel(workspaceId) {
     const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent
       || workspaceId
       || "workspace";
