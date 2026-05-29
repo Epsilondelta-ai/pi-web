@@ -5,7 +5,8 @@ import { html } from "@codemirror/lang-html";
 import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
-import { bracketMatching, defaultHighlightStyle, indentOnInput, syntaxHighlighting } from "@codemirror/language";
+import { bracketMatching, indentOnInput } from "@codemirror/language";
+import { materialDark } from "@fsegurai/codemirror-theme-material-dark";
 import { StreamLanguage } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { diff } from "@codemirror/merge";
@@ -184,7 +185,7 @@ function editorExtensions(file: FileLike, readOnly: boolean, originalContent: st
     bracketMatching(),
     history(),
     search({ top: true }),
-    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+    materialDark,
     EditorState.tabSize.of(2),
     EditorState.readOnly.of(readOnly),
     EditorView.editable.of(!readOnly),
