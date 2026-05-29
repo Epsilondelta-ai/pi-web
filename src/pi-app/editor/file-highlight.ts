@@ -1,7 +1,5 @@
 import { escapeHtml } from "../../lib/renderers";
 
-const SHIKI_THEME = "github-dark";
-
 const EXTENSION_LANGUAGE = {
   astro: "astro",
   cjs: "javascript",
@@ -33,21 +31,6 @@ export function languageForFile(file) {
 }
 
 export async function renderHighlightedCode(source, file) {
-  const language = languageForFile(file);
-  if (language === "text") return escapeHtml(source);
-
-  try {
-    return await highlightWithShiki(source, language);
-  } catch {
-    return escapeHtml(source);
-  }
-}
-
-async function highlightWithShiki(source, language) {
-  const { codeToHtml } = await import("shiki");
-  return codeToHtml(source, {
-    lang: language,
-    theme: SHIKI_THEME,
-    structure: "inline",
-  });
+  languageForFile(file);
+  return escapeHtml(source);
 }
