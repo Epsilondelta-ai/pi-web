@@ -7,18 +7,17 @@ This repository keeps the root focused on entry points, tool configuration, and 
 ```text
 .
 ├── *.go                        # root pi-web command and embedded binary entrypoint
-├── backend/                    # backend layout notes
-├── internal/piweb/             # server, sessions, workspace, runner, store code
+├── internal/piweb/             # backend facade, implementation, shared DTOs, event bus
 ├── static/                     # committed embedded Astro assets
 ├── docs/                       # durable documentation, plans, and screenshots
 ├── public/                     # Astro static assets
 ├── scripts/                    # install/release/dev helper scripts
 ├── src/                        # Astro/React frontend source
-│   ├── components/             # shared UI components
+│   ├── app-shell/              # Astro shell fragments
 │   ├── design-system/          # design tokens/components
-│   ├── lib/                    # frontend API, rendering, pure data helpers
 │   ├── pages/                  # Astro pages
-│   └── pi-app/                 # custom element shell plus feature folders and tests
+│   ├── pi-app/                 # custom element shell plus feature folders and tests
+│   └── shared/                 # frontend API, rendering, pure data helpers
 ├── .github/                    # GitHub workflows
 ├── .storybook/                 # Storybook configuration
 └── package.json                # top-level build/test/dev commands
@@ -63,9 +62,9 @@ bun run embed:assets
 ## Internal cleanup rules
 
 - Keep `docs/assets` for README/documentation images and `docs/plans` for durable implementation plans.
-- Keep `src/lib` for pure helpers and browser API clients that are not custom-element methods.
+- Keep `src/shared` for pure helpers and browser API clients that are not custom-element methods.
 - Keep `src/pi-app` for the `<pi-app>` element, feature folders, and their colocated tests.
-- Keep backend package maps in `backend/README.md` and `internal/piweb/README.md` current when moving files.
+- Keep backend package maps in `internal/piweb/README.md` current when moving files.
 
 ## Future migration option
 
