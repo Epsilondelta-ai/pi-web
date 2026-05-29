@@ -170,6 +170,33 @@ describe("pi-app prompt input", () => {
     app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
     app.updatePrompt();
     expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(true);
+
+    app.prompt.value = "missing @zzz";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    expect(app.querySelector(".prompt-file-ref-pop").hidden).toBe(true);
+  });
+
+  it("lazy-loads workspace metadata for @ prompt references", async () => {
+    const app = document.querySelector("pi-app");
+    await customElements.whenDefined("pi-app");
+    app.connectedCallback();
+    app.dataset.activeWorkspaceId = "ws1";
+    let loadedWorkspace = "";
+    app.loadWorkspaceMeta = async (workspaceId) => {
+      loadedWorkspace = workspaceId;
+      app.workspaceFiles = [{ type: "file", name: "README.md", path: "README.md" }];
+    };
+
+    app.prompt.value = "see @read";
+    app.prompt.setSelectionRange(app.prompt.value.length, app.prompt.value.length);
+    app.updatePrompt();
+    expect(app.promptFileRefLoading).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(loadedWorkspace).toBe("ws1");
+    expect(app.promptFileRefLoading).toBe(false);
+    expect(app.querySelector(".prompt-file-ref-item .pfr-path").textContent).toBe("README.md");
   });
 
   it("handles file attachments, unnamed pasted images, glyphs, sizes, and no-op guards", async () => {
