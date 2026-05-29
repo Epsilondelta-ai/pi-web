@@ -641,7 +641,7 @@ describe("workspace bootstrap coverage", () => {
 
     expect(sessionMain.hidden).toBe(true);
     expect(emptyMain.hidden).toBe(false);
-    expect(emptyWorkspace.textContent).toBe("workspace");
+    expect(emptyWorkspace.textContent).toBe("pi-web");
   });
 
   it("boots, refreshes, and applies workspace metadata", async () => {

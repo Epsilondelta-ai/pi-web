@@ -179,7 +179,7 @@ export const sessionMethods = {
   updateEmptySessionWorkspaceLabel(workspaceId) {
     const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent
       || workspaceId
-      || "workspace";
+      || "pi-web";
     const empty = this.querySelector("[data-empty-workspace]");
     const title = this.querySelector("[data-active-session-title]");
     if (empty) empty.textContent = label;

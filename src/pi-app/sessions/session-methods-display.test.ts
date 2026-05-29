@@ -77,7 +77,7 @@ describe("pi-app session method display states", () => {
     app.apiConnected = false;
     app.dataset.activeWorkspaceId = "";
     await app.newSession();
-    expect(shell.emptyWorkspace.textContent).toBe("workspace");
+    expect(shell.emptyWorkspace.textContent).toBe("pi-web");
 
     app.dataset.activeWorkspaceId = "w1";
     await app.newSession();
