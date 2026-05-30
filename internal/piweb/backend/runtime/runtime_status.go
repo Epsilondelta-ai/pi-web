@@ -1,8 +1,9 @@
-package backend
+package runtime
 
 import (
 	"context"
 	"errors"
+	backendworkspace "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/workspace"
 	"strings"
 
 	backendauth "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/auth"
@@ -69,7 +70,7 @@ func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatu
 }
 
 func RuntimeModelStatusFromSettings(root string) (RuntimeStatus, error) {
-	settings, err := WorkspaceSettings(root)
+	settings, err := backendworkspace.WorkspaceSettings(root)
 	if err != nil {
 		return RuntimeStatus{}, err
 	}

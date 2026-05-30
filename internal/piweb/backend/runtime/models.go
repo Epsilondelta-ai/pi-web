@@ -1,7 +1,8 @@
-package backend
+package runtime
 
 import (
 	"context"
+	backendworkspace "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/workspace"
 	"os"
 	"os/exec"
 	"sort"
@@ -38,10 +39,10 @@ func WorkspaceModels(ctx context.Context, root string) (WorkspaceModelsResponse,
 	if err != nil {
 		return WorkspaceModelsResponse{}, err
 	}
-	return parseListModelsOutput(string(output)), nil
+	return ParseListModelsOutput(string(output)), nil
 }
 
-func fallbackWorkspaceModels(root string, err error) WorkspaceModelsResponse {
+func FallbackWorkspaceModels(root string, err error) WorkspaceModelsResponse {
 	provider, model := "zai", "gpt-5.5"
 	if err != nil {
 		provider, model = fallbackModelFromSettings(root)
@@ -54,7 +55,7 @@ func fallbackWorkspaceModels(root string, err error) WorkspaceModelsResponse {
 }
 
 func fallbackModelFromSettings(root string) (string, string) {
-	settings, err := WorkspaceSettings(root)
+	settings, err := backendworkspace.WorkspaceSettings(root)
 	if err != nil {
 		return "zai", "gpt-5.5"
 	}
@@ -69,7 +70,7 @@ func fallbackModelFromSettings(root string) (string, string) {
 	return provider, model
 }
 
-func parseListModelsOutput(output string) WorkspaceModelsResponse {
+func ParseListModelsOutput(output string) WorkspaceModelsResponse {
 	providerModels := map[string][]ModelOption{}
 	for _, line := range strings.Split(output, "\n") {
 		fields := strings.Fields(line)

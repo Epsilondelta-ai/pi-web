@@ -1,4 +1,4 @@
-package backend
+package runtime
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 const latestPiVersionURL = "https://pi.dev/api/latest-version"
 
-type latestPiVersionResponse struct {
+type LatestPiVersionResponse struct {
 	Version     string `json:"version"`
 	PackageName string `json:"packageName"`
 	Note        string `json:"note"`
@@ -52,26 +52,26 @@ func CurrentPiVersion(ctx context.Context) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func LatestPiVersion(ctx context.Context, current string) (latestPiVersionResponse, error) {
+func LatestPiVersion(ctx context.Context, current string) (LatestPiVersionResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, latestPiVersionURL, nil)
 	if err != nil {
-		return latestPiVersionResponse{}, err
+		return LatestPiVersionResponse{}, err
 	}
 	req.Header.Set("User-Agent", "pi-web pi/"+current)
 	req.Header.Set("Accept", "application/json")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return latestPiVersionResponse{}, err
+		return LatestPiVersionResponse{}, err
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return latestPiVersionResponse{}, nil
+		return LatestPiVersionResponse{}, nil
 	}
-	var latest latestPiVersionResponse
+	var latest LatestPiVersionResponse
 	if err := json.NewDecoder(res.Body).Decode(&latest); err != nil {
-		return latestPiVersionResponse{}, err
+		return LatestPiVersionResponse{}, err
 	}
 	latest.Version = strings.TrimSpace(latest.Version)
 	latest.PackageName = strings.TrimSpace(latest.PackageName)

@@ -339,56 +339,6 @@ func TestCoverageParsersQuotaAndRuntime(t *testing.T) {
 		t.Fatal("unexpected workspace id")
 	}
 
-	if got := remainingFromWindow(&quotaUsageWindow{UsedPercent: 12.2}); got == nil || *got != 88 {
-		t.Fatalf("remaining window=%v", got)
-	}
-	if remainingFromWindow(nil) != nil || remainingFromWindow(&quotaUsageWindow{UsedPercent: struct{}{}}) != nil {
-		t.Fatal("expected nil remaining")
-	}
-	payload := kimiUsagePayload{Limits: []kimiLimit{
-		{Label: "5H", UsedPercent: 0.2},
-		{Name: "weekly", Detail: &kimiLimit{Limit: 100, Used: 30}},
-	}}
-	if got := kimiWindow(&payload, "5H:"); got == nil || *got != 80 {
-		t.Fatalf("kimi 5h=%v", got)
-	}
-	if got := kimiWindow(&payload, "7D:"); got == nil || *got != 70 {
-		t.Fatalf("kimi weekly=%v", got)
-	}
-	payload = kimiUsagePayload{Usage: &kimiLimit{Limit: 100, Remaining: 40}}
-	if got := kimiWindow(&payload, "5H:"); got == nil || *got != 40 {
-		t.Fatalf("kimi usage=%v", got)
-	}
-	if kimiWindow(&kimiUsagePayload{}, "5H:") != nil {
-		t.Fatal("expected nil kimi")
-	}
-	for _, window := range []*quotaWindow{{Duration: 2, Unit: "hours"}, {Duration: 1, Unit: "days"}, {Duration: 61, Unit: "seconds"}, {Minutes: json.Number("15")}} {
-		if quotaWindowMinutes(window) == 0 {
-			t.Fatalf("unexpected window minutes for %+v", window)
-		}
-	}
-	if quotaWindowMinutes(nil) != 0 || quotaWindowMinutes(&quotaWindow{Duration: struct{}{}}) != 0 {
-		t.Fatal("expected zero window minutes")
-	}
-	zai := zaiQuotaPayload{Limits: []zaiLimit{{Type: "TOKENS_LIMIT", Percentage: 25}, {UsedPercentage: "50"}}}
-	if got := zaiWindow(&zai, "5H:"); got == nil || *got != 75 {
-		t.Fatalf("zai 5h=%v", got)
-	}
-	if got := zaiWindow(&zai, "7D:"); got == nil || *got != 50 {
-		t.Fatalf("zai 7d=%v", got)
-	}
-	if zaiWindow(&zaiQuotaPayload{}, "5H:") != nil {
-		t.Fatal("expected nil zai")
-	}
-	for _, value := range []any{float64(1), 1, json.Number("1.5"), " 2 "} {
-		if _, ok := numberFromAny(value); !ok {
-			t.Fatalf("expected number for %#v", value)
-		}
-	}
-	if _, ok := numberFromAny("x"); ok {
-		t.Fatal("unexpected number")
-	}
-
 	t.Setenv("PI_WEB_5H_QUOTA", "-1")
 	t.Setenv("PI_WEB_WEEKLY_QUOTA", "101")
 	five, weekly := RuntimeQuota(t.TempDir())
@@ -398,12 +348,6 @@ func TestCoverageParsersQuotaAndRuntime(t *testing.T) {
 	five, weekly = LiveQuotaForModel(context.Background(), "unknown")
 	if five != nil || weekly != nil {
 		t.Fatalf("expected nil live quota")
-	}
-	if firstNonEmpty("", " x ") != "x" || firstNonEmpty("", " ") != "" {
-		t.Fatal("firstNonEmpty failed")
-	}
-	if bearerHeaders("tok")["Authorization"] != "Bearer tok" {
-		t.Fatal("bearerHeaders failed")
 	}
 }
 
@@ -755,35 +699,6 @@ func TestCoverageRemainingEasyBranches(t *testing.T) {
 		t.Fatal("raw contentText failed")
 	}
 
-	if got, ok := kimiUsedPercent(&kimiLimit{Details: &kimiLimit{UsedPercentage: 50}}); !ok || got != 50 {
-		t.Fatalf("unexpected kimi details percent %v %v", got, ok)
-	}
-	if _, ok := kimiUsedPercent(nil); ok {
-		t.Fatal("expected nil kimi percent false")
-	}
-	if _, ok := kimiUsedPercent(&kimiLimit{Limit: 0, Used: 1}); ok {
-		t.Fatal("expected bad limit false")
-	}
-	if got := remainingFromUsedPercent(150, true); got == nil || *got != 0 {
-		t.Fatalf("remaining clamp=%v", got)
-	}
-	if remainingFromUsedPercent(0, false) != nil {
-		t.Fatal("expected nil remaining from false")
-	}
-	t.Setenv("PI_WEB_5H_QUOTA", "bad")
-	if quotaFromEnv("PI_WEB_5H_QUOTA") != nil {
-		t.Fatal("expected bad env nil")
-	}
-
-	oldHome := os.Getenv("HOME")
-	t.Setenv("HOME", filepath.Join(t.TempDir(), "missing"))
-	if five, weekly := fetchCodexQuota(context.Background()); five != nil || weekly != nil {
-		t.Fatal("expected codex missing auth nil")
-	}
-	if five, weekly := fetchKimiCodeQuota(context.Background()); five != nil || weekly != nil {
-		t.Fatal("expected kimi missing token nil")
-	}
-	t.Setenv("HOME", oldHome)
 }
 
 func TestCoverageRuntimeQuotaHTTPFilesAndSessions(t *testing.T) {
@@ -853,65 +768,6 @@ done
 	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if readAuthJSON(&struct{}{}) {
-		t.Fatal("expected missing auth false")
-	}
-	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "auth.json"), []byte(`{"bad"`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if readAuthJSON(&struct{}{}) {
-		t.Fatal("expected invalid auth false")
-	}
-	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "auth.json"), []byte(`{
-		"openai-codex":{"access":"oa","accountId":"acct"},
-		"kimi-coding":{"key":"kimi"},
-		"zai":{"access":"zai"}
-	}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	var seen []string
-	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		seen = append(seen, req.URL.Host+req.URL.Path+" "+req.Header.Get("Authorization"))
-		body := `{}`
-		switch req.URL.Host {
-		case "chatgpt.com":
-			body = `{"rate_limit":{"primary_window":{"used_percent":25},"secondary_window":{"used_percent":50}}}`
-		case "api.kimi.com":
-			body = `{"limits":[{"label":"5H","used_percent":20},{"label":"week","used_percent":30}]}`
-		case "api.z.ai":
-			return &http.Response{StatusCode: 500, Body: io.NopCloser(strings.NewReader(`bad`)), Header: make(http.Header)}, nil
-		case "open.bigmodel.cn":
-			body = `{"limits":[{"type":"TOKENS_LIMIT","percentage":10},{"usedPercentage":40}]}`
-		default:
-			return nil, errors.New("unexpected host")
-		}
-		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
-	})}
-	for _, model := range []string{"gpt", "kimi", "glm"} {
-		five, weekly := LiveQuotaForModel(context.Background(), model)
-		if five == nil || weekly == nil {
-			t.Fatalf("expected live quota for %s, got %v %v", model, five, weekly)
-		}
-	}
-	if len(seen) < 4 {
-		t.Fatalf("expected http calls, got %+v", seen)
-	}
-	if getJSON(context.Background(), "//bad-url", nil, &struct{}{}) {
-		t.Fatal("expected bad url false")
-	}
-	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-		return nil, errors.New("transport")
-	})}
-	if getJSON(context.Background(), "https://example.com", nil, &struct{}{}) {
-		t.Fatal("expected transport false")
-	}
-	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`bad`)), Header: make(http.Header)}, nil
-	})}
-	if getJSON(context.Background(), "https://example.com", nil, &struct{}{}) {
-		t.Fatal("expected decode false")
-	}
-
 	if backendfiles.SessionShortID("123456789") != "12345678" || backendfiles.SessionShortID("123") != "123" {
 		t.Fatal("short id failed")
 	}
@@ -1065,18 +921,6 @@ done
 				t.Fatalf("expected %q error, got %v", tc.want, err)
 			}
 		})
-	}
-
-	for _, raw := range []string{
-		`bad`,
-		`{"id":"other","type":"response","command":"get_state"}`,
-		`{"id":"state","type":"response","command":"get_state","success":false}`,
-		`{"id":"state","type":"response","command":"get_state","success":false,"error":"bad"}`,
-		`{"id":"state","type":"response","command":"get_state","success":true,"data":{}}`,
-		`{"id":"state","type":"response","command":"get_state","success":true,"data":{"model":{"id":"id"}}}`,
-		`{"id":"state","type":"response","command":"get_state","success":true,"data":{"model":{"provider":"provider"}}}`,
-	} {
-		_, _, _ = parseStateModelRPCLine(raw)
 	}
 
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())

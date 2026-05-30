@@ -1,8 +1,9 @@
-package backend
+package runtime
 
 import (
 	"context"
 	"encoding/json"
+	backendworkspace "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/workspace"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,7 +46,7 @@ func DetectGlobalPackageUpdates(ctx context.Context) (PiPackageUpdateStatus, err
 		return PiPackageUpdateStatus{}, err
 	}
 	globalSettingsPath := filepath.Join(home, ".pi", "agent", "settings.json")
-	globalSettings, err := readSettingsFile(globalSettingsPath)
+	globalSettings, err := backendworkspace.ReadSettingsFile(globalSettingsPath)
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
@@ -72,12 +73,12 @@ func DetectWorkspacePackageUpdates(ctx context.Context, workspacePath string) (P
 		return PiPackageUpdateStatus{}, err
 	}
 	globalSettingsPath := filepath.Join(home, ".pi", "agent", "settings.json")
-	globalSettings, err := readSettingsFile(globalSettingsPath)
+	globalSettings, err := backendworkspace.ReadSettingsFile(globalSettingsPath)
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
 	projectSettingsPath := filepath.Join(workspacePath, ".pi", "settings.json")
-	projectSettings, err := readSettingsFile(projectSettingsPath)
+	projectSettings, err := backendworkspace.ReadSettingsFile(projectSettingsPath)
 	if err != nil {
 		return PiPackageUpdateStatus{}, err
 	}
