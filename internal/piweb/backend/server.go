@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	backendauth "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/auth"
 )
 
 type Config struct {
@@ -158,7 +160,7 @@ func (s *Server) withLogging(next http.Handler) http.Handler {
 	})
 }
 func (s *Server) authProviders(w http.ResponseWriter, _ *http.Request) {
-	providers, err := AuthProviders()
+	providers, err := backendauth.AuthProviders()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -167,7 +169,7 @@ func (s *Server) authProviders(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) oauthProviders(w http.ResponseWriter, _ *http.Request) {
-	providers, err := OAuthProviders()
+	providers, err := backendauth.OAuthProviders()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err)
 		return
@@ -176,12 +178,12 @@ func (s *Server) oauthProviders(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) startOAuthLogin(w http.ResponseWriter, r *http.Request) {
-	var req StartOAuthRequest
+	var req backendauth.StartOAuthRequest
 	if err := readJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	session, err := StartOAuthLogin(req)
+	session, err := backendauth.StartOAuthLogin(req)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -190,7 +192,7 @@ func (s *Server) startOAuthLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) oauthLoginSession(w http.ResponseWriter, r *http.Request) {
-	session, err := OAuthLoginSession(r.PathValue("sessionID"))
+	session, err := backendauth.OAuthLoginSession(r.PathValue("sessionID"))
 	if err != nil {
 		writeError(w, http.StatusNotFound, err)
 		return
@@ -199,12 +201,12 @@ func (s *Server) oauthLoginSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) oauthLoginInput(w http.ResponseWriter, r *http.Request) {
-	var req OAuthInputRequest
+	var req backendauth.OAuthInputRequest
 	if err := readJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	session, err := SendOAuthLoginInput(r.PathValue("sessionID"), req)
+	session, err := backendauth.SendOAuthLoginInput(r.PathValue("sessionID"), req)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -213,12 +215,12 @@ func (s *Server) oauthLoginInput(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) saveAPIKey(w http.ResponseWriter, r *http.Request) {
-	var req SaveAPIKeyRequest
+	var req backendauth.SaveAPIKeyRequest
 	if err := readJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	provider, err := SaveAPIKey(req)
+	provider, err := backendauth.SaveAPIKey(req)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -228,7 +230,7 @@ func (s *Server) saveAPIKey(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) logoutProvider(w http.ResponseWriter, r *http.Request) {
 	provider := r.PathValue("provider")
-	if err := LogoutProvider(provider); err != nil {
+	if err := backendauth.LogoutProvider(provider); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}

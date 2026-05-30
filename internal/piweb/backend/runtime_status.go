@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	backendauth "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/auth"
 	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 )
 
@@ -125,11 +126,11 @@ func anthropicSubscriptionAuthWarning(status RuntimeStatus) string {
 	if status.ModelProvider != "anthropic" {
 		return ""
 	}
-	path, err := authPath()
+	path, err := backendauth.AuthPath()
 	if err != nil {
 		return ""
 	}
-	stored, err := readAuthFile(path)
+	stored, err := backendauth.ReadAuthFile(path)
 	if err != nil {
 		return ""
 	}

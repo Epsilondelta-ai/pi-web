@@ -1,4 +1,4 @@
-package backend
+package auth
 
 const oauthHelperScript = `
 import { createInterface } from 'node:readline';

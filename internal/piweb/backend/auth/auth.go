@@ -1,4 +1,4 @@
-package backend
+package auth
 
 import (
 	"encoding/json"
@@ -115,12 +115,20 @@ func LogoutProvider(provider string) error {
 	return writeAuthFile(path, stored)
 }
 
+func AuthPath() (string, error) {
+	return authPath()
+}
+
 func authPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(home, ".pi", "agent", "auth.json"), nil
+}
+
+func ReadAuthFile(path string) (map[string]map[string]any, error) {
+	return readAuthFile(path)
 }
 
 func readAuthFile(path string) (map[string]map[string]any, error) {
