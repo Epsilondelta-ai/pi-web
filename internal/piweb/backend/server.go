@@ -12,6 +12,7 @@ import (
 	"time"
 
 	backendauth "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/auth"
+	backendcommands "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/commands"
 )
 
 type Config struct {
@@ -43,7 +44,7 @@ type commandCache struct {
 }
 
 type commandCacheEntry struct {
-	result nativeCommandResult
+	result backendcommands.NativeCommandResult
 	loaded time.Time
 }
 

@@ -1,4 +1,4 @@
-package backend
+package commands
 
 import (
 	"bytes"
@@ -32,13 +32,13 @@ type resolvedPackage struct {
 	Filter   packageFilter
 }
 
-type nativeCommandResult struct {
+type NativeCommandResult struct {
 	Commands    []SlashCommand      `json:"commands"`
 	Diagnostics []commandDiagnostic `json:"diagnostics,omitempty"`
 }
 
-func ListNativeSlashCommands(ctx context.Context, cwd string) nativeCommandResult {
-	result := nativeCommandResult{}
+func ListNativeSlashCommands(ctx context.Context, cwd string) NativeCommandResult {
+	result := NativeCommandResult{}
 	resources := discoverCommandResources(cwd, &result.Diagnostics)
 	seen := map[string]SlashCommand{}
 	add := func(cmd SlashCommand) {

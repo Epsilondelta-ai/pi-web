@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	backendcommands "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/commands"
 	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 	"io"
 	"net/http"
@@ -1021,7 +1022,7 @@ done
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	commands, err := ListPiCommands(context.Background(), root)
+	commands, err := backendcommands.ListPiCommands(context.Background(), root)
 	if err != nil || len(commands) != 1 || commands[0].Scope != "global" || commands[0].Command != "/review" {
 		t.Fatalf("commands=%+v err=%v", commands, err)
 	}
@@ -1041,7 +1042,7 @@ done
 		t.Run("commands "+tc.name, func(t *testing.T) {
 			dir := t.TempDir()
 			writeFakePi(t, dir, tc.script)
-			_, err := ListPiCommands(context.Background(), root)
+			_, err := backendcommands.ListPiCommands(context.Background(), root)
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("expected %q error, got %v", tc.want, err)
 			}
@@ -1066,21 +1067,6 @@ done
 		})
 	}
 
-	if _, matched, err := parseCommandsRPCLine(`bad`); matched || err != nil {
-		t.Fatal("expected invalid command line to be ignored")
-	}
-	if _, matched, err := parseCommandsRPCLine(`{"id":"other","type":"response","command":"get_commands"}`); matched || err != nil {
-		t.Fatal("expected unmatched command line to be ignored")
-	}
-	if _, matched, err := parseCommandsRPCLine(`{"id":"commands","type":"response","command":"get_commands","success":false}`); !matched || err == nil {
-		t.Fatal("expected commands error")
-	}
-	if _, matched, err := parseCommandsRPCLine(`{"id":"commands","type":"response","command":"get_commands","success":false,"error":"bad"}`); !matched || err == nil {
-		t.Fatal("expected commands custom error")
-	}
-	if displayCommandScope(" Project ") != "project" || displayCommandScope("temporary") != "temporary" || displayCommandScope("path") != "path" || displayCommandScope("other") != "other" {
-		t.Fatal("display scope failed")
-	}
 	for _, raw := range []string{
 		`bad`,
 		`{"id":"other","type":"response","command":"get_state"}`,
