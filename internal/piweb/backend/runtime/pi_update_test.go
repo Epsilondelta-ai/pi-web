@@ -94,6 +94,10 @@ func TestSyncNpmPackageVersionsUpdatesManifestBeforeInstall(t *testing.T) {
 	if err := os.WriteFile(packageJSON, []byte(`{"name":"pi-extensions","dependencies":{"pkg-a":"^1.0.0"}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	lockPath := filepath.Join(npmDir, "package-lock.json")
+	if err := os.WriteFile(lockPath, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	updates := []PiPackageUpdate{{DisplayName: "pkg-a", Type: "npm", LatestVersion: "2.0.0"}}
 
 	if err := syncNpmPackageVersions(context.Background(), npmDir, updates, nil); err != nil {
@@ -105,6 +109,9 @@ func TestSyncNpmPackageVersionsUpdatesManifestBeforeInstall(t *testing.T) {
 	}
 	if !bytesContains(content, `"pkg-a": "^2.0.0"`) {
 		t.Fatalf("package.json was not updated: %s", content)
+	}
+	if _, err := os.Stat(lockPath); !os.IsNotExist(err) {
+		t.Fatalf("expected package-lock.json to be removed, stat err=%v", err)
 	}
 	logContent, err := os.ReadFile(logPath)
 	if err != nil {

@@ -108,7 +108,19 @@ func syncNpmPackageVersions(ctx context.Context, npmDir string, updates []PiPack
 	if err := os.WriteFile(packageJSONPath, updated, 0o644); err != nil {
 		return err
 	}
+	if err := removeNpmLockfiles(npmDir); err != nil {
+		return err
+	}
 	return runNpmInstall(ctx, npmDir, npmCommand)
+}
+
+func removeNpmLockfiles(npmDir string) error {
+	for _, name := range []string{"package-lock.json", "package.lock.json"} {
+		if err := os.Remove(filepath.Join(npmDir, name)); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 func setManifestDependencyVersion(manifest map[string]any, name string, version string) bool {
