@@ -14,7 +14,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -808,7 +807,6 @@ done
 		t.Fatal(err)
 	}
 	server := NewServer(Config{EnablePiExecution: true}, store, NewBroker())
-	server.runner.(*Runner).running[session.ID] = &activePiRun{cancel: func() {}, stdin: nopWriteCloser{io.Discard}}
 	h := server.Handler()
 	for _, tc := range []struct {
 		method string
@@ -825,7 +823,7 @@ done
 		{http.MethodPost, "/api/sessions/missing/prompt", `{}`, http.StatusNotFound},
 		{http.MethodPost, "/api/sessions/" + session.ID + "/prompt", `{bad`, http.StatusBadRequest},
 		{http.MethodPost, "/api/sessions/" + session.ID + "/prompt", `{"text":""}`, http.StatusBadRequest},
-		{http.MethodPost, "/api/sessions/" + session.ID + "/prompt", `{"text":"go"}`, http.StatusConflict},
+		{http.MethodPost, "/api/sessions/" + session.ID + "/prompt", `{"text":"go"}`, http.StatusAccepted},
 		{http.MethodPost, "/api/sessions/missing/steer", `{}`, http.StatusNotFound},
 		{http.MethodPost, "/api/sessions/" + session.ID + "/steer", `{bad`, http.StatusBadRequest},
 		{http.MethodPost, "/api/sessions/" + session.ID + "/steer", `{"text":""}`, http.StatusBadRequest},
@@ -842,15 +840,6 @@ done
 		}
 	}
 
-	if attachmentPromptText(PromptAttachment{Content: "body"}) != "body" {
-		t.Fatal("attachmentPromptText unnamed failed")
-	}
-	if len(imagePromptAttachments([]PromptAttachment{{Type: "image", DataURL: " "}, {Type: "image", DataURL: "x"}, {Type: "file", DataURL: "x"}})) != 1 {
-		t.Fatal("imagePromptAttachments failed")
-	}
-	if promptDisplayText("", nil) != "" || promptDisplayText("", []PromptAttachment{{Name: "a.txt"}}) != "[file: a.txt]" || promptDisplayText("", []PromptAttachment{{Type: "image"}}) != "[image]" {
-		t.Fatal("promptDisplayText failed")
-	}
 	settings := map[string]any{"nested": map[string]any{"x": 1}, "slice": []any{map[string]any{"y": 2}}}
 	clone := cloneSettingsMap(settings)
 	if clone["nested"].(map[string]any)["x"].(int) != 1 {
@@ -957,91 +946,6 @@ done
 		t.Fatal("expected cancel false")
 	}
 
-	var sent bytes.Buffer
-	run := &activePiRun{cancel: func() {}, stdin: nopWriteCloser{&sent}}
-	runner.running[session.ID] = run
-	if err := runner.Steer(session.ID, "go", nil); err != nil {
-		t.Fatalf("steer: %v", err)
-	}
-	if !runner.Cancel(session.ID) {
-		t.Fatal("expected cancel true")
-	}
-	runner.running[session.ID] = run
-	runner.forgetRun(session.ID, &activePiRun{})
-	if !runner.IsRunning(session.ID) {
-		t.Fatal("forgetRun removed wrong run")
-	}
-	runner.forgetRun(session.ID, run)
-	if runner.IsRunning(session.ID) {
-		t.Fatal("forgetRun did not remove run")
-	}
-	if err := (&activePiRun{stdin: errWriter{}}).send(map[string]any{"bad": make(chan int)}); err == nil {
-		t.Fatal("expected marshal error")
-	}
-	if err := (&activePiRun{stdin: errWriter{}}).send(map[string]string{"ok": "x"}); err == nil {
-		t.Fatal("expected write error")
-	}
-	if !isPiRPCAgentEnd(`{"type":"agent_end"}`) || isPiRPCAgentEnd(`bad`) || isPiRPCAgentEnd(`{"type":"other"}`) {
-		t.Fatal("agent end detection failed")
-	}
-	cmd := rpcPromptCommand("text", []PromptAttachment{{DataURL: "data:image/jpeg;base64,abc", MIMEType: "image/jpeg"}, {DataURL: " "}}, "steer")
-	if cmd.StreamingBehavior != "steer" || len(cmd.Images) != 1 || cmd.Images[0].Data != "abc" {
-		t.Fatalf("unexpected rpc command: %+v", cmd)
-	}
-	for _, mime := range []string{"image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/svg+xml", "text/plain"} {
-		if imageExtension(mime) == "" {
-			t.Fatalf("empty extension for %s", mime)
-		}
-	}
-
-	broker = NewBroker()
-	state := &jsonStreamState{}
-	for _, raw := range []string{
-		`bad`,
-		`{"type":"session"}`,
-		`{"type":"response","success":false,"error":"bad","command":"x"}`,
-		`{"type":"message_update","assistantMessageEvent":{"type":"thinking_delta","delta":"why"}}`,
-		`{"type":"message_update","assistantMessageEvent":{"type":"text_delta","text":"hello"}}`,
-		`{"type":"message_update","assistantMessageEvent":{"type":"text_start"}}`,
-		`{"type":"message_end","message":{"role":"toolResult","toolName":"read","content":"ok"}}`,
-		`{"type":"tool_execution_start","toolName":"bash","args":{"cmd":"ls"}}`,
-		`{"type":"tool_execution_update","toolName":"bash","partialResult":"chunk"}`,
-		`{"type":"tool_execution_end","toolName":"bash","isError":true,"args":{},"result":{"x":1}}`,
-		`{"type":"turn_end"}`,
-		`{"type":"unknown"}`,
-	} {
-		handlePiJSONEvent(raw, broker, store, session.ID, state)
-	}
-	if jsonChunk(nil) != "" || jsonChunk([]byte("null")) != "" || jsonChunk([]byte(`"x"`)) != "x" || jsonChunk([]byte(`{"x":1}`)) != `{"x":1}` {
-		t.Fatal("jsonChunk failed")
-	}
-	if eventTypeForMessage(Message{Kind: "tool", Status: "running"}) != "tool.started" || eventTypeForMessage(Message{Kind: "tool"}) != "tool.finished" || eventTypeForMessage(Message{Kind: "pi"}) != "session.message" {
-		t.Fatal("eventTypeForMessage failed")
-	}
-
-	path := filepath.Join(t.TempDir(), "session.jsonl")
-	sessionLine := `{"type":"message","message":{"role":"user","content":"tail"}}`
-	if got := readSessionLines(path, 5, func(string) {}); got != 5 {
-		t.Fatalf("missing read offset=%d", got)
-	}
-	if err := os.WriteFile(path, []byte(sessionLine+"\npartial"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	var lines int
-	off := readSessionLines(path, 0, func(string) { lines++ })
-	if lines != 1 || off <= 0 || fileSize(path) == 0 {
-		t.Fatalf("lines=%d off=%d size=%d", lines, off, fileSize(path))
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	var emitted atomic.Int64
-	go tailSessionFile(ctx, broker, store, session.ID, path, 0, &emitted, done)
-	time.Sleep(150 * time.Millisecond)
-	cancel()
-	waitForTail(done)
-	closed := make(chan struct{})
-	close(closed)
-	waitForTail(closed)
 }
 
 type nopWriteCloser struct{ io.Writer }

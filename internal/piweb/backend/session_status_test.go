@@ -11,9 +11,7 @@ import (
 func TestWorkspaceEndpointMarksRunningSessionsLive(t *testing.T) {
 	server := NewServer(Config{}, NewMockStore(), NewBroker())
 	runner := server.runner.(*Runner)
-	runner.mu.Lock()
-	runner.running["aa11-2233"] = &activePiRun{}
-	runner.mu.Unlock()
+	runner.MarkRunningForTest("aa11-2233")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/workspaces", nil)
 	res := httptest.NewRecorder()
@@ -42,9 +40,7 @@ func TestWorkspaceEndpointMarksRunningSessionsLive(t *testing.T) {
 func TestSessionEndpointReportsRunningStatus(t *testing.T) {
 	server := NewServer(Config{}, NewMockStore(), NewBroker())
 	runner := server.runner.(*Runner)
-	runner.mu.Lock()
-	runner.running["8e7c-44ff"] = &activePiRun{}
-	runner.mu.Unlock()
+	runner.MarkRunningForTest("8e7c-44ff")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/sessions/8e7c-44ff", nil)
 	res := httptest.NewRecorder()

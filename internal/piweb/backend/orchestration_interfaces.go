@@ -3,19 +3,15 @@ package backend
 import (
 	"context"
 	"net/http"
+
+	backendrunner "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/runner"
 )
 
 // EventSink is the event publication boundary consumed by long-running process orchestration.
-type EventSink interface {
-	Publish(sessionID, eventType string, payload any) Event
-}
+type EventSink = backendrunner.EventSink
 
 // SessionMessageStore is the narrow session persistence boundary consumed by Runner.
-type SessionMessageStore interface {
-	SessionRuntime(sessionID string) (sessionFile, cwd string, ok bool)
-	AppendMessage(sessionID string, msg Message) error
-	Session(sessionID string) (Session, []Message, error)
-}
+type SessionMessageStore = backendrunner.SessionMessageStore
 
 // ServerStore is the persistence boundary consumed by HTTP handlers.
 type ServerStore interface {
