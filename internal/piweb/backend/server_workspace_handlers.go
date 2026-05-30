@@ -10,6 +10,7 @@ import (
 	"time"
 
 	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
+	backendgit "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/git"
 )
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
@@ -440,7 +441,7 @@ func (s *Server) gitHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	commits, err := RealGitHistory(r.Context(), root, limit)
+	commits, err := backendgit.RealGitHistory(r.Context(), root, limit)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -454,7 +455,7 @@ func (s *Server) gitCommit(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	detail, err := RealGitCommitDetail(r.Context(), root, r.URL.Query().Get("hash"))
+	detail, err := backendgit.RealGitCommitDetail(r.Context(), root, r.URL.Query().Get("hash"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
