@@ -125,10 +125,12 @@ describe("SortableWorkspaceSidebar", () => {
     act(() => root.unmount());
   });
 
-  it("limits workspace drag listeners to the workspace row handle", () => {
+  it("limits drag listeners to explicit handles", () => {
     const { host, root } = renderSidebar();
     expect(host.querySelector(".workspace-sortable")?.hasAttribute("data-sortable-listeners")).toBe(false);
-    expect(host.querySelector('.ws-row[data-workspace="w1"]')?.getAttribute("data-sortable-listeners")).toBe("w1");
+    expect(host.querySelector('.ws-row[data-workspace="w1"]')?.hasAttribute("data-sortable-listeners")).toBe(false);
+    expect(host.querySelector('.workspace-drag-handle')?.getAttribute("data-sortable-listeners")).toBe("w1");
+    expect(host.querySelector('.session-drag-handle')?.getAttribute("data-sortable-listeners")).toBe("s1");
     expect(host.querySelector('.row-action[data-workspace="w1"]')?.hasAttribute("data-sortable-listeners")).toBe(false);
     expect(host.querySelector('.session-menu-button[aria-controls="session-menu-s1"]')?.hasAttribute("data-sortable-listeners")).toBe(false);
     act(() => root.unmount());

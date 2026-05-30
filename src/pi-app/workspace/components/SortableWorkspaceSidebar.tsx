@@ -7,6 +7,7 @@ const X_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" vi
 const PLUS_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12h14" /><path d="M12 5v14" /></svg>;
 const TRASH_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 11v6" /><path d="M14 11v6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>;
 const ELLIPSIS_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>;
+const GRIP_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="19" r="1" /></svg>;
 const PENCIL_ICON = <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" /><path d="m15 5 4 4" /></svg>;
 
 const KIND_LABELS = { subagent: "sub", team: "team" };
@@ -44,7 +45,8 @@ function SessionRow({ workspaceId, session, activeSessionId, depth = 0, dragHand
   const selected = session.id === activeSessionId;
   const menuId = `session-menu-${session.id.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
   return <div className={["session-row", selected && "selected", live && "active", session.parentId && "child-session", kind && `session-kind-${kind}`].filter(Boolean).join(" ")} data-session={session.id} data-workspace={workspaceId} data-title={session.title} data-last-used={session.lastUsed || ""} data-parent-session={session.parentId || undefined} data-kind={kind || undefined} data-depth={Math.min(depth, 2)}>
-    <button type="button" className="session-main" data-session={session.id} data-workspace={workspaceId} data-title={session.title} {...dragHandleProps}>
+    <button type="button" className="session-main" data-session={session.id} data-workspace={workspaceId} data-title={session.title}>
+      {dragHandleProps ? <span className="drag-handle session-drag-handle" aria-label="reorder session" {...dragHandleProps}>{GRIP_ICON}</span> : null}
       <span className="session-title"><span className="title">{session.title}</span>{kind ? <span className="session-kind-badge">{KIND_LABELS[kind]}</span> : null}</span>
       <span className={["meta", live && "live"].filter(Boolean).join(" ")}>{live ? "waiting" : ""}</span>
     </button>
@@ -85,7 +87,8 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, openWorkspaceId, activeS
   };
   return <div className={["workspace-group", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-workspace-group={workspace.id}>
     <div className="workspace-shell">
-      <button type="button" className={["ws-row", open && "open", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={open ? "true" : "false"} aria-current={active ? "true" : "false"} {...dragHandleProps}>
+      <button type="button" className={["ws-row", open && "open", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={open ? "true" : "false"} aria-current={active ? "true" : "false"}>
+        <span className="drag-handle workspace-drag-handle" aria-label="reorder workspace" {...dragHandleProps}>{GRIP_ICON}</span>
         <span className="ws-stack"><span className="ws-name"><span className={["dot", (workspace.live || hasActiveSession) && "live"].filter(Boolean).join(" ")}></span><span className="label">{workspace.name}</span></span><span className="ws-path">{workspace.path}</span></span>
         <span className="ws-meta"><span className="ws-count">{workspace.sessionCount}</span></span>
       </button>

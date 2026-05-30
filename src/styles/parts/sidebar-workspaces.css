@@ -84,6 +84,18 @@
 .session-main {
   touch-action: pan-y;
 }
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--fg-3);
+  cursor: grab;
+  touch-action: none;
+}
+.drag-handle:active { cursor: grabbing; }
+.drag-handle:hover { color: var(--accent); }
 
 .workspace-sortable[data-dragging="true"],
 .session-sortable[data-dragging="true"] {
@@ -117,7 +129,7 @@
 
 .ws-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 8px var(--space-3);
@@ -173,7 +185,7 @@
 .new-session-row,
 button.session-row:not(.new-session-row) {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
   width: 100%;
