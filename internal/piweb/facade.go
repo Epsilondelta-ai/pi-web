@@ -46,17 +46,23 @@ type Event = shared.Event
 
 var ErrNotFound = store.ErrNotFound
 
-func NewServer(config Config, store *Store, broker *Broker) *Server { return server.NewServer(config, store, broker) }
-func NewAutoStore() *Store { return store.NewAutoStore() }
-func NewWebStore(dbPath string) *Store { return store.NewWebStore(dbPath) }
-func NewPiStore(sessionDir string) (*Store, error) { return store.NewPiStore(sessionDir) }
-func NewMockStore() *Store { return store.NewMockStore() }
-func NewBroker() *Broker { return server.NewBroker() }
+func NewServer(config Config, store *Store, broker *Broker) *Server {
+	return server.NewServer(config, store, broker)
+}
+func NewAutoStore() *Store                          { return store.NewAutoStore() }
+func NewWebStore(dbPath string) *Store              { return store.NewWebStore(dbPath) }
+func NewPiStore(sessionDir string) (*Store, error)  { return store.NewPiStore(sessionDir) }
+func NewMockStore() *Store                          { return store.NewMockStore() }
+func NewBroker() *Broker                            { return server.NewBroker() }
 func NewPiUpdater(runner PiUpdateRunner) *PiUpdater { return runtime.NewPiUpdater(runner) }
-func DetectPiVersionStatus(ctx context.Context) (PiVersionStatus, error) { return runtime.DetectPiVersionStatus(ctx) }
-func DetectGlobalPackageUpdates(ctx context.Context) (PiPackageUpdateStatus, error) { return runtime.DetectGlobalPackageUpdates(ctx) }
+func DetectPiVersionStatus(ctx context.Context) (PiVersionStatus, error) {
+	return runtime.DetectPiVersionStatus(ctx)
+}
+func DetectGlobalPackageUpdates(ctx context.Context) (PiPackageUpdateStatus, error) {
+	return runtime.DetectGlobalPackageUpdates(ctx)
+}
 func DetectWorkspacePackageUpdates(ctx context.Context, root string) (PiPackageUpdateStatus, error) {
 	return runtime.DetectWorkspacePackageUpdates(ctx, root)
 }
 func RedactSecrets(text string) string { return shared.RedactSecrets(text) }
-func RedactPayload(payload any) any { return shared.RedactPayload(payload) }
+func RedactPayload(payload any) any    { return shared.RedactPayload(payload) }
