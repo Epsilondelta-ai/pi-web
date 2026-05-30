@@ -1,4 +1,4 @@
-package backend
+package sessions
 
 import (
 	"bufio"
@@ -124,10 +124,10 @@ func lastSessionMessageState(path string) (string, string) {
 	return last.Role, last.StopReason
 }
 
-func readSessionHeader(path string) (sessionHeader, error) {
+func readSessionHeader(path string) (SessionHeader, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return sessionHeader{}, err
+		return SessionHeader{}, err
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
@@ -136,11 +136,11 @@ func readSessionHeader(path string) (sessionHeader, error) {
 		if line == "" {
 			continue
 		}
-		var header sessionHeader
+		var header SessionHeader
 		if err := json.Unmarshal([]byte(line), &header); err != nil || header.Type != "session" {
-			return sessionHeader{}, errors.New("session header is missing")
+			return SessionHeader{}, errors.New("session header is missing")
 		}
 		return header, nil
 	}
-	return sessionHeader{}, scanner.Err()
+	return SessionHeader{}, scanner.Err()
 }

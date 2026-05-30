@@ -1,4 +1,4 @@
-package backend
+package sessions
 
 import (
 	"bufio"
@@ -59,7 +59,7 @@ func ParsePiSessionSummary(path string) (ParsedSession, error) {
 	}
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 1024), 10*1024*1024)
-	var header sessionHeader
+	var header SessionHeader
 	var title string
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -100,7 +100,7 @@ func summaryTitleFromMessage(raw json.RawMessage, fallback string) string {
 	return fallback
 }
 
-func summarizedSession(path string, modTime time.Time, header sessionHeader, title string) ParsedSession {
+func summarizedSession(path string, modTime time.Time, header SessionHeader, title string) ParsedSession {
 	if title == "" {
 		title = defaultSessionTitle
 	}

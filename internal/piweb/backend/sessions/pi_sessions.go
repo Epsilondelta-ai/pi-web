@@ -1,4 +1,4 @@
-package backend
+package sessions
 
 import (
 	"bufio"
@@ -20,7 +20,7 @@ const (
 	defaultSessionTitle = "new session"
 )
 
-type sessionHeader struct {
+type SessionHeader struct {
 	Type          string `json:"type"`
 	Version       int    `json:"version"`
 	ID            string `json:"id"`
@@ -69,7 +69,7 @@ type contentBlock struct {
 }
 
 type ParsedSession struct {
-	Header    sessionHeader
+	Header    SessionHeader
 	Session   Session
 	Messages  []Message
 	File      string
@@ -123,7 +123,7 @@ func CreatePiSessionFile(cwd string) (Session, string, error) {
 	}
 	fileTimestamp := strings.NewReplacer(":", "-", ".", "-").Replace(now.Format(time.RFC3339Nano))
 	path := filepath.Join(sessionDir, fmt.Sprintf("%s_%s.jsonl", fileTimestamp, id))
-	header := sessionHeader{Type: "session", Version: 3, ID: id, Timestamp: now.Format(time.RFC3339Nano), CWD: cwd}
+	header := SessionHeader{Type: "session", Version: 3, ID: id, Timestamp: now.Format(time.RFC3339Nano), CWD: cwd}
 	line, err := json.Marshal(header)
 	if err != nil {
 		return Session{}, "", err
@@ -175,7 +175,7 @@ func ParsePiSessionFile(path string) (ParsedSession, error) {
 	}
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 1024), 10*1024*1024)
-	var header sessionHeader
+	var header SessionHeader
 	var messages []Message
 	var title string
 	for scanner.Scan() {

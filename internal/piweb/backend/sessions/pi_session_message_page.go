@@ -1,4 +1,4 @@
-package backend
+package sessions
 
 import (
 	"bytes"
