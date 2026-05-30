@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -499,16 +500,23 @@ func probeExtensionCommands(ctx context.Context, cwd string, extensions []comman
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	fallback := staticExtensionCommands(files)
 	payload, _ := json.Marshal(map[string]any{"cwd": cwd, "extensions": files})
 	cmd := exec.CommandContext(probeCtx, "node", "--input-type=module", "-")
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(), "PI_WEB_EXTENSION_PROBE=1", "PI_WEB_EXTENSION_PAYLOAD="+string(payload))
+	cmd.Env = extensionProbeEnv(os.Environ(), string(payload))
 	cmd.Stdin = strings.NewReader(extensionProbeScript)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		*diagnostics = append(*diagnostics, commandDiagnostic{Error: fmt.Sprintf("extension probe failed: %v %s", err, truncate(stderr.String(), 300))})
+		if len(fallback) > 0 {
+			return fallback
+		}
+		message := strings.TrimSpace(fmt.Sprintf("extension probe failed: %v %s", err, truncate(cleanNodeWarnings(stderr.String()), 300)))
+		if message != "extension probe failed: signal: killed" {
+			*diagnostics = append(*diagnostics, commandDiagnostic{Error: message})
+		}
 		return nil
 	}
 	var response struct {
@@ -520,7 +528,34 @@ func probeExtensionCommands(ctx context.Context, cwd string, extensions []comman
 		return nil
 	}
 	*diagnostics = append(*diagnostics, response.Errors...)
+	if len(response.Commands) == 0 && len(fallback) > 0 {
+		return fallback
+	}
 	return response.Commands
+}
+
+var staticRegisterCommandPattern = regexp.MustCompile(`registerCommand\s*\(\s*['"]([^'"]+)['"]\s*,\s*\{[\s\S]*?description\s*:\s*['"]([^'"]*)['"]`)
+
+func staticExtensionCommands(files []map[string]string) []SlashCommand {
+	var commands []SlashCommand
+	for _, file := range files {
+		path := file["path"]
+		source, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		for _, match := range staticRegisterCommandPattern.FindAllStringSubmatch(string(source), -1) {
+			commands = append(commands, SlashCommand{
+				Name:        match[1],
+				Command:     "/" + match[1],
+				Description: match[2],
+				Source:      "extension",
+				Scope:       file["scope"],
+				Path:        path,
+			})
+		}
+	}
+	return commands
 }
 
 func extensionFiles(resources []commandResource) []map[string]string {
@@ -546,6 +581,50 @@ func extensionFiles(resources []commandResource) []map[string]string {
 		})
 	}
 	return files
+}
+
+func extensionProbeEnv(base []string, payload string) []string {
+	env := make([]string, 0, len(base)+3)
+	foundNodeOptions := false
+	for _, item := range base {
+		if strings.HasPrefix(item, "NODE_OPTIONS=") {
+			foundNodeOptions = true
+			nodeOptions := strings.TrimPrefix(item, "NODE_OPTIONS=")
+			nodeOptions = appendNodeOption(nodeOptions, "--disable-warning=ExperimentalWarning")
+			env = append(env, "NODE_OPTIONS="+nodeOptions)
+			continue
+		}
+		env = append(env, item)
+	}
+	if !foundNodeOptions {
+		env = append(env, "NODE_OPTIONS=--disable-warning=ExperimentalWarning")
+	}
+	return append(env, "PI_WEB_EXTENSION_PROBE=1", "PI_WEB_EXTENSION_PAYLOAD="+payload)
+}
+
+func appendNodeOption(current, option string) string {
+	if strings.Contains(current, option) {
+		return current
+	}
+	current = strings.TrimSpace(current)
+	if current == "" {
+		return option
+	}
+	return current + " " + option
+}
+
+func cleanNodeWarnings(stderr string) string {
+	var lines []string
+	for _, line := range strings.Split(stderr, "\n") {
+		if strings.Contains(line, "ExperimentalWarning: SQLite is an experimental feature") ||
+			strings.Contains(line, "Use `node --trace-warnings") {
+			continue
+		}
+		if strings.TrimSpace(line) != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func truncate(s string, n int) string {
