@@ -50,7 +50,7 @@ func (s *Store) Files(workspaceID string) ([]FileNode, error) {
 	_, exists := s.files[workspaceID]
 	s.mu.RUnlock()
 	if root != "" {
-		if files, err := backendfiles.RealFileTree(root, 3); err == nil {
+		if files, err := backendfiles.RealFileTree(root, 12); err == nil {
 			return files, nil
 		}
 	}

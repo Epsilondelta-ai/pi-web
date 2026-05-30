@@ -226,8 +226,8 @@ pre.ascii-banner .dim { color: var(--fg-3); }
 }
 .tree-head button:hover:not(:disabled),
 .tree-head button.on { border-color: var(--accent); color: var(--accent); }
-.tree-list { flex: 1 1 auto; min-height: 120px; overflow: hidden; padding: 4px 0 4px var(--space-2); }
-.git-panel { flex: 1 1 auto; min-height: 120px; overflow: hidden; }
+.tree-list { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4px 0 4px var(--space-2); }
+.git-panel { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .git-history-grid {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

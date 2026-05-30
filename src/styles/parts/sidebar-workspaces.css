@@ -22,13 +22,18 @@
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 .sidebar .sb-section {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .sidebar .sb-head {
   display: flex;
@@ -74,9 +79,23 @@
 }
 
 .workspace-sortable,
-.session-sortable {
+.session-sortable,
+.ws-row,
+.session-main {
+  touch-action: pan-y;
+}
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--fg-3);
+  cursor: grab;
   touch-action: none;
 }
+.drag-handle:active { cursor: grabbing; }
+.drag-handle:hover { color: var(--accent); }
 
 .workspace-sortable[data-dragging="true"],
 .session-sortable[data-dragging="true"] {
@@ -110,7 +129,7 @@
 
 .ws-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
   padding: 8px var(--space-3);
@@ -166,7 +185,7 @@
 .new-session-row,
 button.session-row:not(.new-session-row) {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 8px;
   width: 100%;
