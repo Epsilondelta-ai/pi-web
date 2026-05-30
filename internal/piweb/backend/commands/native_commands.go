@@ -502,13 +502,14 @@ func probeExtensionCommands(ctx context.Context, cwd string, extensions []comman
 	payload, _ := json.Marshal(map[string]any{"cwd": cwd, "extensions": files})
 	cmd := exec.CommandContext(probeCtx, "node", "--input-type=module", "-")
 	cmd.Dir = cwd
-	cmd.Env = append(os.Environ(), "PI_WEB_EXTENSION_PROBE=1", "PI_WEB_EXTENSION_PAYLOAD="+string(payload))
+	cmd.Env = extensionProbeEnv(os.Environ(), string(payload))
 	cmd.Stdin = strings.NewReader(extensionProbeScript)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		*diagnostics = append(*diagnostics, commandDiagnostic{Error: fmt.Sprintf("extension probe failed: %v %s", err, truncate(stderr.String(), 300))})
+		message := strings.TrimSpace(fmt.Sprintf("extension probe failed: %v %s", err, truncate(cleanNodeWarnings(stderr.String()), 300)))
+		*diagnostics = append(*diagnostics, commandDiagnostic{Error: message})
 		return nil
 	}
 	var response struct {
@@ -546,6 +547,50 @@ func extensionFiles(resources []commandResource) []map[string]string {
 		})
 	}
 	return files
+}
+
+func extensionProbeEnv(base []string, payload string) []string {
+	env := make([]string, 0, len(base)+3)
+	foundNodeOptions := false
+	for _, item := range base {
+		if strings.HasPrefix(item, "NODE_OPTIONS=") {
+			foundNodeOptions = true
+			nodeOptions := strings.TrimPrefix(item, "NODE_OPTIONS=")
+			nodeOptions = appendNodeOption(nodeOptions, "--disable-warning=ExperimentalWarning")
+			env = append(env, "NODE_OPTIONS="+nodeOptions)
+			continue
+		}
+		env = append(env, item)
+	}
+	if !foundNodeOptions {
+		env = append(env, "NODE_OPTIONS=--disable-warning=ExperimentalWarning")
+	}
+	return append(env, "PI_WEB_EXTENSION_PROBE=1", "PI_WEB_EXTENSION_PAYLOAD="+payload)
+}
+
+func appendNodeOption(current, option string) string {
+	if strings.Contains(current, option) {
+		return current
+	}
+	current = strings.TrimSpace(current)
+	if current == "" {
+		return option
+	}
+	return current + " " + option
+}
+
+func cleanNodeWarnings(stderr string) string {
+	var lines []string
+	for _, line := range strings.Split(stderr, "\n") {
+		if strings.Contains(line, "ExperimentalWarning: SQLite is an experimental feature") ||
+			strings.Contains(line, "Use `node --trace-warnings") {
+			continue
+		}
+		if strings.TrimSpace(line) != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func truncate(s string, n int) string {
