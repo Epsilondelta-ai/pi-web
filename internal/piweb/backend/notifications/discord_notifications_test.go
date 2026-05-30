@@ -1,4 +1,4 @@
-package backend
+package notifications
 
 import (
 	"encoding/json"
