@@ -79,8 +79,10 @@
 }
 
 .workspace-sortable,
-.session-sortable {
-  touch-action: none;
+.session-sortable,
+.ws-row,
+.session-main {
+  touch-action: pan-y;
 }
 
 .workspace-sortable[data-dragging="true"],
