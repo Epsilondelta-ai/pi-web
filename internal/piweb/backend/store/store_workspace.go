@@ -1,4 +1,4 @@
-package backend
+package store
 
 import backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 

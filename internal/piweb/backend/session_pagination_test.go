@@ -60,8 +60,8 @@ func TestWorkspaceListingDoesNotRetainFullConversationBodies(t *testing.T) {
 	if len(workspaces) != 1 || len(workspaces[0].Sessions) != 1 {
 		t.Fatalf("unexpected workspaces: %#v", workspaces)
 	}
-	if messages := store.conversations[workspaces[0].Sessions[0].ID]; len(messages) != 0 {
-		t.Fatalf("expected metadata listing to avoid conversation bodies, got %#v", messages)
+	if count := store.ConversationLen(workspaces[0].Sessions[0].ID); count != 0 {
+		t.Fatalf("expected metadata listing to avoid conversation bodies, got %d", count)
 	}
 }
 
