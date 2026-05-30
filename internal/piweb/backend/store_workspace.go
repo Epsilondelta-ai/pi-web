@@ -1,5 +1,7 @@
 package backend
 
+import backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
+
 func (s *Store) Workspaces() []Workspace {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -48,7 +50,7 @@ func (s *Store) Files(workspaceID string) ([]FileNode, error) {
 	_, exists := s.files[workspaceID]
 	s.mu.RUnlock()
 	if root != "" {
-		if files, err := RealFileTree(root, 3); err == nil {
+		if files, err := backendfiles.RealFileTree(root, 3); err == nil {
 			return files, nil
 		}
 	}
@@ -64,7 +66,7 @@ func (s *Store) SearchFiles(workspaceID, query string) ([]string, error) {
 	if root == "" {
 		return nil, ErrNotFound
 	}
-	return SearchWorkspaceFiles(root, query)
+	return backendfiles.SearchWorkspaceFiles(root, query)
 }
 
 func (s *Store) ReadFile(workspaceID, rel string) (FileContent, error) {
@@ -74,7 +76,7 @@ func (s *Store) ReadFile(workspaceID, rel string) (FileContent, error) {
 	if root == "" {
 		return FileContent{}, ErrNotFound
 	}
-	return ReadWorkspaceFile(root, rel, 256*1024)
+	return backendfiles.ReadWorkspaceFile(root, rel, 256*1024)
 }
 func (s *Store) WriteFile(workspaceID, rel, content string) (FileContent, error) {
 	s.mu.RLock()
@@ -83,7 +85,7 @@ func (s *Store) WriteFile(workspaceID, rel, content string) (FileContent, error)
 	if root == "" {
 		return FileContent{}, ErrNotFound
 	}
-	return WriteWorkspaceFile(root, rel, content)
+	return backendfiles.WriteWorkspaceFile(root, rel, content)
 }
 func (s *Store) CreateFile(workspaceID, rel, kind, content string) (FileContent, error) {
 	s.mu.RLock()
@@ -92,7 +94,7 @@ func (s *Store) CreateFile(workspaceID, rel, kind, content string) (FileContent,
 	if root == "" {
 		return FileContent{}, ErrNotFound
 	}
-	return CreateWorkspacePath(root, rel, kind, content)
+	return backendfiles.CreateWorkspacePath(root, rel, kind, content)
 }
 func (s *Store) RenameFile(workspaceID, oldRel, newRel string) error {
 	s.mu.RLock()
@@ -101,7 +103,7 @@ func (s *Store) RenameFile(workspaceID, oldRel, newRel string) error {
 	if root == "" {
 		return ErrNotFound
 	}
-	return RenameWorkspacePath(root, oldRel, newRel)
+	return backendfiles.RenameWorkspacePath(root, oldRel, newRel)
 }
 func (s *Store) DeleteFile(workspaceID, rel string) error {
 	s.mu.RLock()
@@ -110,7 +112,7 @@ func (s *Store) DeleteFile(workspaceID, rel string) error {
 	if root == "" {
 		return ErrNotFound
 	}
-	return DeleteWorkspacePath(root, rel)
+	return backendfiles.DeleteWorkspacePath(root, rel)
 }
 func (s *Store) UploadFile(workspaceID, rel string, data []byte, overwrite bool) (FileContent, error) {
 	s.mu.RLock()
@@ -119,7 +121,7 @@ func (s *Store) UploadFile(workspaceID, rel string, data []byte, overwrite bool)
 	if root == "" {
 		return FileContent{}, ErrNotFound
 	}
-	return UploadWorkspaceFile(root, rel, data, overwrite)
+	return backendfiles.UploadWorkspaceFile(root, rel, data, overwrite)
 }
 func (s *Store) GitStatus(workspaceID string) (GitStatus, error) {
 	s.mu.RLock()
@@ -136,7 +138,7 @@ func (s *Store) GitStatus(workspaceID string) (GitStatus, error) {
 		return GitStatus{}, ErrNotFound
 	}
 	if root != "" {
-		if status, err := RealGitStatus(root); err == nil {
+		if status, err := backendfiles.RealGitStatus(root); err == nil {
 			return status, nil
 		}
 	}

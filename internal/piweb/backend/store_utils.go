@@ -1,8 +1,11 @@
 package backend
 
 import (
+	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
+
 	"errors"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -13,7 +16,7 @@ func ValidateWorkspacePath(path string) (string, error) {
 	if path == "" {
 		return "", errors.New("path is required")
 	}
-	path, err := ExpandUserPath(path)
+	path, err := backendfiles.ExpandUserPath(path)
 	if err != nil {
 		return "", err
 	}
@@ -46,6 +49,14 @@ func slug(value string) string {
 	}
 	return strings.Trim(b.String(), "-")
 }
+func uniqueWorkspaceID(base string, used map[string]int) string {
+	used[base]++
+	if used[base] == 1 {
+		return base
+	}
+	return base + "-" + strconv.Itoa(used[base])
+}
+
 func cloneWorkspaces(workspaces []Workspace) []Workspace {
 	out := append([]Workspace(nil), workspaces...)
 	for i := range out {

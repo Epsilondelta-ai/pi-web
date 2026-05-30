@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 )
 
 type RuntimeStatus struct {
@@ -59,7 +61,7 @@ func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatu
 	if status.Warning == "" {
 		status.Warning = anthropicSubscriptionAuthWarning(status)
 	}
-	if git, err := RealGitStatus(root); err == nil {
+	if git, err := backendfiles.RealGitStatus(root); err == nil {
 		status.CurrentBranch = git.Branch
 	}
 	return status, nil

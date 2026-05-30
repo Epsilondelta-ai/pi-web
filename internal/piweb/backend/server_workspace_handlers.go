@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 )
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +131,7 @@ func (s *Server) listFolders(w http.ResponseWriter, r *http.Request) {
 	if path == "" {
 		path = "~"
 	}
-	folders, err := ListFolders(path)
+	folders, err := backendfiles.ListFolders(path)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return

@@ -179,7 +179,7 @@ func (s *Store) addWorkspaceLocked(clean string) Workspace {
 	}
 	baseID := id
 	for used[id] > 0 {
-		id = uniqueID(baseID, used)
+		id = uniqueWorkspaceID(baseID, used)
 	}
 	workspace := Workspace{ID: id, Name: filepath.Base(clean), Path: clean, LastUsed: "now", Sessions: []Session{}}
 	parsed, err := LoadPiSessionSummaries(piSessionDirForCWD(clean))

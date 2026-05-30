@@ -1,8 +1,9 @@
-package backend
+package files
 
 import (
 	"encoding/base64"
 	"errors"
+	"github.com/Epsilondelta-ai/pi-web/internal/piweb/shared"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,7 +13,7 @@ import (
 
 const maxSearchFileBytes = 256 * 1024
 
-func RealFileTree(root string, maxDepth int) ([]FileNode, error) {
+func RealFileTree(root string, maxDepth int) ([]shared.FileNode, error) {
 	root = filepath.Clean(root)
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -21,8 +22,8 @@ func RealFileTree(root string, maxDepth int) ([]FileNode, error) {
 	return fileNodes(root, root, entries, 0, maxDepth), nil
 }
 
-func fileNodes(root, parent string, entries []os.DirEntry, depth, maxDepth int) []FileNode {
-	var nodes []FileNode
+func fileNodes(root, parent string, entries []os.DirEntry, depth, maxDepth int) []shared.FileNode {
+	var nodes []shared.FileNode
 	for _, entry := range entries {
 		name := entry.Name()
 		if shouldSkipFile(name) {
@@ -30,7 +31,7 @@ func fileNodes(root, parent string, entries []os.DirEntry, depth, maxDepth int) 
 		}
 		path := filepath.Join(parent, name)
 		rel, _ := filepath.Rel(root, path)
-		node := FileNode{Name: name, Path: filepath.ToSlash(rel), Depth: depth}
+		node := shared.FileNode{Name: name, Path: filepath.ToSlash(rel), Depth: depth}
 		if entry.IsDir() {
 			node.Type = "dir"
 			if depth < maxDepth {
@@ -109,22 +110,22 @@ func fileContentContains(path, needle string) bool {
 	return strings.Contains(strings.ToLower(string(data)), needle)
 }
 
-func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
+func ReadWorkspaceFile(root, rel string, maxBytes int64) (shared.FileContent, error) {
 	full, err := SafeJoin(root, rel)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	cleanRel := filepath.ToSlash(filepath.Clean(strings.TrimPrefix(rel, "/")))
 	info, err := os.Stat(full)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if info.IsDir() {
-		return FileContent{}, errors.New("path is a directory")
+		return shared.FileContent{}, errors.New("path is a directory")
 	}
 	file, err := os.Open(full)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	defer file.Close()
 	limit := maxBytes
@@ -153,7 +154,7 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 		previewKind = "unsupported"
 	}
 	originalContent, gitStatus := GitOriginalFileContent(root, cleanRel)
-	return FileContent{
+	return shared.FileContent{
 		Path:            cleanRel,
 		Content:         content,
 		OriginalContent: originalContent,
@@ -165,48 +166,48 @@ func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
 	}, nil
 }
 
-func WriteWorkspaceFile(root, rel, content string) (FileContent, error) {
+func WriteWorkspaceFile(root, rel, content string) (shared.FileContent, error) {
 	full, err := SafeJoin(root, rel)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	info, err := os.Stat(full)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if info.IsDir() {
-		return FileContent{}, errors.New("path is a directory")
+		return shared.FileContent{}, errors.New("path is a directory")
 	}
 	if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	return ReadWorkspaceFile(root, rel, 256*1024)
 }
 
-func CreateWorkspacePath(root, rel, kind, content string) (FileContent, error) {
+func CreateWorkspacePath(root, rel, kind, content string) (shared.FileContent, error) {
 	full, err := SafeJoin(root, rel)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if _, err := os.Stat(full); err == nil {
-		return FileContent{}, errors.New("path already exists")
+		return shared.FileContent{}, errors.New("path already exists")
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if err := os.MkdirAll(filepath.Dir(full), 0o700); err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if kind == "dir" {
 		if err := os.Mkdir(full, 0o700); err != nil {
-			return FileContent{}, err
+			return shared.FileContent{}, err
 		}
-		return FileContent{Path: filepath.ToSlash(filepath.Clean(rel)), PreviewKind: "unsupported"}, nil
+		return shared.FileContent{Path: filepath.ToSlash(filepath.Clean(rel)), PreviewKind: "unsupported"}, nil
 	}
 	if kind != "file" {
-		return FileContent{}, errors.New("kind must be file or dir")
+		return shared.FileContent{}, errors.New("kind must be file or dir")
 	}
 	if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	return ReadWorkspaceFile(root, rel, 256*1024)
 }
@@ -245,26 +246,26 @@ func DeleteWorkspacePath(root, rel string) error {
 	return os.RemoveAll(full)
 }
 
-func UploadWorkspaceFile(root, rel string, data []byte, overwrite bool) (FileContent, error) {
+func UploadWorkspaceFile(root, rel string, data []byte, overwrite bool) (shared.FileContent, error) {
 	full, err := SafeJoin(root, rel)
 	if err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if info, err := os.Stat(full); err == nil {
 		if info.IsDir() {
-			return FileContent{}, errors.New("path is a directory")
+			return shared.FileContent{}, errors.New("path is a directory")
 		}
 		if !overwrite {
-			return FileContent{}, errors.New("path already exists")
+			return shared.FileContent{}, errors.New("path already exists")
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if err := os.MkdirAll(filepath.Dir(full), 0o700); err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	if err := os.WriteFile(full, data, 0o600); err != nil {
-		return FileContent{}, err
+		return shared.FileContent{}, err
 	}
 	return ReadWorkspaceFile(root, rel, 256*1024)
 }
@@ -306,21 +307,21 @@ func GitOriginalFileContent(root, rel string) (string, string) {
 	return string(blob), "tracked"
 }
 
-func RealGitStatus(root string) (GitStatus, error) {
+func RealGitStatus(root string) (shared.GitStatus, error) {
 	branchBytes, err := exec.Command("git", "-C", root, "branch", "--show-current").Output()
 	if err != nil {
-		return GitStatus{}, err
+		return shared.GitStatus{}, err
 	}
 	statusBytes, err := exec.Command("git", "-C", root, "status", "--porcelain=v1", "-z").Output()
 	if err != nil {
-		return GitStatus{}, err
+		return shared.GitStatus{}, err
 	}
 	branch := strings.TrimSpace(string(branchBytes))
 	if branch == "" {
 		branch = "HEAD"
 	}
 	files := ParseGitStatusPorcelain(statusBytes)
-	return GitStatus{Branch: branch, Dirty: len(files), Files: files}, nil
+	return shared.GitStatus{Branch: branch, Dirty: len(files), Files: files}, nil
 }
 
 func ParseGitStatusPorcelain(output []byte) map[string]string {

@@ -1,7 +1,8 @@
-package backend
+package files
 
 import (
 	"errors"
+	"github.com/Epsilondelta-ai/pi-web/internal/piweb/shared"
 	"os"
 	"path/filepath"
 	"sort"
@@ -42,24 +43,24 @@ func DisplayPath(path string) string {
 	return filepath.Clean(path)
 }
 
-func ListFolders(path string) (FolderListing, error) {
+func ListFolders(path string) (shared.FolderListing, error) {
 	expanded, err := ExpandUserPath(path)
 	if err != nil {
-		return FolderListing{}, err
+		return shared.FolderListing{}, err
 	}
 	clean := filepath.Clean(expanded)
 	info, err := os.Stat(clean)
 	if err != nil {
-		return FolderListing{}, err
+		return shared.FolderListing{}, err
 	}
 	if !info.IsDir() {
-		return FolderListing{}, errors.New("path is not a directory")
+		return shared.FolderListing{}, errors.New("path is not a directory")
 	}
 	entries, err := os.ReadDir(clean)
 	if err != nil {
-		return FolderListing{}, err
+		return shared.FolderListing{}, err
 	}
-	var folders []FolderEntry
+	var folders []shared.FolderEntry
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -69,12 +70,12 @@ func ListFolders(path string) (FolderListing, error) {
 			continue
 		}
 		full := filepath.Join(clean, name)
-		folders = append(folders, FolderEntry{Name: name, Path: full, DisplayPath: DisplayPath(full)})
+		folders = append(folders, shared.FolderEntry{Name: name, Path: full, DisplayPath: DisplayPath(full)})
 	}
 	sort.Slice(folders, func(i, j int) bool { return strings.ToLower(folders[i].Name) < strings.ToLower(folders[j].Name) })
 	parent := filepath.Dir(clean)
 	if parent == clean {
 		parent = ""
 	}
-	return FolderListing{Path: clean, DisplayPath: DisplayPath(clean), Parent: parent, ParentDisplayPath: DisplayPath(parent), Folders: folders}, nil
+	return shared.FolderListing{Path: clean, DisplayPath: DisplayPath(clean), Parent: parent, ParentDisplayPath: DisplayPath(parent), Folders: folders}, nil
 }

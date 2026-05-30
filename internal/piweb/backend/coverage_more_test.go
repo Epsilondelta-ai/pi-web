@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -505,16 +506,6 @@ func TestCoverageBrokerSettingsSessionsAndHelpers(t *testing.T) {
 		t.Fatalf("payload not redacted: %+v", payload)
 	}
 
-	if !isLikelyText(nil) || isLikelyText([]byte{0xff}) || isLikelyText([]byte{0}) || isLikelyText([]byte{1, 2, 3, 4, 5, 6}) {
-		t.Fatal("isLikelyText branches failed")
-	}
-	if detectPreviewMIME("README", []byte("hello")) != "text/plain" {
-		t.Fatal("expected plain text mime")
-	}
-	if previewKindForMIME("application/octet-stream") != "unsupported" || previewKindForMIME("image/svg+xml") != "image" {
-		t.Fatal("preview kind failed")
-	}
-
 	sessionDir := t.TempDir()
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", sessionDir)
 	if DefaultPiSessionDir() != sessionDir {
@@ -669,29 +660,29 @@ func TestCoverageRemainingEasyBranches(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(root, "dir"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ReadWorkspaceFile(root, "dir", 0); err == nil {
+	if _, err := backendfiles.ReadWorkspaceFile(root, "dir", 0); err == nil {
 		t.Fatal("expected read directory error")
 	}
 	if err := os.WriteFile(filepath.Join(root, "text.txt"), []byte("hello"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if file, err := ReadWorkspaceFile(root, "text.txt", 0); err != nil || file.Content != "hello" {
+	if file, err := backendfiles.ReadWorkspaceFile(root, "text.txt", 0); err != nil || file.Content != "hello" {
 		t.Fatalf("default limit read=%+v err=%v", file, err)
 	}
-	if _, err := WriteWorkspaceFile(root, "../x", "x"); err == nil {
+	if _, err := backendfiles.WriteWorkspaceFile(root, "../x", "x"); err == nil {
 		t.Fatal("expected write traversal error")
 	}
-	if _, err := WriteWorkspaceFile(root, "missing", "x"); err == nil {
+	if _, err := backendfiles.WriteWorkspaceFile(root, "missing", "x"); err == nil {
 		t.Fatal("expected write missing error")
 	}
-	if _, err := WriteWorkspaceFile(root, "dir", "x"); err == nil {
+	if _, err := backendfiles.WriteWorkspaceFile(root, "dir", "x"); err == nil {
 		t.Fatal("expected write dir error")
 	}
 	readonly := filepath.Join(root, "readonly.txt")
 	if err := os.WriteFile(readonly, []byte("x"), 0o400); err != nil {
 		t.Fatal(err)
 	}
-	_, _ = WriteWorkspaceFile(root, "readonly.txt", "x")
+	_, _ = backendfiles.WriteWorkspaceFile(root, "readonly.txt", "x")
 	fakeGit := filepath.Join(t.TempDir(), "bin")
 	if err := os.Mkdir(fakeGit, 0o700); err != nil {
 		t.Fatal(err)
@@ -701,35 +692,35 @@ func TestCoverageRemainingEasyBranches(t *testing.T) {
 	}
 	oldPath := os.Getenv("PATH")
 	t.Setenv("PATH", fakeGit+string(os.PathListSeparator)+oldPath)
-	if _, err := RealGitStatus(root); err == nil {
+	if _, err := backendfiles.RealGitStatus(root); err == nil {
 		t.Fatal("expected branch error")
 	}
 	if err := os.WriteFile(filepath.Join(fakeGit, "git"), []byte("#!/bin/sh\nif [ \"$3\" = branch ]; then exit 0; fi\nif [ \"$3\" = status ]; then exit 2; fi\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := RealGitStatus(root); err == nil {
+	if _, err := backendfiles.RealGitStatus(root); err == nil {
 		t.Fatal("expected status error")
 	}
 	if err := os.WriteFile(filepath.Join(fakeGit, "git"), []byte("#!/bin/sh\nif [ \"$3\" = branch ]; then exit 0; fi\nif [ \"$3\" = status ]; then echo ' M x'; fi\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if status, err := RealGitStatus(root); err != nil || status.Branch != "HEAD" || status.Dirty != 1 {
+	if status, err := backendfiles.RealGitStatus(root); err != nil || status.Branch != "HEAD" || status.Dirty != 1 {
 		t.Fatalf("expected HEAD dirty status=%+v err=%v", status, err)
 	}
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	if expanded, err := ExpandUserPath("~"); err != nil || expanded != home {
+	if expanded, err := backendfiles.ExpandUserPath("~"); err != nil || expanded != home {
 		t.Fatalf("expand ~= %q err=%v", expanded, err)
 	}
-	if expanded, err := ExpandUserPath("~/child"); err != nil || expanded != filepath.Join(home, "child") {
+	if expanded, err := backendfiles.ExpandUserPath("~/child"); err != nil || expanded != filepath.Join(home, "child") {
 		t.Fatalf("expand child= %q err=%v", expanded, err)
 	}
 	filePath := filepath.Join(root, "file")
 	if err := os.WriteFile(filePath, []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ListFolders(filePath); err == nil {
+	if _, err := backendfiles.ListFolders(filePath); err == nil {
 		t.Fatal("expected file not dir")
 	}
 	if err := os.Mkdir(filepath.Join(root, ".hidden"), 0o700); err != nil {
@@ -738,10 +729,10 @@ func TestCoverageRemainingEasyBranches(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(root, ".config"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if listing, err := ListFolders(root); err != nil || listing.Path != root || len(listing.Folders) == 0 {
+	if listing, err := backendfiles.ListFolders(root); err != nil || listing.Path != root || len(listing.Folders) == 0 {
 		t.Fatalf("listing=%+v err=%v", listing, err)
 	}
-	if _, err := ListFolders(filepath.Join(root, "missing")); err == nil {
+	if _, err := backendfiles.ListFolders(filepath.Join(root, "missing")); err == nil {
 		t.Fatal("expected missing list error")
 	}
 
@@ -920,32 +911,32 @@ done
 		t.Fatal("expected decode false")
 	}
 
-	if SessionShortID("123456789") != "12345678" || SessionShortID("123") != "123" {
+	if backendfiles.SessionShortID("123456789") != "12345678" || backendfiles.SessionShortID("123") != "123" {
 		t.Fatal("short id failed")
 	}
 	used := map[string]int{}
-	if uniqueID("x", used) != "x" || uniqueID("x", used) != "x-2" {
+	if uniqueWorkspaceID("x", used) != "x" || uniqueWorkspaceID("x", used) != "x-2" {
 		t.Fatalf("unique id failed: %+v", used)
 	}
-	if _, err := RealFileTree(filepath.Join(root, "missing"), 1); err == nil {
+	if _, err := backendfiles.RealFileTree(filepath.Join(root, "missing"), 1); err == nil {
 		t.Fatal("expected real file tree error")
 	}
-	if _, err := ReadWorkspaceFile(root, "missing", 1); err == nil {
+	if _, err := backendfiles.ReadWorkspaceFile(root, "missing", 1); err == nil {
 		t.Fatal("expected read missing")
 	}
-	if _, err := ReadWorkspaceFile(root, ".", 1); err == nil {
+	if _, err := backendfiles.ReadWorkspaceFile(root, ".", 1); err == nil {
 		t.Fatal("expected read dir/path error")
 	}
 	if err := os.WriteFile(filepath.Join(root, "big.txt"), []byte("abcdef"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if file, err := ReadWorkspaceFile(root, "big.txt", 2); err != nil || !file.Truncated {
+	if file, err := backendfiles.ReadWorkspaceFile(root, "big.txt", 2); err != nil || !file.Truncated {
 		t.Fatalf("expected truncated file=%+v err=%v", file, err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "image.png"), []byte("\x89PNG\r\n\x1a\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if file, err := ReadWorkspaceFile(root, "image.png", 1024); err != nil || file.DataURL == "" {
+	if file, err := backendfiles.ReadWorkspaceFile(root, "image.png", 1024); err != nil || file.DataURL == "" {
 		t.Fatalf("expected image data URL file=%+v err=%v", file, err)
 	}
 
