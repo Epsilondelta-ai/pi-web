@@ -209,6 +209,8 @@ button.tc-head {
 .sidebar-wrap {
   position: relative;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   display: flex;
   grid-column: 1;
   grid-row: 1 / 3;

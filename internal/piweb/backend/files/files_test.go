@@ -162,6 +162,25 @@ func TestRealFileTree(t *testing.T) {
 	}
 }
 
+func TestRealFileTreeDepthLimit(t *testing.T) {
+	root := t.TempDir()
+	deepDir := filepath.Join(root, "a", "b", "c", "d")
+	if err := os.MkdirAll(deepDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deepDir, "leaf.txt"), []byte("leaf"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	nodes, err := RealFileTree(root, 4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf := nodes[0].Children[0].Children[0].Children[0].Children[0]
+	if leaf.Path != "a/b/c/d/leaf.txt" || leaf.Depth != 4 {
+		t.Fatalf("expected depth-4 leaf, got %#v", leaf)
+	}
+}
+
 func TestWorkspaceFileMutations(t *testing.T) {
 	root := t.TempDir()
 	created, err := CreateWorkspacePath(root, "src/new.txt", "file", "hello")
