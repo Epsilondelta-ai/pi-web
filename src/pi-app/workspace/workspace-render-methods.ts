@@ -148,7 +148,7 @@ export const workspaceRenderMethods = {
       ` aria-expanded="${open}" aria-current="${active ? "true" : "false"}">`,
       "<span class=\"ws-stack\"><span class=\"ws-name\"><span class=\"dot\"></span>",
       "<span class=\"label\"></span></span><span class=\"ws-path\"></span></span>",
-      `<span class="ws-meta"><span class="ws-count">${workspace.sessionCount}</span></span></button>`,
+      `<span class="ws-meta" aria-label="${workspace.sessionCount} sessions"><span class="ws-count">${workspace.sessionCount}</span></span></button>`,
       `<button type="button" class="row-action danger" data-action="delete-workspace"`,
       ` data-workspace="${escapeHtml(workspace.id)}" title="remove workspace" aria-label="remove workspace">${LUCIDE_X_ICON}</button>`,
       `</div><div class="sessions"${open ? "" : " hidden"}></div>`,

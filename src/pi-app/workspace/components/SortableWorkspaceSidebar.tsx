@@ -90,7 +90,7 @@ function WorkspaceGroup({ workspace, activeWorkspaceId, openWorkspaceId, activeS
       <button type="button" className={["ws-row", open && "open", active && "active", hasActiveSession && "has-active-session"].filter(Boolean).join(" ")} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={open ? "true" : "false"} aria-current={active ? "true" : "false"}>
         <span className="drag-handle workspace-drag-handle" aria-label="reorder workspace" {...dragHandleProps}>{GRIP_ICON}</span>
         <span className="ws-stack"><span className="ws-name"><span className={["dot", (workspace.live || hasActiveSession) && "live"].filter(Boolean).join(" ")}></span><span className="label">{workspace.name}</span></span><span className="ws-path">{workspace.path}</span></span>
-        <span className="ws-meta"><span className="ws-count">{workspace.sessionCount}</span></span>
+        <span className="ws-meta" aria-label={`${workspace.sessionCount} sessions`}><span className="ws-count">{workspace.sessionCount}</span></span>
       </button>
       <button type="button" className="row-action danger" data-action="delete-workspace" data-workspace={workspace.id} title="remove workspace" aria-label="remove workspace">{X_ICON}</button>
     </div>
