@@ -34,14 +34,14 @@ func NewPiUpdater(runner PiUpdateRunner) *PiUpdater {
 
 func RunPiUpdateCommand(ctx context.Context, source string, workspaceDir string) error {
 	if workspaceDir != "" {
-		if err := resetPiNpmInstall(ctx, filepath.Join(workspaceDir, ".pi", "npm")); err != nil {
+		if err := installPiNpmPackages(ctx, filepath.Join(workspaceDir, ".pi", "npm")); err != nil {
 			return err
 		}
 		return runPiCommand(ctx, workspaceDir, "update", "--extensions")
 	}
 	if source == "" {
 		if home, err := os.UserHomeDir(); err == nil {
-			if err := resetPiNpmInstall(ctx, filepath.Join(home, ".pi", "agent", "npm")); err != nil {
+			if err := installPiNpmPackages(ctx, filepath.Join(home, ".pi", "agent", "npm")); err != nil {
 				return err
 			}
 		}
@@ -52,17 +52,9 @@ func RunPiUpdateCommand(ctx context.Context, source string, workspaceDir string)
 	return runPiCommand(ctx, "", "update")
 }
 
-func resetPiNpmInstall(ctx context.Context, npmDir string) error {
+func installPiNpmPackages(ctx context.Context, npmDir string) error {
 	if _, err := os.Stat(filepath.Join(npmDir, "package.json")); err != nil {
 		return nil
-	}
-	if err := os.RemoveAll(filepath.Join(npmDir, "node_modules")); err != nil {
-		return err
-	}
-	for _, name := range []string{"package-lock.json", "package.lock.json"} {
-		if err := os.Remove(filepath.Join(npmDir, name)); err != nil && !os.IsNotExist(err) {
-			return err
-		}
 	}
 	cmd := exec.CommandContext(ctx, "npm", "install")
 	cmd.Dir = npmDir

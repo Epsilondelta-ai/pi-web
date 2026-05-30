@@ -81,7 +81,7 @@ func TestPiUpdaterRejectsConcurrentStart(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-func TestRunPiUpdateCommandResetsWorkspaceNpmInstall(t *testing.T) {
+func TestRunPiUpdateCommandInstallsWorkspaceNpmPackages(t *testing.T) {
 	binDir := t.TempDir()
 	writeFakeCommand(t, binDir, "npm", "#!/bin/sh\necho npm:$@ >> \"$PI_TEST_LOG\"\nmkdir -p node_modules/restored\nexit 0\n")
 	writeFakeCommand(t, binDir, "pi", "#!/bin/sh\necho pi:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
@@ -104,11 +104,11 @@ func TestRunPiUpdateCommandResetsWorkspaceNpmInstall(t *testing.T) {
 	if err := RunPiUpdateCommand(context.Background(), "", workspaceDir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(npmDir, "node_modules", "old")); !os.IsNotExist(err) {
-		t.Fatalf("expected stale node_modules to be removed, stat err=%v", err)
+	if _, err := os.Stat(filepath.Join(npmDir, "node_modules", "old")); err != nil {
+		t.Fatalf("expected existing node_modules to be preserved, stat err=%v", err)
 	}
-	if _, err := os.Stat(filepath.Join(npmDir, "package-lock.json")); !os.IsNotExist(err) {
-		t.Fatalf("expected package-lock.json to be removed, stat err=%v", err)
+	if _, err := os.Stat(filepath.Join(npmDir, "package-lock.json")); err != nil {
+		t.Fatalf("expected package-lock.json to be preserved, stat err=%v", err)
 	}
 	content, err := os.ReadFile(logPath)
 	if err != nil {
@@ -119,7 +119,7 @@ func TestRunPiUpdateCommandResetsWorkspaceNpmInstall(t *testing.T) {
 	}
 }
 
-func TestRunPiUpdateCommandResetsGlobalNpmInstall(t *testing.T) {
+func TestRunPiUpdateCommandInstallsGlobalNpmPackages(t *testing.T) {
 	binDir := t.TempDir()
 	writeFakeCommand(t, binDir, "npm", "#!/bin/sh\necho npm:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
 	writeFakeCommand(t, binDir, "pi", "#!/bin/sh\necho pi:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
