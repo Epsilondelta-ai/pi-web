@@ -3,9 +3,7 @@ package runtime
 import (
 	"bytes"
 	"context"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"sync"
 	"time"
 )
@@ -34,35 +32,12 @@ func NewPiUpdater(runner PiUpdateRunner) *PiUpdater {
 
 func RunPiUpdateCommand(ctx context.Context, source string, workspaceDir string) error {
 	if workspaceDir != "" {
-		if err := installPiNpmPackages(ctx, filepath.Join(workspaceDir, ".pi", "npm")); err != nil {
-			return err
-		}
 		return runPiCommand(ctx, workspaceDir, "update", "--extensions")
-	}
-	if source == "" {
-		if home, err := os.UserHomeDir(); err == nil {
-			if err := installPiNpmPackages(ctx, filepath.Join(home, ".pi", "agent", "npm")); err != nil {
-				return err
-			}
-		}
 	}
 	if source != "" {
 		return runPiCommand(ctx, "", "update", source)
 	}
 	return runPiCommand(ctx, "", "update")
-}
-
-func installPiNpmPackages(ctx context.Context, npmDir string) error {
-	if _, err := os.Stat(filepath.Join(npmDir, "package.json")); err != nil {
-		return nil
-	}
-	cmd := exec.CommandContext(ctx, "npm", "install")
-	cmd.Dir = npmDir
-	configureCommandProcessGroup(cmd)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	return cmd.Run()
 }
 
 func runPiCommand(ctx context.Context, dir string, args ...string) error {

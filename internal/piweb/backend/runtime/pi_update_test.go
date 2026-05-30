@@ -3,9 +3,6 @@ package runtime
 import (
 	"context"
 	"errors"
-	"os"
-	"path/filepath"
-	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -79,85 +76,6 @@ func TestPiUpdaterRejectsConcurrentStart(t *testing.T) {
 
 	close(block)
 	time.Sleep(50 * time.Millisecond)
-}
-
-func TestRunPiUpdateCommandInstallsWorkspaceNpmPackages(t *testing.T) {
-	binDir := t.TempDir()
-	writeFakeCommand(t, binDir, "npm", "#!/bin/sh\necho npm:$@ >> \"$PI_TEST_LOG\"\nmkdir -p node_modules/restored\nexit 0\n")
-	writeFakeCommand(t, binDir, "pi", "#!/bin/sh\necho pi:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	logPath := filepath.Join(t.TempDir(), "commands.log")
-	t.Setenv("PI_TEST_LOG", logPath)
-
-	workspaceDir := t.TempDir()
-	npmDir := filepath.Join(workspaceDir, ".pi", "npm")
-	if err := os.MkdirAll(filepath.Join(npmDir, "node_modules", "old"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(npmDir, "package.json"), []byte(`{"dependencies":{"x":"1.0.0"}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(npmDir, "package-lock.json"), []byte(`{}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := RunPiUpdateCommand(context.Background(), "", workspaceDir); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(npmDir, "node_modules", "old")); err != nil {
-		t.Fatalf("expected existing node_modules to be preserved, stat err=%v", err)
-	}
-	if _, err := os.Stat(filepath.Join(npmDir, "package-lock.json")); err != nil {
-		t.Fatalf("expected package-lock.json to be preserved, stat err=%v", err)
-	}
-	content, err := os.ReadFile(logPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := string(content); got != "npm:install\npi:update --extensions\n" {
-		t.Fatalf("unexpected commands: %q", got)
-	}
-}
-
-func TestRunPiUpdateCommandInstallsGlobalNpmPackages(t *testing.T) {
-	binDir := t.TempDir()
-	writeFakeCommand(t, binDir, "npm", "#!/bin/sh\necho npm:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
-	writeFakeCommand(t, binDir, "pi", "#!/bin/sh\necho pi:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	logPath := filepath.Join(t.TempDir(), "commands.log")
-	t.Setenv("PI_TEST_LOG", logPath)
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-
-	npmDir := filepath.Join(home, ".pi", "agent", "npm")
-	if err := os.MkdirAll(filepath.Join(npmDir, "node_modules"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(npmDir, "package.json"), []byte(`{"dependencies":{"x":"1.0.0"}}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := RunPiUpdateCommand(context.Background(), "", ""); err != nil {
-		t.Fatal(err)
-	}
-	content, err := os.ReadFile(logPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := string(content); got != "npm:install\npi:update\n" {
-		t.Fatalf("unexpected commands: %q", got)
-	}
-}
-
-func writeFakeCommand(t *testing.T, dir string, name string, content string) {
-	t.Helper()
-	if runtime.GOOS == "windows" {
-		name += ".bat"
-		content = "@echo off\r\necho unsupported > %PI_TEST_LOG%\r\n"
-	}
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o755); err != nil {
-		t.Fatal(err)
-	}
 }
 
 var errTestUpdate = errors.New("test update error")
