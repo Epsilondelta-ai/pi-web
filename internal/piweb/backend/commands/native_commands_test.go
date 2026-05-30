@@ -36,6 +36,16 @@ func TestListNativeSlashCommandsIncludesPromptsSkillsExtensionsAndPackages(t *te
 	}
 }
 
+func TestStaticExtensionCommandsFindsLiteralRegisterCommands(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "extension.ts")
+	writeFile(t, path, `export default (pi) => pi.registerCommand("hello", { description: "Say hello" })`)
+	commands := staticExtensionCommands([]map[string]string{{"path": path, "scope": "project"}})
+	if len(commands) != 1 || commands[0].Command != "/hello" || commands[0].Description != "Say hello" {
+		t.Fatalf("unexpected static commands: %+v", commands)
+	}
+}
+
 func TestExtensionProbeEnvSuppressesNodeExperimentalWarnings(t *testing.T) {
 	env := extensionProbeEnv([]string{"HOME=/tmp", "NODE_OPTIONS=--max-old-space-size=64"}, "{}")
 	if !containsEnv(env, "NODE_OPTIONS=--max-old-space-size=64 --disable-warning=ExperimentalWarning") {

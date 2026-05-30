@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -499,6 +500,7 @@ func probeExtensionCommands(ctx context.Context, cwd string, extensions []comman
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	fallback := staticExtensionCommands(files)
 	payload, _ := json.Marshal(map[string]any{"cwd": cwd, "extensions": files})
 	cmd := exec.CommandContext(probeCtx, "node", "--input-type=module", "-")
 	cmd.Dir = cwd
@@ -508,8 +510,13 @@ func probeExtensionCommands(ctx context.Context, cwd string, extensions []comman
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if len(fallback) > 0 {
+			return fallback
+		}
 		message := strings.TrimSpace(fmt.Sprintf("extension probe failed: %v %s", err, truncate(cleanNodeWarnings(stderr.String()), 300)))
-		*diagnostics = append(*diagnostics, commandDiagnostic{Error: message})
+		if message != "extension probe failed: signal: killed" {
+			*diagnostics = append(*diagnostics, commandDiagnostic{Error: message})
+		}
 		return nil
 	}
 	var response struct {
@@ -521,7 +528,34 @@ func probeExtensionCommands(ctx context.Context, cwd string, extensions []comman
 		return nil
 	}
 	*diagnostics = append(*diagnostics, response.Errors...)
+	if len(response.Commands) == 0 && len(fallback) > 0 {
+		return fallback
+	}
 	return response.Commands
+}
+
+var staticRegisterCommandPattern = regexp.MustCompile(`registerCommand\s*\(\s*['"]([^'"]+)['"]\s*,\s*\{[\s\S]*?description\s*:\s*['"]([^'"]*)['"]`)
+
+func staticExtensionCommands(files []map[string]string) []SlashCommand {
+	var commands []SlashCommand
+	for _, file := range files {
+		path := file["path"]
+		source, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		for _, match := range staticRegisterCommandPattern.FindAllStringSubmatch(string(source), -1) {
+			commands = append(commands, SlashCommand{
+				Name:        match[1],
+				Command:     "/" + match[1],
+				Description: match[2],
+				Source:      "extension",
+				Scope:       file["scope"],
+				Path:        path,
+			})
+		}
+	}
+	return commands
 }
 
 func extensionFiles(resources []commandResource) []map[string]string {
