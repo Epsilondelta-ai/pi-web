@@ -202,7 +202,7 @@ function speechLanguageListId(path) {
               <div class="workspace-group" data-workspace-group={workspace.id}>
                 <button type="button" class:list={["ws-row", isActiveWorkspace && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={isActiveWorkspace ? "true" : "false"}>
                   <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
-                  <span class="ws-meta">{workspace.sessionCount}</span>
+                  <span class="ws-meta" aria-label={`${workspace.sessionCount} sessions`}><span class="ws-count">{workspace.sessionCount}</span><span class="ws-count-label">sessions</span></span>
                 </button>
                 <div class="sessions" hidden={!isActiveWorkspace}>
                   {(workspace.sessions || []).map((session) => (

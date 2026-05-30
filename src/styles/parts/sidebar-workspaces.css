@@ -129,10 +129,11 @@
 
 .ws-row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px var(--space-3);
+  padding-right: 42px;
   font-size: var(--text-sm);
   color: var(--fg-1);
   border-bottom: 1px solid var(--border-dim);
@@ -149,14 +150,46 @@
 .ws-row .ws-name .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-row .ws-path { color: var(--fg-3); font-size: var(--text-xs); display: block; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-row .ws-meta {
-  color: var(--fg-3);
-  display: flex;
+  justify-self: end;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: var(--text-xs);
+  gap: 5px;
+  min-width: 32px;
+  max-width: 92px;
+  padding: 2px 7px;
+  color: var(--fg-2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-4) 76%, transparent), var(--bg-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+  border-radius: var(--radius-full);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(0,0,0,0.04);
+  font-size: 10px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ws-row.open .ws-meta,
+.ws-row.active .ws-meta,
+.ws-row.has-active-session .ws-meta {
+  color: var(--fg-0);
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 12px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.ws-row .ws-count {
+  font-weight: 700;
+  color: var(--fg-0);
+}
+.ws-row .ws-count-label {
+  max-width: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--fg-3);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 .ws-row .ws-stack { min-width: 0; }
+.ws-row > .ws-stack:first-child { grid-column: 1 / 3; }
+.ws-row > .ws-stack:first-child + .ws-meta { grid-column: 3; }
 .ws-row .dot {
   display: inline-block; width: 6px; height: 6px;
   background: var(--fg-4);
