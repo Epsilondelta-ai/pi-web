@@ -14,6 +14,9 @@ src/pi-app/
 ├── status/           # runtime status, version, layout, and toast UI
 ├── transcript/       # virtualized transcript window helpers
 └── workspace/        # workspace bootstrap, folders, settings, and rendering
+    └── components/   # workspace-owned React components
 ```
 
 Keep tests next to the feature they exercise. New custom-element methods should live in the feature folder and be composed in `index.ts`.
+
+Shared cross-feature modules live in `src/shared/<domain>/`; do not add new generic files to `src/lib`.

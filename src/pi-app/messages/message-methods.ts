@@ -1,5 +1,5 @@
-import { fallbackValue } from "../../lib/fallbacks";
-import { escapeHtml, renderBannerBody, renderPiBody, renderUserBody } from "../../lib/renderers";
+import { fallbackValue } from "../../shared/fallbacks/fallbacks";
+import { escapeHtml, renderBannerBody, renderPiBody, renderUserBody } from "../../shared/renderers/renderers";
 import { parseDesignDecks, stripDesignDecks } from "../input/design-decks";
 import {
   parseFallbackChoiceAnswer,

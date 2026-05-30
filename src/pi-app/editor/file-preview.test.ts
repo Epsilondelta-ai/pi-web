@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as api from "../../lib/api";
+import * as api from "../../shared/api/api";
 import "../index";
 
-vi.mock("../../lib/api", async () => {
-  const actual = await vi.importActual<typeof import("../../lib/api")>("../../lib/api");
+vi.mock("../../shared/api/api", async () => {
+  const actual = await vi.importActual<typeof import("../../shared/api/api")>("../../shared/api/api");
   return {
     ...actual,
     getWorkspaceFile: vi.fn(),

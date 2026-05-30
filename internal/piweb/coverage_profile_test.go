@@ -25,10 +25,7 @@ func normalizeCoverageProfile() {
 		lines := strings.Split(string(data), "\n")
 		for i := 1; i < len(lines); i++ {
 			fields := strings.Fields(lines[i])
-			if len(fields) != 3 {
-				continue
-			}
-			if fields[1] == "0" {
+			if len(fields) != 3 || fields[1] == "0" {
 				continue
 			}
 			fields[2] = "1"

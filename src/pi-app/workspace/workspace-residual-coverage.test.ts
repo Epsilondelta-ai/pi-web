@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../lib/api", () => ({
+vi.mock("../../shared/api/api", () => ({
   getGitCommit: vi.fn(),
   getGitHistory: vi.fn(),
   getGitStatus: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock("../../lib/api", () => ({
   getPiPackageUpdateStatus: vi.fn(),
 }));
 
-import * as api from "../../lib/api";
+import * as api from "../../shared/api/api";
 import { gitHistoryMethods } from "./git-history-methods";
 import { oauthMethods } from "./oauth-methods";
 import { workspaceBootstrapMethods } from "./workspace-bootstrap-methods";

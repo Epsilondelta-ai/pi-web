@@ -1,6 +1,6 @@
-import { getGitCommit, getGitHistory } from "../../lib/api";
-import { fallbackValue } from "../../lib/fallbacks";
-import { escapeHtml } from "../../lib/renderers";
+import { getGitCommit, getGitHistory } from "../../shared/api/api";
+import { fallbackValue } from "../../shared/fallbacks/fallbacks";
+import { escapeHtml } from "../../shared/renderers/renderers";
 
 const LUCIDE_LIST_PLUS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 12H3"></path><path d="M16 6H3"></path><path d="M16 18H3"></path><path d="M18 9v6"></path><path d="M21 12h-6"></path></svg>`;
 const LUCIDE_X_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>`;

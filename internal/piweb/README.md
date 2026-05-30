@@ -1,26 +1,19 @@
-# `piweb` internal package map
+# Backend layout
 
-`internal/piweb` is intentionally kept as one package for now so handlers, stores, and tests can share unexported helpers without introducing premature Go package boundaries.
+`internal/piweb` is now a public facade over a real backend implementation package.
 
-Use filename prefixes as the navigation boundary:
+```text
+internal/piweb/
+├── facade.go           # stable public API exported to the CLI/server entrypoint
+├── backend/            # implementation package: store, runner, server, handlers, domain helpers, tests
+├── shared/             # DTOs and redaction helpers shared across backend packages
+└── eventbus/           # SSE event broker primitives consumed by backend.Broker
+```
 
-| Area | Files |
-| --- | --- |
-| HTTP server | `server*.go`, `server_*_test.go`, `server_static.go` |
-| Session APIs | `pi_session*.go`, `session_*.go`, `team_sessions.go` |
-| Workspace APIs | `workspace_ops.go`, `files.go`, `folders.go`, `file_preview.go`, `server_workspace_handlers.go` |
-| Runner/process events | `runner*.go`, `commands.go`, `broker.go` |
-| Store/database | `store*.go`, `web_db.go`, `store_*_test.go` |
-| Settings/runtime/quota | `settings.go`, `runtime_status.go`, `quota_*.go`, `pi_rpc_status.go` |
-| Shared types/helpers | `types.go`, `redact.go` |
-
-## Split rule
-
-Create a new Go subpackage only when all of these are true:
-
-1. the code has a stable API boundary,
-2. it does not need access to unexported `piweb` internals,
-3. tests can stay meaningful without cross-package fixtures,
-4. the move reduces imports/coupling instead of adding adapters.
-
-Until then, prefer small files with feature prefixes over many tightly coupled subpackages.
+Rules:
+- Keep `internal/piweb` root facade-only: aliases, constructors, and public API passthroughs.
+- Put implementation code and package-level tests in `internal/piweb/backend`.
+- Keep dependency-free DTOs/helpers in `internal/piweb/shared`.
+- Keep event broker primitives in `internal/piweb/eventbus`; `backend.Broker` is the facade used by server/runner code.
+- Do not add duplicate packages, symlink shadow trees, or unwired extraction copies.
+- Split a new real package only when callers are wired to it in the same change.

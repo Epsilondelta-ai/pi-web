@@ -1,5 +1,5 @@
 ---
-import EmptySessionShell from "./components/EmptySessionShell.astro";
+import EmptySessionShell from "./app-shell/EmptySessionShell.astro";
 import {
   ArrowDown,
   ArrowUp,
@@ -22,7 +22,7 @@ import {
   X,
 } from "@lucide/astro";
 import { UI_LOCALES } from "./i18n/locales";
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./lib/renderers";
+import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./shared/renderers/renderers";
 import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import {
   SETTINGS_FIELDS as settingsFields,

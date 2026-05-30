@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../lib/renderers";
+import { escapeHtml } from "../../shared/renderers/renderers";
 
 const EXTENSION_LANGUAGE = {
   astro: "astro",

@@ -1,4 +1,4 @@
-import { fallbackValue } from "../../lib/fallbacks";
+import { fallbackValue } from "../../shared/fallbacks/fallbacks";
 import VirtualScroller from "virtual-scroller/dom";
 
 export const DEFAULT_TRANSCRIPT_ITEM_HEIGHT = 80;

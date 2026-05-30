@@ -1,4 +1,4 @@
-import { escapeHtml } from "../../lib/renderers";
+import { escapeHtml } from "../../shared/renderers/renderers";
 import { TERMINAL_SPINNER_HTML } from "../constants";
 import { renderToolBody, storeFullToolBody } from "./tool-output-rendering";
 

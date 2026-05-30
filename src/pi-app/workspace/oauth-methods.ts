@@ -5,7 +5,7 @@ import {
   logoutProvider,
   sendOAuthLoginInput,
   startOAuthLogin,
-} from "../../lib/api";
+} from "../../shared/api/api";
 
 export function oauthErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);

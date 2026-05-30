@@ -16,7 +16,7 @@ export default tseslint.config(
       "coverage/**",
       "dist/**",
       "node_modules/**",
-      "static/**",
+      "cmd/pi-web/static/**",
       "storybook-server/**",
       "storybook-static/**",
     ],
