@@ -55,7 +55,7 @@ export const layoutMethods = {
 
   closeTreeFromOutside(event) {
     if (this.dataset.tree !== "on") return;
-    const selector = ".tree, [data-action='toggle-tree']";
+    const selector = ".tree, [data-action='toggle-tree'], [data-file-preview]";
     const path = event.composedPath?.() || [];
     if (path.some((node) => node?.matches?.(selector))) return;
     const target = event.target;

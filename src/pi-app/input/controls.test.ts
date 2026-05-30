@@ -980,6 +980,20 @@ describe("pi-app controls", () => {
     expect(tree.hidden).toBe(false);
   });
 
+  it("keeps the file tree open when clicking the file edit modal", async () => {
+    const app = await connectPiApp();
+    const tree = app.querySelector(".tree");
+    const modal = document.createElement("div");
+    modal.dataset.filePreview = "";
+    app.append(modal);
+
+    app.toggleTree(true);
+    modal.click();
+
+    expect(app.dataset.tree).toBe("on");
+    expect(tree.hidden).toBe(false);
+  });
+
   it("refreshes workspaces from the sidebar refresh button", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
