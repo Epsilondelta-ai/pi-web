@@ -1,7 +1,7 @@
 # Architecture-based refactor completion plan
 
 Last updated: 2026-05-30
-Status: active; phases 0-1 complete, remaining phases require API extraction before file moves.
+Status: complete; backend implementation packages extracted through server phase and verified.
 
 ## Completed baseline
 
@@ -14,7 +14,14 @@ Status: active; phases 0-1 complete, remaining phases require API extraction bef
 │   │   ├── auth/               # DONE: auth/OAuth helpers
 │   │   ├── commands/           # DONE: pi/native slash command discovery
 │   │   ├── files/              # DONE: workspace file/folder/git-status operations
-│   │   └── git/                # DONE: git history/commit detail operations
+│   │   ├── git/                # DONE: git history/commit detail operations
+│   │   ├── notifications/      # DONE: Discord/Telegram notification side effects
+│   │   ├── runner/             # DONE: pi process/RPC streaming
+│   │   ├── runtime/            # DONE: model/quota/version/update status
+│   │   ├── server/             # DONE: HTTP orchestration
+│   │   ├── sessions/           # DONE: session parsing and metadata
+│   │   ├── store/              # DONE: state/cache/persistence
+│   │   └── workspace/          # DONE: clone/shell/settings
 │   ├── eventbus/               # DONE: SSE event broker primitives
 │   └── shared/                 # DONE: backend DTOs and redaction helpers
 ├── src/                        # DONE: frontend feature/shared structure
@@ -95,7 +102,7 @@ Hard rules:
 
 ## Remaining phases
 
-### Phase 2 — sessions package
+### Phase 2 — sessions package — DONE
 
 Goal: move session parsing/file metadata into `internal/piweb/backend/sessions`.
 
@@ -146,7 +153,7 @@ Exit criteria:
 - notifications import `backend/sessions` for child/parent session checks.
 - no `pi_session*`, `session_*`, or `team_sessions` implementation remains in backend root.
 
-### Phase 3 — workspace/settings package
+### Phase 3 — workspace/settings package — DONE
 
 Goal: move clone/shell/settings into `internal/piweb/backend/workspace`.
 
@@ -175,7 +182,7 @@ Exit criteria:
 - server workspace handlers import `backend/workspace` for clone/shell/settings.
 - runtime package can call settings through exported API.
 
-### Phase 4 — runtime package
+### Phase 4 — runtime package — DONE
 
 Goal: move model/quota/version/update/package status into `internal/piweb/backend/runtime`.
 
@@ -211,7 +218,7 @@ Exit criteria:
 - server imports `backend/runtime` for version/update/runtime endpoints.
 - backend root has no `pi_*`, `quota_*`, `runtime_status`, or `models` implementation files.
 
-### Phase 5 — notifications package
+### Phase 5 — notifications package — DONE
 
 Goal: move Discord/Telegram side effects into `internal/piweb/backend/notifications`.
 
@@ -231,7 +238,7 @@ Exit criteria:
 - runner calls notifications through a small notifier interface.
 - notifications imports sessions/workspace/shared, not runner/server.
 
-### Phase 6 — store package
+### Phase 6 — store package — DONE
 
 Goal: move state/cache/persistence into `internal/piweb/backend/store`.
 
@@ -256,7 +263,7 @@ Exit criteria:
 - server depends on store through `ServerStore` interface.
 - root facade aliases `store.Store` as public `piweb.Store`.
 
-### Phase 7 — runner package
+### Phase 7 — runner package — DONE
 
 Goal: move process/RPC streaming into `internal/piweb/backend/runner`.
 
@@ -280,7 +287,7 @@ Exit criteria:
 - server owns a `runner.Runner` through `ServerRunner`.
 - backend root has no runner process lifecycle files.
 
-### Phase 8 — server package
+### Phase 8 — server package — DONE
 
 Goal: move HTTP orchestration into `internal/piweb/backend/server`.
 
