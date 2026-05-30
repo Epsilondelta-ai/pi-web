@@ -73,7 +73,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
     app.toggleWorkspace("w1");
     await Promise.resolve();
     expect(app.querySelector("[data-workspace-group='w1'] .ws-count").textContent).toBe("2");
-    expect(app.querySelector("[data-workspace-group='w1'] .ws-count-label").textContent).toBe("sessions");
+    expect(app.querySelector("[data-workspace-group='w1'] .ws-count-label")).toBeNull();
     expect(app.querySelector("[data-workspace-group='w1'] .ws-meta").getAttribute("aria-label")).toBe("2 sessions");
     expect(app.dataset.activeWorkspaceId).toBe("w2");
     expect(app.sidebarOpenWorkspaceId).toBe("w1");

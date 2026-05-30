@@ -153,10 +153,8 @@
   justify-self: end;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-width: 32px;
-  max-width: 92px;
-  padding: 2px 7px;
+  min-width: 24px;
+  padding: 3px 8px;
   color: var(--fg-2);
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg-4) 76%, transparent), var(--bg-2));
   border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
@@ -177,15 +175,6 @@
 .ws-row .ws-count {
   font-weight: 700;
   color: var(--fg-0);
-}
-.ws-row .ws-count-label {
-  max-width: 44px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--fg-3);
-  font-size: 9px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 .ws-row .ws-stack { min-width: 0; }
 .ws-row > .ws-stack:first-child { grid-column: 1 / 3; }
