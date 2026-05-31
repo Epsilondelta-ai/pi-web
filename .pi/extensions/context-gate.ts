@@ -35,7 +35,7 @@ function readContextBlock(cwd: string, path: string): string {
   const escapedPath = escapeAttr(path);
   const escapedRealPath = escapeAttr(realRelativePath);
 
-  return `<required_context path="${escapedPath}" realpath="${escapedRealPath}">\n${content}\n</required_context>`;
+  return `<required_context path="${escapedPath}" realpath="${escapedRealPath}">\n${escapeText(content)}\n</required_context>`;
 }
 
 function buildGateInstruction(): string {
@@ -59,5 +59,9 @@ function truncate(value: string, maxBytes: number): string {
 }
 
 function escapeAttr(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return escapeText(value).replace(/"/g, "&quot;");
+}
+
+function escapeText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
