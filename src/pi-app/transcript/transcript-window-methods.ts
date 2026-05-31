@@ -285,6 +285,10 @@ export const transcriptWindowMethods = {
     return this.transcriptFollowBottom !== false;
   },
 
+  shouldRenderFullTranscriptWindow() {
+    return !!this.running || !this.isTermPinnedToBottom();
+  },
+
   renderVirtualTranscriptItem(item) {
     return renderVirtualTranscriptItem(this, item);
   },

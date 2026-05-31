@@ -89,11 +89,25 @@ export function renderVirtualTranscriptItem(owner, item) {
   return element;
 }
 
+export function renderFullTranscriptWindow(owner, { stickToBottom = false } = {}) {
+  owner.destroyTranscriptVirtualScroller?.();
+  const items = fallbackValue(owner.transcriptItems, []);
+  owner.termInner.replaceChildren(...items.map((item) => renderVirtualTranscriptItem(owner, item)));
+  owner.transcriptVisibleStart = 0;
+  owner.transcriptVisibleEnd = items.length;
+  owner.syncRenderedTranscriptItemHeights?.();
+  if (stickToBottom) owner.scrollTerm({ force: true });
+}
+
 export function updateTranscriptVirtualScroller(owner, { preservePrepend = false, stickToBottom = false } = {}) {
   if (!owner.termInner) return;
   if (!owner.transcriptItems?.length) {
     owner.destroyTranscriptVirtualScroller?.();
     owner.termInner.replaceChildren();
+    return;
+  }
+  if (owner.shouldRenderFullTranscriptWindow?.()) {
+    renderFullTranscriptWindow(owner, { stickToBottom });
     return;
   }
   if (!owner.transcriptVirtualScroller) {
