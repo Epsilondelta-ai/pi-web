@@ -89,7 +89,9 @@ export function renderVirtualTranscriptItem(owner, item) {
   return element;
 }
 
-export function renderFullTranscriptWindow(owner, { stickToBottom = false } = {}) {
+export function renderFullTranscriptWindow(owner, { preservePrepend = false, stickToBottom = false } = {}) {
+  const previousScrollHeight = owner.term?.scrollHeight || 0;
+  const previousScrollTop = owner.term?.scrollTop || 0;
   owner.destroyTranscriptVirtualScroller?.();
   const items = fallbackValue(owner.transcriptItems, []);
   owner.termInner.replaceChildren(...items.map((item) => renderVirtualTranscriptItem(owner, item)));
@@ -97,6 +99,7 @@ export function renderFullTranscriptWindow(owner, { stickToBottom = false } = {}
   owner.transcriptVisibleEnd = items.length;
   owner.syncRenderedTranscriptItemHeights?.();
   if (stickToBottom) owner.scrollTerm({ force: true });
+  else if (preservePrepend && owner.term) owner.term.scrollTop = previousScrollTop + Math.max(0, owner.term.scrollHeight - previousScrollHeight);
 }
 
 export function updateTranscriptVirtualScroller(owner, { preservePrepend = false, stickToBottom = false } = {}) {
@@ -107,7 +110,7 @@ export function updateTranscriptVirtualScroller(owner, { preservePrepend = false
     return;
   }
   if (owner.shouldRenderFullTranscriptWindow?.()) {
-    renderFullTranscriptWindow(owner, { stickToBottom });
+    renderFullTranscriptWindow(owner, { preservePrepend, stickToBottom });
     return;
   }
   if (!owner.transcriptVirtualScroller) {

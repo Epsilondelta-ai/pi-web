@@ -201,6 +201,27 @@ describe("pi-app session isolation", () => {
     expect(app.running).toBe(true);
     expect(app.querySelector(".stop-btn").hidden).toBe(false);
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+    expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: true });
+  });
+
+  it("does not replay loaded running sessions that already have committed messages", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        session: { id: "s2", title: "second", workspaceId: "w1" },
+        messages: [{ kind: "pi", text: "already committed" }],
+        status: "running",
+      }),
+    }));
+    const app = await connectedApp();
+    app.connectEvents = vi.fn();
+
+    await app.loadSession("s2");
+
+    expect(app.querySelector(".msg[data-kind='pi']").textContent).toContain("already committed");
+    expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: false });
   });
 
   it("restores running controls when deltas arrive without replayed status", async () => {

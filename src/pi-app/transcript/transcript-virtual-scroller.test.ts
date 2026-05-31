@@ -101,11 +101,20 @@ describe("transcript virtual scroller helpers", () => {
   });
 
   it("renders the full transcript while pruning is deferred", () => {
+    let scrollHeight = 500;
+    let scrollTop = 120;
+    const term = document.createElement("div");
+    Object.defineProperty(term, "scrollHeight", { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
     const owner: any = {
-      term: document.createElement("div"),
+      term,
       termInner: document.createElement("div"),
       transcriptItems: [{ id: 1 }, { id: 2 }],
-      destroyTranscriptVirtualScroller: vi.fn(),
+      destroyTranscriptVirtualScroller: vi.fn(() => { scrollHeight = 620; }),
       scrollTerm: vi.fn(),
       syncRenderedTranscriptItemHeights: vi.fn(),
       transcriptResizeObservers: new Map(),
@@ -117,13 +126,16 @@ describe("transcript virtual scroller helpers", () => {
       },
     };
 
-    renderFullTranscriptWindow(owner, { stickToBottom: true });
+    renderFullTranscriptWindow(owner, { preservePrepend: true });
 
     expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalled();
     expect(owner.termInner.querySelectorAll(".transcript-item")).toHaveLength(2);
     expect(owner.transcriptVisibleStart).toBe(0);
     expect(owner.transcriptVisibleEnd).toBe(2);
     expect(owner.syncRenderedTranscriptItemHeights).toHaveBeenCalled();
+    expect(scrollTop).toBe(240);
+
+    renderFullTranscriptWindow(owner, { stickToBottom: true });
     expect(owner.scrollTerm).toHaveBeenCalledWith({ force: true });
   });
 

@@ -252,7 +252,11 @@ export const workspaceBootstrapMethods = {
     if (sessionMessages.length) this.showSessionMain?.();
     else this.showEmptyMain?.(workspaceId || this.dataset.activeWorkspaceId || "");
     this.setMode(status || "idle");
-    this.connectEvents(session.id, { replay: false });
+    this.connectEvents(session.id, { replay: this.shouldReplayLoadedSessionEvents?.(status, sessionMessages) });
+  },
+
+  shouldReplayLoadedSessionEvents(status, messages = []) {
+    return ["running", "thinking"].includes(status) && !messages.length;
   },
 
   async loadOlderSessionMessages() {
