@@ -82,7 +82,7 @@ func TestPiUpdaterRejectsConcurrentStart(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-func TestSyncNpmPackageVersionsUpdatesManifestBeforeInstall(t *testing.T) {
+func TestSyncNpmPackageVersionsUpdatesManifestBeforeCleanInstall(t *testing.T) {
 	binDir := t.TempDir()
 	writeFakeCommand(t, binDir, "npm", "#!/bin/sh\necho npm:$@ >> \"$PI_TEST_LOG\"\nexit 0\n")
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
@@ -96,6 +96,10 @@ func TestSyncNpmPackageVersionsUpdatesManifestBeforeInstall(t *testing.T) {
 	}
 	lockPath := filepath.Join(npmDir, "package-lock.json")
 	if err := os.WriteFile(lockPath, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	nodeModulesPath := filepath.Join(npmDir, "node_modules")
+	if err := os.MkdirAll(filepath.Join(nodeModulesPath, "pkg-a"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	updates := []PiPackageUpdate{{DisplayName: "pkg-a", Type: "npm", LatestVersion: "2.0.0"}}
@@ -113,11 +117,14 @@ func TestSyncNpmPackageVersionsUpdatesManifestBeforeInstall(t *testing.T) {
 	if _, err := os.Stat(lockPath); !os.IsNotExist(err) {
 		t.Fatalf("expected package-lock.json to be removed, stat err=%v", err)
 	}
+	if _, err := os.Stat(nodeModulesPath); !os.IsNotExist(err) {
+		t.Fatalf("expected node_modules to be removed before install, stat err=%v", err)
+	}
 	logContent, err := os.ReadFile(logPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := string(logContent); got != "npm:install --legacy-peer-deps\n" {
+	if got := string(logContent); got != "npm:install\n" {
 		t.Fatalf("unexpected npm command: %q", got)
 	}
 }

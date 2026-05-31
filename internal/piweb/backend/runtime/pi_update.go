@@ -108,15 +108,15 @@ func syncNpmPackageVersions(ctx context.Context, npmDir string, updates []PiPack
 	if err := os.WriteFile(packageJSONPath, updated, 0o644); err != nil {
 		return err
 	}
-	if err := removeNpmLockfiles(npmDir); err != nil {
+	if err := resetNpmInstallState(npmDir); err != nil {
 		return err
 	}
 	return runNpmInstall(ctx, npmDir, npmCommand)
 }
 
-func removeNpmLockfiles(npmDir string) error {
-	for _, name := range []string{"package-lock.json", "package.lock.json"} {
-		if err := os.Remove(filepath.Join(npmDir, name)); err != nil && !os.IsNotExist(err) {
+func resetNpmInstallState(npmDir string) error {
+	for _, name := range []string{"node_modules", "package-lock.json", "package.lock.json"} {
+		if err := os.RemoveAll(filepath.Join(npmDir, name)); err != nil {
 			return err
 		}
 	}
@@ -146,7 +146,7 @@ func setManifestDependencyVersion(manifest map[string]any, name string, version 
 
 func runNpmInstall(ctx context.Context, dir string, npmCommand []string) error {
 	command := "npm"
-	args := []string{"install", "--legacy-peer-deps"}
+	args := []string{"install"}
 	if len(npmCommand) > 0 {
 		command = npmCommand[0]
 		args = append(append([]string{}, npmCommand[1:]...), "install")
