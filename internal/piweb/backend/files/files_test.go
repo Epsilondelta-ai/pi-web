@@ -184,7 +184,7 @@ func TestRealFileTreeDepthLimit(t *testing.T) {
 func TestWorkspaceFileMutations(t *testing.T) {
 	root := t.TempDir()
 	created, err := CreateWorkspacePath(root, "src/new.txt", "file", "hello")
-	if err != nil || created.Content != "hello" {
+	if err != nil || created.Content != "hello\n" {
 		t.Fatalf("create file: %#v %v", created, err)
 	}
 	if _, err := CreateWorkspacePath(root, "src/new.txt", "file", "again"); err == nil {

@@ -206,6 +206,9 @@ func CreateWorkspacePath(root, rel, kind, content string) (shared.FileContent, e
 	if kind != "file" {
 		return shared.FileContent{}, errors.New("kind must be file or dir")
 	}
+	if !strings.HasSuffix(content, "\n") {
+		content += "\n"
+	}
 	if err := os.WriteFile(full, []byte(content), 0o600); err != nil {
 		return shared.FileContent{}, err
 	}
