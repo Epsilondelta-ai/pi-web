@@ -248,15 +248,20 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryHasMore = !!page.hasMore;
     this.sessionHistoryLoading = false;
     const sessionMessages = messages || [];
+    const mode = status || "idle";
     this.renderMessages(sessionMessages);
-    if (sessionMessages.length) this.showSessionMain?.();
+    if (sessionMessages.length || this.isLiveSessionStatus?.(mode)) this.showSessionMain?.();
     else this.showEmptyMain?.(workspaceId || this.dataset.activeWorkspaceId || "");
-    this.setMode(status || "idle");
-    this.connectEvents(session.id, { replay: this.shouldReplayLoadedSessionEvents?.(status, sessionMessages) });
+    this.setMode(mode);
+    this.connectEvents(session.id, { replay: this.shouldReplayLoadedSessionEvents?.(mode) });
+  },
+
+  isLiveSessionStatus(status) {
+    return ["running", "thinking"].includes(status);
   },
 
   shouldReplayLoadedSessionEvents(status) {
-    return ["running", "thinking"].includes(status);
+    return this.isLiveSessionStatus(status);
   },
 
   async loadOlderSessionMessages() {

@@ -381,7 +381,7 @@ describe("pi-app transcript window", () => {
     expect(app.ensureTranscriptScrollButton()).toBe(existingButton);
   });
 
-  it("loads older messages when the user scrolls near the top", async () => {
+  it("loads older messages when an idle session scrolls near the top", async () => {
     const app = await connectPiApp();
     app.sessionHistoryHasMore = true;
     app.sessionHistoryLoading = false;
@@ -394,6 +394,19 @@ describe("pi-app transcript window", () => {
     app.handleTranscriptScroll();
 
     expect(app.loadOlderSessionMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not load older messages while a live session is streaming", async () => {
+    const app = await connectPiApp();
+    app.running = true;
+    app.sessionHistoryHasMore = true;
+    app.sessionHistoryLoading = false;
+    app.loadOlderSessionMessages = vi.fn();
+
+    app.term.scrollTop = 0;
+    app.handleTranscriptScroll();
+
+    expect(app.loadOlderSessionMessages).not.toHaveBeenCalled();
   });
 
   it("forces programmatic bottom scrolls to skip smooth behavior", async () => {

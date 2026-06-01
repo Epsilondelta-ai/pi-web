@@ -10,7 +10,7 @@ function appFixture() {
     <pi-app data-tree="on" data-sidebar="open" data-active-workspace-id="w1">
       <span class="statusbtn"></span>
       <span data-active-session-title></span>
-      <main data-main="session"><div class="term-inner"></div></main>
+      <main data-main="session"><div class="term"><div class="term-inner"></div></div></main>
       <main data-main="empty" hidden></main>
       <div class="prompt-region">
         <div class="slash-pop" hidden></div>
@@ -200,6 +200,8 @@ describe("pi-app session isolation", () => {
 
     expect(app.running).toBe(true);
     expect(app.querySelector(".stop-btn").hidden).toBe(false);
+    expect(app.querySelector("[data-main='session']").hidden).toBe(false);
+    expect(app.querySelector("[data-main='empty']").hidden).toBe(true);
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: true });
   });

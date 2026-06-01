@@ -175,6 +175,7 @@ export const transcriptWindowMethods = {
 
   shouldLoadOlderTranscriptMessages() {
     return !!this.sessionHistoryHasMore
+      && !this.running
       && !this.sessionHistoryLoading
       && (this.term?.scrollTop || 0) <= OLDER_MESSAGE_LOAD_THRESHOLD;
   },
