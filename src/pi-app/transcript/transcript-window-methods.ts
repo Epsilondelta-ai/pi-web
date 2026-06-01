@@ -292,7 +292,7 @@ export const transcriptWindowMethods = {
   },
 
   shouldRenderFullTranscriptWindow() {
-    return !this.isTermPinnedToBottom();
+    return !this.running && !this.isTermPinnedToBottom();
   },
 
   ensureTranscriptVirtualScrollerStarted() {

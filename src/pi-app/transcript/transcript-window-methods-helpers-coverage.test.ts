@@ -85,6 +85,10 @@ describe("transcript window direct method branches", () => {
     expect(owner.transcriptVirtualScrollerStarted).toBe(true);
     expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => true, running: true }))
       .toBe(false);
+    expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => false, running: true }))
+      .toBe(false);
+    expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => false, running: false }))
+      .toBe(true);
   });
 
   it("keeps following during programmatic bottom scroll frames", () => {
