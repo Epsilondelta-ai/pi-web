@@ -87,6 +87,27 @@ describe("transcript window direct method branches", () => {
       .toBe(false);
   });
 
+  it("keeps following during programmatic bottom scroll frames", () => {
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { scrollTop: 90, scrollHeight: 240, clientHeight: 100, style: {} },
+      transcriptLastScrollTop: 100,
+      transcriptFollowBottom: true,
+      scrollFrame: 1,
+      updateTranscriptScrollButton: vi.fn(),
+      shouldLoadOlderTranscriptMessages: vi.fn(() => false),
+      isTermPinnedToBottom: vi.fn(() => false),
+    };
+
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptFollowBottom).toBe(true);
+
+    owner.scrollFrame = undefined;
+    owner.term.scrollTop = 80;
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptFollowBottom).toBe(false);
+  });
+
   it("covers gesture follow-release fallbacks", () => {
     const owner: any = {
       ...transcriptWindowMethods,
