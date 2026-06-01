@@ -149,6 +149,21 @@ describe("transcript virtual scroller helpers", () => {
     expect(() => resetTranscriptVirtualSpacing({ termInner: null })).not.toThrow();
   });
 
+  it("renders a full transcript with preserve-prepend and no scroll container", () => {
+    const owner: any = {
+      term: null,
+      termInner: document.createElement("div"),
+      transcriptItems: [{ id: 1 }],
+      destroyTranscriptVirtualScroller: vi.fn(),
+      syncRenderedTranscriptItemHeights: vi.fn(),
+      transcriptResizeObservers: new Map(),
+      transcriptElementNodes: (node) => [node],
+      messageNode: () => document.createElement("div"),
+    };
+
+    expect(() => renderFullTranscriptWindow(owner, { preservePrepend: true })).not.toThrow();
+  });
+
   it("updates, restarts deferred scrollers, clears empty transcripts, and scrolls to bottom", () => {
     const termInner = document.createElement("div");
     termInner.style.paddingTop = "3000px";

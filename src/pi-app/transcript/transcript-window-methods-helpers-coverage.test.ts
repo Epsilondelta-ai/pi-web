@@ -108,6 +108,24 @@ describe("transcript window direct method branches", () => {
     expect(owner.transcriptFollowBottom).toBe(false);
   });
 
+  it("covers deferred virtual scroller startup guards", () => {
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { clientHeight: 0 },
+      transcriptVirtualScroller: { start: vi.fn() },
+      transcriptVirtualScrollerStarted: false,
+    };
+
+    owner.ensureTranscriptVirtualScrollerStarted();
+    owner.term.clientHeight = 600;
+    owner.transcriptVirtualScrollerStarted = true;
+    owner.ensureTranscriptVirtualScrollerStarted();
+    owner.transcriptVirtualScroller = undefined;
+    owner.ensureTranscriptVirtualScrollerStarted();
+
+    expect(owner.transcriptVirtualScroller).toBeUndefined();
+  });
+
   it("covers gesture follow-release fallbacks", () => {
     const owner: any = {
       ...transcriptWindowMethods,
