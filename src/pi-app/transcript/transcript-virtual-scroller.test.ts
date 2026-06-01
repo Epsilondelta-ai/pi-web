@@ -110,9 +110,12 @@ describe("transcript virtual scroller helpers", () => {
       get: () => scrollTop,
       set: (value) => { scrollTop = value; },
     });
+    const termInner = document.createElement("div");
+    termInner.style.paddingTop = "3000px";
+    termInner.style.paddingBottom = "2000px";
     const owner: any = {
       term,
-      termInner: document.createElement("div"),
+      termInner,
       transcriptItems: [{ id: 1 }, { id: 2 }],
       destroyTranscriptVirtualScroller: vi.fn(() => { scrollHeight = 620; }),
       scrollTerm: vi.fn(),
@@ -133,6 +136,8 @@ describe("transcript virtual scroller helpers", () => {
     expect(owner.transcriptVisibleStart).toBe(0);
     expect(owner.transcriptVisibleEnd).toBe(2);
     expect(owner.syncRenderedTranscriptItemHeights).toHaveBeenCalled();
+    expect(owner.termInner.style.paddingTop).toBe("");
+    expect(owner.termInner.style.paddingBottom).toBe("");
     expect(scrollTop).toBe(240);
 
     renderFullTranscriptWindow(owner, { stickToBottom: true });
@@ -141,6 +146,8 @@ describe("transcript virtual scroller helpers", () => {
 
   it("updates, restarts deferred scrollers, clears empty transcripts, and scrolls to bottom", () => {
     const termInner = document.createElement("div");
+    termInner.style.paddingTop = "3000px";
+    termInner.style.paddingBottom = "2000px";
     termInner.append(document.createElement("span"));
     const owner: any = {
       term: document.createElement("div"),
@@ -156,6 +163,8 @@ describe("transcript virtual scroller helpers", () => {
     updateTranscriptVirtualScroller(owner);
     expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalled();
     expect(termInner.children).toHaveLength(0);
+    expect(termInner.style.paddingTop).toBe("");
+    expect(termInner.style.paddingBottom).toBe("");
 
     owner.transcriptItems = [{ id: 1 }];
     owner.shouldRenderFullTranscriptWindow = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);

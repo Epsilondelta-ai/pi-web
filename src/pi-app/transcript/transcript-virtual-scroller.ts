@@ -89,10 +89,17 @@ export function renderVirtualTranscriptItem(owner, item) {
   return element;
 }
 
+export function resetTranscriptVirtualSpacing(owner) {
+  if (!owner.termInner) return;
+  owner.termInner.style.paddingTop = "";
+  owner.termInner.style.paddingBottom = "";
+}
+
 export function renderFullTranscriptWindow(owner, { preservePrepend = false, stickToBottom = false } = {}) {
   const previousScrollHeight = owner.term?.scrollHeight || 0;
   const previousScrollTop = owner.term?.scrollTop || 0;
   owner.destroyTranscriptVirtualScroller?.();
+  resetTranscriptVirtualSpacing(owner);
   const items = fallbackValue(owner.transcriptItems, []);
   owner.termInner.replaceChildren(...items.map((item) => renderVirtualTranscriptItem(owner, item)));
   owner.transcriptVisibleStart = 0;
@@ -106,6 +113,7 @@ export function updateTranscriptVirtualScroller(owner, { preservePrepend = false
   if (!owner.termInner) return;
   if (!owner.transcriptItems?.length) {
     owner.destroyTranscriptVirtualScroller?.();
+    resetTranscriptVirtualSpacing(owner);
     owner.termInner.replaceChildren();
     return;
   }
