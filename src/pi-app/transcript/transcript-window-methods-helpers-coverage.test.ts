@@ -67,6 +67,69 @@ describe("transcript window direct method branches", () => {
     expect(owner.transcriptFollowBottom).toBe(true);
   });
 
+  it("starts deferred virtual scrollers on first real scroll", () => {
+    const start = vi.fn();
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { scrollTop: 0, clientHeight: 600 },
+      transcriptVirtualScroller: { start },
+      transcriptVirtualScrollerStarted: false,
+      updateTranscriptScrollButton: vi.fn(),
+      shouldLoadOlderTranscriptMessages: vi.fn(() => false),
+      isTermPinnedToBottom: vi.fn(() => false),
+    };
+
+    owner.handleTranscriptScroll();
+
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(owner.transcriptVirtualScrollerStarted).toBe(true);
+    expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => true, running: true }))
+      .toBe(false);
+    expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => false, running: true }))
+      .toBe(false);
+    expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => false, running: false }))
+      .toBe(true);
+  });
+
+  it("keeps following during programmatic bottom scroll frames", () => {
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { scrollTop: 90, scrollHeight: 240, clientHeight: 100, style: {} },
+      transcriptLastScrollTop: 100,
+      transcriptFollowBottom: true,
+      scrollFrame: 1,
+      updateTranscriptScrollButton: vi.fn(),
+      shouldLoadOlderTranscriptMessages: vi.fn(() => false),
+      isTermPinnedToBottom: vi.fn(() => false),
+    };
+
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptFollowBottom).toBe(true);
+
+    owner.scrollFrame = undefined;
+    owner.term.scrollTop = 80;
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptFollowBottom).toBe(false);
+  });
+
+  it("covers deferred virtual scroller startup guards", () => {
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { clientHeight: 0 },
+      transcriptVirtualScroller: { start: vi.fn() },
+      transcriptVirtualScrollerStarted: false,
+    };
+
+    owner.ensureTranscriptVirtualScrollerStarted();
+    owner.term.clientHeight = 600;
+    owner.transcriptVirtualScrollerStarted = true;
+    owner.ensureTranscriptVirtualScrollerStarted();
+    owner.transcriptVirtualScroller = undefined;
+    owner.ensureTranscriptVirtualScrollerStarted();
+
+    expect(owner.transcriptVirtualScroller).toBeUndefined();
+  });
+
   it("covers gesture follow-release fallbacks", () => {
     const owner: any = {
       ...transcriptWindowMethods,
