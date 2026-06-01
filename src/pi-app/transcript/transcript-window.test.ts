@@ -512,7 +512,7 @@ describe("pi-app transcript window", () => {
     });
 
     app.scrollTerm();
-    app.markTranscriptUserScrollIntent();
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     frames.splice(0).forEach((callback) => callback(0));
@@ -542,7 +542,7 @@ describe("pi-app transcript window", () => {
     });
 
     app.scrollTerm({ force: true });
-    app.markTranscriptUserScrollIntent();
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     frames.splice(0).forEach((callback) => callback(0));
@@ -572,7 +572,7 @@ describe("pi-app transcript window", () => {
     });
 
     app.scrollTerm();
-    app.markTranscriptUserScrollIntent();
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     app.scrollTerm();
@@ -658,7 +658,7 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
-    app.markTranscriptUserScrollIntent();
+    app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     app.scrollTerm();

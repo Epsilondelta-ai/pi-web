@@ -138,21 +138,8 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
-  markTranscriptUserScrollIntent() {
-    this.transcriptUserScrollIntent = true;
-  },
-
-  consumeTranscriptUserScrollIntent() {
-    const intended = this.transcriptUserScrollIntent === true;
-    this.transcriptUserScrollIntent = false;
-    return intended;
-  },
-
   handleTranscriptUserWheel(event) {
-    if ((event?.deltaY || 0) < 0) {
-      this.markTranscriptUserScrollIntent();
-      this.stopFollowingTranscriptBottom();
-    }
+    if ((event?.deltaY || 0) < 0) this.stopFollowingTranscriptBottom();
   },
 
   handleTranscriptTouchStart(event) {
@@ -163,7 +150,6 @@ export const transcriptWindowMethods = {
     const currentY = event?.touches?.[0]?.clientY;
     const previousY = this.transcriptLastTouchY;
     if (Number.isFinite(currentY) && Number.isFinite(previousY) && currentY > previousY + 4) {
-      this.markTranscriptUserScrollIntent();
       this.stopFollowingTranscriptBottom();
     }
     this.transcriptLastTouchY = currentY;
@@ -173,12 +159,8 @@ export const transcriptWindowMethods = {
     this.ensureTranscriptVirtualScrollerStarted();
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
-    const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
-    const upwardScrollDelta = previousScrollTop - scrollTop;
-    const userScrollIntent = this.consumeTranscriptUserScrollIntent();
     if (pinned) this.transcriptFollowBottom = true;
-    else if (upwardScrollDelta > 1 && userScrollIntent) this.stopFollowingTranscriptBottom();
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
