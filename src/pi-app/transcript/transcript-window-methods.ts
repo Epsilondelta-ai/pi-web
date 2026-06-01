@@ -46,7 +46,6 @@ export const transcriptWindowMethods = {
     this.installTranscriptScrollGuard();
     this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
     this.term?.addEventListener("wheel", (event) => this.handleTranscriptUserWheel(event), { passive: true });
-    this.term?.addEventListener("pointerdown", () => this.markTranscriptUserScrollIntent(), { passive: true });
     this.term?.addEventListener("touchstart", (event) => this.handleTranscriptTouchStart(event), { passive: true });
     this.term?.addEventListener("touchmove", (event) => this.handleTranscriptTouchMove(event), { passive: true });
     this.adoptRenderedTranscript();
