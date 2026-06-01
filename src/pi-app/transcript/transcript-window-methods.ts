@@ -162,6 +162,7 @@ export const transcriptWindowMethods = {
   },
 
   handleTranscriptScroll() {
+    this.ensureTranscriptVirtualScrollerStarted();
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
     const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
@@ -287,7 +288,13 @@ export const transcriptWindowMethods = {
   },
 
   shouldRenderFullTranscriptWindow() {
-    return !!this.running || !this.isTermPinnedToBottom();
+    return !this.isTermPinnedToBottom();
+  },
+
+  ensureTranscriptVirtualScrollerStarted() {
+    if (!this.transcriptVirtualScroller || this.transcriptVirtualScrollerStarted || (this.term?.clientHeight || 0) <= 0) return;
+    this.transcriptVirtualScroller.start?.();
+    this.transcriptVirtualScrollerStarted = true;
   },
 
   renderVirtualTranscriptItem(item) {

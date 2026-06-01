@@ -67,6 +67,26 @@ describe("transcript window direct method branches", () => {
     expect(owner.transcriptFollowBottom).toBe(true);
   });
 
+  it("starts deferred virtual scrollers on first real scroll", () => {
+    const start = vi.fn();
+    const owner: any = {
+      ...transcriptWindowMethods,
+      term: { scrollTop: 0, clientHeight: 600 },
+      transcriptVirtualScroller: { start },
+      transcriptVirtualScrollerStarted: false,
+      updateTranscriptScrollButton: vi.fn(),
+      shouldLoadOlderTranscriptMessages: vi.fn(() => false),
+      isTermPinnedToBottom: vi.fn(() => false),
+    };
+
+    owner.handleTranscriptScroll();
+
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(owner.transcriptVirtualScrollerStarted).toBe(true);
+    expect(transcriptWindowMethods.shouldRenderFullTranscriptWindow.call({ isTermPinnedToBottom: () => true, running: true }))
+      .toBe(false);
+  });
+
   it("covers gesture follow-release fallbacks", () => {
     const owner: any = {
       ...transcriptWindowMethods,

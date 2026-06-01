@@ -67,6 +67,22 @@ describe("pi-app transcript virtualization", () => {
     expect(renderedMessages.at(-1).textContent).toContain("new tail message");
   });
 
+  it("keeps long running transcripts virtualized while assistant text streams", async () => {
+    const app = await connectPiApp();
+    const messages = Array.from({ length: 250 }, (_, index) => ({
+      kind: "pi",
+      text: `message ${index}`,
+    }));
+    app.renderMessages(messages);
+    app.running = true;
+
+    app.appendDelta({ kind: "pi", delta: "streaming tail" });
+
+    expect(app.transcriptItems).toHaveLength(251);
+    expect(app.querySelectorAll(".term-inner .transcript-item").length).toBeLessThan(250);
+    expect(app.querySelector(".msg.streaming").textContent).toContain("pi >");
+  });
+
   it("renders only a preview for collapsed large tool output", async () => {
     const app = await connectPiApp();
     const largeBody = `${"line\n".repeat(5000)}tail-marker`;
