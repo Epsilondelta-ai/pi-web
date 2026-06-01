@@ -204,7 +204,27 @@ describe("pi-app session isolation", () => {
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: true });
   });
 
-  it("does not replay loaded running sessions that already have committed messages", async () => {
+  it("replays loaded running sessions even when the user prompt is already stored", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        session: { id: "s2", title: "second", workspaceId: "w1" },
+        messages: [{ kind: "user", text: "prompt before streaming" }],
+        status: "running",
+      }),
+    }));
+    const app = await connectedApp();
+    app.connectEvents = vi.fn();
+
+    await app.loadSession("s2");
+
+    expect(app.querySelector(".msg[data-kind='user']").textContent).toContain("prompt before streaming");
+    expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: true });
+  });
+
+  it("does not replay idle loaded sessions", async () => {
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
@@ -212,7 +232,7 @@ describe("pi-app session isolation", () => {
       json: async () => ({
         session: { id: "s2", title: "second", workspaceId: "w1" },
         messages: [{ kind: "pi", text: "already committed" }],
-        status: "running",
+        status: "idle",
       }),
     }));
     const app = await connectedApp();
