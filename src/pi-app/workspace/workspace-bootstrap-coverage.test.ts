@@ -690,6 +690,14 @@ describe("workspace bootstrap coverage", () => {
     await app.loadSession("missing");
     app.renderGitStatus({ branch: "dev", dirty: 1 });
     app.renderWorkspaceTree(null);
+    app.renderedReplayEventSignatures = undefined;
+    expect(app.shouldSkipRenderedReplayEvent({ type: "session.message", payload: { kind: "pi" } })).toBe(false);
+    expect(app.shouldSkipRenderedReplayEvent(null)).toBe(false);
+    expect(app.replayEventSignatureForMessage(null)).toBe("");
+    expect(app.replayEventSignatureForMessage({ kind: "tool", tool: "bash", status: "running" })).toContain("tool.started");
+    expect(app.replayEventSignature("session.message", { kind: "pi" })).toContain('"text":"undefined"');
+    expect(app.replayEventSignature("", { kind: "pi" })).toBe("");
+    expect(app.replayEventSignature("session.message", null)).toBe("");
 
     expect(app.apiConnected).toBe(true);
     expect(activeLabel.textContent).toBe("one");

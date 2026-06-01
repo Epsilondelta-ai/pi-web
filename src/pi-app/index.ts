@@ -315,6 +315,7 @@ class PiApp extends HTMLElement {
 
   applyEvent(event) {
     if (!this.isCurrentSessionEvent(event)) return;
+    if (this.shouldSkipRenderedReplayEvent?.(event)) return;
     if (event.type === "heartbeat") return;
     if (event.type === "error") {
       this.notifyResponseFailure?.(event.payload?.error);
@@ -407,7 +408,11 @@ class PiApp extends HTMLElement {
     if (mode === "idle") this.finishRunningTools?.();
     if (mode === "cancelled") this.finishRunningTools?.({ status: "err", resultMeta: "cancelled" });
     this.running = willRun;
-    if (wasRunning && !willRun) void this.refreshWorkspaces?.({ quiet: true });
+    if (!wasRunning && willRun) this.renderTranscriptWindow?.({ stickToBottom: this.transcriptFollowBottom !== false });
+    if (wasRunning && !willRun) {
+      this.renderTranscriptWindow?.({ stickToBottom: this.transcriptFollowBottom !== false && this.isTermPinnedToBottom?.() });
+      void this.refreshWorkspaces?.({ quiet: true });
+    }
     if (wasRunning && mode === "idle" && this.responseReceived && !this.responseFailureToastShown && !this.fallbackChoiceNotified) {
       this.notifyResponseCompletedOnce?.();
     }

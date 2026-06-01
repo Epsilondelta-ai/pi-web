@@ -22,7 +22,9 @@ import {
   DEFAULT_TRANSCRIPT_ITEM_HEIGHT,
   TRANSCRIPT_OVERSCAN_ITEM_COUNT,
   createTranscriptVirtualScroller,
+  renderFullTranscriptWindow,
   renderVirtualTranscriptItem,
+  resetTranscriptVirtualSpacing,
   updateTranscriptVirtualScroller,
 } from "./transcript-virtual-scroller";
 
@@ -99,8 +101,58 @@ describe("transcript virtual scroller helpers", () => {
     expect(owner.transcriptResizeObservers.has(element)).toBe(false);
   });
 
+  it("renders the full transcript while pruning is deferred", () => {
+    let scrollHeight = 500;
+    let scrollTop = 120;
+    const term = document.createElement("div");
+    Object.defineProperty(term, "scrollHeight", { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+    const termInner = document.createElement("div");
+    termInner.style.paddingTop = "3000px";
+    termInner.style.paddingBottom = "2000px";
+    const owner: any = {
+      term,
+      termInner,
+      transcriptItems: [{ id: 1 }, { id: 2 }],
+      destroyTranscriptVirtualScroller: vi.fn(() => { scrollHeight = 620; }),
+      scrollTerm: vi.fn(),
+      syncRenderedTranscriptItemHeights: vi.fn(),
+      transcriptResizeObservers: new Map(),
+      transcriptElementNodes: (node) => [node],
+      messageNode: (message) => {
+        const node = document.createElement("div");
+        node.textContent = message?.text || "";
+        return node;
+      },
+    };
+
+    renderFullTranscriptWindow(owner, { preservePrepend: true });
+
+    expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalled();
+    expect(owner.termInner.querySelectorAll(".transcript-item")).toHaveLength(2);
+    expect(owner.transcriptVisibleStart).toBe(0);
+    expect(owner.transcriptVisibleEnd).toBe(2);
+    expect(owner.syncRenderedTranscriptItemHeights).toHaveBeenCalled();
+    expect(owner.termInner.style.paddingTop).toBe("");
+    expect(owner.termInner.style.paddingBottom).toBe("");
+    expect(scrollTop).toBe(240);
+
+    renderFullTranscriptWindow(owner, { stickToBottom: true });
+    expect(owner.scrollTerm).toHaveBeenCalledWith({ force: true });
+  });
+
+  it("clears virtual spacing safely without a transcript container", () => {
+    expect(() => resetTranscriptVirtualSpacing({ termInner: null })).not.toThrow();
+  });
+
   it("updates, restarts deferred scrollers, clears empty transcripts, and scrolls to bottom", () => {
     const termInner = document.createElement("div");
+    termInner.style.paddingTop = "3000px";
+    termInner.style.paddingBottom = "2000px";
     termInner.append(document.createElement("span"));
     const owner: any = {
       term: document.createElement("div"),
@@ -116,8 +168,15 @@ describe("transcript virtual scroller helpers", () => {
     updateTranscriptVirtualScroller(owner);
     expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalled();
     expect(termInner.children).toHaveLength(0);
+    expect(termInner.style.paddingTop).toBe("");
+    expect(termInner.style.paddingBottom).toBe("");
 
     owner.transcriptItems = [{ id: 1 }];
+    owner.shouldRenderFullTranscriptWindow = vi.fn().mockReturnValueOnce(true).mockReturnValue(false);
+    updateTranscriptVirtualScroller(owner, { stickToBottom: true });
+    expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalledTimes(2);
+    expect(owner.scrollTerm).toHaveBeenCalledWith({ force: true });
+
     owner.transcriptVirtualScroller = { start: vi.fn(), setItems: vi.fn() };
     owner.transcriptVirtualScrollerStarted = false;
     Object.defineProperty(owner.term, "clientHeight", { configurable: true, value: 100 });
@@ -133,7 +192,7 @@ describe("transcript virtual scroller helpers", () => {
     owner.transcriptVirtualScrollerStarted = false;
     Object.defineProperty(owner.term, "clientHeight", { configurable: true, value: 0 });
     updateTranscriptVirtualScroller(owner);
-    expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalledTimes(2);
+    expect(owner.destroyTranscriptVirtualScroller).toHaveBeenCalledTimes(3);
     expect(virtualScroller.instances.at(-1).options.readyToStart).toBe(false);
 
     owner.transcriptVirtualScroller = undefined;
