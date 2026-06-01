@@ -224,6 +224,45 @@ describe("pi-app session isolation", () => {
 
     expect(app.querySelector(".msg[data-kind='user']").textContent).toContain("prompt before streaming");
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: true });
+
+    app.applyEvent({
+      type: "session.message",
+      sessionId: "s2",
+      payload: { kind: "user", text: "prompt before streaming" },
+    });
+    app.applyEvent({
+      type: "session.delta",
+      sessionId: "s2",
+      payload: { kind: "pi", delta: "live answer" },
+    });
+    app.flushStreamingRender();
+
+    expect(app.querySelectorAll(".msg[data-kind='user']")).toHaveLength(1);
+    expect(app.querySelector(".msg.streaming").textContent).toContain("live answer");
+  });
+
+  it("does not replay loaded tool messages that are already rendered", async () => {
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => ({
+        session: { id: "s2", title: "second", workspaceId: "w1" },
+        messages: [{ kind: "tool", tool: "bash", args: "ls", status: "ok", body: "done" }],
+        status: "running",
+      }),
+    }));
+    const app = await connectedApp();
+    app.connectEvents = vi.fn();
+
+    await app.loadSession("s2");
+    app.applyEvent({
+      type: "tool.finished",
+      sessionId: "s2",
+      payload: { kind: "tool", tool: "bash", args: "ls", status: "ok", body: "done" },
+    });
+
+    expect(app.querySelectorAll(".tool-card[data-tool='bash']")).toHaveLength(1);
   });
 
   it("does not replay idle loaded sessions", async () => {

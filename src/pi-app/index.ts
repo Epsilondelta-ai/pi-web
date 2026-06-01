@@ -315,6 +315,7 @@ class PiApp extends HTMLElement {
 
   applyEvent(event) {
     if (!this.isCurrentSessionEvent(event)) return;
+    if (this.shouldSkipRenderedReplayEvent?.(event)) return;
     if (event.type === "heartbeat") return;
     if (event.type === "error") {
       this.notifyResponseFailure?.(event.payload?.error);

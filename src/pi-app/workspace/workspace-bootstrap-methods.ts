@@ -249,6 +249,7 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryLoading = false;
     const sessionMessages = messages || [];
     const mode = status || "idle";
+    this.rememberRenderedReplayMessages?.(sessionMessages);
     this.renderMessages(sessionMessages);
     if (sessionMessages.length || this.isLiveSessionStatus?.(mode)) this.showSessionMain?.();
     else this.showEmptyMain?.(workspaceId || this.dataset.activeWorkspaceId || "");
@@ -262,6 +263,39 @@ export const workspaceBootstrapMethods = {
 
   shouldReplayLoadedSessionEvents(status) {
     return this.isLiveSessionStatus(status);
+  },
+
+  rememberRenderedReplayMessages(messages = []) {
+    this.renderedReplayEventSignatures = new Set(messages.map((message) => this.replayEventSignatureForMessage(message)));
+  },
+
+  shouldSkipRenderedReplayEvent(event) {
+    if (!event) return false;
+    const signature = this.replayEventSignature(event.type, event.payload);
+    if (!signature || !this.renderedReplayEventSignatures || !this.renderedReplayEventSignatures.has(signature)) return false;
+    this.renderedReplayEventSignatures.delete(signature);
+    return true;
+  },
+
+  replayEventSignatureForMessage(message) {
+    if (!message) return "";
+    if (message.kind === "tool" && message.status === "running") return this.replayEventSignature("tool.started", message);
+    if (message.kind === "tool") return this.replayEventSignature("tool.finished", message);
+    return this.replayEventSignature("session.message", message);
+  },
+
+  replayEventSignature(type, payload) {
+    if (!type || !payload || !payload.kind) return "";
+    const key = {
+      type,
+      kind: String(payload.kind),
+      text: String(payload.text),
+      tool: String(payload.tool),
+      args: String(payload.args),
+      status: String(payload.status),
+      body: String(payload.body),
+    };
+    return JSON.stringify(key);
   },
 
   async loadOlderSessionMessages() {
