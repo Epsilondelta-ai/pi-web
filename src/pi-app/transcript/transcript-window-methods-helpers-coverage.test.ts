@@ -107,9 +107,14 @@ describe("transcript window direct method branches", () => {
     expect(owner.transcriptFollowBottom).toBe(true);
 
     owner.scrollFrame = undefined;
+    owner.term.scrollTop = 0;
+    owner.handleTranscriptScroll();
+    expect(owner.transcriptFollowBottom).toBe(true);
+
+    owner.transcriptLastScrollTop = 100;
     owner.term.scrollTop = 80;
     owner.handleTranscriptScroll();
-    expect(owner.transcriptFollowBottom).toBe(false);
+    expect(owner.transcriptFollowBottom).toBe(true);
   });
 
   it("covers deferred virtual scroller startup guards", () => {

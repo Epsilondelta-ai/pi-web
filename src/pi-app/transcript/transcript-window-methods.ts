@@ -8,7 +8,6 @@ const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
 const TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES = 12;
 const TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES = 2;
-const TRANSCRIPT_PROGRAMMATIC_SCROLL_DELTA_MAX = DEFAULT_TRANSCRIPT_ITEM_HEIGHT * 2;
 
 export function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -118,13 +117,7 @@ export const transcriptWindowMethods = {
 
   followTranscriptBottomOnce() {
     const term = this.term;
-    const baseline = this.transcriptFollowBaseline || 0;
     if (!term || this.transcriptFollowBottom === false) return false;
-    if (term.scrollTop < baseline - TRANSCRIPT_PROGRAMMATIC_SCROLL_DELTA_MAX) {
-      this.transcriptFollowBottom = false;
-      this.updateTranscriptScrollButton();
-      return false;
-    }
     this.scrollTermToBottomImmediately();
     this.updateTranscriptScrollButton();
     return this.transcriptFollowBottom !== false;
@@ -166,13 +159,8 @@ export const transcriptWindowMethods = {
     this.ensureTranscriptVirtualScrollerStarted();
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
-    const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
-    const upwardScrollDelta = previousScrollTop - scrollTop;
     if (pinned) this.transcriptFollowBottom = true;
-    else if (upwardScrollDelta > 1 && (!this.scrollFrame || upwardScrollDelta > TRANSCRIPT_PROGRAMMATIC_SCROLL_DELTA_MAX)) {
-      this.stopFollowingTranscriptBottom();
-    }
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
