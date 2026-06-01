@@ -8,7 +8,6 @@ const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
 const TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES = 12;
 const TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES = 2;
-const TRANSCRIPT_PROGRAMMATIC_SCROLL_DELTA_MAX = DEFAULT_TRANSCRIPT_ITEM_HEIGHT * 2;
 
 export function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -47,6 +46,7 @@ export const transcriptWindowMethods = {
     this.installTranscriptScrollGuard();
     this.term?.addEventListener("scroll", () => this.handleTranscriptScroll());
     this.term?.addEventListener("wheel", (event) => this.handleTranscriptUserWheel(event), { passive: true });
+    this.term?.addEventListener("pointerdown", () => this.markTranscriptUserScrollIntent(), { passive: true });
     this.term?.addEventListener("touchstart", (event) => this.handleTranscriptTouchStart(event), { passive: true });
     this.term?.addEventListener("touchmove", (event) => this.handleTranscriptTouchMove(event), { passive: true });
     this.adoptRenderedTranscript();
@@ -118,13 +118,7 @@ export const transcriptWindowMethods = {
 
   followTranscriptBottomOnce() {
     const term = this.term;
-    const baseline = this.transcriptFollowBaseline || 0;
     if (!term || this.transcriptFollowBottom === false) return false;
-    if (term.scrollTop < baseline - TRANSCRIPT_PROGRAMMATIC_SCROLL_DELTA_MAX) {
-      this.transcriptFollowBottom = false;
-      this.updateTranscriptScrollButton();
-      return false;
-    }
     this.scrollTermToBottomImmediately();
     this.updateTranscriptScrollButton();
     return this.transcriptFollowBottom !== false;
@@ -145,8 +139,21 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
+  markTranscriptUserScrollIntent() {
+    this.transcriptUserScrollIntent = true;
+  },
+
+  consumeTranscriptUserScrollIntent() {
+    const intended = this.transcriptUserScrollIntent === true;
+    this.transcriptUserScrollIntent = false;
+    return intended;
+  },
+
   handleTranscriptUserWheel(event) {
-    if ((event?.deltaY || 0) < 0) this.stopFollowingTranscriptBottom();
+    if ((event?.deltaY || 0) < 0) {
+      this.markTranscriptUserScrollIntent();
+      this.stopFollowingTranscriptBottom();
+    }
   },
 
   handleTranscriptTouchStart(event) {
@@ -157,6 +164,7 @@ export const transcriptWindowMethods = {
     const currentY = event?.touches?.[0]?.clientY;
     const previousY = this.transcriptLastTouchY;
     if (Number.isFinite(currentY) && Number.isFinite(previousY) && currentY > previousY + 4) {
+      this.markTranscriptUserScrollIntent();
       this.stopFollowingTranscriptBottom();
     }
     this.transcriptLastTouchY = currentY;
@@ -169,10 +177,9 @@ export const transcriptWindowMethods = {
     const previousScrollTop = this.transcriptLastScrollTop ?? scrollTop;
     const pinned = this.isTermPinnedToBottom();
     const upwardScrollDelta = previousScrollTop - scrollTop;
+    const userScrollIntent = this.consumeTranscriptUserScrollIntent();
     if (pinned) this.transcriptFollowBottom = true;
-    else if (upwardScrollDelta > 1 && (!this.scrollFrame || upwardScrollDelta > TRANSCRIPT_PROGRAMMATIC_SCROLL_DELTA_MAX)) {
-      this.stopFollowingTranscriptBottom();
-    }
+    else if (upwardScrollDelta > 1 && userScrollIntent) this.stopFollowingTranscriptBottom();
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();

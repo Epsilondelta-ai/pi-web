@@ -512,6 +512,7 @@ describe("pi-app transcript window", () => {
     });
 
     app.scrollTerm();
+    app.markTranscriptUserScrollIntent();
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     frames.splice(0).forEach((callback) => callback(0));
@@ -541,6 +542,7 @@ describe("pi-app transcript window", () => {
     });
 
     app.scrollTerm({ force: true });
+    app.markTranscriptUserScrollIntent();
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     frames.splice(0).forEach((callback) => callback(0));
@@ -570,7 +572,9 @@ describe("pi-app transcript window", () => {
     });
 
     app.scrollTerm();
+    app.markTranscriptUserScrollIntent();
     app.term.scrollTop = 100;
+    app.handleTranscriptScroll();
     app.scrollTerm();
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
@@ -654,6 +658,7 @@ describe("pi-app transcript window", () => {
     frames.splice(0).forEach((callback) => callback(0));
     frames.splice(0).forEach((callback) => callback(0));
 
+    app.markTranscriptUserScrollIntent();
     app.term.scrollTop = 100;
     app.handleTranscriptScroll();
     app.scrollTerm();
@@ -670,9 +675,12 @@ describe("pi-app transcript window", () => {
     expect(app.transcriptFollowBottom).toBe(true);
   });
 
-  it("treats wheel-up and touch scroll gestures as explicit bottom-follow release", async () => {
+  it("treats wheel-up, pointer, and touch scroll gestures as explicit bottom-follow release", async () => {
     const app = await connectPiApp();
     app.transcriptFollowBottom = true;
+
+    app.term.dispatchEvent(new PointerEvent("pointerdown"));
+    expect(app.consumeTranscriptUserScrollIntent()).toBe(true);
 
     app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     expect(app.transcriptFollowBottom).toBe(false);
