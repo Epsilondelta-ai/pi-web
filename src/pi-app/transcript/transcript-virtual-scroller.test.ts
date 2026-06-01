@@ -24,6 +24,7 @@ import {
   createTranscriptVirtualScroller,
   renderFullTranscriptWindow,
   renderVirtualTranscriptItem,
+  resetTranscriptVirtualSpacing,
   updateTranscriptVirtualScroller,
 } from "./transcript-virtual-scroller";
 
@@ -142,6 +143,10 @@ describe("transcript virtual scroller helpers", () => {
 
     renderFullTranscriptWindow(owner, { stickToBottom: true });
     expect(owner.scrollTerm).toHaveBeenCalledWith({ force: true });
+  });
+
+  it("clears virtual spacing safely without a transcript container", () => {
+    expect(() => resetTranscriptVirtualSpacing({ termInner: null })).not.toThrow();
   });
 
   it("updates, restarts deferred scrollers, clears empty transcripts, and scrolls to bottom", () => {
