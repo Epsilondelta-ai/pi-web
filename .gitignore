@@ -10,3 +10,4 @@ coverage/
 .pi/web-status.json
 .pi/settings.json
 .pi/pi-web.json
+.rezero/memory/
