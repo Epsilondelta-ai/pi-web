@@ -298,7 +298,7 @@ describe("api adapter", () => {
       onRunError: vi.fn(),
       onRunFinished: vi.fn(),
     };
-    const callbacks: any = {};
+    const callbacks: Record<string, (...args: unknown[]) => void> = {};
     agui.runAgent.mockImplementationOnce(async (_input, cb) => {
       Object.assign(callbacks, cb);
       cb.onRunStartedEvent();
@@ -324,7 +324,7 @@ describe("api adapter", () => {
 
   it("covers AG-UI callback fallbacks without subscribers", async () => {
     globalThis.EventSource = class {};
-    const callbacks: any = {};
+    const callbacks: Record<string, (...args: unknown[]) => void> = {};
     agui.runAgent.mockImplementationOnce(async (_input, cb) => {
       Object.assign(callbacks, cb);
       cb.onRunStartedEvent();

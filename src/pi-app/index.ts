@@ -139,7 +139,9 @@ class PiApp extends HTMLElement {
   }
 
   bindDomEvents() {
-    this.addEventListener("click", (event) => (this as any).handleAppClick(event));
+    this.addEventListener("click", (event) => {
+      (this as unknown as { handleAppClick(event: MouseEvent): void }).handleAppClick(event);
+    });
     this.querySelector("[data-path-form]")?.addEventListener("submit", (event) => this.submitWorkspacePath(event));
     this.querySelector("[data-clone-form]")?.addEventListener("submit", (event) => this.submitCloneWorkspace(event));
     this.querySelector("[data-shell-form]")?.addEventListener("submit", (event) => this.submitShellCommand(event));
@@ -219,7 +221,7 @@ class PiApp extends HTMLElement {
     window.parent?.postMessage({ type: "__edit_mode_available" }, "*");
   }
 
-  connectEvents(sessionId: string, options: any = {}) {
+  connectEvents(sessionId: string, options: { replay?: boolean } = {}) {
     this.eventSource?.close();
     const eventStreamId = Symbol(sessionId);
     this.eventStreamId = eventStreamId;
@@ -440,7 +442,7 @@ class PiApp extends HTMLElement {
     if (sessionId) this.cancelledSessionIds?.delete(sessionId);
   }
 
-  updatePromptMeta(status: any = {}) {
+  updatePromptMeta(status: { branch?: string; currentBranch?: string } = {}) {
     const meta = this.querySelector("[data-prompt-meta]");
     if (!meta) return;
     this.runtimeStatus = {

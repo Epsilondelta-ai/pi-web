@@ -4,6 +4,12 @@ import { fallbackChoicePrompt } from "./fallback-choices";
 const SHELL_PROMPT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg>`;
 const PROMPT_FILE_REF_LIMIT = 12;
 
+type PromptShellHooks = {
+  onStart?: () => void;
+  onSuccess?: () => void;
+  onFinish?: () => void;
+};
+
 const WHISPER_MODELS = {
   "tiny-q5": { id: "whisper-tiny", size: "~30MB" },
   tiny: { id: "whisper-tiny", size: "~30MB" },
@@ -179,7 +185,7 @@ export const inputMethods = {
     });
   },
 
-  async runPromptShellCommand(command, hooks: any = {}) {
+  async runPromptShellCommand(command, hooks: PromptShellHooks = {}) {
     const workspaceId = this.dataset.activeWorkspaceId;
     if (!command || !workspaceId || !this.apiConnected) return;
     hooks.onStart?.();

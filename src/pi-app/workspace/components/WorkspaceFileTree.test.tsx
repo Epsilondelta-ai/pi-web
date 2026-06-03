@@ -4,11 +4,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createWorkspaceFile, deleteWorkspaceFile, renameWorkspaceFile, searchWorkspaceFiles, uploadWorkspaceFile } from "../../../shared/api/api";
 import WorkspaceFileTree, { clearUploadInput, renderTreeContent, StatusBadge, treeRenderState } from "./WorkspaceFileTree";
 
+type MockTreeItem = {
+  children?: MockTreeItem[];
+  expanded?: boolean;
+  id: string;
+  selected?: boolean;
+  [key: string]: unknown;
+};
+
+type MockTreeProps = {
+  children: (props: { node: { data: MockTreeItem; isOpen: boolean | undefined; isSelected: boolean | undefined; select: () => void; toggle: () => void }; style: React.CSSProperties; dragHandle: null }) => React.ReactNode;
+  data?: MockTreeItem[];
+  onToggle?: (id: string) => void;
+  searchMatch?: (node: { data: MockTreeItem }, term: string) => boolean;
+  searchTerm?: string;
+};
+
+type WorkspaceTreeUpdateOverrides = {
+  files?: MockTreeItem[];
+  selectedPath?: string;
+  statusMap?: Record<string, string>;
+};
+
 vi.mock("react-arborist", () => ({
-  Tree: ({ data = [], children, searchTerm = "", searchMatch, onToggle }: any) => {
-    const renderNode = (item: any, depth = 0): React.ReactNode => {
+  Tree: ({ data = [], children, searchTerm = "", searchMatch, onToggle }: MockTreeProps) => {
+    const renderNode = (item: MockTreeItem, depth = 0): React.ReactNode => {
       const childNodes = item.children || [];
-      const childMatches = childNodes.map((child: any) => renderNode(child, depth + 1)).filter(Boolean);
+      const childMatches = childNodes.map((child: MockTreeItem) => renderNode(child, depth + 1)).filter(Boolean);
       const matches = !searchTerm || searchMatch?.({ data: item }, searchTerm) || childMatches.length > 0;
       if (!matches) return null;
       const node = {
@@ -20,7 +42,7 @@ vi.mock("react-arborist", () => ({
       };
       return <React.Fragment key={item.id}>{children({ node, style: { paddingLeft: depth * 8 }, dragHandle: null })}{childMatches}</React.Fragment>;
     };
-    return <div role="tree">{data.map((item: any) => renderNode(item))}</div>;
+    return <div role="tree">{data.map((item: MockTreeItem) => renderNode(item))}</div>;
   },
 }));
 
@@ -47,9 +69,9 @@ describe("WorkspaceFileTree", () => {
     expect(treeRenderState(0, 0)).toBe("loading");
     expect(treeRenderState(1, 0)).toBe("empty");
     expect(treeRenderState(1, 1)).toBe("tree");
-    const loadingContent = renderTreeContent("loading", null) as React.ReactElement<any>;
-    const treeContent = renderTreeContent("tree", <span />) as React.ReactElement<any>;
-    const emptyContent = renderTreeContent("empty", null) as React.ReactElement<any>;
+    const loadingContent = renderTreeContent("loading", null) as React.ReactElement<{ className?: string }>;
+    const treeContent = renderTreeContent("tree", <span />) as React.ReactElement;
+    const emptyContent = renderTreeContent("empty", null) as React.ReactElement<{ children?: React.ReactNode }>;
     expect(loadingContent.props.className).toBe("tree-empty");
     expect(treeContent.type).toBe("span");
     expect(emptyContent.props.children).toContain("검색");
@@ -286,7 +308,7 @@ describe("WorkspaceFileTree", () => {
       this.observe = observe;
       this.disconnect = disconnect;
       callback();
-    }) as any;
+    }) as unknown as typeof ResizeObserver;
     const app = document.createElement("pi-app");
     app.dataset.activeWorkspaceId = "workspace-1";
     document.body.append(app);
@@ -336,7 +358,7 @@ describe("WorkspaceFileTree", () => {
     const { host, root } = await renderTree();
     await updateTree({
       statusMap: {},
-      files: [{ type: "file", name: "README.md", path: "README.md" }],
+      files: [{ id: "README.md", type: "file", name: "README.md", path: "README.md" }],
     });
     const file = host.querySelector<HTMLButtonElement>(".tree-node.file")!;
     expect(file.querySelector(".tree-status-badge")).toBeNull();
@@ -383,7 +405,7 @@ describe("WorkspaceFileTree", () => {
       onerror: (() => void) | null = null;
       onload: (() => void) | null = null;
       readAsDataURL() { this.onerror?.(); }
-    } as any;
+    } as unknown as typeof FileReader;
     await act(async () => file.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })));
     await act(async () => {
       [...host.querySelectorAll<HTMLButtonElement>(".tree-action-menu button")]
@@ -451,7 +473,7 @@ describe("WorkspaceFileTree", () => {
       onerror: (() => void) | null = null;
       onload: (() => void) | null = null;
       readAsDataURL() { this.onload?.(); }
-    } as any;
+    } as unknown as typeof FileReader;
     await act(async () => folder.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })));
     await act(async () => {
       [...host.querySelectorAll<HTMLButtonElement>(".tree-action-menu button")]
@@ -469,7 +491,7 @@ describe("WorkspaceFileTree", () => {
       onerror: (() => void) | null = null;
       onload: (() => void) | null = null;
       readAsDataURL() { this.onerror?.(); }
-    } as any;
+    } as unknown as typeof FileReader;
     vi.spyOn(window, "alert").mockImplementation(() => undefined);
     await act(async () => folder.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })));
     await act(async () => {
@@ -530,10 +552,10 @@ describe("WorkspaceFileTree", () => {
 
   it("covers context default setter and row menu click guard", async () => {
     const reactModule = await import("react");
-    let defaultContext: any;
+    let defaultContext: { setMenu?: (target: { x: number; y: number; path: string; kind: string }) => void } | undefined;
     const actualCreateContext = reactModule.default.createContext;
     const createContext = vi.spyOn(reactModule.default, "createContext");
-    createContext.mockImplementationOnce((value: any) => {
+    createContext.mockImplementationOnce((value: { setMenu?: (target: { x: number; y: number; path: string; kind: string }) => void }) => {
       defaultContext = value;
       return actualCreateContext(value);
     });
@@ -640,7 +662,7 @@ async function renderTree() {
   return { host, root };
 }
 
-async function updateTree(overrides: any = {}) {
+async function updateTree(overrides: WorkspaceTreeUpdateOverrides = {}) {
   await act(async () => {
     window.dispatchEvent(new CustomEvent("pi-workspace-tree:update", {
       detail: {

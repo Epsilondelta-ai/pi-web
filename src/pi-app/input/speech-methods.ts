@@ -1,3 +1,25 @@
+type BrowserSpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onend: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onresult: ((event: { resultIndex: number; results: ArrayLike<{ isFinal?: boolean; 0?: { transcript?: string } }> }) => void) | null;
+  onspeechend: (() => void) | null;
+  onspeechstart: (() => void) | null;
+  onstart: (() => void) | null;
+  piManualStop?: boolean;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => BrowserSpeechRecognition;
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
 function mergeSpeechTranscript(current, next) {
   const incoming = String(next || "");
   if (!current || !incoming) return current || incoming;
@@ -82,7 +104,8 @@ export const speechMethods = {
   },
 
   startWebSpeechInput() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as SpeechRecognitionWindow).SpeechRecognition
+      || (window as SpeechRecognitionWindow).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       this.showSystemToast?.(
         "warning",

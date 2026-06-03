@@ -82,7 +82,7 @@ export const workspaceBootstrapMethods = {
     }
   },
 
-  async loadWorkspaceMeta(workspaceId, options: any = {}) {
+  async loadWorkspaceMeta(workspaceId, options: { selectedPath?: string } = {}) {
     const token = Symbol(workspaceId);
     this.workspaceMetaLoadToken = token;
     try {
@@ -132,7 +132,7 @@ export const workspaceBootstrapMethods = {
     if (git?.branch) this.updatePromptMeta({ currentBranch: git.branch });
   },
 
-  async loadWorkspaceCommands(workspaceId, options: any = {}) {
+  async loadWorkspaceCommands(workspaceId, options: { reload?: boolean } = {}) {
     try {
       const { commands, diagnostics } = await getWorkspaceCommands(workspaceId, { reload: !!options.reload });
       if (diagnostics?.length) this.renderSlashCommands(commands || [], diagnostics);
@@ -140,7 +140,7 @@ export const workspaceBootstrapMethods = {
     } catch {}
   },
 
-  async refreshWorkspaces(options: any = {}) {
+  async refreshWorkspaces(options: { quiet?: boolean } = {}) {
     if (!this.apiConnected) return;
     const button = this.querySelector("[data-action='refresh-workspaces']");
     if (button && !options.quiet) button.disabled = true;
@@ -235,7 +235,7 @@ export const workspaceBootstrapMethods = {
     this.appendTranscriptNode?.(row, { stickToBottom: false });
   },
 
-  applyLoadedSession(session, messages, status = "idle", page: any = {}) {
+  applyLoadedSession(session, messages, status = "idle", page: { cursor?: string; hasMore?: boolean } = {}) {
     this.dataset.activeSessionId = session.id;
     this.resetActiveSessionState?.();
     const workspaceId = session.workspaceId

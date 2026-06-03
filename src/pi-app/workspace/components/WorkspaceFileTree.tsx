@@ -227,7 +227,17 @@ export default function WorkspaceFileTree({ initialFiles = [], initialStatusMap 
 
 const TreeContext = React.createContext<{ setMenu: (target: MenuTarget) => void }>({ setMenu: () => {} });
 
-function FileTreeRow({ node, style, dragHandle }: any) {
+function FileTreeRow({ node, style, dragHandle }: {
+  node: {
+    data: FileTreeNode;
+    isOpen: boolean;
+    isSelected: boolean;
+    select: () => void;
+    toggle: () => void;
+  };
+  style: React.CSSProperties;
+  dragHandle?: React.Ref<HTMLDivElement> | null;
+}) {
   const { setMenu } = React.useContext(TreeContext);
   const item = node.data as FileTreeNode;
   const isDir = item.kind === "dir";
