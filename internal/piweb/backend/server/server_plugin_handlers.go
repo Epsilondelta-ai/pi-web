@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -21,7 +22,9 @@ type pluginManifest struct {
 }
 
 type pluginInstallRequest struct {
-	Path string `json:"path"`
+	Source string `json:"source"`
+	Path   string `json:"path"`
+	URL    string `json:"url"`
 }
 
 func (s *Server) plugins(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +42,7 @@ func (s *Server) installPlugin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	plugin, err := installLocalPlugin(body.Path)
+	plugin, err := installPluginRequest(body)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -107,6 +110,52 @@ func listPluginManifests() ([]pluginManifest, error) {
 	}
 	sort.Slice(plugins, func(i, j int) bool { return plugins[i].ID < plugins[j].ID })
 	return plugins, nil
+}
+
+func installPluginRequest(body pluginInstallRequest) (pluginManifest, error) {
+	source := strings.TrimSpace(body.Source)
+	if source == "" {
+		source = "local"
+	}
+	if source == "github" {
+		return installGitHubPlugin(body.URL)
+	}
+	if source != "local" {
+		return pluginManifest{}, errors.New("plugin source must be local or github")
+	}
+	return installLocalPlugin(body.Path)
+}
+
+func installGitHubPlugin(rawURL string) (pluginManifest, error) {
+	cloneURL, err := normalizeGitHubPluginURL(rawURL)
+	if err != nil {
+		return pluginManifest{}, err
+	}
+	tempDir, err := os.MkdirTemp("", "pi-web-plugin-*")
+	if err != nil {
+		return pluginManifest{}, err
+	}
+	defer os.RemoveAll(tempDir)
+	cmd := exec.Command("git", "clone", "--depth", "1", cloneURL, tempDir)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return pluginManifest{}, errors.New(strings.TrimSpace(string(output)))
+	}
+	plugin, err := readPluginManifest(tempDir)
+	if err != nil {
+		return pluginManifest{}, err
+	}
+	root := pluginRoot()
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		return pluginManifest{}, err
+	}
+	target := filepath.Join(root, plugin.ID)
+	if err := os.RemoveAll(target); err != nil {
+		return pluginManifest{}, err
+	}
+	if err := copyPluginDir(tempDir, target); err != nil {
+		return pluginManifest{}, err
+	}
+	return readPluginManifest(target)
 }
 
 func installLocalPlugin(source string) (pluginManifest, error) {
@@ -186,6 +235,24 @@ func setPluginEnabled(id string, enabled bool) error {
 	return os.WriteFile(disabledPath, []byte("disabled\n"), 0o600)
 }
 
+func normalizeGitHubPluginURL(rawURL string) (string, error) {
+	value := strings.TrimSpace(rawURL)
+	if value == "" {
+		return "", errors.New("github URL is required")
+	}
+	if strings.HasPrefix(value, "git@github.com:") {
+		return value, nil
+	}
+	if strings.HasPrefix(value, "https://github.com/") || strings.HasPrefix(value, "http://github.com/") {
+		return value, nil
+	}
+	parts := strings.Split(value, "/")
+	if len(parts) == 2 && cleanPluginID(parts[0]) != "" && cleanPluginID(strings.TrimSuffix(parts[1], ".git")) != "" {
+		return "https://github.com/" + value + ".git", nil
+	}
+	return "", errors.New("github URL must be a GitHub URL or owner/repo")
+}
+
 func cleanPluginID(id string) string {
 	id = strings.TrimSpace(id)
 	if id == "" || strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
@@ -203,6 +270,9 @@ func pluginRoot() string {
 }
 
 func copyPluginDir(source string, target string) error {
+	if err := os.MkdirAll(target, 0o700); err != nil {
+		return err
+	}
 	return filepath.WalkDir(source, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err

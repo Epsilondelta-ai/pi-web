@@ -369,7 +369,11 @@ function speechLanguageListId(path) {
             <small>Install a local folder containing plugin.json and an entry module.</small>
           </summary>
           <div class="plugin-install-row">
-            <input data-plugin-path autocomplete="off" placeholder="/Users/me/dev/pi-web-plugin" />
+            <select data-plugin-source aria-label="plugin source">
+              <option value="local">local path</option>
+              <option value="github">GitHub</option>
+            </select>
+            <input data-plugin-path autocomplete="off" placeholder="/Users/me/dev/pi-web-plugin or owner/repo" />
             <button type="button" data-action="install-plugin">install</button>
             <button type="button" data-action="reload-plugins">reload</button>
           </div>

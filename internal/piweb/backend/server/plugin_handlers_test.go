@@ -84,6 +84,42 @@ func TestPluginInstallListAssetAndUninstall(t *testing.T) {
 	}
 }
 
+func TestPluginInstallFromGitHubURL(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	source := filepath.Join(t.TempDir(), "repo")
+	if err := os.MkdirAll(source, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "plugin.json"), []byte(`{"id":"github-plugin","entry":"index.js"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "index.js"), []byte("export default () => {};"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(t.TempDir(), "bin")
+	if err := os.MkdirAll(bin, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	gitScript := "#!/bin/sh\nset -eu\ndest=\"$5\"\nmkdir -p \"$dest\"\ncp -R \"$PI_WEB_FAKE_GIT_SOURCE\"/. \"$dest\"\n"
+	if err := os.WriteFile(filepath.Join(bin, "git"), []byte(gitScript), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("PI_WEB_FAKE_GIT_SOURCE", source)
+
+	server := NewServer(Config{}, NewMockStore(), NewBroker())
+	req := httptest.NewRequest(http.MethodPost, "/api/plugins/install", strings.NewReader(`{"source":"github","url":"owner/repo"}`))
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", res.Code, res.Body.String())
+	}
+	if _, err := os.Stat(filepath.Join(home, ".pi-web", "plugins", "github-plugin", "index.js")); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestPluginInstallRejectsInvalidManifest(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

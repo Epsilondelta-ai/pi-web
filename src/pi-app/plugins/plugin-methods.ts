@@ -147,19 +147,22 @@ export const pluginMethods = {
 
   async installPluginFromForm(): Promise<void> {
     const host: PluginHost = this as PluginHost;
+    const sourceSelect: HTMLSelectElement | null = host.querySelector("[data-plugin-source]");
     const input: HTMLInputElement | null = host.querySelector("[data-plugin-path]");
-    const path: string = input?.value.trim() || "";
-    if (!path) {
-      host.showSystemToast?.("warning", "Plugin path required", "Enter a local folder containing plugin.json.");
+    const source: string = sourceSelect?.value === "github" ? "github" : "local";
+    const value: string = input?.value.trim() || "";
+    if (!value) {
+      const detail = source === "github" ? "Enter a GitHub URL or owner/repo." : "Enter a local folder containing plugin.json.";
+      host.showSystemToast?.("warning", "Plugin source required", detail);
       return;
     }
-    await installPlugin(path);
+    await installPlugin(source, value);
     if (input) {
       input.value = "";
     }
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
-    host.showSystemToast?.("success", "Plugin installed", path, `plugin-installed:${path}`);
+    host.showSystemToast?.("success", "Plugin installed", value, `plugin-installed:${source}:${value}`);
   },
 
   async togglePlugin(pluginId: string, enabled: boolean): Promise<void> {

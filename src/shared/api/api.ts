@@ -77,10 +77,11 @@ export function getPlugins() {
   return request("/api/plugins");
 }
 
-export function installPlugin(path) {
+export function installPlugin(source, value) {
+  const body = source === "github" ? { source, url: value } : { source: "local", path: value };
   return request("/api/plugins/install", {
     method: "POST",
-    body: JSON.stringify({ path }),
+    body: JSON.stringify(body),
   });
 }
 
