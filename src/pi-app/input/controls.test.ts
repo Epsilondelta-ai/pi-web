@@ -989,7 +989,7 @@ describe("pi-app controls", () => {
     const app = await connectPiApp();
     const tree = app.querySelector(".tree");
     const modal = document.createElement("div");
-    modal.dataset.filePreview = "";
+    modal.dataset.fileEditorModal = "";
     app.append(modal);
 
     app.toggleTree(true);

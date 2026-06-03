@@ -120,7 +120,7 @@ export const workspaceBootstrapMethods = {
     if (!files) return;
     this.workspaceFiles = files;
     this.workspaceFileStatuses = statusMap;
-    const selectedPath = selectedPathOverride ?? (this.filePreview?.file?.path || "");
+    const selectedPath = selectedPathOverride ?? "";
     window.dispatchEvent(new CustomEvent("pi-workspace-tree:update", {
       detail: { files, statusMap, selectedPath },
     }));

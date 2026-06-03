@@ -188,7 +188,6 @@ describe("pluginMethods", () => {
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
     await context.backend("run", { ok: true });
-    const editorModule = await context.loadCodeMirrorFileEditor();
     globalThis.fetch = vi.fn(async () => ({
       ok: false,
       text: async () => "nope",
@@ -196,7 +195,6 @@ describe("pluginMethods", () => {
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
-    expect(editorModule.CodeMirrorFileEditor).toBeTruthy();
     expect(api.apiBase).toHaveBeenCalled();
   });
 

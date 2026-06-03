@@ -43,7 +43,6 @@ type PluginContext = {
     post(path: string, body: unknown): Promise<unknown>;
   };
   backend(method: string, body: unknown): Promise<unknown>;
-  loadCodeMirrorFileEditor(): Promise<unknown>;
 };
 
 type ActivePlugin = {
@@ -218,9 +217,6 @@ export const pluginMethods = {
       backend(method: string, body: unknown): Promise<unknown> {
         const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
         return request(path, "POST", body);
-      },
-      loadCodeMirrorFileEditor(): Promise<unknown> {
-        return import("../editor/file-editor");
       },
     };
   },

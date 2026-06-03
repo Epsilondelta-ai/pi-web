@@ -95,7 +95,7 @@ describe("status method branch coverage", () => {
     el.closeTreeFromOutside({ target: el.querySelector("[data-action='toggle-plugin-sidebar']") });
     el.dataset.tree = "on";
     const insideTree = document.createElement("span");
-    insideTree.closest = (selector) => selector === ".tree, [data-action='toggle-plugin-sidebar'], [data-file-preview]" ? insideTree : null;
+    insideTree.closest = (selector) => selector === ".tree, [data-action='toggle-plugin-sidebar'], [data-file-editor-modal]" ? insideTree : null;
     el.closeTreeFromOutside({ target: insideTree, composedPath: () => [] });
     el.closeTreeFromOutside({ target: document.createElement("span"), composedPath: () => [{ matches: () => true }] });
     el.closeTreeFromOutside({ target: null, composedPath: () => [] });
