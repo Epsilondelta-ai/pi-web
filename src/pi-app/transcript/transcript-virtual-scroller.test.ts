@@ -1,9 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { TranscriptItem, TranscriptVirtualScrollerInstance, TranscriptVirtualState, TranscriptWindowOwner } from "./transcript-types";
 
-const virtualScroller = vi.hoisted(() => ({ instances: [] as any[] }));
+type MockVirtualScrollerInstance = TranscriptVirtualScrollerInstance & {
+  container: HTMLElement;
+  items: TranscriptItem[];
+  renderItem: (item: TranscriptItem) => Node;
+  options: {
+    readyToStart: boolean;
+    getScrollableContainer: () => HTMLElement;
+    getEstimatedItemHeight: () => number;
+    getEstimatedVisibleItemRowsCount: () => number;
+    getItemId: (item: TranscriptItem) => number | string | undefined;
+    initialScrollPosition?: number;
+    onStateChange: (state: TranscriptVirtualState) => void;
+    onItemUnmount: (element: Element) => void;
+  };
+};
+
+type ResizeObserverMock = ResizeObserver & { callback: () => void };
+
+const virtualScroller = vi.hoisted((): { instances: MockVirtualScrollerInstance[] } => ({ instances: [] }));
 
 vi.mock("virtual-scroller/dom", () => ({
-  default: vi.fn(function MockVirtualScroller(this: any, container, items, renderItem, options) {
+  default: vi.fn(function MockVirtualScroller(
+    this: MockVirtualScrollerInstance,
+    container: HTMLElement,
+    items: TranscriptItem[],
+    renderItem: (item: TranscriptItem) => Node,
+    options: MockVirtualScrollerInstance["options"],
+  ): void {
     this.container = container;
     this.items = items;
     this.renderItem = renderItem;
@@ -37,15 +62,15 @@ describe("transcript virtual scroller helpers", () => {
   it("creates configured scrollers with initial bottom state, overscan height, and callbacks", () => {
     const term = document.createElement("div");
     Object.defineProperty(term, "clientHeight", { configurable: true, value: 0 });
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       term,
       termInner: document.createElement("div"),
       transcriptItems: Array.from({ length: 35 }, (_, index) => ({ id: index + 1, height: index < 5 ? 10 : undefined })),
-      renderVirtualTranscriptItem: vi.fn((item) => document.createTextNode(String(item.id))),
+      renderVirtualTranscriptItem: vi.fn((item: TranscriptItem): Text => document.createTextNode(String(item.id))),
       applyTranscriptVirtualState: vi.fn(),
     };
 
-    const scroller: any = createTranscriptVirtualScroller(owner, { stickToBottom: true });
+    const scroller: MockVirtualScrollerInstance = createTranscriptVirtualScroller(owner, { stickToBottom: true }) as MockVirtualScrollerInstance;
 
     expect(scroller.options.readyToStart).toBe(false);
     expect(scroller.options.getScrollableContainer()).toBe(term);
@@ -60,33 +85,33 @@ describe("transcript virtual scroller helpers", () => {
   it("observes rendered items and disconnects observers on unmount", () => {
     const disconnect = vi.fn();
     const observe = vi.fn();
-    globalThis.ResizeObserver = vi.fn(function ResizeObserver(callback) {
+    globalThis.ResizeObserver = vi.fn(function ResizeObserver(this: ResizeObserverMock, callback: () => void): void {
       this.callback = callback;
       this.observe = observe;
       this.disconnect = disconnect;
-    }) as any;
-    const owner: any = {
+    }) as unknown as typeof ResizeObserver;
+    const owner: TranscriptWindowOwner = {
       transcriptResizeObservers: new Map(),
       notifyTranscriptItemHeightDidChange: vi.fn(),
-      transcriptElementNodes: (node) => [node],
+      transcriptElementNodes: (node?: Node | null): Element[] => node instanceof Element ? [node] : [],
       messageNode: (message) => {
-        const node = document.createElement("div");
+        const node: HTMLDivElement = document.createElement("div");
         node.textContent = message.text;
         return node;
       },
     };
-    const item: any = { id: 7, message: { text: "lazy" } };
+    const item: TranscriptItem = { id: 7, message: { text: "lazy" } };
 
     const element = renderVirtualTranscriptItem(owner, item);
 
     expect(element.dataset.transcriptItem).toBe("7");
     expect(element.textContent).toBe("lazy");
     expect(observe).toHaveBeenCalledWith(element);
-    const observer = owner.transcriptResizeObservers.get(element);
+    const observer: ResizeObserverMock = owner.transcriptResizeObservers?.get(element) as ResizeObserverMock;
     observer.callback();
     expect(owner.notifyTranscriptItemHeightDidChange).toHaveBeenCalledWith(item, element);
 
-    const scrollerOwner: any = {
+    const scrollerOwner: TranscriptWindowOwner = {
       term: document.createElement("div"),
       termInner: document.createElement("div"),
       transcriptItems: [item],
@@ -95,7 +120,7 @@ describe("transcript virtual scroller helpers", () => {
       transcriptResizeObservers: owner.transcriptResizeObservers,
     };
     Object.defineProperty(scrollerOwner.term, "clientHeight", { configurable: true, value: 100 });
-    const scroller: any = createTranscriptVirtualScroller(scrollerOwner);
+    const scroller: MockVirtualScrollerInstance = createTranscriptVirtualScroller(scrollerOwner) as MockVirtualScrollerInstance;
     scroller.options.onItemUnmount(element);
     expect(disconnect).toHaveBeenCalled();
     expect(owner.transcriptResizeObservers.has(element)).toBe(false);
@@ -114,7 +139,7 @@ describe("transcript virtual scroller helpers", () => {
     const termInner = document.createElement("div");
     termInner.style.paddingTop = "3000px";
     termInner.style.paddingBottom = "2000px";
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       term,
       termInner,
       transcriptItems: [{ id: 1 }, { id: 2 }],
@@ -122,9 +147,9 @@ describe("transcript virtual scroller helpers", () => {
       scrollTerm: vi.fn(),
       syncRenderedTranscriptItemHeights: vi.fn(),
       transcriptResizeObservers: new Map(),
-      transcriptElementNodes: (node) => [node],
+      transcriptElementNodes: (node?: Node | null): Element[] => node instanceof Element ? [node] : [],
       messageNode: (message) => {
-        const node = document.createElement("div");
+        const node: HTMLDivElement = document.createElement("div");
         node.textContent = message?.text || "";
         return node;
       },
@@ -150,15 +175,15 @@ describe("transcript virtual scroller helpers", () => {
   });
 
   it("renders a full transcript with preserve-prepend and no scroll container", () => {
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       term: null,
       termInner: document.createElement("div"),
       transcriptItems: [{ id: 1 }],
       destroyTranscriptVirtualScroller: vi.fn(),
       syncRenderedTranscriptItemHeights: vi.fn(),
       transcriptResizeObservers: new Map(),
-      transcriptElementNodes: (node) => [node],
-      messageNode: () => document.createElement("div"),
+      transcriptElementNodes: (node?: Node | null): Element[] => node instanceof Element ? [node] : [],
+      messageNode: (): HTMLDivElement => document.createElement("div"),
     };
 
     expect(() => renderFullTranscriptWindow(owner, { preservePrepend: true })).not.toThrow();
@@ -169,7 +194,7 @@ describe("transcript virtual scroller helpers", () => {
     termInner.style.paddingTop = "3000px";
     termInner.style.paddingBottom = "2000px";
     termInner.append(document.createElement("span"));
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       term: document.createElement("div"),
       termInner,
       transcriptItems: [],

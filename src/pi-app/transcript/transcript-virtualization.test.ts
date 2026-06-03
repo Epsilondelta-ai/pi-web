@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
 

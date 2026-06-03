@@ -3,6 +3,17 @@ import {
   renderVirtualTranscriptItem,
   updateTranscriptVirtualScroller,
 } from "./transcript-virtual-scroller";
+import type {
+  TranscriptItem,
+  TranscriptItemInit,
+  TranscriptMessage,
+  TranscriptRenderOptions,
+  TranscriptScrollOptions,
+  TranscriptTouchEvent,
+  TranscriptVirtualState,
+  TranscriptWheelEvent,
+  TranscriptWindowOwner,
+} from "./transcript-types";
 
 const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
@@ -10,29 +21,32 @@ const TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES = 12;
 const TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES = 2;
 export const TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY = "pi-web.transcriptFollowBottom";
 
-export function isElement(node) {
+export function isElement(node?: Node | null): node is Element {
   return node?.nodeType === Node.ELEMENT_NODE;
 }
 
-export function numericPixelValue(value) {
-  const parsed = Number.parseFloat(value || "0");
+export function numericPixelValue(value?: string): number {
+  const parsed: number = Number.parseFloat(value || "0");
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function measuredHeight(nodes) {
-  return nodes.reduce((total, node) => {
-    const height = node.getBoundingClientRect?.().height || node.offsetHeight || 0;
-    const style = globalThis.getComputedStyle?.(node);
+export function measuredHeight(nodes: Element[]): number {
+  return nodes.reduce((total: number, node: Element): number => {
+    const height: number = node.getBoundingClientRect?.().height || (node as HTMLElement).offsetHeight || 0;
+    const style: CSSStyleDeclaration | undefined = globalThis.getComputedStyle?.(node);
     return total + height + numericPixelValue(style?.marginTop) + numericPixelValue(style?.marginBottom);
   }, 0);
 }
 
-export function transcriptIndex(items, item) {
+export function transcriptIndex(
+  items: Array<TranscriptItem | null | undefined> | null | undefined,
+  item?: TranscriptItem | null,
+): number {
   if (!items) return -1;
   return items.indexOf(item);
 }
 
-export function readTranscriptBottomFollowFlag() {
+export function readTranscriptBottomFollowFlag(): boolean {
   try {
     return globalThis.localStorage?.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY) !== "false";
   } catch {
@@ -40,14 +54,14 @@ export function readTranscriptBottomFollowFlag() {
   }
 }
 
-export function writeTranscriptBottomFollowFlag(value) {
+export function writeTranscriptBottomFollowFlag(value: boolean): void {
   try {
     globalThis.localStorage?.setItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY, value ? "true" : "false");
   } catch {}
 }
 
 export const transcriptWindowMethods = {
-  initTranscriptWindow() {
+  initTranscriptWindow(this: TranscriptWindowOwner): void {
     this.term = this.querySelector(".term");
     this.transcriptItems = [];
     this.transcriptVisibleStart = 0;
@@ -68,7 +82,7 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
-  ensureTranscriptScrollButton() {
+  ensureTranscriptScrollButton(this: TranscriptWindowOwner): HTMLButtonElement | Element {
     const existingButton = this.querySelector("[data-action='scroll-bottom']");
     if (existingButton) {
       existingButton.addEventListener("click", () => this.scrollTranscriptToBottom());
@@ -87,10 +101,10 @@ export const transcriptWindowMethods = {
     return button;
   },
 
-  installTranscriptScrollGuard() {
+  installTranscriptScrollGuard(this: TranscriptWindowOwner): void {
     if (this.transcriptScrollGuardInstalled) return;
     this.transcriptScrollGuardInstalled = true;
-    this.scrollTerm = ({ force = false } = {}) => {
+    this.scrollTerm = ({ force = false }: TranscriptScrollOptions = {}): void => {
       if (!force && this.transcriptFollowBottom === false) return;
       if (force) {
         this.startFollowingTranscriptBottom();
@@ -106,7 +120,7 @@ export const transcriptWindowMethods = {
     };
   },
 
-  scheduleTranscriptBottomFollowFrame() {
+  scheduleTranscriptBottomFollowFrame(this: TranscriptWindowOwner): void {
     this.transcriptFollowBaseline = this.term?.scrollTop || 0;
     this.scrollFrame = window.requestAnimationFrame(() => {
       this.scrollFrame = undefined;
@@ -117,7 +131,7 @@ export const transcriptWindowMethods = {
     });
   },
 
-  updateTranscriptBottomFollowStability() {
+  updateTranscriptBottomFollowStability(this: TranscriptWindowOwner): void {
     const height = this.term?.scrollHeight || 0;
     if (this.isTermPinnedToBottom() && height === this.transcriptBottomFollowLastHeight) {
       this.transcriptBottomFollowStableFrames = (this.transcriptBottomFollowStableFrames || 0) + 1;
@@ -127,20 +141,20 @@ export const transcriptWindowMethods = {
     this.transcriptBottomFollowLastHeight = height;
   },
 
-  shouldContinueTranscriptBottomFollow() {
+  shouldContinueTranscriptBottomFollow(this: TranscriptWindowOwner): boolean {
     return (this.transcriptBottomFollowFramesRemaining || 0) > 0
       && (this.transcriptBottomFollowStableFrames || 0) < TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES;
   },
 
-  followTranscriptBottomOnce() {
+  followTranscriptBottomOnce(this: TranscriptWindowOwner): boolean {
     const term = this.term;
     if (!term || this.transcriptFollowBottom === false) return false;
     this.scrollTermToBottomImmediately();
     this.updateTranscriptScrollButton();
-    return this.transcriptFollowBottom !== false;
+    return Boolean(this.transcriptFollowBottom);
   },
 
-  scrollTermToBottomImmediately() {
+  scrollTermToBottomImmediately(this: TranscriptWindowOwner): void {
     const term = this.term;
     if (!term) return;
     const previousScrollBehavior = term.style.scrollBehavior;
@@ -150,13 +164,13 @@ export const transcriptWindowMethods = {
     term.style.scrollBehavior = previousScrollBehavior;
   },
 
-  startFollowingTranscriptBottom() {
+  startFollowingTranscriptBottom(this: TranscriptWindowOwner): void {
     if (this.transcriptFollowBottom === true) return;
     this.transcriptFollowBottom = true;
     writeTranscriptBottomFollowFlag(true);
   },
 
-  stopFollowingTranscriptBottom() {
+  stopFollowingTranscriptBottom(this: TranscriptWindowOwner): void {
     if (this.transcriptFollowBottom === false) return;
     this.transcriptFollowBottom = false;
     this.transcriptBottomFollowFramesRemaining = 0;
@@ -164,15 +178,15 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
-  handleTranscriptUserWheel(event) {
+  handleTranscriptUserWheel(this: TranscriptWindowOwner, event?: TranscriptWheelEvent): void {
     if ((event?.deltaY || 0) < 0) this.stopFollowingTranscriptBottom();
   },
 
-  handleTranscriptTouchStart(event) {
+  handleTranscriptTouchStart(this: TranscriptWindowOwner, event?: TranscriptTouchEvent): void {
     this.transcriptLastTouchY = event?.touches?.[0]?.clientY;
   },
 
-  handleTranscriptTouchMove(event) {
+  handleTranscriptTouchMove(this: TranscriptWindowOwner, event?: TranscriptTouchEvent): void {
     const currentY = event?.touches?.[0]?.clientY;
     const previousY = this.transcriptLastTouchY;
     if (Number.isFinite(currentY) && Number.isFinite(previousY) && currentY > previousY + 4) {
@@ -181,7 +195,7 @@ export const transcriptWindowMethods = {
     this.transcriptLastTouchY = currentY;
   },
 
-  handleTranscriptScroll() {
+  handleTranscriptScroll(this: TranscriptWindowOwner): void {
     this.ensureTranscriptVirtualScrollerStarted();
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
@@ -192,26 +206,26 @@ export const transcriptWindowMethods = {
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
   },
 
-  shouldLoadOlderTranscriptMessages() {
+  shouldLoadOlderTranscriptMessages(this: TranscriptWindowOwner): boolean {
     return !!this.sessionHistoryHasMore
       && !this.running
       && !this.sessionHistoryLoading
       && (this.term?.scrollTop || 0) <= OLDER_MESSAGE_LOAD_THRESHOLD;
   },
 
-  scrollTranscriptToBottom() {
+  scrollTranscriptToBottom(this: TranscriptWindowOwner): void {
     this.startFollowingTranscriptBottom();
     this.renderTranscriptWindow({ stickToBottom: true });
     this.scrollTerm({ force: true });
     this.updateTranscriptScrollButton();
   },
 
-  updateTranscriptScrollButton() {
+  updateTranscriptScrollButton(this: TranscriptWindowOwner): void {
     if (!this.transcriptScrollButton) return;
     this.transcriptScrollButton.hidden = this.isTermPinnedToBottom();
   },
 
-  adoptRenderedTranscript() {
+  adoptRenderedTranscript(this: TranscriptWindowOwner): void {
     const existingNodes = [...(this.termInner?.children || [])].filter(
       (node) => !node.classList.contains("transcript-spacer"),
     );
@@ -220,7 +234,7 @@ export const transcriptWindowMethods = {
     this.renderTranscriptWindow({ stickToBottom: true });
   },
 
-  resetTranscriptWindow() {
+  resetTranscriptWindow(this: TranscriptWindowOwner): void {
     this.destroyTranscriptVirtualScroller();
     this.transcriptItems = [];
     this.transcriptLastScrollTop = 0;
@@ -231,7 +245,7 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
-  destroyTranscriptVirtualScroller() {
+  destroyTranscriptVirtualScroller(this: TranscriptWindowOwner): void {
     if (this.transcriptVirtualScroller) {
       if (this.transcriptVirtualScrollerStarted) this.transcriptVirtualScroller.stop?.();
       this.transcriptVirtualScroller = undefined;
@@ -241,7 +255,11 @@ export const transcriptWindowMethods = {
     this.transcriptResizeObservers?.clear?.();
   },
 
-  createTranscriptItem(message, options: any = {}) {
+  createTranscriptItem(
+    this: TranscriptWindowOwner,
+    message?: TranscriptMessage,
+    options: TranscriptItemInit = {},
+  ): TranscriptItem {
     return {
       id: this.transcriptNextItemId++,
       message,
@@ -250,7 +268,7 @@ export const transcriptWindowMethods = {
     };
   },
 
-  appendTranscriptNode(node, { stickToBottom = true } = {}) {
+  appendTranscriptNode(this: TranscriptWindowOwner, node?: Node | null, { stickToBottom = true }: TranscriptRenderOptions = {}): void {
     const nodes = this.transcriptElementNodes(node);
     if (!nodes.length) return;
     this.transcriptItems = [
@@ -260,14 +278,14 @@ export const transcriptWindowMethods = {
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom });
   },
 
-  removeTranscriptNode(node) {
+  removeTranscriptNode(this: TranscriptWindowOwner, node?: Element | null): void {
     if (!node || !this.transcriptItems?.length) return;
     this.transcriptItems = this.transcriptItems.filter((item) => !item?.nodes?.includes(node));
     node.remove?.();
     if (!this.deferTranscriptRender) this.renderTranscriptWindow({ stickToBottom: false });
   },
 
-  replaceTranscriptNode(oldNode, newNode) {
+  replaceTranscriptNode(this: TranscriptWindowOwner, oldNode: Element, newNode?: Node | null): boolean {
     const nodes = this.transcriptElementNodes(newNode);
     const item = this.transcriptItems?.find((candidate) => candidate?.nodes?.includes(oldNode));
     if (!item || !nodes.length) return false;
@@ -279,21 +297,24 @@ export const transcriptWindowMethods = {
     return true;
   },
 
-  transcriptElementNodes(node) {
+  transcriptElementNodes(this: TranscriptWindowOwner, node?: Node | null): Element[] {
     if (!node) return [];
     if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) return [...node.childNodes].filter(isElement);
     return isElement(node) ? [node] : [];
   },
 
-  isTranscriptVirtualized() {
+  isTranscriptVirtualized(this: TranscriptWindowOwner): boolean {
     return !!this.transcriptVirtualScroller;
   },
 
-  scheduleTranscriptWindowRender() {
+  scheduleTranscriptWindowRender(this: TranscriptWindowOwner): void {
     this.transcriptVirtualScroller?.virtualScroller?.updateLayout?.();
   },
 
-  renderTranscriptWindow({ stickToBottom = false, preservePrepend = false } = {}) {
+  renderTranscriptWindow(
+    this: TranscriptWindowOwner,
+    { stickToBottom = false, preservePrepend = false }: TranscriptRenderOptions = {},
+  ): void {
     const pinned = stickToBottom && this.shouldStickToBottom();
     updateTranscriptVirtualScroller(this, { preservePrepend, stickToBottom: pinned });
     if (pinned) this.scrollTerm({ force: true });
@@ -301,25 +322,25 @@ export const transcriptWindowMethods = {
     this.updateTranscriptScrollButton();
   },
 
-  shouldStickToBottom() {
+  shouldStickToBottom(this: TranscriptWindowOwner): boolean {
     return this.transcriptFollowBottom !== false;
   },
 
-  shouldRenderFullTranscriptWindow() {
+  shouldRenderFullTranscriptWindow(this: TranscriptWindowOwner): boolean {
     return !this.running && !this.isTermPinnedToBottom();
   },
 
-  ensureTranscriptVirtualScrollerStarted() {
+  ensureTranscriptVirtualScrollerStarted(this: TranscriptWindowOwner): void {
     if (!this.transcriptVirtualScroller || this.transcriptVirtualScrollerStarted || (this.term?.clientHeight || 0) <= 0) return;
     this.transcriptVirtualScroller.start?.();
     this.transcriptVirtualScrollerStarted = true;
   },
 
-  renderVirtualTranscriptItem(item) {
+  renderVirtualTranscriptItem(this: TranscriptWindowOwner, item: TranscriptItem): Element {
     return renderVirtualTranscriptItem(this, item);
   },
 
-  applyTranscriptVirtualState(state) {
+  applyTranscriptVirtualState(this: TranscriptWindowOwner, state: TranscriptVirtualState): void {
     this.transcriptVisibleStart = state.firstShownItemIndex || 0;
     this.transcriptVisibleEnd = (state.lastShownItemIndex || 0) + 1;
     state.itemHeights?.forEach((height, index) => {
@@ -327,7 +348,7 @@ export const transcriptWindowMethods = {
     });
   },
 
-  measureTranscriptItem(item, element) {
+  measureTranscriptItem(this: TranscriptWindowOwner, item: TranscriptItem | null | undefined, element: Element): boolean {
     const height = measuredHeight([element]);
     const previousHeight = item?.height;
     if (height > 0) item.height = height;
@@ -335,7 +356,7 @@ export const transcriptWindowMethods = {
       && (previousHeight === undefined || Math.abs(previousHeight - height) > TRANSCRIPT_HEIGHT_CHANGE_EPSILON);
   },
 
-  notifyTranscriptNodeHeightDidChange(node) {
+  notifyTranscriptNodeHeightDidChange(this: TranscriptWindowOwner, node?: Element | null): void {
     const itemElement = node?.closest?.(".transcript-item");
     const itemId = itemElement?.dataset?.transcriptItem;
     const item = itemId
@@ -344,7 +365,7 @@ export const transcriptWindowMethods = {
     this.notifyTranscriptItemHeightDidChange(item, itemElement);
   },
 
-  notifyTranscriptItemHeightDidChange(item, element) {
+  notifyTranscriptItemHeightDidChange(this: TranscriptWindowOwner, item?: TranscriptItem | null, element?: Element | null): void {
     if (!item) return;
     const itemElement = element || this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
     if (!itemElement?.isConnected || !this.termInner?.contains?.(itemElement)) return;
@@ -355,12 +376,12 @@ export const transcriptWindowMethods = {
     if (this.transcriptFollowBottom !== false && (changed || this.isTermPinnedToBottom())) this.scrollTerm({ force: true });
   },
 
-  isTranscriptItemVisible(item) {
+  isTranscriptItemVisible(this: TranscriptWindowOwner, item?: TranscriptItem | null): boolean {
     const index = transcriptIndex(this.transcriptItems, item);
     return index >= this.transcriptVisibleStart && index < this.transcriptVisibleEnd;
   },
 
-  isTranscriptItemVisibleInScroller(item) {
+  isTranscriptItemVisibleInScroller(this: TranscriptWindowOwner, item?: TranscriptItem | null): boolean {
     const index = transcriptIndex(this.transcriptItems, item);
     if (index < 0) return false;
     const state = this.transcriptVirtualScroller?.getState?.();
@@ -368,7 +389,7 @@ export const transcriptWindowMethods = {
     return index >= (state.firstShownItemIndex || 0) && index <= (state.lastShownItemIndex || 0);
   },
 
-  measureRenderedTranscriptItems() {
+  measureRenderedTranscriptItems(this: TranscriptWindowOwner): void {
     for (const item of this.transcriptItems || []) {
       if (!item) continue;
       const element = this.termInner?.querySelector(`[data-transcript-item='${item.id}']`);
@@ -376,7 +397,7 @@ export const transcriptWindowMethods = {
     }
   },
 
-  syncRenderedTranscriptItemHeights() {
+  syncRenderedTranscriptItemHeights(this: TranscriptWindowOwner): void {
     this.termInner?.querySelectorAll(".transcript-item[data-transcript-item]").forEach((element) => {
       const itemId = element.dataset.transcriptItem;
       const item = this.transcriptItems?.find((candidate) => String(candidate?.id) === itemId);
@@ -384,24 +405,24 @@ export const transcriptWindowMethods = {
     });
   },
 
-  transcriptRangeHeight(start, end) {
+  transcriptRangeHeight(this: TranscriptWindowOwner, start: number, end: number): number {
     let height = 0;
     for (let index = start; index < end; index += 1) height += this.transcriptItemHeight(index);
     return height;
   },
 
-  transcriptItemNodes(index) {
+  transcriptItemNodes(this: TranscriptWindowOwner, index: number): Element[] {
     const item = this.transcriptItems[index];
     if (!item) return [];
     if (!item.nodes && item.message) item.nodes = this.transcriptElementNodes(this.messageNode(item.message));
     return item.nodes || [];
   },
 
-  transcriptItemHeight(index) {
+  transcriptItemHeight(this: TranscriptWindowOwner, index: number): number {
     return this.transcriptItems[index]?.height || DEFAULT_TRANSCRIPT_ITEM_HEIGHT;
   },
 
-  isTermPinnedToBottom() {
+  isTermPinnedToBottom(this: TranscriptWindowOwner): boolean {
     const term = this.term;
     if (!term) return true;
     return term.scrollHeight - term.scrollTop - term.clientHeight < 48;
