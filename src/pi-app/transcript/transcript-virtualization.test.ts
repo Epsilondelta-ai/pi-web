@@ -77,9 +77,10 @@ describe("pi-app transcript virtualization", () => {
 
     app.appendDelta({ kind: "pi", delta: "streaming tail" });
 
-    expect(app.transcriptItems).toHaveLength(251);
+    expect(app.transcriptItems).toHaveLength(252);
     expect(app.querySelectorAll(".term-inner .transcript-item").length).toBeLessThan(250);
     expect(app.querySelector(".msg.streaming").textContent).toContain("pi >");
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
   });
 
   it("renders only a preview for collapsed large tool output", async () => {

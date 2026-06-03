@@ -15,7 +15,11 @@ describe("pi-app sessions", () => {
     const row = app.createSessionRow("w1", { id: "s1", title: "demo", lastUsed: "now" });
     app.append(row);
     const toggle = row.querySelector("[data-action='session-menu-toggle']");
+    const outsideClick = vi.fn();
+    window.addEventListener("click", outsideClick);
     toggle.click();
+    window.removeEventListener("click", outsideClick);
+    expect(outsideClick).not.toHaveBeenCalled();
     expect(row.querySelector(".session-menu").hidden).toBe(false);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
   });
@@ -150,7 +154,7 @@ describe("pi-app sessions", () => {
     expect(app.prompt.value).toBe("");
   });
 
-  it("waits for the backend prompt echo when connected", async () => {
+  it("shows local prompt and waits for backend response when connected", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
@@ -166,14 +170,14 @@ describe("pi-app sessions", () => {
     app.append(app.createSessionRow("w1", { id: "s1", title: "demo", lastUsed: "now" }));
 
     await app.submitPrompt();
-    expect(app.querySelector(".msg[data-kind='user']")).toBeNull();
+    expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toBe("hello");
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(true);
     expect(app.querySelector("[data-session='s1'] .meta").textContent).toBe("waiting");
 
     app.applyEvent({ type: "session.message", payload: { kind: "user", text: "hello" } });
     expect(app.querySelectorAll(".msg[data-kind='user']")).toHaveLength(1);
-    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     app.applyEvent({ type: "session.status", payload: { status: "idle" } });
     expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(false);
   });

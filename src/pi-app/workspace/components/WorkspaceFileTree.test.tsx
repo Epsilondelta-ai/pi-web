@@ -245,11 +245,7 @@ describe("WorkspaceFileTree", () => {
     const file = new File(["hello"], "note.txt", { type: "text/plain" });
     const files = { 0: file, length: 1, item: () => file, [Symbol.iterator]: function* () { yield file; } };
     Object.defineProperty(input, "files", { configurable: true, value: files });
-    await act(async () => {
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      await Promise.resolve();
-    });
+    await dispatchFileInputChange(input, 2);
 
     expect(uploadWorkspaceFile).toHaveBeenNthCalledWith(1, "workspace-1", "src/note.txt", "aGVsbG8=", false);
     expect(uploadWorkspaceFile).toHaveBeenNthCalledWith(2, "workspace-1", "src/note.txt", "aGVsbG8=", true);
@@ -337,10 +333,7 @@ describe("WorkspaceFileTree", () => {
     const input = host.querySelector<HTMLInputElement>("input[type='file']")!;
     const upload = new File(["x"], "leaf.txt", { type: "text/plain" });
     Object.defineProperty(input, "files", { configurable: true, value: { 0: upload, length: 1, item: () => upload, [Symbol.iterator]: function* () { yield upload; } } });
-    await act(async () => {
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    await dispatchFileInputChange(input, 1);
     expect(uploadWorkspaceFile).toHaveBeenCalledWith("workspace-1", "src/leaf.txt", "eA==", false);
     expect(window.alert).toHaveBeenCalledWith("plain failure");
 
@@ -393,10 +386,7 @@ describe("WorkspaceFileTree", () => {
     const input = host.querySelector<HTMLInputElement>("input[type='file']")!;
     const upload = new File(["x"], "root.txt", { type: "text/plain" });
     Object.defineProperty(input, "files", { configurable: true, value: { 0: upload, length: 1, item: () => upload, [Symbol.iterator]: function* () { yield upload; } } });
-    await act(async () => {
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    await dispatchFileInputChange(input, 1);
     expect(uploadWorkspaceFile).toHaveBeenCalledWith("workspace-1", "root.txt", "eA==", false);
 
     const NativeFileReader = globalThis.FileReader;
@@ -459,10 +449,7 @@ describe("WorkspaceFileTree", () => {
     const one = new File(["one"], "one.txt", { type: "text/plain" });
     const two = new File(["two"], "two.txt", { type: "text/plain" });
     Object.defineProperty(input, "files", { configurable: true, value: { 0: one, 1: two, length: 2, item: (index: number) => [one, two][index], [Symbol.iterator]: function* () { yield one; yield two; } } });
-    await act(async () => {
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    });
+    await dispatchFileInputChange(input, 2);
     expect(uploadWorkspaceFile).toHaveBeenCalledWith("workspace-1", "src/one.txt", "b25l", false);
     expect(uploadWorkspaceFile).toHaveBeenCalledWith("workspace-1", "src/two.txt", "dHdv", false);
 
@@ -684,6 +671,13 @@ async function updateTree(overrides: WorkspaceTreeUpdateOverrides = {}) {
 
 function setInputValue(input: HTMLInputElement, value: string) {
   Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set?.call(input, value);
+}
+
+async function dispatchFileInputChange(input: HTMLInputElement, expectedUploadCalls: number) {
+  await act(async () => {
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await vi.waitFor(() => expect(uploadWorkspaceFile).toHaveBeenCalledTimes(expectedUploadCalls));
 }
 
 async function cleanup(root, host) {

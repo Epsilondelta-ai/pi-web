@@ -457,11 +457,12 @@ describe("pi-app messages", () => {
   it("streams assistant deltas before the final message", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
+    app.setMode("running");
     app.appendLoadingMessage();
     app.appendDelta({ kind: "pi", delta: "hel" });
     app.appendDelta({ kind: "pi", delta: "lo" });
     app.flushStreamingRender();
-    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     expect(app.querySelector(".msg.streaming .body").textContent).toBe("hello");
   });
 
