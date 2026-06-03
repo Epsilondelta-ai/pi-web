@@ -13,7 +13,7 @@ import { pluginMethods } from "./plugins/plugin-methods";
 import { sessionMethods } from "./sessions/session-methods";
 import { layoutMethods } from "./status/layout-methods";
 import { runtimeStatusMethods } from "./status/runtime-status-methods";
-import { toastMethods } from "./status/toast-methods";
+import { notificationMethods } from "./status/notification-methods";
 import { versionMethods } from "./status/version-methods";
 import { transcriptWindowMethods } from "./transcript/transcript-window-methods";
 import { oauthMethods } from "./workspace/oauth-methods";
@@ -96,7 +96,6 @@ class PiApp extends HTMLElement {
     if (this.piUpdateTimer) clearInterval(this.piUpdateTimer);
     if (this.updateTipTimer) clearTimeout(this.updateTipTimer);
     if (this.connectionErrorTimer) clearTimeout(this.connectionErrorTimer);
-    this.toastDismissObserver?.disconnect?.();
     if (this.streamingRenderFrame) window.cancelAnimationFrame(this.streamingRenderFrame);
     if (this.scrollFrame) window.cancelAnimationFrame(this.scrollFrame);
     this.destroyTranscriptVirtualScroller?.();
@@ -502,7 +501,7 @@ Object.assign(
   attachmentMethods,
   filePreviewMethods,
   layoutMethods,
-  toastMethods,
+  notificationMethods,
   pluginMethods,
   runtimeStatusMethods,
   settingsMethods,

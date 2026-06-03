@@ -11,7 +11,7 @@ src/pi-app/
 ├── input/            # prompt input, attachments, drafts, fallback choices
 ├── messages/         # transcript message and tool output rendering
 ├── sessions/         # session list, hierarchy, storage, and switching
-├── status/           # runtime status, version, layout, and toast UI
+├── status/           # runtime status, version, layout, and notification helpers
 ├── transcript/       # virtualized transcript window helpers
 └── workspace/        # workspace bootstrap, folders, settings, and rendering
     └── components/   # workspace-owned React components

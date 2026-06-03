@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { layoutMethods } from "./layout-methods";
 import { runtimeStatusMethods } from "./runtime-status-methods";
-import { toastMethods } from "./toast-methods";
+import { notificationMethods } from "./notification-methods";
 import { versionMethods } from "./version-methods";
 import * as api from "../../shared/api/api";
 
@@ -31,7 +31,7 @@ afterEach(() => {
 function host(html = "") {
   const el = document.createElement("div");
   el.innerHTML = html;
-  Object.assign(el, layoutMethods, versionMethods, runtimeStatusMethods, toastMethods);
+  Object.assign(el, layoutMethods, versionMethods, runtimeStatusMethods, notificationMethods);
   el.dataset.activeWorkspaceId = "w1";
   el.dataset.activeSessionId = "s1";
   el.apiConnected = true;
@@ -230,16 +230,13 @@ describe("status method branch coverage", () => {
     el.applyRuntimeStatus(undefined);
   });
 
-  it("covers toast helper and watch branches", () => {
+  it("covers notification helper and watch branches", () => {
     const el = host(`<span data-active-workspace>w</span><span data-active-session-title>s</span>`);
     el.setConnection = vi.fn();
     el.pickSession = vi.fn();
     el.markSessionRunning = vi.fn();
     el.updateSessionMeta = vi.fn();
     el.syncActiveWorkspaceRows = vi.fn();
-    el.handleToastClick();
-    expect(el.showSystemToast("warning", "T", "D", "k")).toBeTruthy();
-    expect(el.showSystemToast("warning", "T", "D", "k")).toBeUndefined();
     el.notifyUpdateAvailable({});
     el.notifyPiUpdateAvailable({ note: "note" });
     const term = document.createElement("div");
@@ -268,12 +265,7 @@ describe("status method branch coverage", () => {
     el.notifyResponseCompletedOnce({ sessionId: "other" });
     el.notifyResponseCompletedOnce({ sessionId: "other" });
     el.notifyChoiceRequested("workspace-only");
-    const savedNotyf = el.notyf;
-    el.notyf = undefined;
-    document.querySelector(".notyf")?.remove();
-    el.syncToastDismissAll();
-    el.notyf = savedNotyf;
-    el.dismissAllToasts();
+    expect(el.currentNotificationContext().workspaceName).toBe("w");
 
     expect(el.readLastSessionPrompts()).toEqual({});
     localStorage.setItem("piweb:last-session-prompts", "[]");
@@ -316,9 +308,6 @@ describe("status method branch coverage", () => {
     el.handleBackgroundSessionEvent({ type: "error", payload: { error: "boom" } }, watch);
     el.handleBackgroundSessionEvent({ type: "session.status", sessionId: "s2", payload: { status: "idle" } }, watch);
     el.dismissBackgroundSessionWatch("s2", watch);
-    el.activateToastSession("");
-    el.activateToastSession("s1");
-    el.activateToastSession("s2");
     el.clearUnreadCompletedSession("");
     const staleWatch = { source: { close: vi.fn() }, row };
     el.backgroundSessionWatches = new Map([["s2", watch], ["stale", staleWatch]]);

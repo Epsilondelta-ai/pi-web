@@ -8,14 +8,6 @@ type PluginManifest = {
   enabled?: boolean;
 };
 
-type PluginToastInput = {
-  type?: "success" | "choice" | "warning" | "error" | "connection";
-  title: string;
-  detail?: string;
-  key?: string;
-  html?: string;
-};
-
 type PluginModule = {
   default?: (context: PluginContext) => unknown;
   activate?: (context: PluginContext) => unknown;
@@ -24,10 +16,6 @@ type PluginModule = {
 type PluginContext = {
   app: HTMLElement;
   plugin: PluginManifest;
-  toast: {
-    show(input: PluginToastInput): unknown;
-    dismissAll(): void;
-  };
   api: {
     get(path: string): Promise<unknown>;
     post(path: string, body: unknown): Promise<unknown>;
@@ -37,8 +25,6 @@ type PluginContext = {
 type PluginHost = HTMLElement & {
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
-  showSystemToast?: (type: string, title: string, detail: string, key?: string) => unknown;
-  dismissAllToasts?: () => void;
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
@@ -108,7 +94,7 @@ export const pluginMethods = {
         }
         host.loadedPlugins.add(plugin.id);
       } catch (error) {
-        host.showSystemToast?.("error", `Plugin failed: ${pluginLabel(plugin)}`, String(error), `plugin:${plugin.id}:error`);
+        console.error(`Plugin failed: ${pluginLabel(plugin)}`, error);
       }
     }
   },
@@ -118,15 +104,6 @@ export const pluginMethods = {
     return {
       app: host,
       plugin,
-      toast: {
-        show(input: PluginToastInput): unknown {
-          const title = `[${pluginLabel(plugin)}] ${input.title}`;
-          return host.showSystemToast?.(input.type || "warning", title, input.detail || input.html || "", input.key);
-        },
-        dismissAll(): void {
-          host.dismissAllToasts?.();
-        },
-      },
       api: {
         get(path: string): Promise<unknown> {
           return request(path, "GET");
@@ -142,7 +119,7 @@ export const pluginMethods = {
     const host: PluginHost = this as PluginHost;
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
-    host.showSystemToast?.("success", "Plugins reloaded", "Installed plugins were activated again.", "plugins:reloaded");
+    console.info("Plugins reloaded");
   },
 
   async installPluginFromForm(): Promise<void> {
@@ -153,7 +130,7 @@ export const pluginMethods = {
     const value: string = input?.value.trim() || "";
     if (!value) {
       const detail = source === "github" ? "Enter a GitHub URL or owner/repo." : "Enter a local folder containing plugin.json.";
-      host.showSystemToast?.("warning", "Plugin source required", detail);
+      console.warn(detail);
       return;
     }
     await installPlugin(source, value);
@@ -162,7 +139,7 @@ export const pluginMethods = {
     }
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
-    host.showSystemToast?.("success", "Plugin installed", value, `plugin-installed:${source}:${value}`);
+    console.info(`Plugin installed: ${source}:${value}`);
   },
 
   async togglePlugin(pluginId: string, enabled: boolean): Promise<void> {
@@ -173,7 +150,7 @@ export const pluginMethods = {
     await setPluginEnabled(pluginId, !enabled);
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
-    host.showSystemToast?.("success", "Plugin updated", pluginId, `plugin-updated:${pluginId}:${!enabled}`);
+    console.info(`Plugin updated: ${pluginId}:${!enabled}`);
   },
 
   async uninstallPluginById(pluginId: string): Promise<void> {
@@ -184,6 +161,6 @@ export const pluginMethods = {
     await uninstallPlugin(pluginId);
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
-    host.showSystemToast?.("success", "Plugin removed", pluginId, `plugin-removed:${pluginId}`);
+    console.info(`Plugin removed: ${pluginId}`);
   },
 };

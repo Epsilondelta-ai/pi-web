@@ -63,6 +63,11 @@ function whisperCacheMarkerKey(model) {
   return `pi-web:whisper-model:${whisperPreset(model).id}`;
 }
 
+function reportSpeechWarning(host, title, detail) {
+  host.setWhisperStatus?.(`${title}: ${detail}`, true);
+  console.warn(`${title}: ${detail}`);
+}
+
 function appendTranscriptToPrompt(prompt, basePrompt, transcript) {
   const cleanTranscript = String(transcript || "").trimStart();
   const needsSpace = basePrompt
@@ -88,11 +93,10 @@ export const speechMethods = {
   startSpeechInput() {
     if (!this.enableSpeechInput || !this.prompt) return;
     if (this.speechInputAllowed?.() !== true) {
-      this.showSystemToast?.(
-        "warning",
+      reportSpeechWarning(
+        this,
         "음성 입력 보안 컨텍스트 필요",
         "음성 입력은 HTTPS 또는 localhost 같은 보안 컨텍스트에서만 사용할 수 있습니다.",
-        "speech-input:insecure-context",
       );
       return;
     }
@@ -107,11 +111,10 @@ export const speechMethods = {
     const SpeechRecognition = (window as SpeechRecognitionWindow).SpeechRecognition
       || (window as SpeechRecognitionWindow).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      this.showSystemToast?.(
-        "warning",
+      reportSpeechWarning(
+        this,
         "음성 입력 미지원",
         "이 브라우저는 Web Speech API 음성 입력을 지원하지 않습니다. Chrome/Safari에서 사용하세요.",
-        "speech-input:unsupported",
       );
       return;
     }
@@ -156,7 +159,7 @@ export const speechMethods = {
     };
     recognition.onerror = (event) => {
       if (!recognition.piManualStop && event.error !== "no-speech" && event.error !== "aborted") {
-        this.showSystemToast?.("warning", "음성 입력 오류", event.error || "음성 입력을 시작하지 못했습니다.", `speech-input:${event.error || "error"}`);
+        reportSpeechWarning(this, "음성 입력 오류", event.error || "음성 입력을 시작하지 못했습니다.");
       }
     };
     recognition.onend = () => {
@@ -175,13 +178,13 @@ export const speechMethods = {
       this.speechRecognition = null;
       this.speechListening = false;
       this.syncSpeechInputControls();
-      this.showSystemToast?.("warning", "음성 입력 오류", error instanceof Error ? error.message : String(error), "speech-input:start");
+      reportSpeechWarning(this, "음성 입력 오류", error instanceof Error ? error.message : String(error));
     }
   },
 
   async startLocalWhisperInput() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      this.showSystemToast?.("warning", "Whisper 녹음 미지원", "이 브라우저는 로컬 녹음을 지원하지 않습니다.", "speech-input:recorder");
+      reportSpeechWarning(this, "Whisper 녹음 미지원", "이 브라우저는 로컬 녹음을 지원하지 않습니다.");
       return;
     }
     this.stopSpeechInput();
@@ -208,7 +211,7 @@ export const speechMethods = {
       this.speechRecorder = null;
       this.speechListening = false;
       this.syncSpeechInputControls();
-      this.showSystemToast?.("warning", "Whisper 녹음 오류", error instanceof Error ? error.message : String(error), "speech-input:record");
+      reportSpeechWarning(this, "Whisper 녹음 오류", error instanceof Error ? error.message : String(error));
     }
   },
 
@@ -231,7 +234,7 @@ export const speechMethods = {
     } catch (error) {
       const message = this.whisperErrorMessage(error);
       this.setWhisperStatus(message, true);
-      this.showSystemToast?.("warning", "Whisper 변환 오류", message, "speech-input:whisper");
+      reportSpeechWarning(this, "Whisper 변환 오류", message);
     }
   },
 
@@ -294,7 +297,7 @@ export const speechMethods = {
       await this.updateWhisperCacheStatus();
     } catch (error) {
       this.setWhisperStatus("download failed", true);
-      this.showSystemToast?.("warning", "Whisper 다운로드 오류", error instanceof Error ? error.message : String(error), "speech-input:download");
+      reportSpeechWarning(this, "Whisper 다운로드 오류", error instanceof Error ? error.message : String(error));
     }
   },
 
