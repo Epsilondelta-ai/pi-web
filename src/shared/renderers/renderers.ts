@@ -39,7 +39,7 @@ function renderCodeBlock(code, language = "") {
   ].join("");
 }
 
-export function renderMarkdownBody(text) {
+function renderMarkdownBody(text) {
   return markdown.render(String(text ?? "")).trim();
 }
 

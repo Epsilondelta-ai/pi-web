@@ -213,7 +213,7 @@ const nullishString = z.string().nullable().optional();
 const nullishBoolean = z.boolean().nullable().optional();
 const nullishNumber = z.number().nullable().optional();
 
-export const settingsPatchSchema = z.object({
+const settingsPatchSchema = z.object({
   defaultProvider: nullishString,
   defaultModel: nullishString,
   defaultThinkingLevel: thinkingLevelSchema.nullable().optional(),
@@ -268,7 +268,7 @@ export const settingsPatchSchema = z.object({
   warnings: z.object({ anthropicExtraUsage: nullishBoolean }).partial().passthrough().optional(),
 }).partial().passthrough();
 
-export const workspaceSettingsSchema = z.object({
+const workspaceSettingsSchema = z.object({
   global: settingsObjectSchema,
   project: settingsObjectSchema,
   effective: settingsObjectSchema,
@@ -278,7 +278,6 @@ export const workspaceSettingsSchema = z.object({
   }).partial().passthrough(),
 }).passthrough();
 
-export type SettingsField = (typeof SETTINGS_FIELDS)[number];
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
 export type WorkspaceSettings = z.infer<typeof workspaceSettingsSchema>;
 

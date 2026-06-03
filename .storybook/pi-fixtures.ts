@@ -188,6 +188,4 @@ const MODEL_OPTIONS = [
   { name: "qwen3-coder",  desc: "via /provider local · ollama",               badge: "" },
 ];
 
-const PI_DATA = { WORKSPACES, FILE_TREE, CONVERSATION, SLASH_COMMANDS, MODEL_OPTIONS };
-
-export { WORKSPACES, FILE_TREE, CONVERSATION, SLASH_COMMANDS, MODEL_OPTIONS, PI_DATA };
+export const PI_DATA = { WORKSPACES, FILE_TREE, CONVERSATION, SLASH_COMMANDS, MODEL_OPTIONS };

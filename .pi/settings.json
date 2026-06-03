@@ -1,0 +1,34 @@
+{
+  "$schema": "https://pi.dev/schemas/settings.json",
+  "compaction": {
+    "enabled": true,
+    "keepRecentTokens": 20000,
+    "reserveTokens": 16384
+  },
+  "enableSkillCommands": true,
+  "extensions": [
+    "./extensions"
+  ],
+  "packages": [
+    "npm:pi-intercom",
+    "npm:pi-design-deck",
+    "npm:@juicesharp/rpiv-pi",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@tmustier/pi-agent-teams",
+    "npm:@zenobius/pi-worktrees",
+    "npm:context-mode",
+    "npm:pi-docparser",
+    "npm:pi-mcp-adapter",
+    "npm:pi-subagents",
+    "npm:pi-web-access"
+  ],
+  "retry": {
+    "baseDelayMs": 2000,
+    "enabled": true,
+    "maxRetries": 3,
+    "provider": {
+      "maxRetryDelayMs": 60000
+    }
+  },
+  "sessionDir": ".pi/sessions"
+}

@@ -19,7 +19,7 @@ const localeCodes = new Set<string>(UI_LOCALES.map((locale) => locale.code));
 const baseLocaleCodes = new Map<string, UiLocale>();
 for (const locale of UI_LOCALES) baseLocaleCodes.set(locale.code.split("-")[0].toLowerCase(), locale.code);
 
-export function isUiLocale(value: unknown): value is UiLocale {
+function isUiLocale(value: unknown): value is UiLocale {
   return typeof value === "string" && localeCodes.has(value);
 }
 
