@@ -1,4 +1,4 @@
-import { getPlugins, installPlugin, setPluginEnabled, uninstallPlugin } from "../../shared/api/api";
+import { apiBase, getPlugins, installPlugin, setPluginEnabled, uninstallPlugin } from "../../shared/api/api";
 
 type PluginManifest = {
   id: string;
@@ -28,7 +28,7 @@ type PluginHost = HTMLElement & {
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
-  return `/api/plugins/${encodeURIComponent(plugin.id)}/assets/${plugin.entry}?v=${encodeURIComponent(plugin.version || "dev")}`;
+  return `${apiBase()}/api/plugins/${encodeURIComponent(plugin.id)}/assets/${plugin.entry}?v=${encodeURIComponent(plugin.version || "dev")}`;
 }
 
 function pluginLabel(plugin: PluginManifest): string {

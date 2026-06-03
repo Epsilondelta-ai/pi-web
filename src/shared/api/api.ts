@@ -25,7 +25,7 @@ type SessionEventOptions = {
   replay?: boolean;
 };
 
-function apiBase() {
+export function apiBase() {
   if (globalThis.PI_WEB_API_BASE !== undefined) return globalThis.PI_WEB_API_BASE;
   if (DEV_PORTS.has(globalThis.location?.port)) return DEV_API_BASE;
   return "";
