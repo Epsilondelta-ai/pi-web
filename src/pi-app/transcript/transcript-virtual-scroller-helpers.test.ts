@@ -16,6 +16,7 @@ describe("transcript virtual scroller helpers", () => {
     const node = document.createElement("div");
     expect(transcriptItemNodes({}, null)).toEqual([]);
     expect(transcriptItemNodes({}, { nodes: [node] })).toEqual([node]);
+    expect(transcriptItemNodes({}, { message: { kind: "pi", text: "missing helpers" } })).toEqual([]);
     const owner: Partial<TranscriptWindowOwner> = {
       messageNode: vi.fn((): HTMLDivElement => node),
       transcriptElementNodes: vi.fn((element?: Node | null): Element[] => element instanceof Element ? [element] : []),
