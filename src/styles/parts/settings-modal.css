@@ -237,6 +237,105 @@
   font-size: var(--text-xs);
 }
 .oauth-login-fields small.err { color: var(--danger); }
+.plugin-settings {
+  margin: 0 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+}
+.plugin-settings[open] {
+  border-color: var(--border-hi);
+  background: var(--bg-1);
+}
+.plugin-settings summary {
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto max-content minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: 10px 12px;
+  color: var(--fg-1);
+  font-size: var(--text-sm);
+  list-style: none;
+}
+.plugin-settings summary::-webkit-details-marker { display: none; }
+.plugin-settings summary::before {
+  content: "›";
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 120ms ease;
+}
+.plugin-settings[open] summary::before { transform: rotate(90deg); }
+.plugin-settings summary::after {
+  content: "expand";
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+.plugin-settings[open] summary::after {
+  content: "collapse";
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.plugin-settings summary:hover,
+.plugin-settings summary:focus-visible {
+  background: var(--bg-2);
+  outline: none;
+}
+.plugin-settings summary small {
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  font-weight: normal;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plugin-install-row,
+.plugin-list {
+  margin: 0 12px 12px;
+}
+.plugin-install-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-2);
+}
+.plugin-list {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
+.plugin-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-1);
+  padding: 8px 10px;
+}
+.plugin-row span,
+.plugin-row small {
+  display: block;
+}
+.plugin-actions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+.plugin-row strong {
+  color: var(--fg-1);
+}
+.plugin-install-row button,
+.plugin-row button {
+  min-height: 34px;
+  white-space: nowrap;
+}
 .settings-groups {
   display: flex;
   flex-direction: column;

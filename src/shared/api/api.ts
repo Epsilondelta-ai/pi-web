@@ -73,6 +73,26 @@ export function getPiUpdateStatus() {
   return request("/api/pi/update");
 }
 
+export function getPlugins() {
+  return request("/api/plugins");
+}
+
+export function installPlugin(path) {
+  return request("/api/plugins/install", {
+    method: "POST",
+    body: JSON.stringify({ path }),
+  });
+}
+
+export function setPluginEnabled(pluginId, enabled) {
+  const action = enabled ? "enable" : "disable";
+  return request(`/api/plugins/${encodeURIComponent(pluginId)}/${action}`, { method: "POST" });
+}
+
+export function uninstallPlugin(pluginId) {
+  return request(`/api/plugins/${encodeURIComponent(pluginId)}`, { method: "DELETE" });
+}
+
 export function startPiUpdate(source = "", workspaceId = "") {
   return request("/api/pi/update", {
     method: "POST",

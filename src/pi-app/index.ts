@@ -9,6 +9,7 @@ import { inputMethods } from "./input/input-methods";
 import { promptDraftMethods } from "./input/prompt-draft-methods";
 import { messageMethods } from "./messages/message-methods";
 import { toolMessageMethods } from "./messages/tool-message-methods";
+import { pluginMethods } from "./plugins/plugin-methods";
 import { sessionMethods } from "./sessions/session-methods";
 import { layoutMethods } from "./status/layout-methods";
 import { runtimeStatusMethods } from "./status/runtime-status-methods";
@@ -80,6 +81,7 @@ class PiApp extends HTMLElement {
     this.startSpinners();
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();
+    void this.loadPlugins?.().catch(() => {});
   }
   disconnectedCallback() {
     this.stopSpeechInput?.();
@@ -501,6 +503,7 @@ Object.assign(
   filePreviewMethods,
   layoutMethods,
   toastMethods,
+  pluginMethods,
   runtimeStatusMethods,
   settingsMethods,
   oauthMethods,
