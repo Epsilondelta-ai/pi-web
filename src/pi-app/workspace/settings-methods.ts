@@ -30,7 +30,7 @@ function setPatchValue(patch, path, value) {
   target[parts.at(-1)] = value;
 }
 
-export function settingLabel(path) {
+function settingLabel(path) {
   return path.replace(/([A-Z])/g, " $1").replace(/\./g, " · ").replace(/^./, (char) => char.toUpperCase());
 }
 
@@ -114,7 +114,7 @@ export function settingsValueChanged(scopedSettings, effective, path, value) {
   return effectiveValue !== value;
 }
 
-export const LOCAL_SETTINGS_PATHS = new Set([
+const LOCAL_SETTINGS_PATHS = new Set([
   "readResponsesAloud",
   "voice.language",
   "enableSpeechInput",
