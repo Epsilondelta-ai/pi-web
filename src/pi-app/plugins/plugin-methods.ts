@@ -21,6 +21,7 @@ type PluginContext = {
     get(path: string): Promise<unknown>;
     post(path: string, body: unknown): Promise<unknown>;
   };
+  backend(method: string, body: unknown): Promise<unknown>;
 };
 
 type PluginHost = HTMLElement & {
@@ -118,6 +119,10 @@ export const pluginMethods = {
         post(path: string, body: unknown): Promise<unknown> {
           return request(path, "POST", body);
         },
+      },
+      backend(method: string, body: unknown): Promise<unknown> {
+        const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
+        return request(path, "POST", body);
       },
     };
   },

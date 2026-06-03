@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 type pluginManifest struct {
@@ -17,6 +19,7 @@ type pluginManifest struct {
 	Name     string `json:"name"`
 	Version  string `json:"version"`
 	Entry    string `json:"entry"`
+	Backend  string `json:"backend"`
 	Enabled  bool   `json:"enabled"`
 	Path     string `json:"path"`
 	Source   string `json:"source"`
@@ -34,6 +37,11 @@ type pluginInstallRequest struct {
 	Source string `json:"source"`
 	Path   string `json:"path"`
 	URL    string `json:"url"`
+}
+
+type pluginBackendRequest struct {
+	WorkspaceID string          `json:"workspaceId"`
+	Data        json.RawMessage `json:"data"`
 }
 
 func (s *Server) plugins(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +113,47 @@ func (s *Server) pluginAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.ServeFile(w, r, filepath.Join(pluginRoot(), id, assetPath))
+}
+
+func (s *Server) pluginBackend(w http.ResponseWriter, r *http.Request) {
+	id := cleanPluginID(r.PathValue("pluginID"))
+	method := cleanPluginID(r.PathValue("method"))
+	if id == "" || method == "" {
+		writeError(w, http.StatusBadRequest, errors.New("invalid plugin backend request"))
+		return
+	}
+	plugin, err := readPluginManifest(filepath.Join(pluginRoot(), id))
+	if err != nil || plugin.Backend == "" {
+		writeError(w, http.StatusNotFound, errors.New("plugin backend not found"))
+		return
+	}
+	var body pluginBackendRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	workspaceRoot := ""
+	if body.WorkspaceID != "" {
+		root, err := s.store.WorkspacePath(body.WorkspaceID)
+		if err != nil {
+			writeError(w, http.StatusNotFound, err)
+			return
+		}
+		workspaceRoot = root
+	}
+	payload := body.Data
+	if len(payload) == 0 {
+		payload = []byte("{}")
+	}
+	cmd := exec.CommandContext(r.Context(), "node", filepath.Join(pluginRoot(), id, plugin.Backend), method, workspaceRoot)
+	cmd.Stdin = bytes.NewReader(payload)
+	output, err := runPluginBackendCommand(cmd)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(output)
 }
 
 func listPluginManifests() ([]pluginManifest, error) {
@@ -234,6 +283,16 @@ func readPluginManifest(dir string) (pluginManifest, error) {
 		return pluginManifest{}, err
 	}
 	plugin.Entry = filepath.ToSlash(entryPath)
+	if strings.TrimSpace(plugin.Backend) != "" {
+		backendPath := filepath.Clean(plugin.Backend)
+		if strings.HasPrefix(backendPath, "..") || filepath.IsAbs(backendPath) {
+			return pluginManifest{}, errors.New("plugin backend must stay inside plugin directory")
+		}
+		if _, err := os.Stat(filepath.Join(dir, backendPath)); err != nil {
+			return pluginManifest{}, err
+		}
+		plugin.Backend = filepath.ToSlash(backendPath)
+	}
 	_, disabledErr := os.Stat(filepath.Join(dir, ".disabled"))
 	plugin.Enabled = errors.Is(disabledErr, fs.ErrNotExist)
 	plugin.Path = dir
@@ -245,6 +304,28 @@ func readPluginManifest(dir string) (pluginManifest, error) {
 		plugin.CacheKey = entryInfo.ModTime().Format("20060102150405.000000000")
 	}
 	return plugin, nil
+}
+
+func runPluginBackendCommand(cmd *exec.Cmd) ([]byte, error) {
+	timer := time.AfterFunc(10*time.Second, func() {
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+	})
+	defer timer.Stop()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			message = err.Error()
+		}
+		return nil, errors.New(message)
+	}
+	trimmed := bytes.TrimSpace(output)
+	if !json.Valid(trimmed) {
+		return nil, errors.New("plugin backend returned invalid json")
+	}
+	return trimmed, nil
 }
 
 func reloadGitHubPlugins() ([]pluginManifest, error) {

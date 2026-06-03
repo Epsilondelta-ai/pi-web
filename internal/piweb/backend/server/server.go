@@ -99,6 +99,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/plugins/{pluginID}/disable", s.disablePlugin)
 	s.mux.HandleFunc("DELETE /api/plugins/{pluginID}", s.uninstallPlugin)
 	s.mux.HandleFunc("GET /api/plugins/{pluginID}/assets/{path...}", s.pluginAsset)
+	s.mux.HandleFunc("POST /api/plugins/{pluginID}/backend/{method}", s.pluginBackend)
 	s.mux.HandleFunc("GET /api/auth/providers", s.authProviders)
 	s.mux.HandleFunc("GET /api/auth/oauth/providers", s.oauthProviders)
 	s.mux.HandleFunc("POST /api/auth/oauth/start", s.startOAuthLogin)
