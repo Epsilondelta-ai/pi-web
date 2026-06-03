@@ -102,7 +102,6 @@ El context del plugin incluye:
 - `context.plugin`: el manifiesto parseado.
 - `context.api.get(path)` / `context.api.post(path, body)`: llamadas a APIs HTTP de pi-web.
 - `context.backend(method, { workspaceId, data })`: llamada al backend opcional; `data` es el JSON de stdin.
-- `context.loadCodeMirrorFileEditor()`: carga diferida del editor de archivos integrado.
 
 Los scripts backend opcionales se ejecutan localmente bajo demanda. JavaScript usa Node; Go se compila y cachea automáticamente. El script recibe `method` y `workspaceRoot`, lee JSON desde stdin y debe imprimir JSON válido en stdout.
 

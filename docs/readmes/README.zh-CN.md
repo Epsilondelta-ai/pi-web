@@ -102,7 +102,6 @@ export function activate(context) {
 - `context.plugin`：解析后的清单。
 - `context.api.get(path)` / `context.api.post(path, body)`：调用 pi-web HTTP API。
 - `context.backend(method, { workspaceId, data })`：调用可选后端；`data` 是 stdin JSON。
-- `context.loadCodeMirrorFileEditor()`：延迟加载内置文件编辑器。
 
 可选 backend 脚本在本地按需执行。JavaScript 使用 Node；Go 会自动构建并缓存。脚本接收 `method`、`workspaceRoot` 参数，从 stdin 读取 JSON，并向 stdout 输出有效 JSON。
 
