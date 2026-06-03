@@ -58,4 +58,59 @@ Sie bündelt ein Astro-basiertes Frontend und ein Go-Backend in einer einzelnen 
 - **Sprache und Benachrichtigungen**: Lies Antworten vor, nutze Browser- oder lokale Whisper-Sprachtranskription und konfiguriere Discord/Telegram-Fertigmeldungen.
 - **Internationalisierte UI**: Wechsle die Browser-UI zwischen Englisch, Koreanisch, Chinesisch, Japanisch, Spanisch, Portugiesisch, Französisch, Russisch und Deutsch.
 - **AG-UI-Bridge**: Stellt Session-Läufe über einen AG-UI-kompatiblen SSE-Endpunkt für Client-Integrationen bereit.
+- **Plugins (in Entwicklung)**: Lädt vertrauenswürdige lokale/GitHub-JavaScript-Plugins, um UI-Panels hinzuzufügen und pi-web-APIs oder lokale Backend-Skripte aufzurufen.
 - **Einzelne ausführbare Datei**: Verteilt den statischen Astro-Build eingebettet in ein Go-Binary mit integrierter Update-Unterstützung.
+
+## Plugins (in Entwicklung)
+
+Plugins sind experimentell und für vertrauenswürdigen lokalen Code gedacht. Die API kann sich noch ändern, bevor sie als stabil gilt.
+
+Installiere Plugins unter **Settings → Plugins** mit einem lokalen Pfad oder GitHub-Wert `owner/repo`. Der Ordner muss `plugin.json` und ein Entry-JavaScript-Modul enthalten.
+
+```json
+{
+  "id": "hello-panel",
+  "name": "Hello Panel",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "backend": "backend.js"
+}
+```
+
+`entry` ist erforderlich. `backend` ist optional. Beide Pfade müssen innerhalb des Plugin-Ordners bleiben.
+
+```js
+export function activate(context) {
+  const panel = document.createElement("section");
+  panel.dataset.pluginPanel = context.plugin.id;
+  panel.textContent = `Hello from ${context.plugin.name}`;
+  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+
+  return () => {
+    panel.remove();
+  };
+}
+```
+
+Das Entry-Modul exportiert `activate(context)` oder `default(context)`. Wenn es eine Funktion oder ein Objekt mit `deactivate()`/`dispose()` zurückgibt, wird es bei reload, disable oder uninstall bereinigt. `deactivate(context)` auf Modulebene wird ebenfalls unterstützt.
+
+Der Plugin-context enthält:
+
+- `context.app`: das `<pi-app>`-Element.
+- `context.plugin`: das geparste Manifest.
+- `context.api.get(path)` / `context.api.post(path, body)`: pi-web-HTTP-APIs aufrufen.
+- `context.backend(method, { workspaceId, data })`: optionales Backend aufrufen; `data` ist das stdin-JSON.
+- `context.loadCodeMirrorFileEditor()`: den eingebauten Datei-Editor lazy-loaden.
+
+Optionale Backend-Skripte laufen lokal bei Bedarf. JavaScript nutzt Node; Go wird automatisch gebaut und gecacht. Das Skript erhält `method` und `workspaceRoot`, liest JSON von stdin und muss gültiges JSON auf stdout ausgeben.
+
+```js
+const [, , method, workspaceRoot] = process.argv;
+let input = "";
+process.stdin.on("data", (chunk) => {
+  input += chunk;
+});
+process.stdin.on("end", () => {
+  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
+});
+```
