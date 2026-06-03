@@ -46,6 +46,18 @@ func TestStaticExtensionCommandsFindsLiteralRegisterCommands(t *testing.T) {
 	}
 }
 
+func TestExtensionFilesOnlyIncludesTopLevelEntrypoints(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "extension.ts"), "export default () => {}")
+	writeFile(t, filepath.Join(root, "helper.d.ts"), "export type Helper = {}")
+	writeFile(t, filepath.Join(root, "src", "types.ts"), "export type QuotaSnapshot = {}")
+	files := extensionFiles([]commandResource{{Path: root, Scope: "project"}})
+
+	if len(files) != 1 || files[0]["path"] != filepath.Join(root, "extension.ts") {
+		t.Fatalf("unexpected extension files: %+v", files)
+	}
+}
+
 func TestExtensionProbeEnvSuppressesNodeExperimentalWarnings(t *testing.T) {
 	env := extensionProbeEnv([]string{"HOME=/tmp", "NODE_OPTIONS=--max-old-space-size=64"}, "{}")
 	if !containsEnv(env, "NODE_OPTIONS=--max-old-space-size=64 --disable-warning=ExperimentalWarning") {
