@@ -31,7 +31,7 @@ describe("message method direct branch coverage", () => {
     expect(owner.loadingMessageNodes()).toEqual([]);
     owner.finalizePiStream("final without row");
     expect(owner.appendTranscriptNode).toHaveBeenCalled();
-    (owner as any).piStreamText = "stream";
+    (owner as typeof owner & { piStreamText: string }).piStreamText = "stream";
     owner.finalizeStreamingMessages();
     expect(owner.replaceTranscriptNode).not.toHaveBeenCalled();
     owner.syncAnsweredChoices();

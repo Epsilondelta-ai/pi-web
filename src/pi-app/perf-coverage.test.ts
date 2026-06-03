@@ -38,16 +38,34 @@ describe("performance split coverage", () => {
     expect(codeMirrorLanguageExtension({})).toEqual([]);
   });
 
-  async function renderPreviewWithFailingEditor({ stale = false, mismatch = false, connected = true, thrown = new Error("editor failed") as any } = {}) {
+  async function renderPreviewWithFailingEditor({
+    stale = false,
+    mismatch = false,
+    connected = true,
+    thrown = new Error("editor failed") as unknown,
+  } = {}) {
     const container = document.createElement("div");
     document.body.append(container);
-    const state: any = {
+    const state: {
+      editorLoadToken?: symbol;
+      editorReady?: Promise<void>;
+      file: { path: string; mime: string; previewKind: string; content: string };
+      mode: string;
+      cleanContent: string;
+      originalContent: string;
+    } = {
       file: { path: "bad.ts", mime: "text/typescript", previewKind: "text", content: "x" },
       mode: "text",
       cleanContent: "x",
       originalContent: "x",
     };
-    const app: any = { filePreview: state, querySelector: () => null, saveFilePreview: vi.fn() };
+    const app = { filePreview: state, querySelector: () => null, saveFilePreview: vi.fn() } as unknown as {
+      destroyFilePreviewEditor: ReturnType<typeof vi.fn>;
+      filePreview: unknown;
+      querySelector: (selector: string) => Element | null;
+      renderFilePreviewBody: () => void;
+      saveFilePreview: ReturnType<typeof vi.fn>;
+    };
     setCodeMirrorFileEditorLoaderForTest(async () => ({
       CodeMirrorFileEditor: class {
         constructor() { throw thrown; }
@@ -69,7 +87,7 @@ describe("performance split coverage", () => {
     expect(state.editorReady).toBeTruthy();
     await state.editorReady;
     await Promise.resolve();
-    setCodeMirrorFileEditorLoaderForTest(undefined as any);
+    setCodeMirrorFileEditorLoaderForTest(undefined);
     return body.textContent || "";
   }
 

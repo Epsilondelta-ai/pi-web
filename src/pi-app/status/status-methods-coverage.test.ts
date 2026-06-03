@@ -165,7 +165,7 @@ describe("status method branch coverage", () => {
     el.notifyPiUpdateComplete = vi.fn();
     el.notifyPiUpdateFailed = vi.fn();
     let poll;
-    vi.spyOn(window, "setInterval").mockImplementation(((cb) => { poll = cb; return 7; }) as any);
+    vi.spyOn(window, "setInterval").mockImplementation(((cb: TimerHandler) => { poll = cb; return 7; }) as typeof window.setInterval);
     vi.spyOn(window, "clearInterval").mockImplementation(() => undefined);
     el.renderPiUpdateStatus({ state: "updating" });
     el.renderPiUpdateStatus({ state: "updated" });
@@ -200,7 +200,10 @@ describe("status method branch coverage", () => {
     expect(el.isPiPackageUpdateIgnored("legacy-key")).toBe(true);
     localStorage.setItem("piweb:ignored-pi-package-update", JSON.stringify({ key: "object" }));
     expect(el.isPiPackageUpdateIgnored("object")).toBe(false);
-    vi.spyOn(window, "setTimeout").mockImplementation(((cb) => { cb(); return 1; }) as any);
+    vi.spyOn(window, "setTimeout").mockImplementation(((cb: TimerHandler) => {
+      if (typeof cb === "function") cb();
+      return 1;
+    }) as typeof window.setTimeout);
     el.showUpdateTip();
     el.querySelector("[data-update-tip]").remove();
     el.showUpdateTip();
@@ -294,16 +297,16 @@ describe("status method branch coverage", () => {
     group.innerHTML = `<span class="label">workspace</span>`;
     el.append(group);
     expect(el.backgroundWatchRows().has("s2")).toBe(true);
-    vi.mocked(api.sessionEvents).mockReturnValueOnce({ close: vi.fn() } as any);
+    vi.mocked(api.sessionEvents).mockReturnValueOnce({ close: vi.fn() } as unknown as EventSource);
     const watch = el.watchBackgroundSession(row);
     expect(watch.wasRunning).toBe(true);
-    el.backgroundSessionWatches = new Map([["s2", watch], ["gone", { source: { close: vi.fn() } as any }]]);
+    el.backgroundSessionWatches = new Map([["s2", watch], ["gone", { source: { close: vi.fn() } as unknown as EventSource }]]);
     el.apiConnected = false;
     el.syncBackgroundSessionWatches();
     expect(el.backgroundSessionWatches.size).toBe(0);
     el.apiConnected = true;
     vi.stubGlobal("EventSource", class {});
-    vi.mocked(api.sessionEvents).mockReturnValue({ close: vi.fn() } as any);
+    vi.mocked(api.sessionEvents).mockReturnValue({ close: vi.fn() } as unknown as EventSource);
     el.syncBackgroundSessionWatches();
     el.handleBackgroundSessionEvent(undefined, watch);
     el.handleBackgroundSessionEvent({ type: "heartbeat" }, watch);
@@ -321,14 +324,14 @@ describe("status method branch coverage", () => {
     el.backgroundSessionWatches = new Map([["s2", watch], ["stale", staleWatch]]);
     el.apiConnected = true;
     vi.stubGlobal("EventSource", class {});
-    vi.mocked(api.sessionEvents).mockReturnValue({ close: vi.fn() } as any);
+    vi.mocked(api.sessionEvents).mockReturnValue({ close: vi.fn() } as unknown as EventSource);
     el.syncBackgroundSessionWatches();
     expect(staleWatch.source.close).toHaveBeenCalled();
 
     let watchOptions;
     vi.mocked(api.sessionEvents).mockImplementationOnce((_sessionId, options) => {
       watchOptions = options;
-      return { close: vi.fn() } as any;
+      return { close: vi.fn() } as unknown as EventSource;
     });
     el.watchBackgroundSession(row);
     expect(watchOptions.replay).toBe(false);

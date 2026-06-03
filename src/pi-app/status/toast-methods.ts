@@ -5,6 +5,14 @@ import { getSession, sessionEvents } from "../../shared/api/api";
 import { escapeHtml } from "../../shared/renderers/renderers";
 import { parseFallbackChoices } from "../input/fallback-choices";
 
+type BackgroundSessionWatch = {
+  failed: boolean;
+  row: Element;
+  source?: EventSource;
+  wasRunning: boolean;
+  fallbackChoiceNotified: boolean;
+};
+
 const TOAST_MESSAGES = {
   success: {
     title: "응답 완료",
@@ -528,7 +536,7 @@ export const toastMethods = {
 
   watchBackgroundSession(row) {
     const sessionId = row.dataset.session;
-    const watch: any = { failed: false, row, wasRunning: true, fallbackChoiceNotified: false };
+    const watch: BackgroundSessionWatch = { failed: false, row, wasRunning: true, fallbackChoiceNotified: false };
     watch.source = sessionEvents(sessionId, {
       replay: false,
       onError: () => undefined,

@@ -34,7 +34,7 @@ export default tseslint.config(
     rules: {
       "no-empty": ["error", { allowEmptyCatch: true }],
       "@typescript-eslint/ban-ts-comment": "off",
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-expressions": ["error", { allowShortCircuit: true, allowTernary: true }],
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -44,6 +44,12 @@ export default tseslint.config(
           varsIgnorePattern: "^_",
         },
       ],
+    },
+  },
+  {
+    files: ["**/*.d.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
   {

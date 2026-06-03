@@ -1,6 +1,30 @@
 const DEV_API_BASE = "http://127.0.0.1:8732";
 const DEV_PORTS = new Set(["4321", "6006"]);
 
+type JsonRecord = Record<string, unknown>;
+
+type Attachment = JsonRecord;
+
+type AguiSubscriber = {
+  onRunStarted?: () => void;
+  onTextDelta?: (delta: string) => void;
+  onTextEnd?: (text: string) => void;
+  onThinkingDelta?: (delta: string) => void;
+  onToolStart?: (tool: { id: string; name: string }) => void;
+  onToolArgs?: (tool: { id: string; name: string; chunk: string }) => void;
+  onToolResult?: (tool: { id: string; name: string; content: string }) => void;
+  onToolEnd?: (tool: { id: string; name: string; args: string; body: string }) => void;
+  onRunError?: (message: string) => void;
+  onRunFinished?: () => void;
+};
+
+type SessionEventOptions = {
+  onEvent?: (event: unknown) => void;
+  onOpen?: () => void;
+  onError?: (event: unknown) => void;
+  replay?: boolean;
+};
+
 function apiBase() {
   if (globalThis.PI_WEB_API_BASE !== undefined) return globalThis.PI_WEB_API_BASE;
   if (DEV_PORTS.has(globalThis.location?.port)) return DEV_API_BASE;
@@ -261,7 +285,12 @@ export function postPrompt(sessionId, text, attachments = []) {
   });
 }
 
-export async function runAguiSessionPrompt(sessionId, text, attachments = [], subscriber: any = {}) {
+export async function runAguiSessionPrompt(
+  sessionId: string,
+  text: string,
+  attachments: Attachment[] = [],
+  subscriber: AguiSubscriber = {},
+) {
   if (typeof EventSource === "undefined") {
     await postPrompt(sessionId, text, attachments);
     return false;
@@ -288,39 +317,43 @@ export async function runAguiSessionPrompt(sessionId, text, attachments = [], su
       },
       {
         onRunStartedEvent: () => subscriber.onRunStarted?.(),
-        onTextMessageContentEvent: ({ event }: any) => subscriber.onTextDelta?.(event.delta || ""),
-        onTextMessageEndEvent: ({ textMessageBuffer }: any) => subscriber.onTextEnd?.(textMessageBuffer || ""),
-        onReasoningMessageContentEvent: ({ event }: any) => subscriber.onThinkingDelta?.(event.delta || ""),
-        onToolCallStartEvent: ({ event }: any) => {
+        onTextMessageContentEvent: ({ event }) => subscriber.onTextDelta?.(event.delta || ""),
+        onTextMessageEndEvent: ({ textMessageBuffer }) => subscriber.onTextEnd?.(textMessageBuffer || ""),
+        onReasoningMessageContentEvent: ({ event }) => subscriber.onThinkingDelta?.(event.delta || ""),
+        onToolCallStartEvent: ({ event }) => {
+          const id = event.toolCallId;
           const name = event.toolCallName || "tool";
-          toolNames.set(event.toolCallId, name);
-          toolBodies.set(event.toolCallId, "");
-          subscriber.onToolStart?.({ id: event.toolCallId, name });
+          toolNames.set(id, name);
+          toolBodies.set(id, "");
+          subscriber.onToolStart?.({ id, name });
         },
-        onToolCallArgsEvent: ({ event, toolCallName }: any) => {
-          const name = toolCallName || toolNames.get(event.toolCallId) || "tool";
+        onToolCallArgsEvent: ({ event, toolCallName }) => {
+          const id = event.toolCallId;
+          const name = toolCallName || toolNames.get(id) || "tool";
           const chunk = event.delta || "";
-          toolBodies.set(event.toolCallId, `${toolBodies.get(event.toolCallId) || ""}${chunk}`);
-          subscriber.onToolArgs?.({ id: event.toolCallId, name, chunk });
+          toolBodies.set(id, `${toolBodies.get(id) || ""}${chunk}`);
+          subscriber.onToolArgs?.({ id, name, chunk });
         },
-        onToolCallResultEvent: ({ event }: any) => {
-          const name = toolNames.get(event.toolCallId) || "tool";
+        onToolCallResultEvent: ({ event }) => {
+          const id = event.toolCallId;
+          const name = toolNames.get(id) || "tool";
           const content = event.content || "";
-          toolBodies.set(event.toolCallId, content || toolBodies.get(event.toolCallId) || "");
-          subscriber.onToolResult?.({ id: event.toolCallId, name, content });
+          toolBodies.set(id, content || toolBodies.get(id) || "");
+          subscriber.onToolResult?.({ id, name, content });
         },
-        onToolCallEndEvent: ({ event, toolCallName, toolCallArgs }: any) => {
-          const name = toolCallName || toolNames.get(event.toolCallId) || "tool";
+        onToolCallEndEvent: ({ event, toolCallName, toolCallArgs }) => {
+          const id = event.toolCallId;
+          const name = toolCallName || toolNames.get(id) || "tool";
           subscriber.onToolEnd?.({
-            id: event.toolCallId,
+            id,
             name,
             args: typeof toolCallArgs === "string" ? toolCallArgs : JSON.stringify(toolCallArgs || {}),
-            body: toolBodies.get(event.toolCallId) || "",
+            body: toolBodies.get(id) || "",
           });
         },
-        onRunErrorEvent: ({ event }: any) => subscriber.onRunError?.(event.message || "AG-UI run failed"),
+        onRunErrorEvent: ({ event }) => subscriber.onRunError?.(event.message || "AG-UI run failed"),
         onRunFinishedEvent: () => subscriber.onRunFinished?.(),
-        onRunFailed: ({ error }: any) => subscriber.onRunError?.(error?.message || String(error)),
+        onRunFailed: ({ error }) => subscriber.onRunError?.(error?.message || String(error)),
       },
     );
     return true;
@@ -340,7 +373,10 @@ export function steerSession(sessionId, text, attachments = []) {
   });
 }
 
-export function sessionEvents(sessionId: string, { onEvent, onOpen, onError, replay = true }: any = {}) {
+export function sessionEvents(
+  sessionId: string,
+  { onEvent, onOpen, onError, replay = true }: SessionEventOptions = {},
+) {
   const replayQuery = replay ? "" : "?replay=false";
   const source = new EventSource(
     `${apiBase()}/api/sessions/${encodeURIComponent(sessionId)}/events${replayQuery}`,

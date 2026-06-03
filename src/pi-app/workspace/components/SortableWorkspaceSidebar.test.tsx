@@ -3,8 +3,24 @@ import { createRoot } from "react-dom/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SortableWorkspaceSidebar, { applySortableMove, reorderWorkspaceSessionList, sessionTree } from "./SortableWorkspaceSidebar";
 
+type DndContextMockProps = {
+  children: React.ReactNode;
+  onDragCancel?: () => void;
+  onDragEnd?: (event: { active: { id: string }; over: { id: string } | null }) => void;
+  onDragStart?: (event: { active: { id: string } }) => void;
+};
+
+type SortableMockProps = { id: string };
+
+type SortableTestGlobal = typeof globalThis & { __sortableDraggingId?: string };
+
+type SessionTreeNode = {
+  session: { title: string };
+  children?: SessionTreeNode[];
+};
+
 vi.mock("@dnd-kit/core", () => ({
-  DndContext: ({ children, onDragStart, onDragCancel, onDragEnd }: any) => <div data-dnd-context="true">
+  DndContext: ({ children, onDragStart, onDragCancel, onDragEnd }: DndContextMockProps) => <div data-dnd-context="true">
     <button type="button" data-test-drag-start onClick={() => onDragStart?.({ active: { id: "w1" } })}>drag start</button>
     <button type="button" data-test-drag-cancel onClick={() => onDragCancel?.()}>drag cancel</button>
     <button type="button" data-test-drag-end-same onClick={() => onDragEnd?.({ active: { id: "w1" }, over: { id: "w1" } })}>drag same</button>
@@ -23,22 +39,22 @@ vi.mock("@dnd-kit/core", () => ({
 }));
 
 vi.mock("@dnd-kit/sortable", () => ({
-  SortableContext: ({ children }: any) => <div data-sortable-context="true">{children}</div>,
-  arrayMove: (items: any[], from: number, to: number) => {
+  SortableContext: ({ children }: { children: React.ReactNode }) => <div data-sortable-context="true">{children}</div>,
+  arrayMove: <T,>(items: T[], from: number, to: number): T[] => {
     const next = [...items];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
     return next;
   },
   sortableKeyboardCoordinates: vi.fn(),
-  useSortable: ({ id }: any) => ({
+  useSortable: ({ id }: SortableMockProps) => ({
     attributes: { "data-sortable-attributes": String(id) },
     listeners: { "data-sortable-listeners": String(id) },
     setActivatorNodeRef: (node: HTMLElement | null) => node?.setAttribute("data-sortable-activator", String(id)),
     setNodeRef: vi.fn(),
     transform: null,
     transition: undefined,
-    isDragging: (globalThis as any).__sortableDraggingId === id,
+    isDragging: (globalThis as SortableTestGlobal).__sortableDraggingId === id,
   }),
   verticalListSortingStrategy: {},
 }));
@@ -75,7 +91,7 @@ function renderSidebar(props = {}) {
 describe("SortableWorkspaceSidebar", () => {
   beforeEach(() => {
     document.body.replaceChildren();
-    delete (globalThis as any).__sortableDraggingId;
+    delete (globalThis as SortableTestGlobal).__sortableDraggingId;
   });
 
   it("covers sortable move and session-order helpers", () => {
@@ -176,7 +192,7 @@ describe("SortableWorkspaceSidebar", () => {
   });
 
   it("updates from prop changes and marks active sortable shells", () => {
-    (globalThis as any).__sortableDraggingId = "w1";
+    (globalThis as SortableTestGlobal).__sortableDraggingId = "w1";
     const { host, root } = renderSidebar({ activeWorkspaceId: "" });
     expect(host.querySelector('.workspace-sortable[data-dragging="true"]')).not.toBeNull();
     act(() => root.render(<SortableWorkspaceSidebar workspaces={workspaces} activeWorkspaceId="w3" activeSessionId="s3" onWorkspaceOrder={vi.fn()} onSessionOrder={vi.fn()} />));
@@ -186,6 +202,6 @@ describe("SortableWorkspaceSidebar", () => {
   });
 });
 
-function flattenTitles(nodes: any[]): string[] {
+function flattenTitles(nodes: SessionTreeNode[]): string[] {
   return nodes.flatMap(({ session, children }) => [session.title, ...flattenTitles(children || [])]);
 }

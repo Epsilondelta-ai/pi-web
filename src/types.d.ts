@@ -13,6 +13,6 @@ declare global {
     PI_WEB_API_BASE?: string;
   }
 
-  var fetch: any;
-  var EventSource: any;
+  var fetch: typeof globalThis.fetch;
+  var EventSource: typeof globalThis.EventSource;
 }

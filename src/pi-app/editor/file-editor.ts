@@ -198,7 +198,7 @@ function editorExtensions(file: FileLike, readOnly: boolean, originalContent: st
   ];
 }
 
-class GitChangeMarker extends GutterMarker {
+export class GitChangeMarker extends GutterMarker {
   constructor(private kind: "added" | "modified" | "deleted") {
     super();
   }

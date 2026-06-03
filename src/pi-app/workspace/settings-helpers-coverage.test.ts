@@ -65,7 +65,7 @@ describe("settings pure helper coverage", () => {
     expect(customInputFor(input)).toBe(custom);
     expect(customInputFor(document.createElement("input"))).toBeUndefined();
 
-    input.getClientRects = (() => [{ width: 1 } as DOMRect]) as any;
+    input.getClientRects = (() => [{ width: 1 } as DOMRect]) as unknown as typeof input.getClientRects;
     expect(visibleSettingsFocusables(field)).toContain(input);
     field.hidden = true;
     expect(visibleSettingsFocusables(field)).toEqual([]);

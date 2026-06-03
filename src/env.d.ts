@@ -1,6 +1,6 @@
 /// <reference types="astro/client" />
 
 declare module "*.astro" {
-  const component: any;
+  const component: unknown;
   export default component;
 }
