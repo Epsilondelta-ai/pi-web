@@ -24,18 +24,27 @@ describe("pi-app core events coverage", () => {
     expect(app.bound).toBe(true);
   });
 
-  it("exercises bound send and slash keyboard listeners", async () => {
+  it("exercises bound send, slash keyboard, and session menu outside-click listeners", async () => {
     const app = await connectPiApp();
     Element.prototype.scrollIntoView = vi.fn();
     app.submitPrompt = vi.fn();
     app.pickSlash = vi.fn();
+    app.closeSessionMenus = vi.fn();
     app.slashPopover.hidden = false;
     app.sendButton.disabled = false;
     app.sendButton.click();
     app.prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true }));
     app.prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    const menu = document.createElement("div");
+    menu.className = "session-menu";
+    app.append(menu);
+    app.closeSessionMenus.mockClear();
+    menu.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(app.closeSessionMenus).not.toHaveBeenCalled();
+    window.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(app.submitPrompt).toHaveBeenCalledTimes(2);
     expect(app.pickSlash).toHaveBeenCalledWith("/model");
+    expect(app.closeSessionMenus).toHaveBeenCalledTimes(1);
   });
 
   it("covers layout controls, persisted sidebar width, tool expansion, and resize", async () => {
