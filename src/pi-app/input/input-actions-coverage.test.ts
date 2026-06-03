@@ -21,7 +21,7 @@ describe("pi-app input actions coverage", () => {
     const app = await connectPiApp();
     const calls = [];
     [
-      "route", "refreshWorkspaces", "browseFolder", "loadFolder", "openWorkspacePath", "toggleTree", "showFileTreePanel", "showGitHistory", "loadMoreGitHistory", "selectGitCommit", "closeGitDetail", "refreshTree",
+      "route", "refreshWorkspaces", "browseFolder", "loadFolder", "openWorkspacePath", "toggleTree", "togglePluginSidebar", "showFileTreePanel", "showGitHistory", "loadMoreGitHistory", "selectGitCommit", "closeGitDetail", "refreshTree",
       "refreshGitHistory", "openFile", "closeFilePreview", "toggleFilePreviewMode", "saveFilePreview", "collapseSidebar",
       "toggleDrawer", "toggleTool", "showFullToolOutput", "toggleWorkspace", "deleteWorkspace", "deleteWorkspaceSessions",
       "newSession", "toggleSessionMenu", "renameSession", "deleteSession", "submitFallbackChoice", "showUpdateTip", "openSettingsModal",
@@ -31,7 +31,7 @@ describe("pi-app input actions coverage", () => {
     app.currentFolderParent = "/";
     const actions = [
       "route-picker", "route-workspace", "refresh-workspaces", "browse-folder", "folder-enter", "folder-up",
-      "folder-open-current", "toggle-tree", "show-file-tree", "show-git-history", "load-more-git-history", "select-git-commit", "close-git-detail", "refresh-tree", "tree-root-menu", "open-file", "close-file-preview",
+      "folder-open-current", "toggle-tree", "toggle-plugin-sidebar", "show-file-tree", "show-git-history", "load-more-git-history", "select-git-commit", "close-git-detail", "refresh-tree", "tree-root-menu", "open-file", "close-file-preview",
       "toggle-file-preview-mode", "save-file-preview", "collapse-sidebar", "expand-sidebar", "open-drawer", "close-drawer",
       "toggle-tool", "show-full-tool-output", "toggle-workspace", "delete-workspace", "delete-workspace-sessions", "new-session",
       "session-menu-toggle", "rename-session", "delete-session", "show-update-tip", "open-settings", "close-settings", "save-settings",

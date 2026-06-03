@@ -44,8 +44,8 @@ describe("status method branch coverage", () => {
     const el = host(`
       <section data-view="picker"><div class="picker-shell"><input name="path"></div></section>
       <section data-view="workspace" class="app-body"><div class="term"></div></section>
-      <button data-action="toggle-tree"></button><button data-action="open-drawer"></button>
-      <div class="tree"></div><div class="sidebar-wrap"></div><button class="sb-expand-btn"></button>
+      <button data-action="toggle-tree"></button><button data-action="toggle-plugin-sidebar" data-plugin-panel="git-viewer"></button><button data-action="open-drawer"></button>
+      <div class="tree" data-plugin-sidebar><div data-plugin-panel="file-browser"></div><div data-plugin-panel="git-viewer"></div><div data-plugin-sidebar-empty></div></div><div class="sidebar-wrap"></div><button class="sb-expand-btn"></button>
     `);
     el.trapSettingsFocus = vi.fn();
     el.closeModals = vi.fn();
@@ -77,17 +77,29 @@ describe("status method branch coverage", () => {
     el.applyGrid();
     expect(el.querySelector(".app-body").style.gridTemplateColumns).toContain("200px");
     el.toggleTree();
+    el.togglePluginSidebar("git-viewer");
+    expect(el.querySelector('[data-plugin-panel="git-viewer"]').hidden).toBe(false);
+    delete el.querySelector("[data-plugin-sidebar]").dataset.activePluginPanel;
+    el.syncPluginSidebarPanels();
+    el.togglePluginSidebar();
     el.toggleTree();
     el.toggleDrawer();
     el.toggleDrawer();
     el.dataset.tree = "off";
     el.closeTreeFromOutside({ target: document.createElement("span") });
+    const treeForNoTreeBranch = el.querySelector("[data-plugin-sidebar]");
+    treeForNoTreeBranch.remove();
+    el.syncPluginSidebarPanels();
+    el.append(treeForNoTreeBranch);
     el.dataset.tree = "on";
-    el.closeTreeFromOutside({ target: el.querySelector("[data-action='toggle-tree']") });
+    el.closeTreeFromOutside({ target: el.querySelector("[data-action='toggle-plugin-sidebar']") });
+    el.dataset.tree = "on";
     const insideTree = document.createElement("span");
-    insideTree.closest = (selector) => selector === ".tree, [data-action='toggle-tree']" ? insideTree : null;
+    insideTree.closest = (selector) => selector === ".tree, [data-action='toggle-plugin-sidebar'], [data-file-preview]" ? insideTree : null;
     el.closeTreeFromOutside({ target: insideTree, composedPath: () => [] });
     el.closeTreeFromOutside({ target: document.createElement("span"), composedPath: () => [{ matches: () => true }] });
+    el.closeTreeFromOutside({ target: null, composedPath: () => [] });
+    el.closeTreeFromOutside({ target: { closest: () => null }, composedPath: () => [] });
     const appBody = el.querySelector(".app-body");
     appBody.remove();
     el.toggleDrawer();
