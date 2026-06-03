@@ -1,4 +1,4 @@
-import { cancelSession, createSession, runAguiSessionPrompt, runShellCommand, steerSession } from "../../shared/api/api";
+import { cancelSession, createSession, postPrompt, runShellCommand, steerSession } from "../../shared/api/api";
 import { fallbackChoicePrompt } from "./fallback-choices";
 
 const SHELL_PROMPT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 17 6-6-6-6"></path><path d="M12 19h8"></path></svg>`;
@@ -72,12 +72,11 @@ export const inputMethods = {
       this.showSessionMain();
       this.finalizeStreamingMessages();
       const waitForServerEcho = this.apiConnected && sessionId;
-      const useAguiPrompt = waitForServerEcho && typeof EventSource !== "undefined";
       const attachments = this.attachmentContents.filter(Boolean);
       const hasVisiblePrompt = !!text || attachments.length > 0;
       this.writeLastSessionPrompt(sessionId, text);
       if (hasVisiblePrompt) {
-        if (!waitForServerEcho || useAguiPrompt) this.appendMessage({ kind: "user", text, attachments });
+        if (!waitForServerEcho) this.appendMessage({ kind: "user", text, attachments });
         this.appendLoadingMessage();
         if (text) this.autonameActiveSession(text);
       }
@@ -90,27 +89,15 @@ export const inputMethods = {
         this.eventSource?.close();
         this.eventSource = null;
         this.setMode("running");
-        let replayEventsOnReconnect = true;
         try {
-          const completedInAguiStream = await runAguiSessionPrompt(
-            sessionId,
-            text,
-            attachments,
-            this.aguiSubscriber(sessionId),
-          );
-          replayEventsOnReconnect = !completedInAguiStream;
-          if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
-            this.setMode("idle");
-            this.finalizeStreamingMessages();
-            this.removeLoadingMessage();
-          }
+          await postPrompt(sessionId, text, attachments);
         } catch {
           this.setMode("idle");
           this.removeLoadingMessage();
           this.setConnection("err");
         } finally {
           if (this.dataset.activeSessionId === sessionId && typeof EventSource !== "undefined") {
-            this.connectEvents(sessionId, { replay: replayEventsOnReconnect });
+            this.connectEvents(sessionId, { replay: true });
           }
         }
       }
@@ -363,12 +350,7 @@ export const inputMethods = {
       this.eventSource?.close();
       this.eventSource = null;
       const sessionId = this.dataset.activeSessionId;
-      const completedInAguiStream = await runAguiSessionPrompt(sessionId, prompt, [], this.aguiSubscriber(sessionId));
-      if (completedInAguiStream && this.dataset.activeSessionId === sessionId) {
-        this.setMode("idle");
-        this.finalizeStreamingMessages();
-        this.removeLoadingMessage();
-      }
+      await postPrompt(sessionId, prompt, []);
     } catch {
       this.setMode("idle");
       this.removeLoadingMessage();

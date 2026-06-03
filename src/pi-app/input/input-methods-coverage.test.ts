@@ -293,43 +293,30 @@ describe("pi-app input methods coverage", () => {
     expect(app.setConnection).toHaveBeenCalledWith("err");
   });
 
-  it("cleans up completed AG-UI prompt and fallback choice streams", async () => {
+  it("submits connected prompts through the stable prompt endpoint", async () => {
     const app = await connectPiApp();
     globalThis.EventSource = class {};
-    globalThis.fetch = vi.fn(async () => aguiResponse());
+    globalThis.fetch = vi.fn(async () => ok({ accepted: true }));
     app.apiConnected = true;
     app.dataset.activeSessionId = "s1";
     app.connectEvents = vi.fn();
-    app.prompt.value = "agui prompt";
+    app.prompt.value = "backend prompt";
 
     await app.submitPrompt();
 
-    expect(String(globalThis.fetch.mock.calls[0][0])).toContain("/api/sessions/s1/ag-ui");
-    expect(app.running).toBe(false);
-    expect(app.querySelector(".msg.loading")).toBeNull();
-    expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: false });
-
-    globalThis.fetch = vi.fn(async (url) => {
-      if (String(url).includes("/ag-ui")) throw new Error("Failed to getReader");
-      return ok({ accepted: true });
-    });
-    app.connectEvents = vi.fn();
-    app.prompt.value = "fallback prompt";
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    try {
-      await app.submitPrompt();
-    } finally {
-      consoleError.mockRestore();
-    }
-    expect(String(globalThis.fetch.mock.calls.at(-1)[0])).toContain("/api/sessions/s1/prompt");
+    expect(String(globalThis.fetch.mock.calls[0][0])).toContain("/api/sessions/s1/prompt");
+    expect(JSON.parse(globalThis.fetch.mock.calls[0][1].body)).toEqual({ text: "backend prompt", attachments: [] });
+    expect(app.running).toBe(true);
+    expect(app.querySelector(".msg.loading")).not.toBeNull();
     expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: true });
 
     const panel = document.createElement("div");
     panel.innerHTML = `<button></button><input>`;
-    globalThis.fetch = vi.fn(async () => aguiResponse());
+    app.connectEvents = vi.fn();
+    globalThis.fetch = vi.fn(async () => ok({ accepted: true }));
     await app.submitFallbackChoice("choice-1", "A", panel);
-    expect(app.running).toBe(false);
-    expect(app.querySelector(".msg.loading")).toBeNull();
+    expect(String(globalThis.fetch.mock.calls[0][0])).toContain("/api/sessions/s1/prompt");
+    expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: false });
   });
 
   it("runs shell commands through success, nonzero, and failure paths", async () => {
