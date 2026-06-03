@@ -308,7 +308,7 @@ describe("pi-app input methods coverage", () => {
     expect(JSON.parse(globalThis.fetch.mock.calls[0][1].body)).toEqual({ text: "backend prompt", attachments: [] });
     expect(app.running).toBe(true);
     expect(app.querySelector(".msg.loading")).not.toBeNull();
-    expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: true });
+    expect(app.connectEvents).toHaveBeenCalledWith("s1", { replay: false });
 
     const panel = document.createElement("div");
     panel.innerHTML = `<button></button><input>`;

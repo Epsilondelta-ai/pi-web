@@ -97,7 +97,7 @@ export const inputMethods = {
           this.setConnection("err");
         } finally {
           if (this.dataset.activeSessionId === sessionId && typeof EventSource !== "undefined") {
-            this.connectEvents(sessionId, { replay: true });
+            this.connectEvents(sessionId, { replay: false });
           }
         }
       }
