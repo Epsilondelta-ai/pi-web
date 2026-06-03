@@ -21,6 +21,8 @@ type PluginContext = {
     get(path: string): Promise<unknown>;
     post(path: string, body: unknown): Promise<unknown>;
   };
+  backend(method: string, body: unknown): Promise<unknown>;
+  loadCodeMirrorFileEditor(): Promise<unknown>;
 };
 
 type PluginHost = HTMLElement & {
@@ -43,7 +45,7 @@ function importPluginModule(url: string): Promise<PluginModule> {
 }
 
 function request(path: string, method: string, body?: unknown): Promise<unknown> {
-  return fetch(path, {
+  return fetch(`${apiBase()}${path}`, {
     method,
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -118,6 +120,13 @@ export const pluginMethods = {
         post(path: string, body: unknown): Promise<unknown> {
           return request(path, "POST", body);
         },
+      },
+      backend(method: string, body: unknown): Promise<unknown> {
+        const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
+        return request(path, "POST", body);
+      },
+      loadCodeMirrorFileEditor(): Promise<unknown> {
+        return import("../editor/file-editor");
       },
     };
   },

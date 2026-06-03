@@ -27,7 +27,9 @@ export const layoutMethods = {
     this.dataset.route = route;
     this.querySelector('[data-view="picker"]')?.toggleAttribute("hidden", route !== "picker");
     this.querySelector('[data-view="workspace"]')?.toggleAttribute("hidden", route !== "workspace");
-    this.querySelector('[data-action="toggle-tree"]')?.toggleAttribute("hidden", route !== "workspace");
+    this.querySelectorAll('[data-action="toggle-plugin-sidebar"]').forEach((button) => {
+      button.toggleAttribute("hidden", route !== "workspace");
+    });
     if (route === "picker") {
       this.querySelector('.picker-shell input[name="path"]')?.focus();
       if (this.apiConnected) void this.browseFolder();
@@ -35,27 +37,49 @@ export const layoutMethods = {
     if (route === "workspace") this.scrollTerm();
   },
 
-  toggleTree(forceOpen) {
+  togglePluginSidebar(panelId, forceOpen) {
     const body = this.querySelector(".app-body");
-    const tree = this.querySelector(".tree");
-    const treeEnabled = forceOpen ?? this.dataset.tree !== "on";
+    const tree = this.querySelector("[data-plugin-sidebar]") || this.querySelector(".tree");
+    const currentPanel = tree?.dataset.activePluginPanel || "file-browser";
+    const nextPanel = panelId || currentPanel;
+    const treeEnabled = forceOpen ?? (this.dataset.tree !== "on" || currentPanel !== nextPanel);
     this.dataset.tree = treeEnabled ? "on" : "off";
+    tree?.setAttribute("data-active-plugin-panel", nextPanel);
     body?.classList.toggle("with-tree", treeEnabled);
     body?.classList.toggle("tree-open", treeEnabled);
-    this.querySelector('[data-action="toggle-tree"]')?.classList.toggle("on", treeEnabled);
+    this.querySelectorAll('[data-action="toggle-plugin-sidebar"]').forEach((button) => {
+      button.classList.toggle("on", treeEnabled && button.dataset.pluginPanel === nextPanel);
+    });
     tree?.toggleAttribute("hidden", !treeEnabled);
+    this.syncPluginSidebarPanels?.();
     if (treeEnabled) {
-      void this.ensureWorkspaceTreeMounted?.();
-      if (this.apiConnected && this.dataset.activeWorkspaceId && !this.workspaceMetaLoadedFor?.has?.(this.dataset.activeWorkspaceId)) {
-        void this.loadWorkspaceMeta?.(this.dataset.activeWorkspaceId);
-      }
+      window.dispatchEvent(new CustomEvent("pi-plugin-sidebar:open", {
+        detail: { panel: nextPanel, workspaceId: this.dataset.activeWorkspaceId || "" },
+      }));
     }
     this.applyGrid();
   },
 
+  toggleTree(forceOpen) {
+    this.togglePluginSidebar?.("file-browser", forceOpen);
+  },
+
+  syncPluginSidebarPanels() {
+    const tree = this.querySelector("[data-plugin-sidebar]") || this.querySelector(".tree");
+    if (!tree) return;
+    const activePanel = tree.dataset.activePluginPanel || "file-browser";
+    let visiblePanel = false;
+    tree.querySelectorAll("[data-plugin-panel]").forEach((panel) => {
+      const visible = panel.dataset.pluginPanel === activePanel;
+      panel.toggleAttribute("hidden", !visible);
+      visiblePanel = visiblePanel || visible;
+    });
+    tree.querySelector("[data-plugin-sidebar-empty]")?.toggleAttribute("hidden", visiblePanel);
+  },
+
   closeTreeFromOutside(event) {
     if (this.dataset.tree !== "on") return;
-    const selector = ".tree, [data-action='toggle-tree'], [data-file-preview]";
+    const selector = ".tree, [data-action='toggle-plugin-sidebar'], [data-file-preview]";
     const path = event.composedPath?.() || [];
     if (path.some((node) => node?.matches?.(selector))) return;
     const target = event.target;

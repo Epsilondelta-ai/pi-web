@@ -147,8 +147,12 @@ try {
   await flow.startTimespan({ stepName: "open settings" });
   await clickIfVisible(page, "[data-action='open-settings']");
   await flow.endTimespan();
-  await flow.startTimespan({ stepName: "open file tree" });
-  await clickIfVisible(page, "[data-action='toggle-tree']");
+  await flow.startTimespan({ stepName: "open plugin sidebar" });
+  await page.evaluate(() => {
+    const app = document.querySelector("pi-app");
+    app?.toggleTree?.(true);
+  });
+  await new Promise((resolve) => setTimeout(resolve, 500));
   await flow.endTimespan();
   await flow.startTimespan({ stepName: "open file preview" });
   await openFilePreview(page, "src/main.ts");

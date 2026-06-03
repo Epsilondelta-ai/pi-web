@@ -345,6 +345,7 @@ export const workspaceBootstrapMethods = {
     this.updateActiveWorkspaceLabel(workspaceId);
     this.syncActiveWorkspaceRows?.();
     const shouldLoadContext = loadContext && (changed || forceLoadContext);
+    window.dispatchEvent(new CustomEvent("pi-workspace:active", { detail: { workspaceId } }));
     if (this.apiConnected && shouldLoadContext) this.loadWorkspaceContext(workspaceId);
   },
 

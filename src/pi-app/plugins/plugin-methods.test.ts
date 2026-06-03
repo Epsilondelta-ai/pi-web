@@ -100,10 +100,14 @@ describe("pluginMethods", () => {
     const context = host.pluginContext({ id: "p", entry: "index.js" });
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
+    await context.backend("run", { ok: true });
+    const editorModule = await context.loadCodeMirrorFileEditor();
     globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
+    expect(editorModule.CodeMirrorFileEditor).toBeTruthy();
+    expect(api.apiBase).toHaveBeenCalled();
   });
 
   it("refreshes, installs, toggles, and removes plugins", async () => {

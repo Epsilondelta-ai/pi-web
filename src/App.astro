@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CornerDownLeft,
-  Folder,
   GitBranch,
   Menu,
   Mic,
@@ -40,7 +39,6 @@ const {
   showUpdateRelease = false,
   showUpdateTip = false,
   workspaces = [],
-  fileTree = [],
   conversation = [],
   slashCommands = [],
 } = Astro.props;
@@ -145,11 +143,7 @@ function speechLanguageListId(path) {
       <span class="sep">/</span><span class="ws" data-active-workspace>{activeWorkspaceName}</span>
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
-    <div class="actions">
-      <button class:list={["iconbtn", "workspace-explorer-btn", treeOpen && "on"]} type="button" data-action="toggle-tree" aria-label="toggle workspace explorer" title="workspace explorer: files and git" hidden={workspaceHidden}>
-        <Folder size={14} strokeWidth={1.5} aria-hidden="true" />
-        <GitBranch size={12} strokeWidth={1.6} aria-hidden="true" />
-      </button>
+    <div class="actions" data-plugin-toolbar>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
     </div>
   </header>
@@ -265,12 +259,8 @@ function speechLanguageListId(path) {
       <EmptySessionShell workspaceName={activeWorkspaceName} />
     </main>
 
-    <aside class="tree" aria-label="workspace details" hidden={treeHidden}> 
-      <div class="tree-head"><span class="tree-tabs"><button class="tree-tab on" type="button" data-action="show-file-tree"><Folder size={12} strokeWidth={1.75} aria-hidden="true" /> files</button><button class="tree-tab" type="button" data-action="show-git-history"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /> git</button></span><span class="tree-head-actions"><span class="branch" data-git-status>—</span><button type="button" data-action="tree-root-menu" aria-label="file tree actions" title="file tree actions"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /></button><button type="button" data-action="refresh-tree" aria-label="refresh workspace explorer" title="refresh workspace explorer"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
-      <div class="tree-list" data-workspace-tree-root data-initial-files={escapeHtml(JSON.stringify(fileTree))}>
-        <div class="tree-empty">file tree loads when opened</div>
-      </div>
-      <div class="git-panel" data-git-panel hidden></div>
+    <aside class="tree" aria-label="plugin sidebar" data-plugin-sidebar data-active-plugin-panel="file-browser" hidden={treeHidden}> 
+      <div class="plugin-sidebar-empty" data-plugin-sidebar-empty>Install file browser or git viewer plugin.</div>
     </aside>
     <div class="file-preview-modal" data-file-preview hidden>
       <div class="fp-dialog" role="dialog" aria-modal="true" aria-labelledby="file-preview-title">

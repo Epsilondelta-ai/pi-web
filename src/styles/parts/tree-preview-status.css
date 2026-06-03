@@ -212,6 +212,8 @@
 }
 .tree-head button:hover:not(:disabled),
 .tree-head button.on { border-color: var(--accent); color: var(--accent); }
+[data-plugin-panel] { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.plugin-sidebar-empty { padding: var(--space-4); color: var(--fg-3); font-size: var(--text-xs); font-style: italic; }
 .tree-list { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4px 0 4px var(--space-2); }
 .git-panel { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .git-history-grid {

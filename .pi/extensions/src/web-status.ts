@@ -1,7 +1,7 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, open, readdir, readFile, rename, stat, unlink } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
 
 export type WebStatusInput = {
   model: string;
@@ -59,6 +59,7 @@ async function readJsonObject(path: string): Promise<Record<string, unknown> | u
 }
 
 async function writePrivateJson(path: string, value: Record<string, unknown>): Promise<void> {
+  await removeStaleTempFiles(path);
   const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${randomUUID()}`;
   const data = `${JSON.stringify(value, null, 2)}\n`;
   const handle = await open(tempPath, "w", 0o600);
@@ -67,7 +68,43 @@ async function writePrivateJson(path: string, value: Record<string, unknown>): P
   } finally {
     await handle.close();
   }
-  await rename(tempPath, path);
+  try {
+    await rename(tempPath, path);
+  } catch (error) {
+    await unlinkTempFile(tempPath);
+    throw error;
+  }
+}
+
+async function removeStaleTempFiles(path: string): Promise<void> {
+  const directory = dirname(path);
+  const prefix = `${basename(path)}.tmp-`;
+  const now = Date.now();
+  let names: string[];
+  try {
+    names = await readdir(directory);
+  } catch {
+    return;
+  }
+  await Promise.all(names
+    .filter((name) => name.startsWith(prefix))
+    .map(async (name) => {
+      const tempPath = join(directory, name);
+      try {
+        const info = await stat(tempPath);
+        if (now - info.mtimeMs > 60_000) await unlink(tempPath);
+      } catch {
+        return;
+      }
+    }));
+}
+
+async function unlinkTempFile(path: string): Promise<void> {
+  try {
+    await unlink(path);
+  } catch {
+    return;
+  }
 }
 
 function parseQuotaPercent(text: string | undefined, pattern: RegExp): number | undefined {

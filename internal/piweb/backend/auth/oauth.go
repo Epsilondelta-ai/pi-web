@@ -320,16 +320,70 @@ func runOAuthListHelper() ([]OAuthProviderStatus, error) {
 }
 
 func piAIOAuthIndexPath() (string, error) {
-	candidates := []string{
-		filepath.Join(os.Getenv("HOME"), ".npm-global", "lib", "node_modules", "@earendil-works", "pi-coding-agent", "node_modules", "@earendil-works", "pi-ai", "dist", "utils", "oauth", "index.js"),
-		"/usr/local/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/utils/oauth/index.js",
-	}
-	for _, candidate := range candidates {
+	for _, candidate := range piAIOAuthIndexCandidates() {
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate, nil
 		}
 	}
 	return "", errors.New("pi-ai OAuth module not found; install pi CLI first")
+}
+
+func piAIOAuthIndexCandidates() []string {
+	candidates := []string{}
+	if explicit := os.Getenv("PI_AI_OAUTH_INDEX"); explicit != "" {
+		candidates = append(candidates, explicit)
+	}
+
+	if moduleRoot, ok := piCLIModuleRoot(); ok {
+		candidates = append(candidates, piAIOAuthIndexIn(moduleRoot))
+	}
+
+	for _, moduleRoot := range piCodingAgentModuleRootCandidates() {
+		candidates = append(candidates, piAIOAuthIndexIn(moduleRoot))
+	}
+	return uniqueStrings(candidates)
+}
+
+func piCLIModuleRoot() (string, bool) {
+	piPath, err := exec.LookPath("pi")
+	if err != nil {
+		return "", false
+	}
+	resolved, err := filepath.EvalSymlinks(piPath)
+	if err != nil {
+		resolved = piPath
+	}
+	moduleRoot := filepath.Dir(filepath.Dir(resolved))
+	packagePath := filepath.Join(moduleRoot, "package.json")
+	if _, err := os.Stat(packagePath); err != nil {
+		return "", false
+	}
+	return moduleRoot, true
+}
+
+func piCodingAgentModuleRootCandidates() []string {
+	return []string{
+		filepath.Join(os.Getenv("HOME"), ".npm-global", "lib", "node_modules", "@earendil-works", "pi-coding-agent"),
+		"/opt/homebrew/lib/node_modules/@earendil-works/pi-coding-agent",
+		"/usr/local/lib/node_modules/@earendil-works/pi-coding-agent",
+	}
+}
+
+func piAIOAuthIndexIn(moduleRoot string) string {
+	return filepath.Join(moduleRoot, "node_modules", "@earendil-works", "pi-ai", "dist", "utils", "oauth", "index.js")
+}
+
+func uniqueStrings(values []string) []string {
+	seen := map[string]bool{}
+	unique := []string{}
+	for _, value := range values {
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		unique = append(unique, value)
+	}
+	return unique
 }
 
 func randomSessionID() (string, error) {
