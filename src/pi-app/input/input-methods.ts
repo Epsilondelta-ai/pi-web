@@ -76,7 +76,7 @@ export const inputMethods = {
       const hasVisiblePrompt = !!text || attachments.length > 0;
       this.writeLastSessionPrompt(sessionId, text);
       if (hasVisiblePrompt) {
-        if (!waitForServerEcho) this.appendMessage({ kind: "user", text, attachments });
+        this.appendMessage({ kind: "user", text, attachments });
         this.appendLoadingMessage();
         if (text) this.autonameActiveSession(text);
       }

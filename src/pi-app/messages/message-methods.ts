@@ -115,7 +115,8 @@ export const messageMethods = {
       body.textContent += delta;
       this.notifyTranscriptNodeHeightDidChange(messageRow);
     }
-    if (kind !== "pi") this.syncLoadingMessage();
+    if (kind === "pi" && this.running) this.appendLoadingMessage();
+    else this.syncLoadingMessage();
     this.scrollTerm();
   },
 
