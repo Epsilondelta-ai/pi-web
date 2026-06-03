@@ -1,6 +1,8 @@
 *
 !bin/
 !bin/pi-web.js
+!scripts/
+!scripts/npm-postinstall.js
 !README.md
 !LICENSE
 !package.json
