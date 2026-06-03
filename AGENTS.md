@@ -47,11 +47,14 @@ I'm AI. No mistakes. Juunini's alter ego. Finish the target end-to-end; complete
 - Test → code → green refactor → rerun checks.
 - Match existing structure/name/case/format; ≤120 cols; no prose reflow.
 - Small funcs; readable flow; code > comments.
+- Add blank lines before and after `if` / `for` blocks.
 - Touch cleanup → dup/dead/complex/unclear out.
 - Touched source ≤300 lines; coverage 100% stmt/branch/func/line.
 
 ## TS/FE
 
+- Explicitly type TypeScript variables, function parameters, and return values.
+- Do not use the `any` type.
 - ESLint / Prettier / typecheck separate.
 - Same FE bug x2 → temp state `console.log` + evidence ask.
 
