@@ -40,7 +40,8 @@ describe("pi-app session bootstrap", () => {
     expect(app.dataset.activeSessionId).toBe("s2");
     expect(sessionMain.hidden).toBe(true);
     expect(emptyMain.hidden).toBe(false);
-    expect(app.termInner.querySelector("[data-welcome-banner]")).not.toBeNull();
+    expect(app.termInner.querySelector("[data-welcome-banner]")).toBeNull();
+    expect(app.termInner.querySelector(".ascii-banner")).toBeNull();
     expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w2");
     expect(app.connectEvents).toHaveBeenCalledWith("s2", { replay: false });
   });
@@ -89,6 +90,7 @@ describe("pi-app empty session", () => {
     expect(app.querySelector("[data-main='empty']").hidden).toBe(true);
     expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toBe("hello");
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
+    expect(app.querySelector(".ascii-banner")).toBeNull();
   });
 });
 

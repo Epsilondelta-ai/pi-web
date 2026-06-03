@@ -58,13 +58,6 @@ function restorePiInlineMarkup(html) {
     .replace(/&lt;cursor&gt;&lt;\/cursor&gt;/g, '<span class="cursor"></span>');
 }
 
-export function renderBannerBody(text) {
-  return escapeHtml(text)
-    .replace(/&lt;a&gt;([\s\S]*?)&lt;\/a&gt;/g, '<span class="accent">$1</span>')
-    .replace(/&lt;d&gt;([\s\S]*?)&lt;\/d&gt;/g, '<span class="dim">$1</span>')
-    .replace(/&lt;t&gt;([\s\S]*?)&lt;\/t&gt;/g, '<span class="tool">$1</span>');
-}
-
 export function renderAnsiBody(text) {
   const tagMap = {
     a: "ansi-green",

@@ -45,20 +45,6 @@
 }
 .fallback-choice-list .choice-custom { margin-top: var(--space-2); }
 
-pre.ascii-banner {
-  margin: 0 0 14px;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  line-height: 1.3;
-  color: var(--fg-3);
-  white-space: pre;
-  user-select: none;
-  overflow-x: auto;
-}
-pre.ascii-banner .accent { color: var(--accent); }
-pre.ascii-banner .tool { color: var(--tool-call); }
-pre.ascii-banner .dim { color: var(--fg-3); }
-
 .compaction {
   margin: 12px 0;
   padding: 6px 12px;
