@@ -24,6 +24,8 @@ Instale o binário mais recente do GitHub Releases:
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
+O instalador também instala os plugins confiáveis padrão: notificações toast, navegador de arquivos e visualizador Git. Defina `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` para ignorá-los.
+
 Atualize o binário instalado:
 
 ```bash

@@ -24,6 +24,8 @@
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
+インストーラーは既定の信頼済みプラグイン（toast 通知、ファイルブラウザー、Git ビューアー）もインストールします。スキップするには `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` を設定します。
+
 インストール済みバイナリを更新します。
 
 ```bash
