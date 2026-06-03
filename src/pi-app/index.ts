@@ -3,7 +3,6 @@ import { normalizeUiLocale } from "../i18n/locales";
 import { sessionEvents } from "../shared/api/api";
 import { escapeHtml } from "../shared/renderers/renderers";
 import { SPINNER_FRAME_COUNT } from "./constants";
-import { filePreviewMethods } from "./editor/file-preview-methods";
 import { attachmentMethods } from "./input/attachment-methods";
 import { inputMethods } from "./input/input-methods";
 import { promptDraftMethods } from "./input/prompt-draft-methods";
@@ -71,7 +70,6 @@ class PiApp extends HTMLElement {
     applyUiLocale(currentUiLocale(), this);
     this.restorePromptDraft();
     this.installViewportSizing();
-    this.installFilePreviewUnloadGuard();
     this.bindDomEvents();
     this.restoreSidebar();
     this.syncUnreadCompletedSessions?.();
@@ -85,7 +83,6 @@ class PiApp extends HTMLElement {
   }
   disconnectedCallback() {
     this.stopSpeechInput?.();
-    this.destroyFilePreviewEditor?.();
     this.uninstallPromptDropZone?.();
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
@@ -102,7 +99,6 @@ class PiApp extends HTMLElement {
     this.sidebarSortableRoot?.unmount?.();
     this.sidebarSortableRoot = undefined;
     this.uninstallViewportSizing?.();
-    this.uninstallFilePreviewUnloadGuard?.();
   }
   installViewportSizing() {
     const applyViewportHeight = () => {
@@ -203,10 +199,6 @@ class PiApp extends HTMLElement {
       const workspaceId = this.dataset.activeWorkspaceId;
       const selectedPath = (event as CustomEvent)?.detail?.selectedPath || "";
       if (workspaceId) void this.loadWorkspaceMeta(workspaceId, { selectedPath });
-    });
-    window.addEventListener("pi-workspace-file:open", (event) => {
-      const path = (event as CustomEvent)?.detail?.path;
-      if (path) void this.openFilePath?.(path);
     });
     window.addEventListener("keydown", (event) => this.shortcut(event));
     window.addEventListener("click", (event) => {
@@ -499,7 +491,6 @@ Object.assign(
   promptDraftMethods,
   inputMethods,
   attachmentMethods,
-  filePreviewMethods,
   layoutMethods,
   notificationMethods,
   pluginMethods,

@@ -28,7 +28,10 @@ function hostWithList() {
 describe("pluginMethods", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
-    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ ok: true }) }));
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ ok: true }),
+    }));
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "info").mockImplementation(() => undefined);
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -54,13 +57,19 @@ describe("pluginMethods", () => {
     const listed = hostWithList();
     await listed.loadPlugins();
 
-    expect(listed.querySelector("[data-plugin-list]").textContent).toBe("No plugins installed.");
+    expect(listed.querySelector("[data-plugin-list]").textContent).toBe(
+      "No plugins installed.",
+    );
   });
 
   it("uses the default dynamic importer", async () => {
     const host = hostWithList();
-    api.apiBase.mockReturnValue("data:text/javascript,export default () => {}//");
-    api.getPlugins.mockResolvedValue({ plugins: [{ id: "inline", entry: "index.js" }] });
+    api.apiBase.mockReturnValue(
+      "data:text/javascript,export default () => {}//",
+    );
+    api.getPlugins.mockResolvedValue({
+      plugins: [{ id: "inline", entry: "index.js" }],
+    });
 
     await host.loadPlugins();
 
@@ -72,15 +81,28 @@ describe("pluginMethods", () => {
     const activated = [];
     host.loadedPlugins = new Set(["already"]);
     host.importPluginModule = vi.fn(async (url) => {
-      if (url.includes("default-plugin")) return { default: (context) => activated.push(["default", context.plugin.id]) };
-      if (url.includes("activate-plugin")) return { activate: (context) => activated.push(["activate", context.plugin.id]) };
+      if (url.includes("default-plugin"))
+        return {
+          default: (context) => activated.push(["default", context.plugin.id]),
+        };
+      if (url.includes("activate-plugin"))
+        return {
+          activate: (context) =>
+            activated.push(["activate", context.plugin.id]),
+        };
       throw new Error("bad plugin");
     });
     api.getPlugins.mockResolvedValue({
       plugins: [
         { id: "disabled", entry: "index.js", enabled: false },
         { id: "already", entry: "index.js" },
-        { id: "default-plugin", name: "Default", version: "1", cacheKey: "sha", entry: "main.js" },
+        {
+          id: "default-plugin",
+          name: "Default",
+          version: "1",
+          cacheKey: "sha",
+          entry: "main.js",
+        },
         { id: "activate-plugin", entry: "entry.js" },
         { id: "broken", name: "Broken", entry: "broken.js" },
       ],
@@ -88,11 +110,76 @@ describe("pluginMethods", () => {
 
     await host.loadPlugins();
 
-    expect(host.importPluginModule).toHaveBeenCalledWith("http://backend.test/api/plugins/default-plugin/assets/main.js?v=sha");
-    expect(activated).toEqual([["default", "default-plugin"], ["activate", "activate-plugin"]]);
+    expect(host.importPluginModule).toHaveBeenCalledWith(
+      "http://backend.test/api/plugins/default-plugin/assets/main.js?v=sha",
+    );
+    expect(activated).toEqual([
+      ["default", "default-plugin"],
+      ["activate", "activate-plugin"],
+    ]);
     expect(host.loadedPlugins.has("default-plugin")).toBe(true);
-    expect(host.querySelector("[data-plugin-id='disabled'] [data-action='toggle-plugin']").textContent).toBe("enable");
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("Broken"), expect.any(Error));
+    expect(
+      host.querySelector(
+        "[data-plugin-id='disabled'] [data-action='toggle-plugin']",
+      ).textContent,
+    ).toBe("enable");
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("Broken"),
+      expect.any(Error),
+    );
+  });
+
+  it("deactivates loaded plugins through returned cleanup and module hooks", async () => {
+    const host = hostWithList();
+    const cleanup = vi.fn();
+    const objectDeactivate = vi.fn();
+    const objectDispose = vi.fn();
+    const moduleDeactivate = vi.fn();
+    host.importPluginModule = vi.fn(async (url) => {
+      if (url.includes("cleanup-plugin")) return { default: () => cleanup };
+      if (url.includes("object-deactivate"))
+        return { default: () => ({ deactivate: objectDeactivate }) };
+      if (url.includes("object-dispose"))
+        return { default: () => ({ dispose: objectDispose }) };
+      if (url.includes("failing-cleanup")) {
+        return {
+          default: () => () => {
+            throw new Error("cleanup failed");
+          },
+        };
+      }
+      if (url.includes("empty-plugin")) return {};
+      return { activate: () => undefined, deactivate: moduleDeactivate };
+    });
+    api.getPlugins.mockResolvedValue({
+      plugins: [
+        { id: "cleanup-plugin", entry: "index.js" },
+        { id: "object-deactivate", entry: "index.js" },
+        { id: "object-dispose", entry: "index.js" },
+        { id: "failing-cleanup", entry: "index.js" },
+        { id: "empty-plugin", entry: "index.js" },
+        { id: "module-plugin", entry: "index.js" },
+      ],
+    });
+
+    await host.loadPlugins();
+    await host.deactivateLoadedPlugin("cleanup-plugin");
+    await host.deactivateLoadedPlugins();
+
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(objectDeactivate).toHaveBeenCalledOnce();
+    expect(objectDispose).toHaveBeenCalledOnce();
+    expect(moduleDeactivate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plugin: expect.objectContaining({ id: "module-plugin" }),
+      }),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("failing-cleanup"),
+      expect.any(Error),
+    );
+    expect(host.loadedPlugins.size).toBe(0);
+    expect(host.activePlugins.size).toBe(0);
   });
 
   it("provides plugin context API helpers", async () => {
@@ -101,12 +188,13 @@ describe("pluginMethods", () => {
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
     await context.backend("run", { ok: true });
-    const editorModule = await context.loadCodeMirrorFileEditor();
-    globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
+    globalThis.fetch = vi.fn(async () => ({
+      ok: false,
+      text: async () => "nope",
+    }));
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
-    expect(editorModule.CodeMirrorFileEditor).toBeTruthy();
     expect(api.apiBase).toHaveBeenCalled();
   });
 
@@ -127,6 +215,7 @@ describe("pluginMethods", () => {
     await host.installPluginFromForm();
     await host.togglePlugin("", true);
     await host.togglePlugin("plug", true);
+    await host.togglePlugin("plug", false);
     await host.uninstallPluginById("");
     await host.uninstallPluginById("plug");
 
@@ -134,7 +223,8 @@ describe("pluginMethods", () => {
     expect(api.installPlugin).toHaveBeenCalledWith("local", "/repo/plugin");
     expect(api.installPlugin).toHaveBeenCalledWith("github", "owner/repo");
     expect(api.setPluginEnabled).toHaveBeenCalledWith("plug", false);
+    expect(api.setPluginEnabled).toHaveBeenCalledWith("plug", true);
     expect(api.uninstallPlugin).toHaveBeenCalledWith("plug");
-    expect(host.loadPlugins).toHaveBeenCalledTimes(5);
+    expect(host.loadPlugins).toHaveBeenCalledTimes(6);
   });
 });

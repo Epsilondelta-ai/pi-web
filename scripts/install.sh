@@ -7,6 +7,8 @@ INSTALL_DIR="${PI_WEB_INSTALL_DIR:-$HOME/.local/bin}"
 BIN_NAME="pi-web"
 PI_INSTALL_URL="${PI_WEB_PI_INSTALL_URL:-https://pi.dev/install.sh}"
 INSTALL_PI="${PI_WEB_INSTALL_PI:-auto}"
+INSTALL_DEFAULT_PLUGINS="${PI_WEB_INSTALL_DEFAULT_PLUGINS:-auto}"
+DEFAULT_PLUGIN_URLS="${PI_WEB_DEFAULT_PLUGIN_URLS:-https://github.com/Epsilondelta-ai/pi-web-toast-noti https://github.com/Epsilondelta-ai/pi-web-file-browser https://github.com/Epsilondelta-ai/pi-web-git-viewer}"
 
 usage() {
   cat <<'USAGE'
@@ -20,6 +22,10 @@ Environment variables:
   PI_WEB_INSTALL_PI   Install pi when missing: auto, always, or never. Default: auto
   PI_WEB_PI_INSTALL_URL
                       pi installer URL. Default: https://pi.dev/install.sh
+  PI_WEB_INSTALL_DEFAULT_PLUGINS
+                      Install default plugins: auto, always, or never. Default: auto
+  PI_WEB_DEFAULT_PLUGIN_URLS
+                      Space-separated plugin GitHub URLs to install.
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
@@ -119,6 +125,85 @@ arch_name() {
   esac
 }
 
+json_string() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+plugin_id_from_manifest() {
+  sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1" | head -n 1
+}
+
+install_default_plugins() {
+  case "$INSTALL_DEFAULT_PLUGINS" in
+    auto|always|never) ;;
+    *) echo "error: PI_WEB_INSTALL_DEFAULT_PLUGINS must be auto, always, or never" >&2; exit 1 ;;
+  esac
+
+  if [ "$INSTALL_DEFAULT_PLUGINS" = "never" ]; then
+    return
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    if [ "$INSTALL_DEFAULT_PLUGINS" = "always" ]; then
+      echo "error: git is required to install default plugins" >&2
+      exit 1
+    fi
+    echo "Skipping default plugins: git not found"
+    return
+  fi
+
+  plugin_root="$HOME/.pi-web/plugins"
+  metadata_root="$plugin_root/.metadata"
+  mkdir -p "$plugin_root" "$metadata_root"
+
+  for plugin_url in $DEFAULT_PLUGIN_URLS; do
+    plugin_tmp="$TMP_DIR/plugin-$(basename "$plugin_url").$$"
+    echo "Installing default plugin: $plugin_url"
+    if ! git clone --depth 1 "$plugin_url" "$plugin_tmp" >/dev/null 2>&1; then
+      if [ "$INSTALL_DEFAULT_PLUGINS" = "always" ]; then
+        echo "error: failed to clone default plugin: $plugin_url" >&2
+        exit 1
+      fi
+      echo "Warning: failed to clone default plugin: $plugin_url" >&2
+      continue
+    fi
+
+    if [ ! -f "$plugin_tmp/plugin.json" ]; then
+      if [ "$INSTALL_DEFAULT_PLUGINS" = "always" ]; then
+        echo "error: default plugin is missing plugin.json: $plugin_url" >&2
+        exit 1
+      fi
+      echo "Warning: default plugin is missing plugin.json: $plugin_url" >&2
+      continue
+    fi
+
+    plugin_id="$(plugin_id_from_manifest "$plugin_tmp/plugin.json")"
+    case "$plugin_id" in
+      ""|*/*|*\\*|*..*)
+        if [ "$INSTALL_DEFAULT_PLUGINS" = "always" ]; then
+          echo "error: default plugin has invalid id: $plugin_url" >&2
+          exit 1
+        fi
+        echo "Warning: default plugin has invalid id: $plugin_url" >&2
+        continue
+        ;;
+    esac
+
+    plugin_target="$plugin_root/$plugin_id"
+    rm -rf "$plugin_target"
+    mkdir -p "$plugin_target"
+    cp -R "$plugin_tmp/." "$plugin_target/"
+    if [ ! -f "$metadata_root/$plugin_id.json" ]; then
+      cat > "$metadata_root/$plugin_id.json" <<EOF
+{
+  "source": "github",
+  "url": "$(json_string "$plugin_url")"
+}
+EOF
+    fi
+  done
+}
+
 install_pi_if_needed
 
 if [ "$VERSION" = "latest" ]; then
@@ -160,6 +245,8 @@ INSTALL_TMP="$INSTALL_DIR/.${BIN_FILE}.tmp.$$"
 cp "$FOUND_BIN" "$INSTALL_TMP"
 chmod +x "$INSTALL_TMP"
 mv -f "$INSTALL_TMP" "$TARGET"
+
+install_default_plugins
 
 echo "Installed: $TARGET"
 case ":$PATH:" in

@@ -1,7 +1,5 @@
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { codeMirrorLanguageExtension } from "./editor/file-editor";
-import { filePreviewMethods, setCodeMirrorFileEditorLoaderForTest } from "./editor/file-preview-methods";
 import { inputMethods } from "./input/input-methods";
 import { speechMethods } from "./input/speech-methods";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "./test-helper";
@@ -32,72 +30,6 @@ describe("performance split coverage", () => {
     const app = await connectPiApp();
     app.micButton = null;
     expect(() => speechMethods.syncSpeechInputControls.call(app)).not.toThrow();
-  });
-
-  it("covers editor language fallback without a file path", () => {
-    expect(codeMirrorLanguageExtension({})).toEqual([]);
-  });
-
-  async function renderPreviewWithFailingEditor({
-    stale = false,
-    mismatch = false,
-    connected = true,
-    thrown = new Error("editor failed") as unknown,
-  } = {}) {
-    const container = document.createElement("div");
-    document.body.append(container);
-    const state: {
-      editorLoadToken?: symbol;
-      editorReady?: Promise<void>;
-      file: { path: string; mime: string; previewKind: string; content: string };
-      mode: string;
-      cleanContent: string;
-      originalContent: string;
-    } = {
-      file: { path: "bad.ts", mime: "text/typescript", previewKind: "text", content: "x" },
-      mode: "text",
-      cleanContent: "x",
-      originalContent: "x",
-    };
-    const app = { filePreview: state, querySelector: () => null, saveFilePreview: vi.fn() } as unknown as {
-      destroyFilePreviewEditor: ReturnType<typeof vi.fn>;
-      filePreview: unknown;
-      querySelector: (selector: string) => Element | null;
-      renderFilePreviewBody: () => void;
-      saveFilePreview: ReturnType<typeof vi.fn>;
-    };
-    setCodeMirrorFileEditorLoaderForTest(async () => ({
-      CodeMirrorFileEditor: class {
-        constructor() { throw thrown; }
-      },
-    }));
-    Object.assign(app, filePreviewMethods);
-    const modal = document.createElement("div");
-    modal.dataset.filePreview = "";
-    modal.innerHTML = `<div class="fp-head"><strong class="fp-path"></strong><small></small><button data-action="save-file-preview"></button><button data-action="toggle-file-preview-mode"></button></div>`;
-    const body = document.createElement("div");
-    body.className = "fp-body";
-    modal.append(body);
-    if (connected) document.body.append(modal);
-    app.querySelector = (selector: string) => selector === "[data-file-preview]" ? modal : null;
-    app.destroyFilePreviewEditor = vi.fn();
-    app.renderFilePreviewBody();
-    if (stale) state.editorLoadToken = Symbol("stale");
-    if (mismatch) app.filePreview = {};
-    expect(state.editorReady).toBeTruthy();
-    await state.editorReady;
-    await Promise.resolve();
-    setCodeMirrorFileEditorLoaderForTest(undefined);
-    return body.textContent || "";
-  }
-
-  it("shows lazy editor import errors when preview still matches", async () => {
-    await expect(renderPreviewWithFailingEditor()).resolves.toContain("editor failed");
-    await expect(renderPreviewWithFailingEditor({ thrown: "string failure" })).resolves.toContain("string failure");
-    await expect((async () => {
-      const text = await renderPreviewWithFailingEditor();
-      return text;
-    })()).resolves.toContain("editor failed");
   });
 
   it("covers workspace tree lazy mount guards and invalid initial files", async () => {

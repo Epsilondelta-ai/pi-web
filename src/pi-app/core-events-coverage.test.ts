@@ -13,14 +13,12 @@ describe("pi-app core events coverage", () => {
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
     app.bootstrapAPI = vi.fn();
-    app.uninstallFilePreviewUnloadGuard = vi.fn();
     app.connectedCallback();
     app.connectedCallback();
     Object.defineProperty(window, "innerHeight", { configurable: true, value: 0 });
     app.installViewportSizing();
     app.applyEvent({ type: "unknown" });
     app.disconnectedCallback();
-    expect(app.uninstallFilePreviewUnloadGuard).toHaveBeenCalled();
     expect(app.bound).toBe(true);
   });
 

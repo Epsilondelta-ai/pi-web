@@ -79,7 +79,7 @@ export const layoutMethods = {
 
   closeTreeFromOutside(event) {
     if (this.dataset.tree !== "on") return;
-    const selector = ".tree, [data-action='toggle-plugin-sidebar'], [data-file-preview]";
+    const selector = ".tree, [data-action='toggle-plugin-sidebar'], [data-file-editor-modal]";
     const path = event.composedPath?.() || [];
     if (path.some((node) => node?.matches?.(selector))) return;
     const target = event.target;

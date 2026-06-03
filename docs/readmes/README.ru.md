@@ -24,6 +24,8 @@
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
+Установщик также устанавливает доверенные плагины по умолчанию: toast-уведомления, файловый браузер и Git viewer. Задайте `PI_WEB_INSTALL_DEFAULT_PLUGINS=never`, чтобы пропустить их.
+
 Обновите установленный бинарный файл:
 
 ```bash
@@ -58,4 +60,58 @@ pi-web --port 9999
 - **Голос и уведомления**: Озвучивайте ответы, используйте браузерную или локальную Whisper-транскрипцию речи и настраивайте уведомления о завершении через Discord/Telegram.
 - **Интернационализированный UI**: Переключайте интерфейс браузера между английским, корейским, китайским, японским, испанским, португальским, французским, русским и немецким.
 - **AG-UI bridge**: Открывает запуски сессий через совместимый с AG-UI SSE endpoint для клиентских интеграций.
+- **Плагины (в разработке)**: Загружает доверенные локальные/GitHub JavaScript-плагины для добавления UI-панелей и вызова API pi-web или локальных backend-скриптов.
 - **Один исполняемый файл**: Распространяет статическую сборку Astro, встроенную в Go-бинарник, со встроенной поддержкой обновлений.
+
+## Плагины (в разработке)
+
+Плагины экспериментальны и предназначены для доверенного локального кода. API может измениться до того, как будет считаться стабильным.
+
+Устанавливайте плагины в **Settings → Plugins** через локальный путь или GitHub `owner/repo`. Папка должна содержать `plugin.json` и входной JavaScript-модуль.
+
+```json
+{
+  "id": "hello-panel",
+  "name": "Hello Panel",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "backend": "backend.js"
+}
+```
+
+`entry` обязателен. `backend` необязателен. Оба пути должны оставаться внутри папки плагина.
+
+```js
+export function activate(context) {
+  const panel = document.createElement("section");
+  panel.dataset.pluginPanel = context.plugin.id;
+  panel.textContent = `Hello from ${context.plugin.name}`;
+  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+
+  return () => {
+    panel.remove();
+  };
+}
+```
+
+Входной модуль экспортирует `activate(context)` или `default(context)`. Если вернуть функцию или объект с `deactivate()`/`dispose()`, плагин очищается при reload, disable или uninstall. Экспорт `deactivate(context)` уровня модуля тоже поддерживается.
+
+Контекст плагина включает:
+
+- `context.app`: элемент `<pi-app>`.
+- `context.plugin`: разобранный манифест.
+- `context.api.get(path)` / `context.api.post(path, body)`: вызов HTTP API pi-web.
+- `context.backend(method, { workspaceId, data })`: вызов необязательного backend; `data` — JSON для stdin.
+
+Необязательные backend-скрипты выполняются локально по запросу. JavaScript использует Node; Go автоматически собирается и кэшируется. Скрипт получает `method` и `workspaceRoot`, читает JSON из stdin и должен вывести валидный JSON в stdout.
+
+```js
+const [, , method, workspaceRoot] = process.argv;
+let input = "";
+process.stdin.on("data", (chunk) => {
+  input += chunk;
+});
+process.stdin.on("end", () => {
+  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
+});
+```

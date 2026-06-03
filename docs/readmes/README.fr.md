@@ -24,6 +24,8 @@ Installez le dernier binaire GitHub Release :
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
+L'installateur installe aussi les plugins de confiance par défaut : notifications toast, navigateur de fichiers et visionneuse Git. Définissez `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` pour les ignorer.
+
 Mettez à jour le binaire installé :
 
 ```bash
@@ -58,4 +60,58 @@ Elle regroupe un frontend basé sur Astro et un backend Go dans un seul exécuta
 - **Voix et notifications** : Lisez les réponses à voix haute, utilisez la transcription vocale du navigateur ou Whisper local et configurez les notifications de fin via Discord/Telegram.
 - **UI internationalisée** : Basculez l’UI du navigateur entre anglais, coréen, chinois, japonais, espagnol, portugais, français, russe et allemand.
 - **Pont AG-UI** : Expose les exécutions de session via un endpoint SSE compatible AG-UI pour les intégrations clientes.
+- **Plugins (en développement)** : Charge des plugins JavaScript de confiance locaux/GitHub pour ajouter des panneaux d'UI et appeler les API pi-web ou des scripts backend locaux.
 - **Exécutable unique** : Distribue le build statique Astro intégré dans un binaire Go avec prise en charge de la mise à jour intégrée.
+
+## Plugins (en développement)
+
+Les plugins sont expérimentaux et destinés à du code local de confiance. L'API peut encore changer avant d'être considérée comme stable.
+
+Installez des plugins depuis **Settings → Plugins** avec un chemin local ou une valeur GitHub `owner/repo`. Le dossier doit contenir `plugin.json` et un module JavaScript d'entrée.
+
+```json
+{
+  "id": "hello-panel",
+  "name": "Hello Panel",
+  "version": "0.1.0",
+  "entry": "index.js",
+  "backend": "backend.js"
+}
+```
+
+`entry` est obligatoire. `backend` est facultatif. Les deux chemins doivent rester dans le dossier du plugin.
+
+```js
+export function activate(context) {
+  const panel = document.createElement("section");
+  panel.dataset.pluginPanel = context.plugin.id;
+  panel.textContent = `Hello from ${context.plugin.name}`;
+  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+
+  return () => {
+    panel.remove();
+  };
+}
+```
+
+Le module d'entrée exporte `activate(context)` ou `default(context)`. Renvoyer une fonction, ou un objet avec `deactivate()`/`dispose()`, permet le nettoyage pendant reload, disable ou uninstall. `deactivate(context)` au niveau du module est aussi pris en charge.
+
+Le context du plugin inclut :
+
+- `context.app` : l'élément `<pi-app>`.
+- `context.plugin` : le manifeste analysé.
+- `context.api.get(path)` / `context.api.post(path, body)` : appeler les API HTTP de pi-web.
+- `context.backend(method, { workspaceId, data })` : appeler le backend facultatif ; `data` est le JSON stdin.
+
+Les scripts backend facultatifs s'exécutent localement à la demande. JavaScript utilise Node ; Go est compilé et mis en cache automatiquement. Le script reçoit `method` et `workspaceRoot`, lit le JSON depuis stdin et doit imprimer un JSON valide sur stdout.
+
+```js
+const [, , method, workspaceRoot] = process.argv;
+let input = "";
+process.stdin.on("data", (chunk) => {
+  input += chunk;
+});
+process.stdin.on("end", () => {
+  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
+});
+```
