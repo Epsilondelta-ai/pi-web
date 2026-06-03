@@ -242,6 +242,7 @@ export const inputMethods = {
     const button = event.target.closest("button");
     if ((!button && !actionTarget) || !this.contains(button || actionTarget)) return;
     const action = actionTarget?.dataset.action || button?.dataset.action;
+    if (actionTarget?.closest(".session-menu, .session-menu-button")) event.stopPropagation?.();
     if (action === "copy-code") {
       void this.copyCodeBlock(button);
       return;

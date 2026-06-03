@@ -15,7 +15,11 @@ describe("pi-app sessions", () => {
     const row = app.createSessionRow("w1", { id: "s1", title: "demo", lastUsed: "now" });
     app.append(row);
     const toggle = row.querySelector("[data-action='session-menu-toggle']");
+    const outsideClick = vi.fn();
+    window.addEventListener("click", outsideClick);
     toggle.click();
+    window.removeEventListener("click", outsideClick);
+    expect(outsideClick).not.toHaveBeenCalled();
     expect(row.querySelector(".session-menu").hidden).toBe(false);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
   });
