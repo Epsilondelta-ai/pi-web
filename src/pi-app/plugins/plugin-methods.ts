@@ -44,7 +44,7 @@ function importPluginModule(url: string): Promise<PluginModule> {
 }
 
 function request(path: string, method: string, body?: unknown): Promise<unknown> {
-  return fetch(path, {
+  return fetch(`${apiBase()}${path}`, {
     method,
     headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
