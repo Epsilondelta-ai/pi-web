@@ -1,0 +1,6 @@
+*
+!bin/
+!bin/pi-web.js
+!README.md
+!LICENSE
+!package.json
