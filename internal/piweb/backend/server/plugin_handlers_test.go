@@ -66,6 +66,12 @@ func TestPluginInstallListAssetAndUninstall(t *testing.T) {
 	if err != nil || len(plugins) != 1 || plugins[0].Enabled {
 		t.Fatalf("disabled plugins = %#v err = %v", plugins, err)
 	}
+	if _, err := os.Stat(filepath.Join(source, ".disabled")); !os.IsNotExist(err) {
+		t.Fatalf("disable leaked into local plugin source: %v", err)
+	}
+	if _, err := os.Stat(pluginMetadataPath("toast-plus")); err != nil {
+		t.Fatalf("disable metadata missing: %v", err)
+	}
 	enable := httptest.NewRequest(http.MethodPost, "/api/plugins/toast-plus/enable", nil)
 	enableRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(enableRes, enable)

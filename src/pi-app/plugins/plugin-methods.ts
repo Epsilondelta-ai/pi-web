@@ -1,4 +1,11 @@
-import { apiBase, getPlugins, installPlugin, reloadPlugins, setPluginEnabled, uninstallPlugin } from "../../shared/api/api";
+import {
+  apiBase,
+  getPlugins,
+  installPlugin,
+  reloadPlugins,
+  setPluginEnabled,
+  uninstallPlugin,
+} from "../../shared/api/api";
 
 type PluginManifest = {
   id: string;
@@ -9,9 +16,23 @@ type PluginManifest = {
   cacheKey?: string;
 };
 
+type PluginCleanup = () => unknown | Promise<unknown>;
+
+type PluginCleanupObject = {
+  deactivate?: PluginCleanup;
+  dispose?: PluginCleanup;
+};
+
+type PluginActivationResult = PluginCleanup | PluginCleanupObject | void;
+
 type PluginModule = {
-  default?: (context: PluginContext) => unknown;
-  activate?: (context: PluginContext) => unknown;
+  default?: (
+    context: PluginContext,
+  ) => PluginActivationResult | Promise<PluginActivationResult>;
+  activate?: (
+    context: PluginContext,
+  ) => PluginActivationResult | Promise<PluginActivationResult>;
+  deactivate?: (context: PluginContext) => unknown | Promise<unknown>;
 };
 
 type PluginContext = {
@@ -25,7 +46,14 @@ type PluginContext = {
   loadCodeMirrorFileEditor(): Promise<unknown>;
 };
 
+type ActivePlugin = {
+  context: PluginContext;
+  module: PluginModule;
+  cleanup?: PluginActivationResult;
+};
+
 type PluginHost = HTMLElement & {
+  activePlugins?: Map<string, ActivePlugin>;
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
   importPluginModule?: (url: string) => Promise<PluginModule>;
@@ -44,7 +72,11 @@ function importPluginModule(url: string): Promise<PluginModule> {
   return import(/* @vite-ignore */ url) as Promise<PluginModule>;
 }
 
-function request(path: string, method: string, body?: unknown): Promise<unknown> {
+function request(
+  path: string,
+  method: string,
+  body?: unknown,
+): Promise<unknown> {
   return fetch(`${apiBase()}${path}`, {
     method,
     headers: { "Content-Type": "application/json" },
@@ -62,50 +94,112 @@ function renderPluginList(host: PluginHost, plugins: PluginManifest[]): void {
   if (!list) {
     return;
   }
+
   if (plugins.length === 0) {
     list.textContent = "No plugins installed.";
     return;
   }
-  list.replaceChildren(...plugins.map((plugin: PluginManifest) => {
-    const row: HTMLDivElement = document.createElement("div");
-    row.className = "plugin-row";
-    row.innerHTML = `<span><strong></strong><small></small></span><span class="plugin-actions"><button type="button" data-action="toggle-plugin"></button><button type="button" data-action="uninstall-plugin"></button></span>`;
-    row.dataset.pluginId = plugin.id;
-    row.querySelector("strong")!.textContent = pluginLabel(plugin);
-    row.querySelector("small")!.textContent = `${plugin.id} · ${plugin.version || "dev"}`;
-    const buttons: NodeListOf<HTMLButtonElement> = row.querySelectorAll("button");
-    buttons.forEach((button: HTMLButtonElement) => {
-      button.dataset.pluginId = plugin.id;
-    });
-    buttons[0].dataset.pluginEnabled = String(plugin.enabled !== false);
-    buttons[0].textContent = plugin.enabled === false ? "enable" : "disable";
-    buttons[1].textContent = "remove";
-    return row;
-  }));
+
+  list.replaceChildren(
+    ...plugins.map((plugin: PluginManifest) => {
+      const row: HTMLDivElement = document.createElement("div");
+      row.className = "plugin-row";
+      row.innerHTML = `<span><strong></strong><small></small></span><span class="plugin-actions"><button type="button" data-action="toggle-plugin"></button><button type="button" data-action="uninstall-plugin"></button></span>`;
+      row.dataset.pluginId = plugin.id;
+      row.querySelector("strong")!.textContent = pluginLabel(plugin);
+      row.querySelector("small")!.textContent =
+        `${plugin.id} · ${plugin.version || "dev"}`;
+      const buttons: NodeListOf<HTMLButtonElement> =
+        row.querySelectorAll("button");
+      buttons.forEach((button: HTMLButtonElement) => {
+        button.dataset.pluginId = plugin.id;
+      });
+      buttons[0].dataset.pluginEnabled = String(plugin.enabled !== false);
+      buttons[0].textContent = plugin.enabled === false ? "enable" : "disable";
+      buttons[1].textContent = "remove";
+      return row;
+    }),
+  );
+}
+
+async function runPluginCleanup(active: ActivePlugin): Promise<void> {
+  if (typeof active.cleanup === "function") {
+    await active.cleanup();
+    return;
+  }
+
+  if (typeof active.cleanup === "object" && active.cleanup?.deactivate) {
+    await active.cleanup.deactivate();
+    return;
+  }
+
+  if (typeof active.cleanup === "object" && active.cleanup?.dispose) {
+    await active.cleanup.dispose();
+    return;
+  }
+
+  if (active.module.deactivate) {
+    await active.module.deactivate(active.context);
+  }
 }
 
 export const pluginMethods = {
   async loadPlugins(): Promise<void> {
     const host: PluginHost = this as PluginHost;
-    const response = await getPlugins() as { plugins?: PluginManifest[] };
+    const response = (await getPlugins()) as { plugins?: PluginManifest[] };
     const plugins: PluginManifest[] = response.plugins || [];
     renderPluginList(host, plugins);
+    host.activePlugins ??= new Map<string, ActivePlugin>();
     host.loadedPlugins ??= new Set<string>();
     for (const plugin of plugins) {
-      if (plugin.enabled === false || host.loadedPlugins.has(plugin.id)) {
+      if (plugin.enabled === false || host.activePlugins.has(plugin.id)) {
         continue;
       }
       try {
-        const module: PluginModule = await (host.importPluginModule || importPluginModule)(pluginAssetUrl(plugin));
+        const module: PluginModule = await (
+          host.importPluginModule || importPluginModule
+        )(pluginAssetUrl(plugin));
         const activate = module.default || module.activate;
-        if (activate) {
-          await activate(this.pluginContext(plugin));
-        }
+        const context = this.pluginContext(plugin);
+        const cleanup: PluginActivationResult = activate
+          ? await activate(context)
+          : undefined;
+        host.activePlugins.set(plugin.id, { context, module, cleanup });
         host.loadedPlugins.add(plugin.id);
       } catch (error) {
         console.error(`Plugin failed: ${pluginLabel(plugin)}`, error);
       }
     }
+  },
+
+  async deactivateLoadedPlugin(pluginId: string): Promise<void> {
+    const host: PluginHost = this as PluginHost;
+    const active = host.activePlugins?.get(pluginId);
+    if (!active) {
+      host.loadedPlugins?.delete(pluginId);
+      return;
+    }
+
+    try {
+      await runPluginCleanup(active);
+    } catch (error) {
+      console.error(
+        `Plugin cleanup failed: ${pluginLabel(active.context.plugin)}`,
+        error,
+      );
+    }
+    host.activePlugins?.delete(pluginId);
+    host.loadedPlugins?.delete(pluginId);
+  },
+
+  async deactivateLoadedPlugins(): Promise<void> {
+    const host: PluginHost = this as PluginHost;
+    const pluginIds: string[] = [...(host.activePlugins?.keys() || [])];
+    for (const pluginId of pluginIds) {
+      await this.deactivateLoadedPlugin(pluginId);
+    }
+    host.activePlugins = new Map<string, ActivePlugin>();
+    host.loadedPlugins = new Set<string>();
   },
 
   pluginContext(plugin: PluginManifest): PluginContext {
@@ -132,49 +226,57 @@ export const pluginMethods = {
   },
 
   async refreshPlugins(): Promise<void> {
-    const host: PluginHost = this as PluginHost;
+    await this.deactivateLoadedPlugins();
     await reloadPlugins();
-    host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
     console.info("Plugins reloaded");
   },
 
   async installPluginFromForm(): Promise<void> {
     const host: PluginHost = this as PluginHost;
-    const sourceSelect: HTMLSelectElement | null = host.querySelector("[data-plugin-source]");
-    const input: HTMLInputElement | null = host.querySelector("[data-plugin-path]");
-    const source: string = sourceSelect?.value === "github" ? "github" : "local";
+    const sourceSelect: HTMLSelectElement | null = host.querySelector(
+      "[data-plugin-source]",
+    );
+    const input: HTMLInputElement | null =
+      host.querySelector("[data-plugin-path]");
+    const source: string =
+      sourceSelect?.value === "github" ? "github" : "local";
     const value: string = input?.value.trim() || "";
     if (!value) {
-      const detail = source === "github" ? "Enter a GitHub URL or owner/repo." : "Enter a local folder containing plugin.json.";
+      const detail =
+        source === "github"
+          ? "Enter a GitHub URL or owner/repo."
+          : "Enter a local folder containing plugin.json.";
       console.warn(detail);
       return;
     }
     await installPlugin(source, value);
     input!.value = "";
-    host.loadedPlugins = new Set<string>();
+    await this.deactivateLoadedPlugins();
     await this.loadPlugins();
     console.info(`Plugin installed: ${source}:${value}`);
   },
 
   async togglePlugin(pluginId: string, enabled: boolean): Promise<void> {
-    const host: PluginHost = this as PluginHost;
     if (!pluginId) {
       return;
     }
+
+    if (enabled) {
+      await this.deactivateLoadedPlugin(pluginId);
+    }
     await setPluginEnabled(pluginId, !enabled);
-    host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
     console.info(`Plugin updated: ${pluginId}:${!enabled}`);
   },
 
   async uninstallPluginById(pluginId: string): Promise<void> {
-    const host: PluginHost = this as PluginHost;
     if (!pluginId) {
       return;
     }
+
+    await this.deactivateLoadedPlugin(pluginId);
     await uninstallPlugin(pluginId);
-    host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
     console.info(`Plugin removed: ${pluginId}`);
   },
