@@ -1,4 +1,4 @@
-import { apiBase, getPlugins, installPlugin, setPluginEnabled, uninstallPlugin } from "../../shared/api/api";
+import { apiBase, getPlugins, installPlugin, reloadPlugins, setPluginEnabled, uninstallPlugin } from "../../shared/api/api";
 
 type PluginManifest = {
   id: string;
@@ -6,6 +6,7 @@ type PluginManifest = {
   version?: string;
   entry: string;
   enabled?: boolean;
+  cacheKey?: string;
 };
 
 type PluginModule = {
@@ -28,7 +29,8 @@ type PluginHost = HTMLElement & {
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
-  return `${apiBase()}/api/plugins/${encodeURIComponent(plugin.id)}/assets/${plugin.entry}?v=${encodeURIComponent(plugin.version || "dev")}`;
+  const version = plugin.cacheKey || plugin.version || "dev";
+  return `${apiBase()}/api/plugins/${encodeURIComponent(plugin.id)}/assets/${plugin.entry}?v=${encodeURIComponent(version)}`;
 }
 
 function pluginLabel(plugin: PluginManifest): string {
@@ -117,6 +119,7 @@ export const pluginMethods = {
 
   async refreshPlugins(): Promise<void> {
     const host: PluginHost = this as PluginHost;
+    await reloadPlugins();
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
     console.info("Plugins reloaded");

@@ -85,6 +85,10 @@ export function installPlugin(source, value) {
   });
 }
 
+export function reloadPlugins() {
+  return request("/api/plugins/reload", { method: "POST" });
+}
+
 export function setPluginEnabled(pluginId, enabled) {
   const action = enabled ? "enable" : "disable";
   return request(`/api/plugins/${encodeURIComponent(pluginId)}/${action}`, { method: "POST" });

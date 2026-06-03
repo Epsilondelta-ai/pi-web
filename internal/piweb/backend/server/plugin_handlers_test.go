@@ -115,8 +115,25 @@ func TestPluginInstallFromGitHubURL(t *testing.T) {
 	if res.Code != http.StatusOK {
 		t.Fatalf("status = %d body = %s", res.Code, res.Body.String())
 	}
-	if _, err := os.Stat(filepath.Join(home, ".pi-web", "plugins", "github-plugin", "index.js")); err != nil {
+	installedPath := filepath.Join(home, ".pi-web", "plugins", "github-plugin", "index.js")
+	if data, err := os.ReadFile(installedPath); err != nil || !strings.Contains(string(data), "export default") {
+		t.Fatalf("installed data = %q err = %v", string(data), err)
+	}
+	plugins, err := listPluginManifests()
+	if err != nil || len(plugins) != 1 || plugins[0].Source != "github" || plugins[0].URL != "https://github.com/owner/repo.git" || plugins[0].CacheKey == "" {
+		t.Fatalf("github plugin metadata = %#v err = %v", plugins, err)
+	}
+	if err := os.WriteFile(filepath.Join(source, "index.js"), []byte("export default () => 'updated';"), 0o600); err != nil {
 		t.Fatal(err)
+	}
+	reload := httptest.NewRequest(http.MethodPost, "/api/plugins/reload", nil)
+	reloadRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(reloadRes, reload)
+	if reloadRes.Code != http.StatusOK {
+		t.Fatalf("reload status = %d body = %s", reloadRes.Code, reloadRes.Body.String())
+	}
+	if data, err := os.ReadFile(installedPath); err != nil || !strings.Contains(string(data), "updated") {
+		t.Fatalf("reloaded data = %q err = %v", string(data), err)
 	}
 }
 

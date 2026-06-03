@@ -13,12 +13,21 @@ import (
 )
 
 type pluginManifest struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Entry   string `json:"entry"`
-	Enabled bool   `json:"enabled"`
-	Path    string `json:"path"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+	Entry    string `json:"entry"`
+	Enabled  bool   `json:"enabled"`
+	Path     string `json:"path"`
+	Source   string `json:"source"`
+	URL      string `json:"url"`
+	CacheKey string `json:"cacheKey"`
+}
+
+type pluginInstallMetadata struct {
+	Source string `json:"source"`
+	URL    string `json:"url"`
+	Path   string `json:"path"`
 }
 
 type pluginInstallRequest struct {
@@ -48,6 +57,15 @@ func (s *Server) installPlugin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"plugin": plugin})
+}
+
+func (s *Server) reloadPlugins(w http.ResponseWriter, _ *http.Request) {
+	plugins, err := reloadGitHubPlugins()
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"plugins": plugins})
 }
 
 func (s *Server) enablePlugin(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +173,9 @@ func installGitHubPlugin(rawURL string) (pluginManifest, error) {
 	if err := copyPluginDir(tempDir, target); err != nil {
 		return pluginManifest{}, err
 	}
+	if err := writePluginMetadata(target, pluginInstallMetadata{Source: "github", URL: cloneURL}); err != nil {
+		return pluginManifest{}, err
+	}
 	return readPluginManifest(target)
 }
 
@@ -216,7 +237,71 @@ func readPluginManifest(dir string) (pluginManifest, error) {
 	_, disabledErr := os.Stat(filepath.Join(dir, ".disabled"))
 	plugin.Enabled = errors.Is(disabledErr, fs.ErrNotExist)
 	plugin.Path = dir
+	metadata := readPluginMetadata(dir)
+	plugin.Source = metadata.Source
+	plugin.URL = metadata.URL
+	entryInfo, err := os.Stat(filepath.Join(dir, entryPath))
+	if err == nil {
+		plugin.CacheKey = entryInfo.ModTime().Format("20060102150405.000000000")
+	}
 	return plugin, nil
+}
+
+func reloadGitHubPlugins() ([]pluginManifest, error) {
+	plugins, err := listPluginManifests()
+	if err != nil {
+		return nil, err
+	}
+	for _, plugin := range plugins {
+		if plugin.Source != "github" || strings.TrimSpace(plugin.URL) == "" {
+			continue
+		}
+		updated, err := installGitHubPlugin(plugin.URL)
+		if err != nil {
+			return nil, err
+		}
+		if !plugin.Enabled {
+			if err := setPluginEnabled(updated.ID, false); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return listPluginManifests()
+}
+
+func readPluginMetadata(dir string) pluginInstallMetadata {
+	data, err := os.ReadFile(filepath.Join(dir, ".pi-web-plugin.json"))
+	if err == nil {
+		var metadata pluginInstallMetadata
+		if err := json.Unmarshal(data, &metadata); err == nil {
+			return metadata
+		}
+	}
+	if info, err := os.Lstat(dir); err == nil && info.Mode()&fs.ModeSymlink != 0 {
+		return pluginInstallMetadata{}
+	}
+	gitDir := filepath.Join(dir, ".git")
+	if _, err := os.Stat(gitDir); err != nil {
+		return pluginInstallMetadata{}
+	}
+	cmd := exec.Command("git", "-C", dir, "remote", "get-url", "origin")
+	output, err := cmd.Output()
+	if err != nil {
+		return pluginInstallMetadata{}
+	}
+	url := strings.TrimSpace(string(output))
+	if url == "" {
+		return pluginInstallMetadata{}
+	}
+	return pluginInstallMetadata{Source: "github", URL: url}
+}
+
+func writePluginMetadata(dir string, metadata pluginInstallMetadata) error {
+	data, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, ".pi-web-plugin.json"), data, 0o600)
 }
 
 func setPluginEnabled(id string, enabled bool) error {

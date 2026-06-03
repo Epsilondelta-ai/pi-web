@@ -94,6 +94,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/pi/update", s.startPiUpdate)
 	s.mux.HandleFunc("GET /api/plugins", s.plugins)
 	s.mux.HandleFunc("POST /api/plugins/install", s.installPlugin)
+	s.mux.HandleFunc("POST /api/plugins/reload", s.reloadPlugins)
 	s.mux.HandleFunc("POST /api/plugins/{pluginID}/enable", s.enablePlugin)
 	s.mux.HandleFunc("POST /api/plugins/{pluginID}/disable", s.disablePlugin)
 	s.mux.HandleFunc("DELETE /api/plugins/{pluginID}", s.uninstallPlugin)
