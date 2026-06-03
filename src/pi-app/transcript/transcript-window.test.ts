@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY } from "./transcript-window-methods";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
@@ -30,10 +29,10 @@ describe("pi-app transcript window", () => {
       const height = this.classList?.contains("transcript-item") ? 35.6953125 : 21.6953125;
       return { x: 0, y: 0, width: 0, height, top: 0, right: 0, bottom: height, left: 0, toJSON: () => ({}) };
     });
-    vi.spyOn(window, "getComputedStyle").mockImplementation((node) => ({
+    vi.spyOn(window, "getComputedStyle").mockImplementation((node): CSSStyleDeclaration => ({
       marginTop: "0px",
       marginBottom: node.classList?.contains("msg") ? "14px" : "0px",
-    }));
+    }) as CSSStyleDeclaration);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     app.termInner.innerHTML = [
       `<div class="transcript-spacer"></div>`,

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { TranscriptWindowOwner } from "./transcript-types";
 import {
   TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY,
   readTranscriptBottomFollowFlag,
@@ -34,9 +35,9 @@ describe("transcript window direct method branches", () => {
       callback(0);
       return 1;
     });
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       ...transcriptWindowMethods,
-      term: { scrollTop: 0, scrollHeight: 100, clientHeight: 100 },
+      term: { scrollTop: 0, scrollHeight: 100, clientHeight: 100 } as HTMLElement,
       followTranscriptBottomOnce: vi.fn(() => true),
       updateTranscriptBottomFollowStability: vi.fn(),
       shouldContinueTranscriptBottomFollow: vi.fn(() => false),
@@ -54,7 +55,7 @@ describe("transcript window direct method branches", () => {
   });
 
   it("covers scroll handling with missing and pinned terms", () => {
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       ...transcriptWindowMethods,
       term: undefined,
       updateTranscriptScrollButton: vi.fn(),
@@ -65,7 +66,7 @@ describe("transcript window direct method branches", () => {
     owner.handleTranscriptScroll();
     expect(owner.transcriptLastScrollTop).toBe(0);
 
-    owner.term = { scrollTop: 10 };
+    owner.term = { scrollTop: 10 } as HTMLElement;
     owner.transcriptFollowBottom = false;
     owner.isTermPinnedToBottom = vi.fn(() => true);
     owner.handleTranscriptScroll();
@@ -74,9 +75,9 @@ describe("transcript window direct method branches", () => {
 
   it("starts deferred virtual scrollers on first real scroll", () => {
     const start = vi.fn();
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       ...transcriptWindowMethods,
-      term: { scrollTop: 0, clientHeight: 600 },
+      term: { scrollTop: 0, clientHeight: 600 } as HTMLElement,
       transcriptVirtualScroller: { start },
       transcriptVirtualScrollerStarted: false,
       updateTranscriptScrollButton: vi.fn(),
@@ -97,9 +98,9 @@ describe("transcript window direct method branches", () => {
   });
 
   it("keeps following during programmatic bottom scroll frames", () => {
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       ...transcriptWindowMethods,
-      term: { scrollTop: 90, scrollHeight: 240, clientHeight: 100, style: {} },
+      term: { scrollTop: 90, scrollHeight: 240, clientHeight: 100, style: {} } as HTMLElement,
       transcriptLastScrollTop: 100,
       transcriptFollowBottom: true,
       scrollFrame: 1,
@@ -123,15 +124,15 @@ describe("transcript window direct method branches", () => {
   });
 
   it("covers deferred virtual scroller startup guards", () => {
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       ...transcriptWindowMethods,
-      term: { clientHeight: 0 },
+      term: { clientHeight: 0 } as HTMLElement,
       transcriptVirtualScroller: { start: vi.fn() },
       transcriptVirtualScrollerStarted: false,
     };
 
     owner.ensureTranscriptVirtualScrollerStarted();
-    owner.term.clientHeight = 600;
+    Object.defineProperty(owner.term, "clientHeight", { configurable: true, value: 600 });
     owner.transcriptVirtualScrollerStarted = true;
     owner.ensureTranscriptVirtualScrollerStarted();
     owner.transcriptVirtualScroller = undefined;
@@ -141,7 +142,7 @@ describe("transcript window direct method branches", () => {
   });
 
   it("covers gesture follow-release fallbacks", () => {
-    const owner: any = {
+    const owner: TranscriptWindowOwner = {
       ...transcriptWindowMethods,
       updateTranscriptScrollButton: vi.fn(),
       stopFollowingTranscriptBottom: vi.fn(),
@@ -161,7 +162,7 @@ describe("transcript window direct method branches", () => {
     owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }] });
     expect(owner.stopFollowingTranscriptBottom).toHaveBeenCalledTimes(2);
 
-    const stoppedOwner: any = { ...transcriptWindowMethods, transcriptFollowBottom: false };
+    const stoppedOwner: TranscriptWindowOwner = { ...transcriptWindowMethods, transcriptFollowBottom: false };
     stoppedOwner.stopFollowingTranscriptBottom();
     expect(stoppedOwner.transcriptFollowBottom).toBe(false);
   });
