@@ -270,8 +270,12 @@ func TestGitHubSelfUpdaterEdges(t *testing.T) {
 	if _, err := updater.updateCommand(link, semver.MustParse("1.2.3"), "owner/repo"); err != nil {
 		t.Fatalf("update symlink: %v", err)
 	}
-	if gotPath != target {
-		t.Fatalf("expected resolved symlink path %q, got %q", target, gotPath)
+	wantPath, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		t.Fatalf("resolve target symlink path: %v", err)
+	}
+	if gotPath != wantPath {
+		t.Fatalf("expected resolved symlink path %q, got %q", wantPath, gotPath)
 	}
 
 	detectErr := errors.New("detect")

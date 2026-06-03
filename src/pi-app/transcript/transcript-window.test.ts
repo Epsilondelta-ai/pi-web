@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY } from "./transcript-window-methods";
 import { cleanupPiAppFixture, connectPiApp, installPiAppFixture } from "../test-helper";
 
 describe("pi-app transcript window", () => {
@@ -651,6 +652,7 @@ describe("pi-app transcript window", () => {
       return frames.length;
     });
 
+    localStorage.setItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY, "true");
     const app = await connectPiApp();
     Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
     Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
@@ -666,6 +668,7 @@ describe("pi-app transcript window", () => {
 
     expect(app.term.scrollTop).toBe(100);
     expect(app.transcriptScrollButton.hidden).toBe(false);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("false");
 
     app.transcriptScrollButton.click();
     frames.splice(0).forEach((callback) => callback(0));
@@ -673,6 +676,7 @@ describe("pi-app transcript window", () => {
 
     expect(app.term.scrollTop).toBe(1000);
     expect(app.transcriptFollowBottom).toBe(true);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("true");
   });
 
   it("treats wheel-up and touch scroll gestures as explicit bottom-follow release", async () => {
@@ -681,6 +685,7 @@ describe("pi-app transcript window", () => {
 
     app.term.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }));
     expect(app.transcriptFollowBottom).toBe(false);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("false");
 
     app.scrollTranscriptToBottom();
     app.term.dispatchEvent(new TouchEvent("touchstart", { touches: [{ clientY: 100 } as Touch] }));
@@ -689,5 +694,30 @@ describe("pi-app transcript window", () => {
 
     app.term.dispatchEvent(new TouchEvent("touchmove", { touches: [{ clientY: 110 } as Touch] }));
     expect(app.transcriptFollowBottom).toBe(false);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("false");
+  });
+
+  it("restores the persisted bottom-follow flag on init and turns it back on at the bottom", async () => {
+    const app = await connectPiApp();
+    localStorage.setItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY, "false");
+    app.transcriptFollowBottom = true;
+    app.initTranscriptWindow();
+    let scrollTop = 0;
+    Object.defineProperty(app.term, "clientHeight", { configurable: true, value: 100 });
+    Object.defineProperty(app.term, "scrollHeight", { configurable: true, value: 1000 });
+    Object.defineProperty(app.term, "scrollTop", {
+      configurable: true,
+      get: () => scrollTop,
+      set: (value) => { scrollTop = value; },
+    });
+
+    expect(app.transcriptFollowBottom).toBe(false);
+    app.scrollTerm();
+    expect(scrollTop).toBe(0);
+
+    scrollTop = 900;
+    app.handleTranscriptScroll();
+    expect(app.transcriptFollowBottom).toBe(true);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("true");
   });
 });

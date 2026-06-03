@@ -2,6 +2,29 @@ import "@testing-library/jest-dom/vitest";
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+function installMemoryLocalStorage() {
+  const items = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      clear: () => items.clear(),
+      getItem: (key: string) => items.get(String(key)) ?? null,
+      key: (index: number) => [...items.keys()][index] ?? null,
+      removeItem: (key: string) => items.delete(String(key)),
+      setItem: (key: string, value: string) => items.set(String(key), String(value)),
+      get length() { return items.size; },
+    },
+  });
+}
+
+try {
+  if (typeof localStorage?.getItem !== "function" || typeof localStorage?.setItem !== "function") {
+    installMemoryLocalStorage();
+  }
+} catch {
+  installMemoryLocalStorage();
+}
+
 const emptyDomRectList = () => ({
   length: 0,
   item: () => null,
