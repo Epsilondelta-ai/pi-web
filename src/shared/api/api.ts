@@ -317,32 +317,32 @@ export async function runAguiSessionPrompt(
       },
       {
         onRunStartedEvent: () => subscriber.onRunStarted?.(),
-        onTextMessageContentEvent: ({ event }) => subscriber.onTextDelta?.(event?.delta || ""),
+        onTextMessageContentEvent: ({ event }) => subscriber.onTextDelta?.(event.delta || ""),
         onTextMessageEndEvent: ({ textMessageBuffer }) => subscriber.onTextEnd?.(textMessageBuffer || ""),
-        onReasoningMessageContentEvent: ({ event }) => subscriber.onThinkingDelta?.(event?.delta || ""),
+        onReasoningMessageContentEvent: ({ event }) => subscriber.onThinkingDelta?.(event.delta || ""),
         onToolCallStartEvent: ({ event }) => {
-          const id = event?.toolCallId || "";
-          const name = event?.toolCallName || "tool";
+          const id = event.toolCallId;
+          const name = event.toolCallName || "tool";
           toolNames.set(id, name);
           toolBodies.set(id, "");
           subscriber.onToolStart?.({ id, name });
         },
         onToolCallArgsEvent: ({ event, toolCallName }) => {
-          const id = event?.toolCallId || "";
+          const id = event.toolCallId;
           const name = toolCallName || toolNames.get(id) || "tool";
-          const chunk = event?.delta || "";
+          const chunk = event.delta || "";
           toolBodies.set(id, `${toolBodies.get(id) || ""}${chunk}`);
           subscriber.onToolArgs?.({ id, name, chunk });
         },
         onToolCallResultEvent: ({ event }) => {
-          const id = event?.toolCallId || "";
+          const id = event.toolCallId;
           const name = toolNames.get(id) || "tool";
-          const content = event?.content || "";
+          const content = event.content || "";
           toolBodies.set(id, content || toolBodies.get(id) || "");
           subscriber.onToolResult?.({ id, name, content });
         },
         onToolCallEndEvent: ({ event, toolCallName, toolCallArgs }) => {
-          const id = event?.toolCallId || "";
+          const id = event.toolCallId;
           const name = toolCallName || toolNames.get(id) || "tool";
           subscriber.onToolEnd?.({
             id,
@@ -351,7 +351,7 @@ export async function runAguiSessionPrompt(
             body: toolBodies.get(id) || "",
           });
         },
-        onRunErrorEvent: ({ event }) => subscriber.onRunError?.(event?.message || "AG-UI run failed"),
+        onRunErrorEvent: ({ event }) => subscriber.onRunError?.(event.message || "AG-UI run failed"),
         onRunFinishedEvent: () => subscriber.onRunFinished?.(),
         onRunFailed: ({ error }) => subscriber.onRunError?.(error?.message || String(error)),
       },
