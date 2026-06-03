@@ -89,16 +89,6 @@ async function clickIfVisible(page, selector) {
   if (!clicked) throw new Error(`user-flow selector not clickable: ${selector}`);
 }
 
-async function openFilePreview(page, filePath) {
-  const opened = await page.evaluate((path) => {
-    window.dispatchEvent(new CustomEvent("pi-workspace-file:open", { detail: { path } }));
-    return true;
-  }, filePath);
-  await page.waitForSelector("[data-file-preview]:not([hidden])", { timeout: 5000 });
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  if (!opened) throw new Error(`user-flow file preview not opened: ${filePath}`);
-}
-
 function stepMode(step) {
   if (step.name?.startsWith("Navigation report")) return "navigation";
   if (step.name?.startsWith("Timespan report")) return "timespan";
@@ -153,9 +143,6 @@ try {
     app?.toggleTree?.(true);
   });
   await new Promise((resolve) => setTimeout(resolve, 500));
-  await flow.endTimespan();
-  await flow.startTimespan({ stepName: "open file preview" });
-  await openFilePreview(page, "src/main.ts");
   await flow.endTimespan();
   await flow.snapshot({ stepName: "post interaction snapshot" });
 
