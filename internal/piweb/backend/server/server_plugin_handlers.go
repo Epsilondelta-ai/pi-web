@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io/fs"
@@ -145,7 +146,11 @@ func (s *Server) pluginBackend(w http.ResponseWriter, r *http.Request) {
 	if len(payload) == 0 {
 		payload = []byte("{}")
 	}
-	cmd := exec.CommandContext(r.Context(), "node", filepath.Join(pluginRoot(), id, plugin.Backend), method, workspaceRoot)
+	cmd, err := pluginBackendCommand(r.Context(), id, plugin, method, workspaceRoot)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
 	cmd.Stdin = bytes.NewReader(payload)
 	output, err := runPluginBackendCommand(cmd)
 	if err != nil {
@@ -304,6 +309,40 @@ func readPluginManifest(dir string) (pluginManifest, error) {
 		plugin.CacheKey = entryInfo.ModTime().Format("20060102150405.000000000")
 	}
 	return plugin, nil
+}
+
+func pluginBackendCommand(ctx context.Context, id string, plugin pluginManifest, method, workspaceRoot string) (*exec.Cmd, error) {
+	backendPath := filepath.Join(pluginRoot(), id, plugin.Backend)
+	if filepath.Ext(plugin.Backend) != ".go" {
+		return exec.CommandContext(ctx, "node", backendPath, method, workspaceRoot), nil
+	}
+	binaryPath, err := buildGoPluginBackend(ctx, id, backendPath)
+	if err != nil {
+		return nil, err
+	}
+	return exec.CommandContext(ctx, binaryPath, method, workspaceRoot), nil
+}
+
+func buildGoPluginBackend(ctx context.Context, id, backendPath string) (string, error) {
+	binaryPath := filepath.Join(pluginRoot(), id, ".pi-web-backend-bin")
+	backendInfo, err := os.Stat(backendPath)
+	if err != nil {
+		return "", err
+	}
+	binaryInfo, err := os.Stat(binaryPath)
+	if err == nil && !binaryInfo.ModTime().Before(backendInfo.ModTime()) {
+		return binaryPath, nil
+	}
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", binaryPath, backendPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			message = err.Error()
+		}
+		return "", errors.New(message)
+	}
+	return binaryPath, nil
 }
 
 func runPluginBackendCommand(cmd *exec.Cmd) ([]byte, error) {
