@@ -25,7 +25,7 @@ type SessionEventOptions = {
   replay?: boolean;
 };
 
-function apiBase() {
+export function apiBase() {
   if (globalThis.PI_WEB_API_BASE !== undefined) return globalThis.PI_WEB_API_BASE;
   if (DEV_PORTS.has(globalThis.location?.port)) return DEV_API_BASE;
   return "";
@@ -71,6 +71,31 @@ export function getPiPackageUpdateStatus(workspaceId?: string) {
 
 export function getPiUpdateStatus() {
   return request("/api/pi/update");
+}
+
+export function getPlugins() {
+  return request("/api/plugins");
+}
+
+export function installPlugin(source, value) {
+  const body = source === "github" ? { source, url: value } : { source: "local", path: value };
+  return request("/api/plugins/install", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function reloadPlugins() {
+  return request("/api/plugins/reload", { method: "POST" });
+}
+
+export function setPluginEnabled(pluginId, enabled) {
+  const action = enabled ? "enable" : "disable";
+  return request(`/api/plugins/${encodeURIComponent(pluginId)}/${action}`, { method: "POST" });
+}
+
+export function uninstallPlugin(pluginId) {
+  return request(`/api/plugins/${encodeURIComponent(pluginId)}`, { method: "DELETE" });
 }
 
 export function startPiUpdate(source = "", workspaceId = "") {

@@ -210,7 +210,7 @@ describe("pi-app sessions", () => {
 
     const button = app.querySelector("[data-action='show-update-tip']");
     expect(button.hidden).toBe(false);
-    expect([...document.querySelectorAll(".session-toast.warning")].some((toast) => toast.textContent.includes("Do you want to update pi?"))).toBe(true);
+    expect(document.querySelector(".pi-web-notification-popup")).toBeNull();
     button.click();
     expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
   });

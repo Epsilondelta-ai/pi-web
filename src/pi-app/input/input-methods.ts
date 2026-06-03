@@ -321,6 +321,12 @@ export const inputMethods = {
     if (action === "download-whisper-model") void this.downloadWhisperModel?.();
     if (action === "delete-whisper-model") void this.deleteWhisperModel?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
+    if (action === "install-plugin") void this.installPluginFromForm?.();
+    if (action === "reload-plugins") void this.refreshPlugins?.();
+    if (action === "toggle-plugin") {
+      void this.togglePlugin?.(button?.dataset.pluginId || actionTarget?.dataset.pluginId, button?.dataset.pluginEnabled === "true");
+    }
+    if (action === "uninstall-plugin") void this.uninstallPluginById?.(button?.dataset.pluginId || actionTarget?.dataset.pluginId);
     if (action === "save-auth-provider") this.saveAuthForm?.(event);
     if (action === "logout-auth-provider") this.logoutAuthProvider?.();
     if (action === "start-oauth-login") this.startOAuthLogin?.();

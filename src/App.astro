@@ -363,6 +363,22 @@ function speechLanguageListId(path) {
             <small data-oauth-status>OAuth supports Claude, Codex, and Copilot subscriptions.</small>
           </div>
         </details>
+        <details class="plugin-settings" data-plugin-settings open>
+          <summary>
+            <span class="auth-login-title">Plugins <em>local JavaScript</em></span>
+            <small>Install a local folder containing plugin.json and an entry module.</small>
+          </summary>
+          <div class="plugin-install-row">
+            <select data-plugin-source aria-label="plugin source">
+              <option value="github">GitHub</option>
+              <option value="local">local path</option>
+            </select>
+            <input data-plugin-path autocomplete="off" placeholder="/Users/me/dev/pi-web-plugin or owner/repo" />
+            <button type="button" data-action="install-plugin">install</button>
+            <button type="button" data-action="reload-plugins">reload</button>
+          </div>
+          <div class="plugin-list" data-plugin-list>No plugins installed.</div>
+        </details>
         <div class="settings-groups">
           {settingsGroups.map((group) => (
             <section class:list={["settings-group", group.title === "Speech" && "settings-group-speech"]}>
