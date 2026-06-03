@@ -112,6 +112,7 @@
   background: var(--bg-1);
   position: relative;
   scroll-behavior: smooth;
+  overflow-anchor: none;
 }
 .term.scanlines::before {
   content: "";
@@ -127,8 +128,8 @@
   z-index: 1;
 }
 
-.term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; }
-.transcript-item { display: flow-root; }
+.term-inner { position: relative; z-index: 2; max-width: 960px; min-height: 100%; overflow-anchor: none; }
+.transcript-item { display: flow-root; overflow-anchor: none; }
 .transcript-spacer { width: 100%; flex: 0 0 auto; }
 .scroll-bottom-btn {
   position: absolute;

@@ -8,6 +8,7 @@ const OLDER_MESSAGE_LOAD_THRESHOLD = 160;
 const TRANSCRIPT_HEIGHT_CHANGE_EPSILON = 0.5;
 const TRANSCRIPT_BOTTOM_FOLLOW_MAX_FRAMES = 12;
 const TRANSCRIPT_BOTTOM_FOLLOW_STABLE_FRAMES = 2;
+export const TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY = "pi-web.transcriptFollowBottom";
 
 export function isElement(node) {
   return node?.nodeType === Node.ELEMENT_NODE;
@@ -31,13 +32,28 @@ export function transcriptIndex(items, item) {
   return items.indexOf(item);
 }
 
+export function readTranscriptBottomFollowFlag() {
+  try {
+    return globalThis.localStorage?.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export function writeTranscriptBottomFollowFlag(value) {
+  try {
+    globalThis.localStorage?.setItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY, value ? "true" : "false");
+  } catch {}
+}
+
 export const transcriptWindowMethods = {
   initTranscriptWindow() {
     this.term = this.querySelector(".term");
     this.transcriptItems = [];
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
-    this.transcriptFollowBottom = true;
+    this.transcriptFollowBottom = readTranscriptBottomFollowFlag();
+    writeTranscriptBottomFollowFlag(this.transcriptFollowBottom);
     this.transcriptLastScrollTop = this.term?.scrollTop || 0;
     this.transcriptNextItemId = 1;
     this.transcriptResizeObservers = new Map();
@@ -77,6 +93,7 @@ export const transcriptWindowMethods = {
     this.scrollTerm = ({ force = false } = {}) => {
       if (!force && this.transcriptFollowBottom === false) return;
       if (force) {
+        this.startFollowingTranscriptBottom();
         this.scrollTermToBottomImmediately();
         this.updateTranscriptScrollButton();
       }
@@ -133,8 +150,17 @@ export const transcriptWindowMethods = {
     term.style.scrollBehavior = previousScrollBehavior;
   },
 
+  startFollowingTranscriptBottom() {
+    if (this.transcriptFollowBottom === true) return;
+    this.transcriptFollowBottom = true;
+    writeTranscriptBottomFollowFlag(true);
+  },
+
   stopFollowingTranscriptBottom() {
+    if (this.transcriptFollowBottom === false) return;
     this.transcriptFollowBottom = false;
+    this.transcriptBottomFollowFramesRemaining = 0;
+    writeTranscriptBottomFollowFlag(false);
     this.updateTranscriptScrollButton();
   },
 
@@ -160,7 +186,7 @@ export const transcriptWindowMethods = {
     const term = this.term;
     const scrollTop = term?.scrollTop || 0;
     const pinned = this.isTermPinnedToBottom();
-    if (pinned) this.transcriptFollowBottom = true;
+    if (pinned) this.startFollowingTranscriptBottom();
     this.transcriptLastScrollTop = scrollTop;
     this.updateTranscriptScrollButton();
     if (this.shouldLoadOlderTranscriptMessages()) void this.loadOlderSessionMessages?.();
@@ -174,7 +200,7 @@ export const transcriptWindowMethods = {
   },
 
   scrollTranscriptToBottom() {
-    this.transcriptFollowBottom = true;
+    this.startFollowingTranscriptBottom();
     this.renderTranscriptWindow({ stickToBottom: true });
     this.scrollTerm({ force: true });
     this.updateTranscriptScrollButton();
@@ -200,7 +226,7 @@ export const transcriptWindowMethods = {
     this.transcriptLastScrollTop = 0;
     this.transcriptVisibleStart = 0;
     this.transcriptVisibleEnd = 0;
-    this.transcriptFollowBottom = true;
+    this.startFollowingTranscriptBottom();
     this.answeredChoiceIds = new Set();
     this.updateTranscriptScrollButton();
   },

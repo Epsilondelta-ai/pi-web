@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { transcriptWindowMethods } from "./transcript-window-methods";
+import {
+  TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY,
+  readTranscriptBottomFollowFlag,
+  transcriptWindowMethods,
+  writeTranscriptBottomFollowFlag,
+} from "./transcript-window-methods";
 
 describe("transcript window direct method branches", () => {
   it("covers undefined transcript item collection fallbacks", () => {
@@ -155,5 +160,32 @@ describe("transcript window direct method branches", () => {
     owner.handleTranscriptUserWheel({ deltaY: -1 });
     owner.handleTranscriptTouchMove({ touches: [{ clientY: 20 }] });
     expect(owner.stopFollowingTranscriptBottom).toHaveBeenCalledTimes(2);
+
+    const stoppedOwner: any = { ...transcriptWindowMethods, transcriptFollowBottom: false };
+    stoppedOwner.stopFollowingTranscriptBottom();
+    expect(stoppedOwner.transcriptFollowBottom).toBe(false);
+  });
+
+  it("persists bottom-follow state and tolerates blocked storage", () => {
+    const items = new Map();
+    vi.stubGlobal("localStorage", {
+      clear: vi.fn(() => items.clear()),
+      getItem: vi.fn((key) => items.get(String(key)) || null),
+      removeItem: vi.fn((key) => items.delete(String(key))),
+      setItem: vi.fn((key, value) => items.set(String(key), String(value))),
+    });
+    writeTranscriptBottomFollowFlag(false);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("false");
+    expect(readTranscriptBottomFollowFlag()).toBe(false);
+    writeTranscriptBottomFollowFlag(true);
+    expect(localStorage.getItem(TRANSCRIPT_BOTTOM_FOLLOW_STORAGE_KEY)).toBe("true");
+
+    vi.stubGlobal("localStorage", {
+      getItem: () => { throw new Error("blocked"); },
+      setItem: () => { throw new Error("blocked"); },
+    });
+    expect(readTranscriptBottomFollowFlag()).toBe(true);
+    expect(() => writeTranscriptBottomFollowFlag(false)).not.toThrow();
+    vi.unstubAllGlobals();
   });
 });
