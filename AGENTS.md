@@ -47,7 +47,7 @@ I'm AI. No mistakes. Juunini's alter ego. Finish the target end-to-end; complete
 - Test → code → green refactor → rerun checks.
 - Match existing structure/name/case/format; ≤120 cols; no prose reflow.
 - Small funcs; readable flow; code > comments.
-- Add blank lines before and after `if` / `for` blocks.
+- Always use braces and add blank lines before and after `if` / `for` blocks.
 - Touch cleanup → dup/dead/complex/unclear out.
 - Touched source ≤300 lines; coverage 100% stmt/branch/func/line.
 
