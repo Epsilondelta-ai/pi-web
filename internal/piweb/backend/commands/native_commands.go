@@ -563,24 +563,35 @@ func extensionFiles(resources []commandResource) []map[string]string {
 	for _, resource := range resources {
 		info, statErr := os.Stat(resource.Path)
 		if statErr == nil && !info.IsDir() {
-			ext := filepath.Ext(resource.Path)
-			if ext == ".js" || ext == ".mjs" || ext == ".ts" {
-				files = append(files, map[string]string{"path": resource.Path, "scope": resource.Scope})
-			}
+			files = appendExtensionFile(files, resource.Path, resource.Scope)
 			continue
 		}
-		_ = filepath.WalkDir(resource.Path, func(path string, entry os.DirEntry, err error) error {
-			if err != nil || entry.IsDir() {
-				return nil
+
+		entries, err := os.ReadDir(resource.Path)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
 			}
-			ext := filepath.Ext(entry.Name())
-			if ext == ".js" || ext == ".mjs" || ext == ".ts" {
-				files = append(files, map[string]string{"path": path, "scope": resource.Scope})
-			}
-			return nil
-		})
+			files = appendExtensionFile(files, filepath.Join(resource.Path, entry.Name()), resource.Scope)
+		}
 	}
 	return files
+}
+
+func appendExtensionFile(files []map[string]string, path, scope string) []map[string]string {
+	ext := filepath.Ext(path)
+	if ext != ".js" && ext != ".mjs" && ext != ".ts" {
+		return files
+	}
+
+	if strings.HasSuffix(path, ".d.ts") {
+		return files
+	}
+
+	return append(files, map[string]string{"path": path, "scope": scope})
 }
 
 func extensionProbeEnv(base []string, payload string) []string {
@@ -636,22 +647,51 @@ func truncate(s string, n int) string {
 }
 
 const extensionProbeScript = `
-import { readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 const input = JSON.parse(process.env.PI_WEB_EXTENSION_PAYLOAD || '{}');
+const requireFromCwd = createRequire(pathToFileURL(process.cwd() + '/'));
+let esbuild;
+try { esbuild = requireFromCwd('esbuild'); } catch {}
 function stripTypeScript(source) {
   return source
     .replace(/^\s*import\s+type\s+[^;]+;?\s*$/gm, '')
+    .replace(/\btype\s+[A-Za-z_$][A-Za-z0-9_$]*\s*,\s*/g, '')
+    .replace(/,\s*type\s+[A-Za-z_$][A-Za-z0-9_$]*/g, '')
+    .replace(/(?:export\s+)?type\s+[A-Za-z_$][A-Za-z0-9_$]*\s*=\s*[\s\S]*?;\s*/g, '')
     .replace(/:\s*[A-Za-z_$][A-Za-z0-9_$]*(?:<[^=;,){}]+>)?(?=\s*[,)=;{])/g, '')
+    .replace(/\s+as\s+\{[\s\S]*?\}/g, '')
+    .replace(/\s+as\s+(?:\n\s*\|[^\n]+)+/g, '')
     .replace(/\s+as\s+[A-Za-z_$][A-Za-z0-9_$.]*(?:<[^;,){}]+>)?/g, '')
     .replace(/interface\s+[A-Za-z_$][A-Za-z0-9_$]*\s*{[^}]*}/g, '');
 }
 async function importExtension(path) {
   if (!path.endsWith('.ts')) return import(pathToFileURL(path).href);
-  const source = stripTypeScript(readFileSync(path, 'utf8'));
-  const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(source).toString('base64');
-  return import(moduleUrl);
+  if (!esbuild) {
+    const source = stripTypeScript(readFileSync(path, 'utf8'));
+    const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(source).toString('base64');
+    return import(moduleUrl);
+  }
+  const result = esbuild.buildSync({
+    entryPoints: [path],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    write: false,
+    packages: 'external',
+    logLevel: 'silent',
+  });
+  const tempDir = mkdtempSync(join(tmpdir(), 'pi-web-extension-'));
+  const tempPath = join(tempDir, 'extension.mjs');
+  writeFileSync(tempPath, result.outputFiles[0].text);
+  try {
+    return await import(pathToFileURL(tempPath).href);
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true });
+  }
 }
 function staticCommandFallback(path, seen = new Set()) {
   if (seen.has(path)) return [];
