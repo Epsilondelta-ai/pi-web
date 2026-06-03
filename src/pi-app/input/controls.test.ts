@@ -30,6 +30,35 @@ describe("pi-app controls", () => {
     expect(localStorage.getItem("pi-web.uiLocale")).toBe("ko");
   });
 
+  it("dispatches plugin action clicks from action targets", async () => {
+    const app = await connectPiApp();
+    app.installPluginFromForm = vi.fn();
+    app.refreshPlugins = vi.fn();
+    app.togglePlugin = vi.fn();
+    app.uninstallPluginById = vi.fn();
+    const install = document.createElement("div");
+    const reload = document.createElement("div");
+    const toggle = document.createElement("div");
+    const remove = document.createElement("div");
+    install.dataset.action = "install-plugin";
+    reload.dataset.action = "reload-plugins";
+    toggle.dataset.action = "toggle-plugin";
+    toggle.dataset.pluginId = "plug";
+    remove.dataset.action = "uninstall-plugin";
+    remove.dataset.pluginId = "plug";
+    app.append(install, reload, toggle, remove);
+
+    install.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    reload.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    remove.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(app.installPluginFromForm).toHaveBeenCalledOnce();
+    expect(app.refreshPlugins).toHaveBeenCalledOnce();
+    expect(app.togglePlugin).toHaveBeenCalledWith("plug", false);
+    expect(app.uninstallPluginById).toHaveBeenCalledWith("plug");
+  });
+
   it("enables send and shows slash commands as the prompt changes", async () => {
     const app = await connectPiApp();
     const prompt = app.querySelector(".prompt-textarea");

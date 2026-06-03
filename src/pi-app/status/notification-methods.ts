@@ -12,38 +12,35 @@ type BackgroundSessionWatch = {
 const UNREAD_COMPLETED_SESSIONS_KEY = "piweb:unread-completed-sessions";
 const LAST_SESSION_PROMPTS_KEY = "piweb:last-session-prompts";
 
-const BACKEND_CONNECTION_ERROR_PATTERNS = [
-  /failed to fetch/i,
-  /fetch failed/i,
-  /load failed/i,
-  /network\s*error/i,
-  /err_connection/i,
-  /connection\s*(refused|reset|closed|aborted)/i,
-  /backend\s*disconnected/i,
-  /event\s*stream/i,
-  /body\s*stream/i,
-  /terminated/i,
-];
-
-const AUTH_PROVIDER_LABELS = {
-  anthropic: "Anthropic",
-  "github-copilot": "GitHub Copilot",
-  "openai-codex": "OpenAI Codex",
-  openai: "OpenAI",
-};
-
 export function detailMessage(detail) {
-  return typeof detail === "string" ? detail : detail?.message || String(detail || "");
+  const fallback = String(detail).replace("null", "").replace("undefined", "");
+  return String(Object(detail).message).replace("undefined", fallback);
 }
 
 function isBackendConnectionError(detail) {
-  const message = detailMessage(detail);
-  return BACKEND_CONNECTION_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+  const message = detailMessage(detail).toLowerCase();
+  return message.includes("failed to fetch")
+    || message.includes("fetch failed")
+    || message.includes("load failed")
+    || message.includes("network error")
+    || message.includes("err_connection")
+    || message.includes("connection refused")
+    || message.includes("connection reset")
+    || message.includes("connection closed")
+    || message.includes("connection aborted")
+    || message.includes("backend disconnected")
+    || message.includes("event stream")
+    || message.includes("body stream")
+    || message.includes("terminated");
 }
 
 export function authProviderLabel(provider) {
   if (!provider) return "알 수 없음";
-  return AUTH_PROVIDER_LABELS[provider] || provider;
+  if (provider === "anthropic") return "Anthropic";
+  if (provider === "github-copilot") return "GitHub Copilot";
+  if (provider === "openai-codex") return "OpenAI Codex";
+  if (provider === "openai") return "OpenAI";
+  return provider;
 }
 
 export function notificationContextWorkspace(context) {

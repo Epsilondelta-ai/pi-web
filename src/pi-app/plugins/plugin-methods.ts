@@ -26,6 +26,7 @@ type PluginContext = {
 type PluginHost = HTMLElement & {
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
+  importPluginModule?: (url: string) => Promise<PluginModule>;
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
@@ -35,6 +36,10 @@ function pluginAssetUrl(plugin: PluginManifest): string {
 
 function pluginLabel(plugin: PluginManifest): string {
   return plugin.name || plugin.id;
+}
+
+function importPluginModule(url: string): Promise<PluginModule> {
+  return import(/* @vite-ignore */ url) as Promise<PluginModule>;
 }
 
 function request(path: string, method: string, body?: unknown): Promise<unknown> {
@@ -89,7 +94,7 @@ export const pluginMethods = {
         continue;
       }
       try {
-        const module: PluginModule = await import(/* @vite-ignore */ pluginAssetUrl(plugin));
+        const module: PluginModule = await (host.importPluginModule || importPluginModule)(pluginAssetUrl(plugin));
         const activate = module.default || module.activate;
         if (activate) {
           await activate(this.pluginContext(plugin));
@@ -137,9 +142,7 @@ export const pluginMethods = {
       return;
     }
     await installPlugin(source, value);
-    if (input) {
-      input.value = "";
-    }
+    input!.value = "";
     host.loadedPlugins = new Set<string>();
     await this.loadPlugins();
     console.info(`Plugin installed: ${source}:${value}`);

@@ -198,6 +198,10 @@ describe("status method branch coverage", () => {
     Object.defineProperty(globalThis, "localStorage", { configurable: true, value: originalLocalStorage });
     localStorage.setItem("piweb:ignored-pi-package-update", "legacy-key");
     expect(el.isPiPackageUpdateIgnored("legacy-key")).toBe(true);
+    localStorage.setItem("piweb:ignored-pi-package-update", "");
+    expect(el.isPiPackageUpdateIgnored("legacy-key")).toBe(false);
+    localStorage.setItem("piweb:ignored-pi-package-update", JSON.stringify(["array-key"]));
+    expect(el.isPiPackageUpdateIgnored("array-key")).toBe(true);
     localStorage.setItem("piweb:ignored-pi-package-update", JSON.stringify({ key: "object" }));
     expect(el.isPiPackageUpdateIgnored("object")).toBe(false);
     vi.spyOn(window, "setTimeout").mockImplementation(((cb: TimerHandler) => {
