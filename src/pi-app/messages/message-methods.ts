@@ -1,5 +1,5 @@
 import { fallbackValue } from "../../shared/fallbacks/fallbacks";
-import { escapeHtml, renderBannerBody, renderPiBody, renderUserBody } from "../../shared/renderers/renderers";
+import { escapeHtml, renderAnsiBody, renderPiBody, renderUserBody } from "../../shared/renderers/renderers";
 import { parseDesignDecks, stripDesignDecks } from "../input/design-decks";
 import {
   parseFallbackChoiceAnswer,
@@ -7,7 +7,7 @@ import {
   stripFallbackChoices,
   streamVisibleChoiceText,
 } from "../input/fallback-choices";
-import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "../constants";
+import { TERMINAL_SPINNER_HTML } from "../constants";
 
 export function streamingRowsStart(replaced) {
   return replaced ? 1 : 0;
@@ -25,25 +25,7 @@ export const messageMethods = {
     this.answeredChoiceIds = this.answeredChoiceIdsFrom(messages);
     this.transcriptItems = messages.map((message) => this.createTranscriptItem(message));
     this.renderTranscriptWindow({ stickToBottom: true });
-    this.syncWelcomeBanner(messages);
     this.scrollTerm();
-  },
-
-  syncWelcomeBanner(messages) {
-    if (!this.termInner || messages.length > 0) return;
-    this.termInner.append(this.welcomeBannerNode());
-  },
-
-  removeWelcomeBanner() {
-    this.termInner?.querySelector("[data-welcome-banner]")?.remove();
-  },
-
-  welcomeBannerNode() {
-    const bannerElement = document.createElement("pre");
-    bannerElement.className = "ascii-banner welcome-banner";
-    bannerElement.dataset.welcomeBanner = "";
-    bannerElement.innerHTML = renderBannerBody(PI_WEB_WELCOME_TEXT);
-    return bannerElement;
   },
 
   answeredChoiceIdsFrom(messages) {
@@ -59,7 +41,6 @@ export const messageMethods = {
 
   appendMessage(message) {
     if (!this.termInner || !message) return;
-    this.removeWelcomeBanner();
     if (this.isDuplicateMessage(message)) {
       if (message.kind !== "user") this.removeLoadingMessage();
       return;
@@ -85,7 +66,6 @@ export const messageMethods = {
 
   appendDelta(payload) {
     if (!this.termInner || !payload?.delta) return;
-    this.removeWelcomeBanner();
     this.finishRunningTools();
     const kind = payload.kind === "think" ? "think" : "pi";
     this.removeLoadingMessage();
@@ -164,7 +144,6 @@ export const messageMethods = {
   finalizePiStream(text) {
     if (!this.termInner) return;
     const message = { kind: "pi", text };
-    this.removeWelcomeBanner();
     const streamingRows = this.streamingRowsForKind("pi");
     if (this.isDuplicateMessage(message)) {
       this.removeLoadingMessage();
@@ -212,7 +191,6 @@ export const messageMethods = {
 
   appendLoadingMessage() {
     if (!this.termInner || this.hasLoadingMessage()) return;
-    this.removeWelcomeBanner();
     const row = this.simpleMessage("pi loading", "pi >", "");
     row.querySelector(".body").innerHTML = `${TERMINAL_SPINNER_HTML}<span>waiting for response…</span>`;
     row.classList.add("loading");
@@ -306,10 +284,10 @@ export const messageMethods = {
   },
 
   bannerMessageNode(message) {
-    const bannerElement = document.createElement("pre");
-    bannerElement.className = "ascii-banner";
-    bannerElement.innerHTML = renderBannerBody(message.text);
-    return bannerElement;
+    const messageRow = this.simpleMessage("banner", "pi >", "");
+    const body = messageRow.querySelector(".body");
+    body.innerHTML = renderAnsiBody(message.text);
+    return messageRow;
   },
 
   thinkingMessageNode(message) {

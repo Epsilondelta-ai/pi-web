@@ -15,11 +15,12 @@ describe("pi-app messages", () => {
     expect(() => app.appendDelta({ kind: "pi", delta: "ignored" })).not.toThrow();
   });
 
-  it("renders and clears the connected welcome banner", async () => {
+  it("does not render a connected welcome banner", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
 
-    expect(app.querySelector("[data-welcome-banner]").textContent).toContain("____  _");
+    expect(app.querySelector("[data-welcome-banner]")).toBeNull();
+    expect(app.querySelector(".ascii-banner")).toBeNull();
     expect(app.textContent).not.toContain("connecting to local backend");
 
     app.appendMessage({ kind: "user", text: "hello" });
@@ -43,7 +44,8 @@ describe("pi-app messages", () => {
       ].join("\n"),
     });
 
-    expect(app.querySelector(".ascii-banner").textContent).toContain("ready");
+    expect(app.querySelector(".msg[data-kind='banner'] .body").textContent).toContain("ready");
+    expect(app.querySelector(".ascii-banner")).toBeNull();
     expect(app.querySelector(".thinking-block").textContent).toContain("<reason>");
     expect(app.querySelector(".msg-image").getAttribute("alt")).toBe("shot");
     expect(app.querySelector(".fallback-choice-list [data-choice-value='a'] small").textContent).toBe("Alpha");

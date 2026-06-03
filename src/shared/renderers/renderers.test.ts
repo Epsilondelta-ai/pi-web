@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { describe, expect, it } from "vitest";
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./renderers";
+import { escapeHtml, renderAnsiBody, renderPiBody, renderUserBody } from "./renderers";
 
 describe("safe markdown rendering", () => {
   it("escapes untrusted pi message html before restoring allowed tokens", () => {
@@ -54,15 +54,6 @@ describe("safe markdown rendering", () => {
     expect(html).toContain('href="https://example.com"');
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noopener noreferrer"');
-  });
-
-  it("escapes untrusted banner html before restoring allowed tokens", () => {
-    const html = renderBannerBody('<script>alert(1)</script><a>ready</a><d>dim</d><t>tool</t>');
-    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
-    expect(html).toContain('<span class="accent">ready</span>');
-    expect(html).toContain('<span class="dim">dim</span>');
-    expect(html).toContain('<span class="tool">tool</span>');
-    expect(html).not.toContain("<script>");
   });
 
   it("escapes html scalar values", () => {

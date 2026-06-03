@@ -22,8 +22,8 @@ import {
   X,
 } from "@lucide/astro";
 import { UI_LOCALES } from "./i18n/locales";
-import { escapeHtml, renderAnsiBody, renderBannerBody, renderPiBody, renderUserBody } from "./shared/renderers/renderers";
-import { PI_WEB_WELCOME_TEXT, TERMINAL_SPINNER_HTML } from "./pi-app/constants";
+import { escapeHtml, renderAnsiBody, renderPiBody, renderUserBody } from "./shared/renderers/renderers";
+import { TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import {
   SETTINGS_FIELDS as settingsFields,
   SPEECH_LANGUAGE_OPTIONS as speechLanguageOptions,
@@ -243,10 +243,8 @@ function speechLanguageListId(path) {
       </form>
       <div class:list={["term", scanlines && "scanlines"]}>
         <div class="term-inner">
-          {conversation.length === 0 ? (
-            <pre class="ascii-banner welcome-banner" data-welcome-banner set:html={renderBannerBody(PI_WEB_WELCOME_TEXT)}></pre>
-          ) : conversation.map((msg) => (
-            msg.kind === "banner" ? <pre class="ascii-banner" set:html={renderBannerBody(msg.text)}></pre> :
+          {conversation.map((msg) => (
+            msg.kind === "banner" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderAnsiBody(msg.text)}></div></div> :
             msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body markdown-body" set:html={renderUserBody(msg.text)}></div></div> :
             msg.kind === "think" ? <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{msg.text}</div></div></div> :
             msg.kind === "pi" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body markdown-body" set:html={renderPiBody(msg.text)}></div></div> :
