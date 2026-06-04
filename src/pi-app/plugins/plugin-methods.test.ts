@@ -3,10 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
   apiBase: vi.fn(() => "http://backend.test"),
+  cancelSession: vi.fn(),
   getPlugins: vi.fn(),
+  getSession: vi.fn(),
+  getWorkspaceFile: vi.fn(),
   installPlugin: vi.fn(),
+  postPrompt: vi.fn(),
   reloadPlugins: vi.fn(),
+  runShellCommand: vi.fn(),
+  searchWorkspaceFiles: vi.fn(),
+  sessionEvents: vi.fn(),
   setPluginEnabled: vi.fn(),
+  steerSession: vi.fn(),
   uninstallPlugin: vi.fn(),
 }));
 
@@ -38,9 +46,17 @@ describe("pluginMethods", () => {
     Object.values(api).forEach((mock) => mock.mockReset?.());
     api.apiBase.mockReturnValue("http://backend.test");
     api.getPlugins.mockResolvedValue({ plugins: [] });
+    api.cancelSession.mockResolvedValue({ cancelled: true });
+    api.getSession.mockResolvedValue({ session: { id: "s1" } });
+    api.getWorkspaceFile.mockResolvedValue({ file: { path: "a" } });
     api.installPlugin.mockResolvedValue({});
+    api.postPrompt.mockResolvedValue({ accepted: true });
     api.reloadPlugins.mockResolvedValue({});
+    api.runShellCommand.mockResolvedValue({ output: "ok" });
+    api.searchWorkspaceFiles.mockResolvedValue({ files: [] });
+    api.sessionEvents.mockReturnValue({ close: vi.fn() });
     api.setPluginEnabled.mockResolvedValue({});
+    api.steerSession.mockResolvedValue({ accepted: true });
     api.uninstallPlugin.mockResolvedValue({});
   });
 
@@ -197,6 +213,77 @@ describe("pluginMethods", () => {
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
     expect(api.apiBase).toHaveBeenCalled();
+  });
+
+  it("provides plugin mount and host surface APIs", async () => {
+    const host = hostWithList();
+    host.innerHTML += `
+      <div data-chat-fallback><div class="term-inner"></div></div>
+      <div data-plugin-chat-root hidden></div>
+      <div data-prompt-fallback>
+        <div class="prompt-bar">
+          <input data-file-input type="file" />
+          <textarea class="prompt-textarea"></textarea>
+          <button class="send-btn"></button>
+          <button class="stop-btn"></button>
+          <button class="attach-btn"></button>
+          <div class="attach-chips"></div>
+        </div>
+      </div>
+      <div data-plugin-composer-root hidden></div>
+    `;
+    host.refreshChatSurfaceRefs = vi.fn();
+    host.bindChatSurfaceEvents = vi.fn();
+    host.initTranscriptWindow = vi.fn();
+    host.updatePrompt = vi.fn();
+    host.appendMessage = vi.fn();
+    host.appendDelta = vi.fn();
+    host.renderMessages = vi.fn();
+    host.finalizeStreamingMessages = vi.fn();
+    host.scrollTerm = vi.fn();
+    host.submitPrompt = vi.fn(async () => undefined);
+    host.cancelActiveSession = vi.fn(async () => undefined);
+    host.addFiles = vi.fn(async () => undefined);
+    host.prompt = host.querySelector(".prompt-textarea");
+    host.attachments = host.querySelector(".attach-chips");
+    host.attachmentContents = [{ name: "x" }];
+    host.dataset.activeWorkspaceId = "w1";
+    host.dataset.activeSessionId = "s1";
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const chat = document.createElement("section");
+    const composer = document.createElement("section");
+    const cleanupChat = context.mount.chat(chat, { replace: true });
+    const cleanupComposer = context.mount.composer(composer, { replace: true });
+
+    context.chat.appendMessage({ kind: "pi" });
+    context.chat.appendDelta({ delta: "x" });
+    context.chat.renderMessages([{ kind: "user" }]);
+    context.chat.finalizeStreamingMessages();
+    context.chat.scrollToBottom();
+    context.composer.setPrompt("hello");
+    await context.composer.submitPrompt();
+    await context.composer.cancelActiveSession();
+    await context.composer.addAttachment(new File(["x"], "x.txt"));
+    context.composer.clearAttachments();
+    await context.session.get("s1");
+    await context.session.postPrompt("s1", "p");
+    await context.session.steer("s1", "p");
+    await context.session.cancel("s1");
+    context.session.events("s1");
+    await context.files.search("w1", "a");
+    await context.files.read("w1", "a.txt");
+    await context.shell.run("w1", "pwd");
+
+    expect(host.querySelector("[data-chat-fallback]").hidden).toBe(true);
+    expect(host.querySelector("[data-prompt-fallback]").hidden).toBe(true);
+    expect(context.composer.getPrompt()).toBe("hello");
+    expect(host.appendMessage).toHaveBeenCalledWith({ kind: "pi" });
+    expect(api.postPrompt).toHaveBeenCalledWith("s1", "p", []);
+    expect(api.runShellCommand).toHaveBeenCalledWith("w1", "pwd");
+    cleanupChat();
+    cleanupComposer();
+    expect(host.querySelector("[data-chat-fallback]").hidden).toBe(false);
+    expect(host.querySelector("[data-prompt-fallback]").hidden).toBe(false);
   });
 
   it("refreshes, installs, toggles, and removes plugins", async () => {

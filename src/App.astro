@@ -189,7 +189,7 @@ function speechLanguageListId(path) {
         <input name="command" placeholder="run shell command in workspace" autocomplete="off" />
         <button type="submit" aria-label="run shell command" title="run shell command"><Play size={14} strokeWidth={2} aria-hidden="true" /></button>
       </form>
-      <div class:list={["term", scanlines && "scanlines"]}>
+      <div class:list={["term", scanlines && "scanlines"]} data-chat-fallback>
         <div class="term-inner">
           {conversation.map((msg) => (
             msg.kind === "banner" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderAnsiBody(msg.text)}></div></div> :
@@ -206,6 +206,7 @@ function speechLanguageListId(path) {
           <div class="compaction" hidden={compactionHidden}><span class="lbl">⚠ context summarized</span><span>older messages summarized · /undo to revert</span></div>
         </div>
       </div>
+      <div data-plugin-chat-root hidden></div>
       <button type="button" class="scroll-bottom-btn" data-action="scroll-bottom" aria-label="scroll to bottom" title="scroll to bottom" hidden><ArrowDown size={14} strokeWidth={1.75} aria-hidden="true" /></button>
     </main>
 
@@ -216,7 +217,7 @@ function speechLanguageListId(path) {
     <aside class="tree" aria-label="plugin sidebar" data-plugin-sidebar data-active-plugin-panel="file-browser" hidden={treeHidden}> 
       <div class="plugin-sidebar-empty" data-plugin-sidebar-empty>Install file browser or git viewer plugin.</div>
     </aside>
-  <div class="prompt-region">
+  <div class="prompt-region" data-prompt-fallback>
     <div class="slash-pop" hidden>
       <div class="slash-head">slash commands · type to filter</div>
       <div class="slash-list">{slashCommands.map((cmd, index) => {
@@ -233,6 +234,7 @@ function speechLanguageListId(path) {
     </div>
     <div class="prompt-meta" data-prompt-meta>— | <span class="prompt-meta-item prompt-meta-branch"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /><span>—</span></span></div>
   </div>
+  <div data-plugin-composer-root hidden></div>
 
     <div class="scrim" data-action="close-drawer"></div>
   </section>

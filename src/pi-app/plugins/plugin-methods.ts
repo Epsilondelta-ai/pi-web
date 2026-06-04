@@ -1,9 +1,17 @@
 import {
   apiBase,
+  cancelSession,
   getPlugins,
+  getSession,
+  getWorkspaceFile,
   installPlugin,
+  postPrompt,
   reloadPlugins,
+  runShellCommand,
+  searchWorkspaceFiles,
+  sessionEvents,
   setPluginEnabled,
+  steerSession,
   uninstallPlugin,
 } from "../../shared/api/api";
 
@@ -43,6 +51,46 @@ type PluginContext = {
     post(path: string, body: unknown): Promise<unknown>;
   };
   backend(method: string, body: unknown): Promise<unknown>;
+  mount: {
+    chat(element: HTMLElement, options?: PluginMountOptions): PluginCleanup;
+    composer(element: HTMLElement, options?: PluginMountOptions): PluginCleanup;
+  };
+  chat: {
+    appendMessage(message: unknown): void;
+    appendDelta(delta: unknown): void;
+    renderMessages(messages: unknown[]): void;
+    finalizeStreamingMessages(): void;
+    scrollToBottom(): void;
+  };
+  composer: {
+    getPrompt(): string;
+    setPrompt(value: string): void;
+    submitPrompt(): Promise<void>;
+    cancelActiveSession(): Promise<void>;
+    addAttachment(file: File): Promise<void>;
+    clearAttachments(): void;
+  };
+  session: {
+    activeId(): string;
+    activeWorkspaceId(): string;
+    running(): boolean;
+    get(sessionId: string, options?: { limit?: number; before?: string }): Promise<unknown>;
+    postPrompt(sessionId: string, text: string, attachments?: unknown[]): Promise<unknown>;
+    steer(sessionId: string, text: string, attachments?: unknown[]): Promise<unknown>;
+    cancel(sessionId: string): Promise<unknown>;
+    events(sessionId: string, options?: unknown): unknown;
+  };
+  files: {
+    search(workspaceId: string, query: string): Promise<unknown>;
+    read(workspaceId: string, path: string): Promise<unknown>;
+  };
+  shell: {
+    run(workspaceId: string, command: string): Promise<unknown>;
+  };
+};
+
+type PluginMountOptions = {
+  replace?: boolean;
 };
 
 type ActivePlugin = {
@@ -56,6 +104,21 @@ type PluginHost = HTMLElement & {
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
   importPluginModule?: (url: string) => Promise<PluginModule>;
+  refreshChatSurfaceRefs?: () => void;
+  bindChatSurfaceEvents?: () => void;
+  initTranscriptWindow?: () => void;
+  updatePrompt?: () => void;
+  appendMessage?: (message: unknown) => void;
+  appendDelta?: (delta: unknown) => void;
+  renderMessages?: (messages: unknown[]) => void;
+  finalizeStreamingMessages?: () => void;
+  scrollTerm?: () => void;
+  submitPrompt?: () => Promise<void>;
+  cancelActiveSession?: () => Promise<void>;
+  addFiles?: (files: FileList | File[]) => Promise<void>;
+  prompt?: HTMLTextAreaElement | null;
+  attachmentContents?: unknown[];
+  attachments?: HTMLElement | null;
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
@@ -119,6 +182,50 @@ function renderPluginList(host: PluginHost, plugins: PluginManifest[]): void {
       return row;
     }),
   );
+}
+
+function fallbackSelector(kind: "chat" | "composer"): string {
+  return kind === "chat" ? "[data-chat-fallback]" : "[data-prompt-fallback]";
+}
+
+function rootSelector(kind: "chat" | "composer"): string {
+  return kind === "chat" ? "[data-plugin-chat-root]" : "[data-plugin-composer-root]";
+}
+
+function mountPluginSurface(
+  host: PluginHost,
+  kind: "chat" | "composer",
+  element: HTMLElement,
+  options: PluginMountOptions = {},
+): PluginCleanup {
+  const root: HTMLElement | null = host.querySelector(rootSelector(kind));
+  const fallback: HTMLElement | null = host.querySelector(fallbackSelector(kind));
+  if (!root) {
+    throw new Error(`missing plugin ${kind} root`);
+  }
+  const previousHidden = root.hidden;
+  const fallbackWasHidden = fallback?.hidden === true;
+  root.hidden = false;
+  if (options.replace && fallback) {
+    fallback.hidden = true;
+  }
+  root.append(element);
+  host.refreshChatSurfaceRefs?.();
+  host.bindChatSurfaceEvents?.();
+  host.initTranscriptWindow?.();
+  host.updatePrompt?.();
+
+  return () => {
+    element.remove();
+    root.hidden = previousHidden;
+    if (fallback && options.replace) {
+      fallback.hidden = fallbackWasHidden;
+    }
+    host.refreshChatSurfaceRefs?.();
+    host.bindChatSurfaceEvents?.();
+    host.initTranscriptWindow?.();
+    host.updatePrompt?.();
+  };
 }
 
 async function runPluginCleanup(active: ActivePlugin): Promise<void> {
@@ -217,6 +324,98 @@ export const pluginMethods = {
       backend(method: string, body: unknown): Promise<unknown> {
         const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
         return request(path, "POST", body);
+      },
+      mount: {
+        chat(element: HTMLElement, options: PluginMountOptions = {}): PluginCleanup {
+          return mountPluginSurface(host, "chat", element, options);
+        },
+        composer(element: HTMLElement, options: PluginMountOptions = {}): PluginCleanup {
+          return mountPluginSurface(host, "composer", element, options);
+        },
+      },
+      chat: {
+        appendMessage(message: unknown): void {
+          host.appendMessage?.(message);
+        },
+        appendDelta(delta: unknown): void {
+          host.appendDelta?.(delta);
+        },
+        renderMessages(messages: unknown[]): void {
+          host.renderMessages?.(messages);
+        },
+        finalizeStreamingMessages(): void {
+          host.finalizeStreamingMessages?.();
+        },
+        scrollToBottom(): void {
+          host.scrollTerm?.();
+        },
+      },
+      composer: {
+        getPrompt(): string {
+          return host.prompt?.value || "";
+        },
+        setPrompt(value: string): void {
+          if (host.prompt) {
+            host.prompt.value = value;
+          }
+          host.updatePrompt?.();
+        },
+        submitPrompt(): Promise<void> {
+          return host.submitPrompt?.() || Promise.resolve();
+        },
+        cancelActiveSession(): Promise<void> {
+          return host.cancelActiveSession?.() || Promise.resolve();
+        },
+        addAttachment(file: File): Promise<void> {
+          return host.addFiles?.([file]) || Promise.resolve();
+        },
+        clearAttachments(): void {
+          host.attachmentContents = [];
+          host.attachments?.replaceChildren();
+          if (host.attachments) {
+            host.attachments.hidden = true;
+          }
+          host.updatePrompt?.();
+        },
+      },
+      session: {
+        activeId(): string {
+          return host.dataset.activeSessionId || "";
+        },
+        activeWorkspaceId(): string {
+          return host.dataset.activeWorkspaceId || "";
+        },
+        running(): boolean {
+          return host.classList.contains("running") || host.dataset.mode === "running";
+        },
+        get(sessionId: string, options?: { limit?: number; before?: string }): Promise<unknown> {
+          return getSession(sessionId, options || {});
+        },
+        postPrompt(sessionId: string, text: string, attachments: unknown[] = []): Promise<unknown> {
+          return postPrompt(sessionId, text, attachments);
+        },
+        steer(sessionId: string, text: string, attachments: unknown[] = []): Promise<unknown> {
+          return steerSession(sessionId, text, attachments);
+        },
+        cancel(sessionId: string): Promise<unknown> {
+          return cancelSession(sessionId);
+        },
+        events(sessionId: string, options?: unknown): unknown {
+          return sessionEvents(sessionId, options as Parameters<typeof sessionEvents>[1]);
+        },
+      },
+      files: {
+        search(workspaceId: string, query: string): Promise<unknown> {
+          return searchWorkspaceFiles(workspaceId, query);
+        },
+        read(workspaceId: string, path: string): Promise<unknown> {
+          return getWorkspaceFile(workspaceId, path);
+        },
+      },
+      shell: {
+        run(workspaceId: string, command: string): Promise<unknown> {
+          return runShellCommand(workspaceId, command);
+        },
       },
     };
   },
