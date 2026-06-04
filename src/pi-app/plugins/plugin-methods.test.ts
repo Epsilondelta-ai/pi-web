@@ -258,6 +258,11 @@ describe("pluginMethods", () => {
     await context.session.postPrompt("s1", "p");
     await context.session.steer("s1", "p");
     await context.session.cancel("s1");
+    expect(context.session.activeId()).toBe("s1");
+    expect(context.session.activeWorkspaceId()).toBe("w1");
+    expect(context.session.running()).toBe(false);
+    host.classList.add("running");
+    expect(context.session.running()).toBe(true);
     context.session.events("s1");
     await context.files.search("w1", "a");
     await context.files.read("w1", "a.txt");
@@ -273,6 +278,89 @@ describe("pluginMethods", () => {
     cleanupComposer();
     expect(host.querySelector("[data-plugin-chat-root]")).toBeNull();
     expect(host.querySelector("[data-plugin-composer-root]")).toBeNull();
+  });
+
+  it("covers optional plugin host fallbacks", async () => {
+    const host = hostWithList();
+    host.innerHTML += `<section class="app-body"></section>`;
+    host.refreshChatSurfaceRefs = vi.fn();
+    host.bindChatSurfaceEvents = vi.fn();
+    host.initTranscriptWindow = vi.fn();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const chat = document.createElement("section");
+    const cleanupChat = context.mount.chat(chat);
+
+    expect(host.querySelector(".app-body > [data-plugin-chat-root]")).toBe(chat);
+    expect(context.composer.getPrompt()).toBe("");
+    context.composer.setPrompt("ignored");
+    await expect(context.composer.submitPrompt()).resolves.toBeUndefined();
+    await expect(context.composer.cancelActiveSession()).resolves.toBeUndefined();
+    await expect(context.composer.addAttachment(new File(["x"], "x.txt"))).resolves.toBeUndefined();
+    context.composer.clearAttachments();
+    expect(context.session.activeId()).toBe("");
+    expect(context.session.activeWorkspaceId()).toBe("");
+    expect(context.session.running()).toBe(false);
+    host.dataset.mode = "running";
+    expect(context.session.running()).toBe(true);
+    cleanupChat();
+  });
+
+  it("requires an app body when plugins create mount roots", () => {
+    const host = hostWithList();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+
+    expect(() => context.mount.chat(document.createElement("section"))).toThrow("missing .app-body");
+  });
+
+  it("adopts legacy fallback chat and prompt state when present", () => {
+    const host = hostWithList();
+    host.innerHTML += `
+      <section class="app-body">
+        <div data-chat-fallback><div class="term-inner"><div class="msg">legacy</div></div></div>
+        <div data-plugin-chat-root hidden></div>
+        <div data-prompt-fallback><textarea class="prompt-textarea">draft</textarea></div>
+        <div data-plugin-composer-root hidden></div>
+      </section>
+    `;
+    host.refreshChatSurfaceRefs = vi.fn();
+    host.bindChatSurfaceEvents = vi.fn();
+    host.initTranscriptWindow = vi.fn();
+    host.updatePrompt = vi.fn();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const chat = document.createElement("section");
+    chat.innerHTML = `<div class="term-inner"></div>`;
+    const composer = document.createElement("section");
+    composer.innerHTML = `<textarea class="prompt-textarea"></textarea>`;
+    const cleanupChat = context.mount.chat(chat, { replace: true });
+    const cleanupComposer = context.mount.composer(composer, { replace: true });
+
+    expect(chat.querySelector(".term-inner")?.textContent).toBe("legacy");
+    expect(composer.querySelector(".prompt-textarea")?.value).toBe("draft");
+    cleanupChat();
+    cleanupComposer();
+    expect(host.querySelector("[data-chat-fallback] .term-inner")?.textContent).toBe("legacy");
+  });
+
+  it("restores adopted chat when the fallback placeholder was removed", () => {
+    const host = hostWithList();
+    host.innerHTML += `
+      <section class="app-body">
+        <div data-chat-fallback><div class="term-inner"><div class="msg">legacy</div></div></div>
+        <div data-plugin-chat-root hidden></div>
+      </section>
+    `;
+    host.refreshChatSurfaceRefs = vi.fn();
+    host.bindChatSurfaceEvents = vi.fn();
+    host.initTranscriptWindow = vi.fn();
+    host.updatePrompt = vi.fn();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const chat = document.createElement("section");
+    chat.innerHTML = `<div class="term-inner"></div>`;
+    const cleanupChat = context.mount.chat(chat, { replace: true });
+
+    host.querySelector("[data-chat-fallback]")?.replaceChildren();
+    cleanupChat();
+    expect(host.querySelector("[data-chat-fallback] .term-inner")?.textContent).toBe("legacy");
   });
 
   it("refreshes, installs, toggles, and removes plugins", async () => {
