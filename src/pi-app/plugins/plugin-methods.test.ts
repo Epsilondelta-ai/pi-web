@@ -337,6 +337,22 @@ describe("pluginMethods", () => {
     cleanupChat();
   });
 
+  it("mounts plugin surfaces into existing roots", () => {
+    const host = hostWithList();
+    host.innerHTML += `<section class="app-body"><div data-plugin-chat-root hidden></div></section>`;
+    host.refreshChatSurfaceRefs = vi.fn();
+    host.bindChatSurfaceEvents = vi.fn();
+    host.initTranscriptWindow = vi.fn();
+    host.updatePrompt = vi.fn();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const chat = document.createElement("section");
+    const cleanupChat = context.mount.chat(chat);
+
+    expect(host.querySelector("[data-plugin-chat-root] > section")).toBe(chat);
+    cleanupChat();
+    expect(host.querySelector("[data-plugin-chat-root]")?.hidden).toBe(true);
+  });
+
   it("requires an app body when plugins create mount roots", () => {
     const host = hostWithList();
     const context = host.pluginContext({ id: "p", entry: "index.js" });
