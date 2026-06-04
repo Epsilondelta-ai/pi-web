@@ -8,7 +8,7 @@ BIN_NAME="pi-web"
 PI_INSTALL_URL="${PI_WEB_PI_INSTALL_URL:-https://pi.dev/install.sh}"
 INSTALL_PI="${PI_WEB_INSTALL_PI:-auto}"
 INSTALL_DEFAULT_PLUGINS="${PI_WEB_INSTALL_DEFAULT_PLUGINS:-auto}"
-DEFAULT_PLUGIN_URLS="${PI_WEB_DEFAULT_PLUGIN_URLS:-https://github.com/Epsilondelta-ai/pi-web-toast-noti https://github.com/Epsilondelta-ai/pi-web-file-browser https://github.com/Epsilondelta-ai/pi-web-git-viewer https://github.com/Epsilondelta-ai/pi-web-sidebar https://github.com/Epsilondelta-ai/pi-web-chat}"
+DEFAULT_PLUGIN_URLS="${PI_WEB_DEFAULT_PLUGIN_URLS:-https://github.com/Epsilondelta-ai/pi-web-toast-noti https://github.com/Epsilondelta-ai/pi-web-file-browser https://github.com/Epsilondelta-ai/pi-web-git-viewer https://github.com/Epsilondelta-ai/pi-web-sidebar https://github.com/Epsilondelta-ai/pi-web-chat https://github.com/Epsilondelta-ai/pi-web-discord-noti https://github.com/Epsilondelta-ai/pi-web-telegram-noti}"
 
 usage() {
   cat <<'USAGE'

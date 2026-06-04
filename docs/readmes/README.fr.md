@@ -24,7 +24,7 @@ Installez le dernier binaire GitHub Release :
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
-L'installateur installe aussi les plugins de confiance par défaut : notifications toast, navigateur de fichiers, visionneuse Git, barre latérale et compositeur de chat. Définissez `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` pour les ignorer.
+L'installateur installe aussi les plugins de confiance par défaut : notifications toast, navigateur de fichiers, visionneuse Git, barre latérale, compositeur de chat, notifications Discord et notifications Telegram. Définissez `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` pour les ignorer.
 
 Mettez à jour le binaire installé :
 
