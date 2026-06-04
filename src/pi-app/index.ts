@@ -79,7 +79,7 @@ class PiApp extends HTMLElement {
     this.startSpinners();
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();
-    if (import.meta.env.MODE !== "test") {
+    if (!import.meta.env.VITEST) {
       void this.loadPlugins?.().catch(() => {});
     }
   }
