@@ -27,7 +27,11 @@ describe("performance split coverage", () => {
   });
 
   it("covers runtime plugin autoload when tests explicitly allow it", async () => {
-    const testGlobal = globalThis as typeof globalThis & { __PI_WEB_DISABLE_PLUGIN_AUTOLOAD__?: boolean };
+    const testGlobal = globalThis as typeof globalThis & {
+      __PI_WEB_DISABLE_AUTOMATIC_STARTUP__?: boolean;
+      __PI_WEB_DISABLE_PLUGIN_AUTOLOAD__?: boolean;
+    };
+    testGlobal.__PI_WEB_DISABLE_AUTOMATIC_STARTUP__ = false;
     testGlobal.__PI_WEB_DISABLE_PLUGIN_AUTOLOAD__ = false;
     const app = document.querySelector("pi-app") as HTMLElement & {
       bound: boolean;
@@ -47,7 +51,13 @@ describe("performance split coverage", () => {
       await Promise.resolve();
       await Promise.resolve();
       expect(app.loadPlugins).toHaveBeenCalled();
+      testGlobal.__PI_WEB_DISABLE_PLUGIN_AUTOLOAD__ = true;
+      app.bound = false;
+      app.loadPlugins = vi.fn(async () => undefined);
+      await connectPiApp();
+      expect(app.loadPlugins).not.toHaveBeenCalled();
     } finally {
+      testGlobal.__PI_WEB_DISABLE_AUTOMATIC_STARTUP__ = true;
       testGlobal.__PI_WEB_DISABLE_PLUGIN_AUTOLOAD__ = true;
     }
   });

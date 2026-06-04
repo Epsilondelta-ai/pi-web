@@ -19,6 +19,12 @@ import { oauthMethods } from "./workspace/oauth-methods";
 import { settingsMethods } from "./workspace/settings-methods";
 import { workspaceMethods } from "./workspace/workspace-methods";
 
+const automaticStartupDisabled = (): boolean => {
+  const testGlobal = globalThis as typeof globalThis & { __PI_WEB_DISABLE_AUTOMATIC_STARTUP__?: boolean };
+
+  return testGlobal.__PI_WEB_DISABLE_AUTOMATIC_STARTUP__ === true;
+};
+
 const pluginAutoloadDisabled = (): boolean => {
   const testGlobal = globalThis as typeof globalThis & { __PI_WEB_DISABLE_PLUGIN_AUTOLOAD__?: boolean };
 
@@ -84,7 +90,11 @@ class PiApp extends HTMLElement {
     this.scrollTerm();
     this.startSpinners();
     this.startRuntimeStatusPolling();
+
+    if (automaticStartupDisabled()) return;
+
     this.bootstrapAPI();
+
     if (pluginAutoloadDisabled()) return;
 
     void this.loadPlugins?.().catch(() => {});
