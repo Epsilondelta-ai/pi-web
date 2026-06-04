@@ -97,7 +97,7 @@ func TestPluginInstallFromGitHubURL(t *testing.T) {
 	if err := os.MkdirAll(source, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(source, "plugin.json"), []byte(`{"id":"github-plugin","entry":"index.js"}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(source, "plugin.json"), []byte(`{"id":"github-plugin","version":"1.0.0","entry":"index.js"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(source, "index.js"), []byte("export default () => {};"), 0o600); err != nil {
@@ -129,8 +129,35 @@ func TestPluginInstallFromGitHubURL(t *testing.T) {
 	if err != nil || len(plugins) != 1 || plugins[0].Source != "github" || plugins[0].URL != "https://github.com/owner/repo.git" || plugins[0].CacheKey == "" {
 		t.Fatalf("github plugin metadata = %#v err = %v", plugins, err)
 	}
+	if err := os.WriteFile(filepath.Join(source, "plugin.json"), []byte(`{"id":"github-plugin","version":"1.1.0","entry":"index.js"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	updates := httptest.NewRequest(http.MethodGet, "/api/plugins/updates", nil)
+	updatesRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(updatesRes, updates)
+	if updatesRes.Code != http.StatusOK {
+		t.Fatalf("updates status = %d body = %s", updatesRes.Code, updatesRes.Body.String())
+	}
+	var updatesBody struct {
+		Plugins []pluginUpdateStatus `json:"plugins"`
+	}
+	if err := json.Unmarshal(updatesRes.Body.Bytes(), &updatesBody); err != nil {
+		t.Fatal(err)
+	}
+	if len(updatesBody.Plugins) != 1 || !updatesBody.Plugins[0].UpdateAvailable || updatesBody.Plugins[0].LatestVersion != "1.1.0" {
+		t.Fatalf("updates = %#v", updatesBody.Plugins)
+	}
 	if err := os.WriteFile(filepath.Join(source, "index.js"), []byte("export default () => 'updated';"), 0o600); err != nil {
 		t.Fatal(err)
+	}
+	update := httptest.NewRequest(http.MethodPost, "/api/plugins/github-plugin/update", nil)
+	updateRes := httptest.NewRecorder()
+	server.Handler().ServeHTTP(updateRes, update)
+	if updateRes.Code != http.StatusOK {
+		t.Fatalf("update status = %d body = %s", updateRes.Code, updateRes.Body.String())
+	}
+	if data, err := os.ReadFile(installedPath); err != nil || !strings.Contains(string(data), "updated") {
+		t.Fatalf("updated data = %q err = %v", string(data), err)
 	}
 	reload := httptest.NewRequest(http.MethodPost, "/api/plugins/reload", nil)
 	reloadRes := httptest.NewRecorder()

@@ -320,7 +320,11 @@ export const inputMethods = {
     if (action === "delete-whisper-model") void this.deleteWhisperModel?.();
     if (action === "save-settings") this.saveSettingsForm?.(event);
     if (action === "install-plugin") void this.installPluginFromForm?.();
+    if (action === "check-plugin-updates") void this.checkPluginUpdates?.();
     if (action === "reload-plugins") void this.refreshPlugins?.();
+    if (action === "update-plugin") {
+      void this.updatePluginById?.(button?.dataset.pluginId || actionTarget?.dataset.pluginId);
+    }
     if (action === "toggle-plugin") {
       void this.togglePlugin?.(button?.dataset.pluginId || actionTarget?.dataset.pluginId, button?.dataset.pluginEnabled === "true");
     }

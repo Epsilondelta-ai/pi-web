@@ -33,28 +33,39 @@ describe("pi-app controls", () => {
   it("dispatches plugin action clicks from action targets", async () => {
     const app = await connectPiApp();
     app.installPluginFromForm = vi.fn();
+    app.checkPluginUpdates = vi.fn();
     app.refreshPlugins = vi.fn();
+    app.updatePluginById = vi.fn();
     app.togglePlugin = vi.fn();
     app.uninstallPluginById = vi.fn();
     const install = document.createElement("div");
+    const check = document.createElement("div");
     const reload = document.createElement("div");
+    const update = document.createElement("div");
     const toggle = document.createElement("div");
     const remove = document.createElement("div");
     install.dataset.action = "install-plugin";
+    check.dataset.action = "check-plugin-updates";
     reload.dataset.action = "reload-plugins";
+    update.dataset.action = "update-plugin";
+    update.dataset.pluginId = "plug";
     toggle.dataset.action = "toggle-plugin";
     toggle.dataset.pluginId = "plug";
     remove.dataset.action = "uninstall-plugin";
     remove.dataset.pluginId = "plug";
-    app.append(install, reload, toggle, remove);
+    app.append(install, check, reload, update, toggle, remove);
 
     install.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    check.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     reload.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    update.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     remove.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(app.installPluginFromForm).toHaveBeenCalledOnce();
+    expect(app.checkPluginUpdates).toHaveBeenCalledOnce();
     expect(app.refreshPlugins).toHaveBeenCalledOnce();
+    expect(app.updatePluginById).toHaveBeenCalledWith("plug");
     expect(app.togglePlugin).toHaveBeenCalledWith("plug", false);
     expect(app.uninstallPluginById).toHaveBeenCalledWith("plug");
   });
