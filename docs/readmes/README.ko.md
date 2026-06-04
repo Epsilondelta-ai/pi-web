@@ -24,7 +24,7 @@
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
-설치 프로그램은 기본 신뢰 플러그인인 toast 알림, 파일 브라우저, Git 뷰어도 설치합니다. 건너뛰려면 `PI_WEB_INSTALL_DEFAULT_PLUGINS=never`를 설정하세요.
+설치 프로그램은 기본 신뢰 플러그인인 toast 알림, 파일 브라우저, Git 뷰어, 사이드바도 설치합니다. 건너뛰려면 `PI_WEB_INSTALL_DEFAULT_PLUGINS=never`를 설정하세요.
 
 설치된 바이너리를 업데이트합니다.
 
