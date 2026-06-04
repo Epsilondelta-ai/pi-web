@@ -32,6 +32,10 @@ func detectPluginUpdate(plugin pluginManifest) pluginUpdateStatus {
 		status.Error = err.Error()
 		return status
 	}
+	if remote.ID != plugin.ID {
+		status.Error = "remote plugin id does not match installed plugin"
+		return status
+	}
 	status.Checked = true
 	status.LatestVersion = remote.Version
 	status.UpdateAvailable = isRemotePluginVersionNewer(plugin.Version, remote.Version)
@@ -49,6 +53,13 @@ func updateGitHubPlugin(id string) (pluginManifest, error) {
 	}
 	if plugin.Source != "github" || strings.TrimSpace(plugin.URL) == "" {
 		return pluginManifest{}, errors.New("plugin is not installed from GitHub")
+	}
+	remote, err := remoteGitHubPluginManifest(plugin.URL)
+	if err != nil {
+		return pluginManifest{}, err
+	}
+	if remote.ID != plugin.ID {
+		return pluginManifest{}, errors.New("remote plugin id does not match installed plugin")
 	}
 	updated, err := installGitHubPlugin(plugin.URL)
 	if err != nil {
