@@ -82,6 +82,8 @@ describe("pi-app notification-free session helpers", () => {
     app.notifyPiUpdateComplete();
     app.notifyPiUpdateFailed();
     app.notifyRuntimeWarning();
+    const remoteListener = vi.fn();
+    app.remoteNotificationListeners = new Set([remoteListener]);
     app.notifyChoiceRequested();
     app.notifySessionCompleted("string context");
     app.currentNotificationContext = vi.fn(() => ({ sessionId: "s4" }));
@@ -91,6 +93,10 @@ describe("pi-app notification-free session helpers", () => {
     app.notifyResponseCompletedOnce({ sessionId: "s2" });
     expect(app.clearUnreadCompletedSession).toHaveBeenCalledWith("s4");
     expect(app.clearUnreadCompletedSession).toHaveBeenCalledWith("s2");
+    expect(remoteListener).toHaveBeenCalledWith("choice", expect.any(Object));
+    expect(remoteListener).toHaveBeenCalledWith("completed", "string context");
+    app.remoteNotificationListeners = new Set([() => { throw new Error("plugin boom"); }]);
+    app.notifyRemoteNotificationPlugins("completed", {});
     expect(app.readLastSessionPrompt("")).toBe("");
     app.writeLastSessionPrompt("", "ignored");
     app.writeLastSessionPrompt("s3", "");

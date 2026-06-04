@@ -89,8 +89,10 @@ export const notificationMethods = {
   notifyRuntimeWarning() {},
 
   notifySessionCompleted(context) {
-    const sessionId = notificationContextSessionId(context || this.currentNotificationContext?.());
+    const payload = context || this.currentNotificationContext?.();
+    const sessionId = notificationContextSessionId(payload);
     if (sessionId) this.clearUnreadCompletedSession(sessionId);
+    this.notifyRemoteNotificationPlugins?.("completed", payload);
   },
 
   notifyResponseCompletedOnce(context) {
@@ -99,7 +101,19 @@ export const notificationMethods = {
     this.notifySessionCompleted(context);
   },
 
-  notifyChoiceRequested() {},
+  notifyChoiceRequested(context) {
+    this.notifyRemoteNotificationPlugins?.("choice", context || this.currentNotificationContext?.());
+  },
+
+  notifyRemoteNotificationPlugins(eventType, context) {
+    for (const listener of this.remoteNotificationListeners || []) {
+      try {
+        listener(eventType, context);
+      } catch (error) {
+        console.error("Remote notification plugin failed", error);
+      }
+    }
+  },
 
   notifyResponseFailure(detail) {
     if (this.responseFailureToastShown) return;

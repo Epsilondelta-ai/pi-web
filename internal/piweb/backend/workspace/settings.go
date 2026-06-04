@@ -148,14 +148,6 @@ func defaultSettings() map[string]any {
 		"warnings": map[string]any{
 			"anthropicExtraUsage": true,
 		},
-		"remoteNotifications": map[string]any{
-			"discord": map[string]any{
-				"enabled": false,
-			},
-			"telegram": map[string]any{
-				"enabled": false,
-			},
-		},
 	}
 }
 
@@ -206,7 +198,7 @@ func filterSettingsByKind(settings map[string]any, piWeb bool) map[string]any {
 
 func isPiWebSetting(key string) bool {
 	switch key {
-	case "readResponsesAloud", "voice", "enableSpeechInput", "speechInput", "remoteNotifications", "status":
+	case "readResponsesAloud", "voice", "enableSpeechInput", "speechInput", "status":
 		return true
 	default:
 		return false
