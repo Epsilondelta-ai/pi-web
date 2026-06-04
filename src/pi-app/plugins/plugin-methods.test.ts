@@ -240,8 +240,8 @@ describe("pluginMethods", () => {
     chat.innerHTML = `<div class="term-inner"></div>`;
     const composer = document.createElement("section");
     composer.innerHTML = `<textarea class="prompt-textarea"></textarea>`;
-    const cleanupChat = context.mount.chat(chat, { replace: true });
-    const cleanupComposer = context.mount.composer(composer, { replace: true });
+    const cleanupChat = context.mount.chat(chat);
+    const cleanupComposer = context.mount.composer(composer);
     host.prompt = composer.querySelector(".prompt-textarea");
 
     context.chat.appendMessage({ kind: "pi" });
@@ -342,57 +342,6 @@ describe("pluginMethods", () => {
     const context = host.pluginContext({ id: "p", entry: "index.js" });
 
     expect(() => context.mount.chat(document.createElement("section"))).toThrow("missing .app-body");
-  });
-
-  it("adopts legacy fallback chat and prompt state when present", () => {
-    const host = hostWithList();
-    host.innerHTML += `
-      <section class="app-body">
-        <div data-chat-fallback><div class="term-inner"><div class="msg">legacy</div></div></div>
-        <div data-plugin-chat-root hidden></div>
-        <div data-prompt-fallback><textarea class="prompt-textarea">draft</textarea></div>
-        <div data-plugin-composer-root hidden></div>
-      </section>
-    `;
-    host.refreshChatSurfaceRefs = vi.fn();
-    host.bindChatSurfaceEvents = vi.fn();
-    host.initTranscriptWindow = vi.fn();
-    host.updatePrompt = vi.fn();
-    const context = host.pluginContext({ id: "p", entry: "index.js" });
-    const chat = document.createElement("section");
-    chat.innerHTML = `<div class="term-inner"></div>`;
-    const composer = document.createElement("section");
-    composer.innerHTML = `<textarea class="prompt-textarea"></textarea>`;
-    const cleanupChat = context.mount.chat(chat, { replace: true });
-    const cleanupComposer = context.mount.composer(composer, { replace: true });
-
-    expect(chat.querySelector(".term-inner")?.textContent).toBe("legacy");
-    expect(composer.querySelector(".prompt-textarea")?.value).toBe("draft");
-    cleanupChat();
-    cleanupComposer();
-    expect(host.querySelector("[data-chat-fallback] .term-inner")?.textContent).toBe("legacy");
-  });
-
-  it("restores adopted chat when the fallback placeholder was removed", () => {
-    const host = hostWithList();
-    host.innerHTML += `
-      <section class="app-body">
-        <div data-chat-fallback><div class="term-inner"><div class="msg">legacy</div></div></div>
-        <div data-plugin-chat-root hidden></div>
-      </section>
-    `;
-    host.refreshChatSurfaceRefs = vi.fn();
-    host.bindChatSurfaceEvents = vi.fn();
-    host.initTranscriptWindow = vi.fn();
-    host.updatePrompt = vi.fn();
-    const context = host.pluginContext({ id: "p", entry: "index.js" });
-    const chat = document.createElement("section");
-    chat.innerHTML = `<div class="term-inner"></div>`;
-    const cleanupChat = context.mount.chat(chat, { replace: true });
-
-    host.querySelector("[data-chat-fallback]")?.replaceChildren();
-    cleanupChat();
-    expect(host.querySelector("[data-chat-fallback] .term-inner")?.textContent).toBe("legacy");
   });
 
   it("refreshes, installs, toggles, and removes plugins", async () => {

@@ -52,8 +52,8 @@ type PluginContext = {
   };
   backend(method: string, body: unknown): Promise<unknown>;
   mount: {
-    chat(element: HTMLElement, options?: PluginMountOptions): PluginCleanup;
-    composer(element: HTMLElement, options?: PluginMountOptions): PluginCleanup;
+    chat(element: HTMLElement): PluginCleanup;
+    composer(element: HTMLElement): PluginCleanup;
   };
   chat: {
     appendMessage(message: unknown): void;
@@ -87,10 +87,6 @@ type PluginContext = {
   shell: {
     run(workspaceId: string, command: string): Promise<unknown>;
   };
-};
-
-type PluginMountOptions = {
-  replace?: boolean;
 };
 
 type ActivePlugin = {
@@ -228,10 +224,6 @@ function ensureRequiredChatSurface(host: PluginHost): void {
   host.requiredChatFallbackCleanup = createRequiredChatFallback(host);
 }
 
-function fallbackSelector(kind: "chat" | "composer"): string {
-  return kind === "chat" ? "[data-chat-fallback]" : "[data-prompt-fallback]";
-}
-
 function rootAttribute(kind: "chat" | "composer"): "pluginChatRoot" | "pluginComposerRoot" {
   return kind === "chat" ? "pluginChatRoot" : "pluginComposerRoot";
 }
@@ -244,10 +236,8 @@ function mountPluginSurface(
   host: PluginHost,
   kind: "chat" | "composer",
   element: HTMLElement,
-  options: PluginMountOptions = {},
 ): PluginCleanup {
   const existingRoot: HTMLElement | null = host.querySelector(rootSelector(kind));
-  const fallback: HTMLElement | null = host.querySelector(fallbackSelector(kind));
   const appBody: HTMLElement | null = host.querySelector(".app-body");
   const root = existingRoot || element;
   if (!existingRoot) {
@@ -257,12 +247,7 @@ function mountPluginSurface(
     throw new Error("missing .app-body plugin mount target");
   }
   const previousHidden = root.hidden;
-  const fallbackWasHidden = fallback?.hidden === true;
-  const restoreFallbackContent = options.replace ? adoptFallbackContent(kind, fallback, element) : undefined;
   root.hidden = false;
-  if (options.replace && fallback) {
-    fallback.hidden = true;
-  }
   if (existingRoot) {
     existingRoot.append(element);
   } else {
@@ -274,57 +259,13 @@ function mountPluginSurface(
   host.updatePrompt?.();
 
   return () => {
-    restoreFallbackContent?.();
     element.remove();
     root.hidden = previousHidden;
-    if (fallback && options.replace) {
-      fallback.hidden = fallbackWasHidden;
-    }
     host.refreshChatSurfaceRefs?.();
     host.bindChatSurfaceEvents?.();
     host.initTranscriptWindow?.();
     host.updatePrompt?.();
   };
-}
-
-function adoptFallbackContent(
-  kind: "chat" | "composer",
-  fallback: HTMLElement | null,
-  element: HTMLElement,
-): PluginCleanup | undefined {
-  if (kind === "chat") {
-    return adoptFallbackChat(fallback, element);
-  }
-
-  adoptFallbackComposerState(fallback, element);
-  return undefined;
-}
-
-function adoptFallbackChat(fallback: HTMLElement | null, element: HTMLElement): PluginCleanup | undefined {
-  const fallbackTermInner: HTMLElement | null | undefined = fallback?.querySelector(".term-inner");
-  const pluginTermInner: HTMLElement | null = element.querySelector(".term-inner");
-  if (!fallbackTermInner || !pluginTermInner) {
-    return undefined;
-  }
-  const placeholder = document.createComment("pi-web-chat-fallback-term-inner");
-  fallbackTermInner.replaceWith(placeholder);
-  pluginTermInner.replaceWith(fallbackTermInner);
-
-  return () => {
-    if (placeholder.parentNode) {
-      placeholder.replaceWith(fallbackTermInner);
-      return;
-    }
-    fallback?.append(fallbackTermInner);
-  };
-}
-
-function adoptFallbackComposerState(fallback: HTMLElement | null, element: HTMLElement): void {
-  const fallbackPrompt: HTMLTextAreaElement | null | undefined = fallback?.querySelector(".prompt-textarea");
-  const pluginPrompt: HTMLTextAreaElement | null = element.querySelector(".prompt-textarea");
-  if (fallbackPrompt && pluginPrompt) {
-    pluginPrompt.value = fallbackPrompt.value;
-  }
 }
 
 async function runPluginCleanup(active: ActivePlugin): Promise<void> {
@@ -428,11 +369,11 @@ export const pluginMethods = {
         return request(path, "POST", body);
       },
       mount: {
-        chat(element: HTMLElement, options: PluginMountOptions = {}): PluginCleanup {
-          return mountPluginSurface(host, "chat", element, options);
+        chat(element: HTMLElement): PluginCleanup {
+          return mountPluginSurface(host, "chat", element);
         },
-        composer(element: HTMLElement, options: PluginMountOptions = {}): PluginCleanup {
-          return mountPluginSurface(host, "composer", element, options);
+        composer(element: HTMLElement): PluginCleanup {
+          return mountPluginSurface(host, "composer", element);
         },
       },
       chat: {

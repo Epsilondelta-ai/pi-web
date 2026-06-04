@@ -92,8 +92,6 @@
   --selection-bg: rgba(255,184,108,0.22);
 }
 .accent-amber .send-btn { color: #2a1500; }
-.accent-amber .keypad-bar .key:active,
-.accent-amber .keypad-bar .key.flash { color: #2a1500; }
 
 .accent-cyan {
   --accent: #5af2ff;
@@ -103,5 +101,3 @@
   --selection-bg: rgba(90,242,255,0.22);
 }
 .accent-cyan .send-btn { color: #002a30; }
-.accent-cyan .keypad-bar .key:active,
-.accent-cyan .keypad-bar .key.flash { color: #002a30; }
