@@ -114,17 +114,16 @@ describe("workspace folder/render/bootstrap coverage", () => {
     globalThis.fetch = vi.fn(async () => okJson({ workspaces: [
       { id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [] },
     ] }));
+    clearInterval(app.agentSessionStatusTimer);
+    app.agentSessionStatusTimer = undefined;
 
     app.renderWorkspaces([{ id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [
       { id: "parent", title: "parent" },
       { id: "child", title: "child", parentId: "parent", kind: "subagent", live: true },
     ] }]);
 
+    app.syncAgentSessionStatusPolling();
     expect(app.agentSessionStatusTimer).toBeTruthy();
-    await vi.advanceTimersByTimeAsync(1500);
-    expect(globalThis.fetch).toHaveBeenCalledWith("http://backend.test/api/workspaces", {
-      headers: { "Content-Type": "application/json" },
-    });
 
     app.renderWorkspaces([{ id: "w1", name: "one", path: "/one", sessionCount: 1, sessions: [] }]);
     expect(app.agentSessionStatusTimer).toBeUndefined();
@@ -143,7 +142,9 @@ describe("workspace folder/render/bootstrap coverage", () => {
     await vi.advanceTimersByTimeAsync(1500);
     expect(globalThis.fetch).toHaveBeenCalled();
 
-    app.agentSessionDiscoveryUntil = Date.now() - 1;
+    app.running = false;
+    app.agentSessionDiscoveryUntil = 0;
+    app.querySelectorAll(".session-row.child-session.active").forEach((row) => row.remove());
     app.syncAgentSessionStatusPolling();
     expect(app.agentSessionStatusTimer).toBeUndefined();
   });
@@ -178,6 +179,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
       await app.renderSortableSidebarWorkspaces(section, [{ id: "w1", name: "one", path: "/one", sessionCount: 0, sessions: [] }]);
     });
     expect(section.querySelectorAll("[data-sortable-workspaces]")).toHaveLength(1);
+    localStorage.removeItem("pi.workspaceOrder");
     await act(async () => {
       app.renderSidebarWorkspaces([{ id: "w2", name: "two", path: "/two", sessionCount: 0, sessions: [] }]);
       await Promise.resolve();

@@ -58,6 +58,37 @@
   padding: 1px 4px;
 }
 
+.topbar .topbar-update-release {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--radius-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.topbar .topbar-update-tip {
+  position: absolute;
+  right: var(--space-4);
+  top: calc(100% + 8px);
+  max-width: 260px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-2);
+  background: var(--bg-0);
+  color: var(--fg-1);
+  padding: 8px 10px;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.32);
+  z-index: var(--z-modal);
+}
+.topbar .topbar-update-tip code {
+  color: var(--accent);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  padding: 1px 4px;
+}
+
 .main {
   display: flex;
   flex-direction: column;
@@ -66,9 +97,10 @@
   min-height: 0;
   overflow: hidden;
   position: relative;
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
 }
+.app:has(.sidebar-wrap:not([hidden])) .main { grid-column: 2; }
 .app[data-sidebar="collapsed"] .main { grid-column: 1; }
 
 .shell-row {

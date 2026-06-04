@@ -1,5 +1,9 @@
 const DEV_API_BASE = "http://127.0.0.1:8732";
-const DEV_PORTS = new Set(["4321", "6006"]);
+
+function isLoopbackDevHost(): boolean {
+  const hostname = globalThis.location?.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
 
 type JsonRecord = Record<string, unknown>;
 
@@ -25,9 +29,9 @@ type SessionEventOptions = {
   replay?: boolean;
 };
 
-export function apiBase() {
+export function apiBase(): string {
   if (globalThis.PI_WEB_API_BASE !== undefined) return globalThis.PI_WEB_API_BASE;
-  if (DEV_PORTS.has(globalThis.location?.port)) return DEV_API_BASE;
+  if (import.meta.env.DEV && isLoopbackDevHost()) return DEV_API_BASE;
   return "";
 }
 

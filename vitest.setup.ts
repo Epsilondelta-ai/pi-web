@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as typeof globalThis & { __PI_WEB_DISABLE_AUTOMATIC_STARTUP__: boolean }).__PI_WEB_DISABLE_AUTOMATIC_STARTUP__ = true;
+(globalThis as typeof globalThis & { __PI_WEB_DISABLE_PLUGIN_AUTOLOAD__: boolean }).__PI_WEB_DISABLE_PLUGIN_AUTOLOAD__ = true;
 
 function installMemoryLocalStorage() {
   const items = new Map<string, string>();

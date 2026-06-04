@@ -575,6 +575,10 @@ describe("workspace bootstrap coverage", () => {
       : okJson({}));
     await app.bootstrapAPI();
     globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
+      ? okJson({})
+      : okJson({}));
+    await app.bootstrapAPI();
+    globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
       ? okJson({ workspaces: null })
       : okJson({}));
     await app.refreshWorkspaces();

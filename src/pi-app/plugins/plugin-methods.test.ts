@@ -52,6 +52,7 @@ describe("pluginMethods", () => {
   it("renders empty and missing plugin lists", async () => {
     const host = document.createElement("section");
     Object.assign(host, pluginMethods);
+    api.getPlugins.mockResolvedValueOnce({});
     await host.loadPlugins();
 
     const listed = hostWithList();

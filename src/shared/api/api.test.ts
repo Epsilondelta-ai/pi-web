@@ -129,12 +129,14 @@ describe("api adapter", () => {
     Object.defineProperty(globalThis, "location", { value: original, configurable: true });
   });
 
-  it("uses the development backend for known dev ports", async () => {
+  it("uses the development backend for loopback dev frontends", async () => {
     delete globalThis.PI_WEB_API_BASE;
     const original = globalThis.location;
-    Object.defineProperty(globalThis, "location", { value: { port: "4321" }, configurable: true });
+    Object.defineProperty(globalThis, "location", { value: { hostname: "localhost", port: "4322" }, configurable: true });
+    expect((await getPlugins()).url).toBe("http://127.0.0.1:8732/api/plugins");
+    Object.defineProperty(globalThis, "location", { value: { hostname: "127.0.0.1", port: "5173" }, configurable: true });
     expect((await health()).url).toBe("http://127.0.0.1:8732/api/health");
-    Object.defineProperty(globalThis, "location", { value: { port: "6006" }, configurable: true });
+    Object.defineProperty(globalThis, "location", { value: { hostname: "::1", port: "6006" }, configurable: true });
     expect((await health()).url).toBe("http://127.0.0.1:8732/api/health");
     Object.defineProperty(globalThis, "location", { value: original, configurable: true });
   });

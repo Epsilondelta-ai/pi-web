@@ -76,6 +76,11 @@ describe("status method branch coverage", () => {
     el.dataset.sidebar = "open";
     el.applyGrid();
     expect(el.querySelector(".app-body").style.gridTemplateColumns).toContain("200px");
+    const sidebar = el.querySelector(".sidebar-wrap");
+    sidebar.remove();
+    el.applyGrid();
+    expect(el.querySelector(".app-body").style.gridTemplateColumns).toBe("1fr");
+    el.querySelector(".app-body").insertAdjacentElement("afterbegin", sidebar);
     el.toggleTree();
     el.togglePluginSidebar("git-viewer");
     expect(el.querySelector('[data-plugin-panel="git-viewer"]').hidden).toBe(false);

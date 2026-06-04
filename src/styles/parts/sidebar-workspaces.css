@@ -1,5 +1,10 @@
 .sb-collapse:hover { color: var(--accent); border-color: var(--border); }
 
+.app:not(:has(.sidebar-wrap)) .topbar .sb-expand-btn,
+.app:not(:has(.sidebar-wrap)) .topbar .hamburger {
+  display: none !important;
+}
+
 .topbar .sb-expand-btn {
   width: 28px;
   height: 28px;
