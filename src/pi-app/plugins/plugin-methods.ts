@@ -251,7 +251,7 @@ function mountPluginSurface(
   if (existingRoot) {
     existingRoot.append(element);
   } else {
-    appBody?.append(element);
+    appBody.append(element);
   }
   host.refreshChatSurfaceRefs?.();
   host.bindChatSurfaceEvents?.();
