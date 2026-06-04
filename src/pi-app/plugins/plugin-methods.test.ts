@@ -217,21 +217,7 @@ describe("pluginMethods", () => {
 
   it("provides plugin mount and host surface APIs", async () => {
     const host = hostWithList();
-    host.innerHTML += `
-      <div data-chat-fallback><div class="term-inner"><div class="msg">existing</div></div></div>
-      <div data-plugin-chat-root hidden></div>
-      <div data-prompt-fallback>
-        <div class="prompt-bar">
-          <input data-file-input type="file" />
-          <textarea class="prompt-textarea"></textarea>
-          <button class="send-btn"></button>
-          <button class="stop-btn"></button>
-          <button class="attach-btn"></button>
-          <div class="attach-chips"></div>
-        </div>
-      </div>
-      <div data-plugin-composer-root hidden></div>
-    `;
+    host.innerHTML += `<section class="app-body"></section>`;
     host.refreshChatSurfaceRefs = vi.fn();
     host.bindChatSurfaceEvents = vi.fn();
     host.initTranscriptWindow = vi.fn();
@@ -244,8 +230,8 @@ describe("pluginMethods", () => {
     host.submitPrompt = vi.fn(async () => undefined);
     host.cancelActiveSession = vi.fn(async () => undefined);
     host.addFiles = vi.fn(async () => undefined);
-    host.prompt = host.querySelector(".prompt-textarea");
-    host.attachments = host.querySelector(".attach-chips");
+    host.prompt = null;
+    host.attachments = document.createElement("div");
     host.attachmentContents = [{ name: "x" }];
     host.dataset.activeWorkspaceId = "w1";
     host.dataset.activeSessionId = "s1";
@@ -256,6 +242,7 @@ describe("pluginMethods", () => {
     composer.innerHTML = `<textarea class="prompt-textarea"></textarea>`;
     const cleanupChat = context.mount.chat(chat, { replace: true });
     const cleanupComposer = context.mount.composer(composer, { replace: true });
+    host.prompt = composer.querySelector(".prompt-textarea");
 
     context.chat.appendMessage({ kind: "pi" });
     context.chat.appendDelta({ delta: "x" });
@@ -276,18 +263,16 @@ describe("pluginMethods", () => {
     await context.files.read("w1", "a.txt");
     await context.shell.run("w1", "pwd");
 
-    expect(host.querySelector("[data-chat-fallback]").hidden).toBe(true);
-    expect(host.querySelector("[data-prompt-fallback]").hidden).toBe(true);
-    expect(host.querySelector("[data-plugin-chat-root] .term-inner")?.textContent).toBe("existing");
+    expect(host.querySelector(".app-body > [data-plugin-chat-root]")).toBe(chat);
+    expect(host.querySelector(".app-body > [data-plugin-composer-root]")).toBe(composer);
     expect(context.composer.getPrompt()).toBe("hello");
     expect(host.appendMessage).toHaveBeenCalledWith({ kind: "pi" });
     expect(api.postPrompt).toHaveBeenCalledWith("s1", "p", []);
     expect(api.runShellCommand).toHaveBeenCalledWith("w1", "pwd");
     cleanupChat();
     cleanupComposer();
-    expect(host.querySelector("[data-chat-fallback]").hidden).toBe(false);
-    expect(host.querySelector("[data-chat-fallback] .term-inner")?.textContent).toBe("existing");
-    expect(host.querySelector("[data-prompt-fallback]").hidden).toBe(false);
+    expect(host.querySelector("[data-plugin-chat-root]")).toBeNull();
+    expect(host.querySelector("[data-plugin-composer-root]")).toBeNull();
   });
 
   it("refreshes, installs, toggles, and removes plugins", async () => {

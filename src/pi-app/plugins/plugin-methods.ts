@@ -188,6 +188,10 @@ function fallbackSelector(kind: "chat" | "composer"): string {
   return kind === "chat" ? "[data-chat-fallback]" : "[data-prompt-fallback]";
 }
 
+function rootAttribute(kind: "chat" | "composer"): "pluginChatRoot" | "pluginComposerRoot" {
+  return kind === "chat" ? "pluginChatRoot" : "pluginComposerRoot";
+}
+
 function rootSelector(kind: "chat" | "composer"): string {
   return kind === "chat" ? "[data-plugin-chat-root]" : "[data-plugin-composer-root]";
 }
@@ -198,10 +202,15 @@ function mountPluginSurface(
   element: HTMLElement,
   options: PluginMountOptions = {},
 ): PluginCleanup {
-  const root: HTMLElement | null = host.querySelector(rootSelector(kind));
+  const existingRoot: HTMLElement | null = host.querySelector(rootSelector(kind));
   const fallback: HTMLElement | null = host.querySelector(fallbackSelector(kind));
-  if (!root) {
-    throw new Error(`missing plugin ${kind} root`);
+  const appBody: HTMLElement | null = host.querySelector(".app-body");
+  const root = existingRoot || element;
+  if (!existingRoot) {
+    element.dataset[rootAttribute(kind)] = "";
+  }
+  if (!existingRoot && !appBody) {
+    throw new Error("missing .app-body plugin mount target");
   }
   const previousHidden = root.hidden;
   const fallbackWasHidden = fallback?.hidden === true;
@@ -210,7 +219,11 @@ function mountPluginSurface(
   if (options.replace && fallback) {
     fallback.hidden = true;
   }
-  root.append(element);
+  if (existingRoot) {
+    existingRoot.append(element);
+  } else {
+    appBody?.append(element);
+  }
   host.refreshChatSurfaceRefs?.();
   host.bindChatSurfaceEvents?.();
   host.initTranscriptWindow?.();

@@ -84,11 +84,13 @@ class PiApp extends HTMLElement {
 
     if (automaticStartupDisabled()) return;
 
-    this.bootstrapAPI();
-
-    if (pluginAutoloadDisabled()) return;
-
-    void this.loadPlugins?.().catch(() => {});
+    void this.startApplication();
+  }
+  async startApplication() {
+    if (!pluginAutoloadDisabled()) {
+      await this.loadPlugins?.().catch(() => undefined);
+    }
+    await this.bootstrapAPI();
   }
   bindChatSurfaceEvents() {
     this.chatSurfaceAbort?.abort?.();

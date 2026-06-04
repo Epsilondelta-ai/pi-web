@@ -1,24 +1,14 @@
 ---
 import EmptySessionShell from "./app-shell/EmptySessionShell.astro";
 import {
-  ArrowDown,
   ArrowUp,
-  ChevronDown,
   ChevronRight,
   CornerDownLeft,
-  GitBranch,
   Menu,
-  Mic,
-  Paperclip,
-  Play,
-  SendHorizontal,
   Settings,
-  Square,
   X,
 } from "@lucide/astro";
 import { UI_LOCALES } from "./i18n/locales";
-import { escapeHtml, renderAnsiBody, renderPiBody, renderUserBody } from "./shared/renderers/renderers";
-import { TERMINAL_SPINNER_HTML } from "./pi-app/constants";
 import {
   SETTINGS_FIELDS as settingsFields,
   SPEECH_LANGUAGE_OPTIONS as speechLanguageOptions,
@@ -28,12 +18,8 @@ const {
   initialRoute = "workspace",
   initialSession = "active",
   treeOpen = false,
-  showCompaction = false,
   showDisconnect = false,
-  scanlines = false,
   workspaces = [],
-  conversation = [],
-  slashCommands = [],
 } = Astro.props;
 
 const activeWorkspace = workspaces[0];
@@ -45,14 +31,11 @@ const activeWorkspaceID = activeWorkspace?.id || "";
 const workspaceVisible = initialRoute !== "picker";
 const pickerVisible = initialRoute === "picker";
 const emptyVisible = initialSession === "empty" || !activeSession;
-const sessionVisible = !emptyVisible;
 const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
 const bodyGrid = treeOpen ? "1fr 320px" : "1fr";
 const pickerHidden = !pickerVisible;
 const workspaceHidden = !workspaceVisible;
-const sessionHidden = !sessionVisible;
 const emptyHidden = !emptyVisible;
-const compactionHidden = !showCompaction;
 const settingsFieldByPath = Object.fromEntries(settingsFields.map((field) => [field.path, field]));
 const settingsGroups = [
   {
@@ -108,16 +91,6 @@ const settingsGroups = [
 const treeHidden = !treeOpen;
 const statusColor = showDisconnect ? "var(--danger)" : "var(--fg-3)";
 const statusTitle = showDisconnect ? "disconnected" : "connecting";
-
-function toolStatus(msg) {
-  if (msg.status === "running") return `${TERMINAL_SPINNER_HTML}<span style="color:var(--accent)">running</span>`;
-  if (msg.status === "err") return `<span class="err">✗</span>${escapeHtml(msg.resultMeta || "failed")}`;
-  return `<span class="ok">✓</span>${msg.durationMs ? `${msg.durationMs} ms` : ""}${msg.resultMeta ? ` · ${escapeHtml(msg.resultMeta)}` : ""}`;
-}
-
-function isToolCollapsed(msg) {
-  return msg.collapsedByDefault !== false;
-}
 
 function speechLanguageListId(path) {
   return `speech-language-options-${path.replace(/[^a-z0-9_-]/gi, "-")}`;
@@ -182,34 +155,6 @@ function speechLanguageListId(path) {
   </section>
 
   <section class={bodyClass} data-view="workspace" hidden={workspaceHidden} style={`grid-template-columns:${bodyGrid}`}> 
-    <main class="main" data-main="session" hidden={sessionHidden}> 
-      {showDisconnect && <div class="disconn"><span class="pulse"></span><span>disconnected · retrying in 2s</span></div>}
-      <form class="shell-row" data-shell-form>
-        <span class="shell-prefix">$</span>
-        <input name="command" placeholder="run shell command in workspace" autocomplete="off" />
-        <button type="submit" aria-label="run shell command" title="run shell command"><Play size={14} strokeWidth={2} aria-hidden="true" /></button>
-      </form>
-      <div class:list={["term", scanlines && "scanlines"]} data-chat-fallback>
-        <div class="term-inner">
-          {conversation.map((msg) => (
-            msg.kind === "banner" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body" set:html={renderAnsiBody(msg.text)}></div></div> :
-            msg.kind === "user" ? <div class="msg"><div class="prefix user">you &gt;</div><div class="body markdown-body" set:html={renderUserBody(msg.text)}></div></div> :
-            msg.kind === "think" ? <div class="msg"><div class="prefix think">…</div><div class="body" style="flex:1"><div class="thinking-block"><span class="label">thinking</span>{msg.text}</div></div></div> :
-            msg.kind === "pi" ? <div class="msg"><div class="prefix pi">pi &gt;</div><div class="body markdown-body" set:html={renderPiBody(msg.text)}></div></div> :
-            msg.kind === "tool" ? <div class:list={["tool-card", isToolCollapsed(msg) && "collapsed"]} data-tool={msg.tool}>
-              <button type="button" class="tc-head" aria-expanded={isToolCollapsed(msg) ? "false" : "true"} data-action="toggle-tool">
-                <span class="tc-glyph">●</span><span class="tc-name">{msg.tool}</span><span class="tc-args">{msg.args}</span><span class="tc-meta" set:html={toolStatus(msg)}></span><span class="tc-caret">{isToolCollapsed(msg) ? <ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" /> : <ChevronDown size={12} strokeWidth={1.75} aria-hidden="true" />}</span>
-              </button>
-              {msg.body && <div class="tc-body" hidden={isToolCollapsed(msg)} set:html={renderAnsiBody(msg.body)}></div>}
-            </div> : null
-          ))}
-          <div class="compaction" hidden={compactionHidden}><span class="lbl">⚠ context summarized</span><span>older messages summarized · /undo to revert</span></div>
-        </div>
-      </div>
-      <div data-plugin-chat-root hidden></div>
-      <button type="button" class="scroll-bottom-btn" data-action="scroll-bottom" aria-label="scroll to bottom" title="scroll to bottom" hidden><ArrowDown size={14} strokeWidth={1.75} aria-hidden="true" /></button>
-    </main>
-
     <main class="main" data-main="empty" hidden={emptyHidden}> 
       <EmptySessionShell workspaceName={activeWorkspaceName} />
     </main>
@@ -217,25 +162,6 @@ function speechLanguageListId(path) {
     <aside class="tree" aria-label="plugin sidebar" data-plugin-sidebar data-active-plugin-panel="file-browser" hidden={treeHidden}> 
       <div class="plugin-sidebar-empty" data-plugin-sidebar-empty>Install file browser or git viewer plugin.</div>
     </aside>
-  <div class="prompt-region" data-prompt-fallback>
-    <div class="slash-pop" hidden>
-      <div class="slash-head">slash commands · type to filter</div>
-      <div class="slash-list">{slashCommands.map((cmd, index) => {
-        const command = cmd.command || cmd.cmd || `/${cmd.name}`;
-        return <button type="button" class:list={["slash-item", index === 0 && "selected"]} data-slash={command}><span class="sl-cmd">{command}</span><span class="sl-tags"><span class="sl-scope">{cmd.scope || "global"}</span><span class="sl-source">{cmd.source || "command"}</span></span><span class="sl-desc">{cmd.description || cmd.desc}</span></button>;
-      })}</div>
-    </div>
-    <div class="prompt-bar">
-      <button class="attach-btn" type="button" aria-label="attach files" title="attach files"><Paperclip size={14} strokeWidth={1.5} aria-hidden="true" /></button>
-      <input type="file" multiple hidden data-file-input />
-      <div class="prompt-input-col"><div class="attach-chips" hidden></div><textarea class="prompt-textarea" placeholder="ask pi to do something…" rows="1"></textarea></div>
-      <div class="prompt-actions"><button class="stop-btn" type="button" aria-label="stop" title="stop" hidden><Square size={13} strokeWidth={2} aria-hidden="true" /></button><button class="mic-btn" type="button" data-action="toggle-speech-input" aria-label="start voice input" title="voice input" hidden><Mic size={14} strokeWidth={2} aria-hidden="true" /></button><button class="send-btn" type="button" aria-label="send" title="send" aria-disabled="true"><SendHorizontal size={14} strokeWidth={2} aria-hidden="true" /></button></div>
-      <div class="drop-overlay" hidden><span>drop to attach</span></div>
-    </div>
-    <div class="prompt-meta" data-prompt-meta>— | <span class="prompt-meta-item prompt-meta-branch"><GitBranch size={12} strokeWidth={1.75} aria-hidden="true" /><span>—</span></span></div>
-  </div>
-  <div data-plugin-composer-root hidden></div>
-
     <div class="scrim" data-action="close-drawer"></div>
   </section>
 
