@@ -81,6 +81,10 @@ export function getPlugins() {
   return request("/api/plugins");
 }
 
+export function getPluginUpdates() {
+  return request("/api/plugins/updates");
+}
+
 export function installPlugin(source, value) {
   const body = source === "github" ? { source, url: value } : { source: "local", path: value };
   return request("/api/plugins/install", {
@@ -91,6 +95,10 @@ export function installPlugin(source, value) {
 
 export function reloadPlugins() {
   return request("/api/plugins/reload", { method: "POST" });
+}
+
+export function updatePlugin(pluginId) {
+  return request(`/api/plugins/${encodeURIComponent(pluginId)}/update`, { method: "POST" });
 }
 
 export function setPluginEnabled(pluginId, enabled) {

@@ -25,6 +25,7 @@ import {
   getOAuthProviders,
   getPiPackageUpdateStatus,
   getPiUpdateStatus,
+  getPluginUpdates,
   getPlugins,
   getPiVersionStatus,
   getSession,
@@ -61,6 +62,7 @@ import {
   startOAuthLogin,
   startPiUpdate,
   uninstallPlugin,
+  updatePlugin,
   uploadWorkspaceFile,
 } from "./api";
 
@@ -93,6 +95,7 @@ describe("api adapter", () => {
 
   it("supports plugin management endpoints", async () => {
     expect((await getPlugins()).url).toBe("http://backend.test/api/plugins");
+    expect((await getPluginUpdates()).url).toBe("http://backend.test/api/plugins/updates");
     const github = await installPlugin("github", "owner/repo");
     expect(github.url).toBe("http://backend.test/api/plugins/install");
     expect(github.options.method).toBe("POST");
@@ -100,6 +103,7 @@ describe("api adapter", () => {
     const local = await installPlugin("local", "/repo/plugin");
     expect(JSON.parse(local.options.body)).toEqual({ source: "local", path: "/repo/plugin" });
     expect((await reloadPlugins()).options.method).toBe("POST");
+    expect((await updatePlugin("a/b")).url).toBe("http://backend.test/api/plugins/a%2Fb/update");
     expect((await setPluginEnabled("a/b", true)).url).toBe("http://backend.test/api/plugins/a%2Fb/enable");
     expect((await setPluginEnabled("a/b", false)).url).toBe("http://backend.test/api/plugins/a%2Fb/disable");
     const removed = await uninstallPlugin("a/b");

@@ -33,6 +33,15 @@ func (s *Server) installPlugin(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"plugin": plugin})
 }
 
+func (s *Server) pluginUpdates(w http.ResponseWriter, _ *http.Request) {
+	updates, err := detectPluginUpdates()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"plugins": updates})
+}
+
 func (s *Server) reloadPlugins(w http.ResponseWriter, _ *http.Request) {
 	plugins, err := reloadGitHubPlugins()
 	if err != nil {
@@ -40,6 +49,15 @@ func (s *Server) reloadPlugins(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"plugins": plugins})
+}
+
+func (s *Server) updatePlugin(w http.ResponseWriter, r *http.Request) {
+	plugin, err := updateGitHubPlugin(r.PathValue("pluginID"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"plugin": plugin})
 }
 
 func (s *Server) enablePlugin(w http.ResponseWriter, r *http.Request) {

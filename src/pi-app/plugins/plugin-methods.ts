@@ -1,6 +1,7 @@
 import {
   apiBase,
   cancelSession,
+  getPluginUpdates,
   getPlugins,
   getSession,
   getWorkspaceFile,
@@ -13,6 +14,7 @@ import {
   setPluginEnabled,
   steerSession,
   uninstallPlugin,
+  updatePlugin,
 } from "../../shared/api/api";
 
 type PluginManifest = {
@@ -22,6 +24,15 @@ type PluginManifest = {
   entry: string;
   enabled?: boolean;
   cacheKey?: string;
+};
+
+type PluginUpdateStatus = {
+  id: string;
+  currentVersion?: string;
+  latestVersion?: string;
+  updateAvailable?: boolean;
+  checked?: boolean;
+  error?: string;
 };
 
 type PluginCleanup = () => unknown | Promise<unknown>;
@@ -163,22 +174,70 @@ function renderPluginList(host: PluginHost, plugins: PluginManifest[]): void {
     ...plugins.map((plugin: PluginManifest) => {
       const row: HTMLDivElement = document.createElement("div");
       row.className = "plugin-row";
-      row.innerHTML = `<span><strong></strong><small></small></span><span class="plugin-actions"><button type="button" data-action="toggle-plugin"></button><button type="button" data-action="uninstall-plugin"></button></span>`;
+      row.innerHTML = [
+        `<span><strong></strong><small data-plugin-version></small></span>`,
+        `<span class="plugin-actions">`,
+        `<button type="button" data-action="update-plugin" hidden>update</button>`,
+        `<button type="button" data-action="toggle-plugin"></button>`,
+        `<button type="button" data-action="uninstall-plugin"></button>`,
+        `</span>`,
+      ].join("");
       row.dataset.pluginId = plugin.id;
       row.querySelector("strong")!.textContent = pluginLabel(plugin);
-      row.querySelector("small")!.textContent =
+      row.querySelector("[data-plugin-version]")!.textContent =
         `${plugin.id} · ${plugin.version || "dev"}`;
-      const buttons: NodeListOf<HTMLButtonElement> =
-        row.querySelectorAll("button");
+      const buttons: NodeListOf<HTMLButtonElement> = row.querySelectorAll("button");
       buttons.forEach((button: HTMLButtonElement) => {
         button.dataset.pluginId = plugin.id;
       });
-      buttons[0].dataset.pluginEnabled = String(plugin.enabled !== false);
-      buttons[0].textContent = plugin.enabled === false ? "enable" : "disable";
-      buttons[1].textContent = "remove";
+      buttons[1].dataset.pluginEnabled = String(plugin.enabled !== false);
+      buttons[1].textContent = plugin.enabled === false ? "enable" : "disable";
+      buttons[2].textContent = "remove";
       return row;
     }),
   );
+}
+
+function setPluginUpdateChecking(host: PluginHost): void {
+  host.querySelectorAll<HTMLElement>("[data-plugin-version]").forEach((version: HTMLElement) => {
+    const baseText: string = version.dataset.baseText || version.textContent || "";
+    version.dataset.baseText = baseText;
+    version.textContent = `${baseText} · checking updates…`;
+  });
+}
+
+function clearPluginUpdateChecking(host: PluginHost, message: string): void {
+  host.querySelectorAll<HTMLElement>("[data-plugin-version]").forEach((version: HTMLElement) => {
+    version.textContent = `${version.dataset.baseText} · ${message}`;
+  });
+}
+
+function renderPluginUpdateStatus(host: PluginHost, status: PluginUpdateStatus): void {
+  const row: HTMLElement | null = host.querySelector(
+    `[data-plugin-id='${CSS.escape(status.id)}']`,
+  );
+  if (!row) {
+    return;
+  }
+  const version: HTMLElement | null = row.querySelector("[data-plugin-version]");
+  const updateButton: HTMLButtonElement | null = row.querySelector("[data-action='update-plugin']");
+  const baseText: string = version?.dataset.baseText || version?.textContent || "";
+  if (version) {
+    version.dataset.baseText = baseText;
+    if (status.updateAvailable && status.latestVersion) {
+      version.textContent =
+        `${status.id} · ${status.currentVersion || "dev"} → ${status.latestVersion} · update available`;
+    } else if (status.error) {
+      version.textContent = `${baseText} · update check failed`;
+      version.title = status.error;
+    } else {
+      version.textContent = baseText;
+      version.removeAttribute("title");
+    }
+  }
+  if (updateButton) {
+    updateButton.hidden = !status.updateAvailable;
+  }
 }
 
 function createRequiredChatFallback(host: PluginHost): PluginCleanup | undefined {
@@ -463,11 +522,36 @@ export const pluginMethods = {
     };
   },
 
+  async checkPluginUpdates(): Promise<void> {
+    const host: PluginHost = this as PluginHost;
+    setPluginUpdateChecking(host);
+    try {
+      const response = (await getPluginUpdates()) as { plugins?: PluginUpdateStatus[] };
+      for (const status of response.plugins || []) {
+        renderPluginUpdateStatus(host, status);
+      }
+    } catch (error) {
+      clearPluginUpdateChecking(host, "update check failed");
+      console.warn("Plugin update check failed", error);
+    }
+  },
+
   async refreshPlugins(): Promise<void> {
     await this.deactivateLoadedPlugins();
     await reloadPlugins();
     await this.loadPlugins();
     console.info("Plugins reloaded");
+  },
+
+  async updatePluginById(pluginId: string): Promise<void> {
+    if (!pluginId) {
+      return;
+    }
+
+    await this.deactivateLoadedPlugin(pluginId);
+    await updatePlugin(pluginId);
+    await this.loadPlugins();
+    console.info(`Plugin updated: ${pluginId}`);
   },
 
   async installPluginFromForm(): Promise<void> {

@@ -15,6 +15,16 @@ type pluginManifest struct {
 	CacheKey string `json:"cacheKey"`
 }
 
+type pluginUpdateStatus struct {
+	ID              string `json:"id"`
+	Source          string `json:"source"`
+	CurrentVersion  string `json:"currentVersion"`
+	LatestVersion   string `json:"latestVersion,omitempty"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+	Checked         bool   `json:"checked"`
+	Error           string `json:"error,omitempty"`
+}
+
 type pluginInstallMetadata struct {
 	Source  string `json:"source"`
 	URL     string `json:"url"`
