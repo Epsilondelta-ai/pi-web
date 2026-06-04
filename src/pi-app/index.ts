@@ -35,13 +35,8 @@ class PiApp extends HTMLElement {
   connectedCallback() {
     if (this.bound) return;
     this.bound = true;
-    this.prompt = this.querySelector(".prompt-textarea");
-    this.promptBar = this.querySelector(".prompt-bar");
     this.promptShellMode = false;
-    this.sendButton = this.querySelector(".send-btn");
-    this.stopButton = this.querySelector(".stop-btn");
-    this.micButton = this.querySelector(".mic-btn");
-    this.attachButton = this.querySelector(".attach-btn");
+    this.refreshChatSurfaceRefs();
     this.readResponsesAloud = false;
     this.enableSpeechInput = false;
     this.useLocalWhisper = false;
@@ -63,11 +58,7 @@ class PiApp extends HTMLElement {
     this.speechSilenceTimer = null;
     this.speechRecorder = null;
     this.speechRecordingChunks = [];
-    this.fileInput = this.querySelector("[data-file-input]");
-    this.attachments = this.querySelector(".attach-chips");
-    this.slashPopover = this.querySelector(".slash-pop");
     this.settingsModal = this.querySelector("[data-settings-modal]");
-    this.termInner = this.querySelector(".term-inner");
     this.initTranscriptWindow();
     this.eventSource = null;
     this.apiConnected = false;
@@ -93,14 +84,66 @@ class PiApp extends HTMLElement {
 
     if (automaticStartupDisabled()) return;
 
-    this.bootstrapAPI();
-
-    if (pluginAutoloadDisabled()) return;
-
-    void this.loadPlugins?.().catch(() => {});
+    void this.startApplication();
+  }
+  async startApplication() {
+    if (!pluginAutoloadDisabled()) {
+      await this.loadPlugins?.().catch(() => undefined);
+    }
+    await this.bootstrapAPI();
+  }
+  bindChatSurfaceEvents() {
+    this.chatSurfaceAbort?.abort?.();
+    this.uninstallPromptDropZone?.();
+    const controller = new AbortController();
+    this.chatSurfaceAbort = controller;
+    const options = { signal: controller.signal };
+    this.sendButton?.addEventListener("click", () => this.submitPrompt(), options);
+    this.stopButton?.addEventListener("click", () => this.cancelActiveSession(), options);
+    this.prompt?.addEventListener("input", () => this.updatePrompt(), options);
+    this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event), options);
+    this.prompt?.addEventListener("keydown", (event) => {
+      this.handlePromptKeydown(event);
+      const shouldNavigateSlashCommands = this.slashPopover
+        && !this.slashPopover.hidden
+        && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key);
+      if (shouldNavigateSlashCommands) {
+        this.navigateList(event, ".slash-item", (item) => this.pickSlash(item.dataset.slash));
+        return;
+      }
+      const shouldNavigatePromptFileRefs = this.promptFileRefPopover
+        && !this.promptFileRefPopover.hidden
+        && ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key);
+      if (shouldNavigatePromptFileRefs) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          this.hidePromptFileRefs();
+          return;
+        }
+        this.navigateList(event, ".prompt-file-ref-item", (item) => this.pickPromptFileRef(item.dataset.path));
+      }
+    }, options);
+    this.attachButton?.addEventListener("click", () => this.fileInput?.click(), options);
+    this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files), options);
+    this.installPromptDropZone?.();
+  }
+  refreshChatSurfaceRefs() {
+    const activeChatRoot = this.querySelector("[data-plugin-chat-root]:not([hidden])") || this;
+    const activeComposerRoot = this.querySelector("[data-plugin-composer-root]:not([hidden])") || this;
+    this.prompt = activeComposerRoot.querySelector(".prompt-textarea");
+    this.promptBar = activeComposerRoot.querySelector(".prompt-bar");
+    this.sendButton = activeComposerRoot.querySelector(".send-btn");
+    this.stopButton = activeComposerRoot.querySelector(".stop-btn");
+    this.micButton = activeComposerRoot.querySelector(".mic-btn");
+    this.attachButton = activeComposerRoot.querySelector(".attach-btn");
+    this.fileInput = activeComposerRoot.querySelector("[data-file-input]");
+    this.attachments = activeComposerRoot.querySelector(".attach-chips");
+    this.slashPopover = activeComposerRoot.querySelector(".slash-pop");
+    this.termInner = activeChatRoot.querySelector(".term-inner");
   }
   disconnectedCallback() {
     this.stopSpeechInput?.();
+    this.chatSurfaceAbort?.abort?.();
     this.uninstallPromptDropZone?.();
     this.eventSource?.close();
     this.backgroundSessionWatches?.forEach((watch) => watch.source?.close?.());
@@ -184,34 +227,7 @@ class PiApp extends HTMLElement {
       this.whisperModel = event.currentTarget.value || "tiny-q5";
       void this.updateWhisperCacheStatus?.();
     });
-    this.sendButton?.addEventListener("click", () => this.submitPrompt());
-    this.stopButton?.addEventListener("click", () => this.cancelActiveSession());
-    this.prompt?.addEventListener("input", () => this.updatePrompt());
-    this.prompt?.addEventListener("paste", (event) => void this.handlePromptPaste(event));
-    this.prompt?.addEventListener("keydown", (event) => {
-      this.handlePromptKeydown(event);
-      const shouldNavigateSlashCommands = this.slashPopover
-        && !this.slashPopover.hidden
-        && ["ArrowDown", "ArrowUp", "Enter"].includes(event.key);
-      if (shouldNavigateSlashCommands) {
-        this.navigateList(event, ".slash-item", (item) => this.pickSlash(item.dataset.slash));
-        return;
-      }
-      const shouldNavigatePromptFileRefs = this.promptFileRefPopover
-        && !this.promptFileRefPopover.hidden
-        && ["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key);
-      if (shouldNavigatePromptFileRefs) {
-        if (event.key === "Escape") {
-          event.preventDefault();
-          this.hidePromptFileRefs();
-          return;
-        }
-        this.navigateList(event, ".prompt-file-ref-item", (item) => this.pickPromptFileRef(item.dataset.path));
-      }
-    });
-    this.attachButton?.addEventListener("click", () => this.fileInput?.click());
-    this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files));
-    this.installPromptDropZone?.();
+    this.bindChatSurfaceEvents();
     this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
     window.addEventListener("pi-workspace-tree:refresh", (event) => {
       const workspaceId = this.dataset.activeWorkspaceId;
