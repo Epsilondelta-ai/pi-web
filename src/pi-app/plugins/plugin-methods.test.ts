@@ -425,6 +425,18 @@ describe("pluginMethods", () => {
     expect(host.querySelector("[data-plugin-version]").textContent).toBe("chat · 1.0.0 · update check failed");
   });
 
+  it("restores empty plugin update rows when checking fails", async () => {
+    const host = hostWithList();
+    api.getPlugins.mockResolvedValueOnce({ plugins: [{ id: "chat", version: "1.0.0", entry: "index.js" }] });
+    api.getPluginUpdates.mockRejectedValueOnce(new Error("offline"));
+
+    await host.loadPlugins();
+    host.querySelector("[data-plugin-version]").textContent = "";
+    await host.checkPluginUpdates();
+
+    expect(host.querySelector("[data-plugin-version]").textContent).toBe(" · update check failed");
+  });
+
   it("shows plugin-specific update check failures", async () => {
     const host = hostWithList();
     api.getPlugins.mockResolvedValueOnce({ plugins: [{ id: "chat", version: "1.0.0", entry: "index.js" }] });
@@ -436,5 +448,43 @@ describe("pluginMethods", () => {
     await host.checkPluginUpdates();
 
     expect(host.querySelector("[data-plugin-version]").textContent).toBe("chat · 1.0.0 · update check failed");
+  });
+
+  it("clears checking text for current plugins and ignores missing update rows", async () => {
+    const host = hostWithList();
+    api.getPlugins.mockResolvedValueOnce({ plugins: [{ id: "chat", version: "1.0.0", entry: "index.js" }] });
+    api.getPluginUpdates.mockResolvedValueOnce({
+      plugins: [
+        { id: "missing", currentVersion: "1.0.0", latestVersion: "1.1.0", updateAvailable: true },
+        { id: "chat", currentVersion: "1.0.0", latestVersion: "1.0.0", updateAvailable: false },
+      ],
+    });
+
+    await host.loadPlugins();
+    await host.checkPluginUpdates();
+
+    expect(host.querySelector("[data-plugin-version]").textContent).toBe("chat · 1.0.0");
+    expect(host.querySelector("[data-plugin-version]").hasAttribute("title")).toBe(false);
+  });
+
+  it("handles sparse plugin update payloads and partial row markup", async () => {
+    const host = hostWithList();
+    api.getPlugins.mockResolvedValueOnce({ plugins: [{ id: "chat", version: "1.0.0", entry: "index.js" }] });
+    api.getPluginUpdates
+      .mockResolvedValueOnce({ plugins: undefined })
+      .mockResolvedValueOnce({ plugins: [{ id: "chat", latestVersion: "1.2.0", updateAvailable: true }] })
+      .mockResolvedValueOnce({ plugins: [{ id: "chat", error: "clone failed" }] });
+
+    await host.loadPlugins();
+    await host.checkPluginUpdates();
+    host.querySelector("[data-action='update-plugin']").remove();
+    await host.checkPluginUpdates();
+
+    expect(host.querySelector("[data-plugin-version]").textContent).toBe("chat · dev → 1.2.0 · update available");
+
+    host.querySelector("[data-plugin-version]").remove();
+    await host.checkPluginUpdates();
+
+    expect(host.querySelector("[data-plugin-id='chat']")).not.toBeNull();
   });
 });

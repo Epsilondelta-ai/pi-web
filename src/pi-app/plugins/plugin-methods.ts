@@ -200,15 +200,15 @@ function renderPluginList(host: PluginHost, plugins: PluginManifest[]): void {
 
 function setPluginUpdateChecking(host: PluginHost): void {
   host.querySelectorAll<HTMLElement>("[data-plugin-version]").forEach((version: HTMLElement) => {
-    version.dataset.baseText = version.dataset.baseText || version.textContent || "";
-    version.textContent = `${version.dataset.baseText} · checking updates…`;
+    const baseText: string = version.dataset.baseText || version.textContent || "";
+    version.dataset.baseText = baseText;
+    version.textContent = `${baseText} · checking updates…`;
   });
 }
 
 function clearPluginUpdateChecking(host: PluginHost, message: string): void {
   host.querySelectorAll<HTMLElement>("[data-plugin-version]").forEach((version: HTMLElement) => {
-    const baseText: string = version.dataset.baseText || version.textContent || "";
-    version.textContent = message ? `${baseText} · ${message}` : baseText;
+    version.textContent = `${version.dataset.baseText} · ${message}`;
   });
 }
 
