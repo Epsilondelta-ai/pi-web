@@ -19,6 +19,12 @@ import { oauthMethods } from "./workspace/oauth-methods";
 import { settingsMethods } from "./workspace/settings-methods";
 import { workspaceMethods } from "./workspace/workspace-methods";
 
+const pluginAutoloadDisabled = (): boolean => {
+  const testGlobal = globalThis as typeof globalThis & { __PI_WEB_DISABLE_PLUGIN_AUTOLOAD__?: boolean };
+
+  return testGlobal.__PI_WEB_DISABLE_PLUGIN_AUTOLOAD__ === true;
+};
+
 class PiApp extends HTMLElement {
   connectedCallback() {
     if (this.bound) return;
@@ -79,9 +85,9 @@ class PiApp extends HTMLElement {
     this.startSpinners();
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();
-    if (!import.meta.env.VITEST) {
-      void this.loadPlugins?.().catch(() => {});
-    }
+    if (pluginAutoloadDisabled()) return;
+
+    void this.loadPlugins?.().catch(() => {});
   }
   disconnectedCallback() {
     this.stopSpeechInput?.();
