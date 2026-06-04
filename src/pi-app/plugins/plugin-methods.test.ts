@@ -218,7 +218,7 @@ describe("pluginMethods", () => {
   it("provides plugin mount and host surface APIs", async () => {
     const host = hostWithList();
     host.innerHTML += `
-      <div data-chat-fallback><div class="term-inner"></div></div>
+      <div data-chat-fallback><div class="term-inner"><div class="msg">existing</div></div></div>
       <div data-plugin-chat-root hidden></div>
       <div data-prompt-fallback>
         <div class="prompt-bar">
@@ -251,7 +251,9 @@ describe("pluginMethods", () => {
     host.dataset.activeSessionId = "s1";
     const context = host.pluginContext({ id: "p", entry: "index.js" });
     const chat = document.createElement("section");
+    chat.innerHTML = `<div class="term-inner"></div>`;
     const composer = document.createElement("section");
+    composer.innerHTML = `<textarea class="prompt-textarea"></textarea>`;
     const cleanupChat = context.mount.chat(chat, { replace: true });
     const cleanupComposer = context.mount.composer(composer, { replace: true });
 
@@ -276,6 +278,7 @@ describe("pluginMethods", () => {
 
     expect(host.querySelector("[data-chat-fallback]").hidden).toBe(true);
     expect(host.querySelector("[data-prompt-fallback]").hidden).toBe(true);
+    expect(host.querySelector("[data-plugin-chat-root] .term-inner")?.textContent).toBe("existing");
     expect(context.composer.getPrompt()).toBe("hello");
     expect(host.appendMessage).toHaveBeenCalledWith({ kind: "pi" });
     expect(api.postPrompt).toHaveBeenCalledWith("s1", "p", []);
@@ -283,6 +286,7 @@ describe("pluginMethods", () => {
     cleanupChat();
     cleanupComposer();
     expect(host.querySelector("[data-chat-fallback]").hidden).toBe(false);
+    expect(host.querySelector("[data-chat-fallback] .term-inner")?.textContent).toBe("existing");
     expect(host.querySelector("[data-prompt-fallback]").hidden).toBe(false);
   });
 

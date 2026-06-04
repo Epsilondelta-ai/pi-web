@@ -205,6 +205,7 @@ function mountPluginSurface(
   }
   const previousHidden = root.hidden;
   const fallbackWasHidden = fallback?.hidden === true;
+  const restoreFallbackContent = options.replace ? adoptFallbackContent(kind, fallback, element) : undefined;
   root.hidden = false;
   if (options.replace && fallback) {
     fallback.hidden = true;
@@ -216,6 +217,7 @@ function mountPluginSurface(
   host.updatePrompt?.();
 
   return () => {
+    restoreFallbackContent?.();
     element.remove();
     root.hidden = previousHidden;
     if (fallback && options.replace) {
@@ -226,6 +228,46 @@ function mountPluginSurface(
     host.initTranscriptWindow?.();
     host.updatePrompt?.();
   };
+}
+
+function adoptFallbackContent(
+  kind: "chat" | "composer",
+  fallback: HTMLElement | null,
+  element: HTMLElement,
+): PluginCleanup | undefined {
+  if (kind === "chat") {
+    return adoptFallbackChat(fallback, element);
+  }
+
+  adoptFallbackComposerState(fallback, element);
+  return undefined;
+}
+
+function adoptFallbackChat(fallback: HTMLElement | null, element: HTMLElement): PluginCleanup | undefined {
+  const fallbackTermInner: HTMLElement | null | undefined = fallback?.querySelector(".term-inner");
+  const pluginTermInner: HTMLElement | null = element.querySelector(".term-inner");
+  if (!fallbackTermInner || !pluginTermInner) {
+    return undefined;
+  }
+  const placeholder = document.createComment("pi-web-chat-fallback-term-inner");
+  fallbackTermInner.replaceWith(placeholder);
+  pluginTermInner.replaceWith(fallbackTermInner);
+
+  return () => {
+    if (placeholder.parentNode) {
+      placeholder.replaceWith(fallbackTermInner);
+      return;
+    }
+    fallback?.append(fallbackTermInner);
+  };
+}
+
+function adoptFallbackComposerState(fallback: HTMLElement | null, element: HTMLElement): void {
+  const fallbackPrompt: HTMLTextAreaElement | null | undefined = fallback?.querySelector(".prompt-textarea");
+  const pluginPrompt: HTMLTextAreaElement | null = element.querySelector(".prompt-textarea");
+  if (fallbackPrompt && pluginPrompt) {
+    pluginPrompt.value = fallbackPrompt.value;
+  }
 }
 
 async function runPluginCleanup(active: ActivePlugin): Promise<void> {
