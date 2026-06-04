@@ -79,7 +79,9 @@ class PiApp extends HTMLElement {
     this.startSpinners();
     this.startRuntimeStatusPolling();
     this.bootstrapAPI();
-    void this.loadPlugins?.().catch(() => {});
+    if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
+      void this.loadPlugins?.().catch(() => {});
+    }
   }
   disconnectedCallback() {
     this.stopSpeechInput?.();

@@ -11,12 +11,9 @@ const meta = {
     initialRoute: "workspace",
     initialSession: "active",
     treeOpen: false,
-    sidebarCollapsed: false,
     showCompaction: false,
     showDisconnect: false,
     scanlines: false,
-    showUpdateRelease: false,
-    showUpdateTip: false,
     workspaces: PI_DATA.WORKSPACES,
     fileTree: PI_DATA.FILE_TREE,
     conversation: PI_DATA.CONVERSATION,
@@ -48,20 +45,8 @@ export const DisconnectedCompaction = {
   },
 };
 
-export const SidebarCollapsed = {
-  args: {
-    sidebarCollapsed: true,
-  },
-};
-
 export const WithFileTree = {
   args: {
     treeOpen: true,
-  },
-};
-
-export const NewVersionReleased = {
-  args: {
-    showUpdateRelease: true,
   },
 };

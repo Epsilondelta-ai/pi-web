@@ -120,7 +120,8 @@ export const layoutMethods = {
     const body = this.querySelector(".app-body");
     if (!body) return;
     const tree = this.dataset.tree === "on";
-    const collapsed = this.dataset.sidebar === "collapsed";
+    const hasSidebar = !!this.querySelector(".sidebar-wrap");
+    const collapsed = !hasSidebar || this.dataset.sidebar === "collapsed";
     const treeWidth = 320;
     const expandedColumns = tree ? `${width}px 1fr ${treeWidth}px` : `${width}px 1fr`;
     const collapsedColumns = tree ? `1fr ${treeWidth}px` : "1fr";

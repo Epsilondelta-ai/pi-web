@@ -4,7 +4,6 @@ import {
   ArrowDown,
   ArrowUp,
   ChevronDown,
-  ChevronLeft,
   ChevronRight,
   CornerDownLeft,
   GitBranch,
@@ -12,12 +11,9 @@ import {
   Mic,
   Paperclip,
   Play,
-  Plus,
-  RefreshCw,
   SendHorizontal,
   Settings,
   Square,
-  Trash2,
   X,
 } from "@lucide/astro";
 import { UI_LOCALES } from "./i18n/locales";
@@ -32,12 +28,9 @@ const {
   initialRoute = "workspace",
   initialSession = "active",
   treeOpen = false,
-  sidebarCollapsed = false,
   showCompaction = false,
   showDisconnect = false,
   scanlines = false,
-  showUpdateRelease = false,
-  showUpdateTip = false,
   workspaces = [],
   conversation = [],
   slashCommands = [],
@@ -54,7 +47,7 @@ const pickerVisible = initialRoute === "picker";
 const emptyVisible = initialSession === "empty" || !activeSession;
 const sessionVisible = !emptyVisible;
 const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
-const bodyGrid = sidebarCollapsed ? (treeOpen ? "1fr 320px" : "1fr") : (treeOpen ? "280px 1fr 320px" : "280px 1fr");
+const bodyGrid = treeOpen ? "1fr 320px" : "1fr";
 const pickerHidden = !pickerVisible;
 const workspaceHidden = !workspaceVisible;
 const sessionHidden = !sessionVisible;
@@ -132,9 +125,9 @@ function speechLanguageListId(path) {
 
 ---
 
-<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-sidebar={sidebarCollapsed ? "collapsed" : "open"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
+<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
   <header class="topbar">
-    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style={sidebarCollapsed ? "display:inline-flex" : "display:none"}><ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" /></button>
+    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style="display:none"><ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" /></button>
     <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar"><Menu size={16} strokeWidth={1.75} aria-hidden="true" /></button>
     <span class="brand" aria-label="pi.dev / web">
       <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
@@ -144,6 +137,9 @@ function speechLanguageListId(path) {
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
     <div class="actions" data-plugin-toolbar>
+      <button class="update-release topbar-update-release" type="button" data-action="show-update-tip" hidden>New Version Released!</button>
+      <span class="update-tip topbar-update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+      <button class="iconbtn" type="button" data-action="open-settings" title="settings" aria-label="open settings"><Settings size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
     </div>
   </header>
@@ -186,48 +182,6 @@ function speechLanguageListId(path) {
   </section>
 
   <section class={bodyClass} data-view="workspace" hidden={workspaceHidden} style={`grid-template-columns:${bodyGrid}`}> 
-    <div class="sidebar-wrap" hidden={sidebarCollapsed}>
-      <aside class="sidebar" aria-label="workspaces and sessions">
-        <div class="sb-section" style="flex:1;overflow-y:auto;min-height:0">
-          <div class="sb-head"><span>workspaces</span><span class="sb-head-actions"><button class="add" type="button" data-action="route-picker"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /> open</button><button class="refresh" type="button" data-action="refresh-workspaces" title="refresh workspaces" aria-label="refresh workspaces"><RefreshCw size={12} strokeWidth={1.75} aria-hidden="true" /></button><button class="sb-collapse" type="button" data-action="collapse-sidebar" title="collapse sidebar" aria-label="collapse sidebar"><ChevronLeft size={14} strokeWidth={1.75} aria-hidden="true" /></button></span></div>
-          {workspaces.map((workspace) => {
-            const isActiveWorkspace = workspace.id === activeWorkspaceID;
-            return (
-              <div class="workspace-group" data-workspace-group={workspace.id}>
-                <button type="button" class:list={["ws-row", isActiveWorkspace && "open"]} data-action="toggle-workspace" data-workspace={workspace.id} aria-expanded={isActiveWorkspace ? "true" : "false"}>
-                  <span class="ws-stack"><span class="ws-name"><span class:list={["dot", workspace.live && "live"]}></span><span class="label">{workspace.name}</span></span><span class="ws-path">{workspace.path}</span></span>
-                  <span class="ws-meta" aria-label={`${workspace.sessionCount} sessions`}><span class="ws-count">{workspace.sessionCount}</span></span>
-                </button>
-                <div class="sessions" hidden={!isActiveWorkspace}>
-                  {(workspace.sessions || []).map((session) => (
-                    <button type="button" class:list={[
-                      "session-row",
-                      isActiveWorkspace && session.id === activeSessionID && "selected",
-                      (session.active || session.live) && "active",
-                    ]} data-session={session.id} data-workspace={workspace.id} data-title={session.title}>
-                      <span class="title">{session.title}</span><span class:list={["meta", (session.active || session.live) && "live"]} hidden={!(session.active || session.live)}>{session.active || session.live ? "waiting" : ""}</span>
-                    </button>
-                  ))}
-                  {(workspace.sessions || []).length === 0 && <div class="sessions-empty">no sessions yet · press N to start one</div>}
-                  {(workspace.sessions || []).length > 0 && <button type="button" class="session-row clear-sessions-row" data-action="delete-workspace-sessions" data-workspace={workspace.id}><span class="title"><Trash2 size={12} strokeWidth={1.75} aria-hidden="true" /> delete all sessions</span></button>}
-                  <button type="button" class="session-row new-session-row" data-action="new-session" data-workspace={workspace.id}><span class="title"><Plus size={12} strokeWidth={1.75} aria-hidden="true" /> new session</span></button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div class="sb-footer">
-          <button class="update-release" type="button" data-action="show-update-tip" hidden={!showUpdateRelease}>New Version Released!</button>
-          <span class="update-tip" data-update-tip hidden={!showUpdateTip}>Run <code>pi-web update</code>, then restart pi-web.</span>
-          <div class="sb-footer-status">
-            <span class="status-dot"></span><span>connecting</span>
-            <button class="sb-settings" type="button" data-action="open-settings" title="settings" aria-label="open settings"><Settings size={14} strokeWidth={1.75} aria-hidden="true" /></button>
-          </div>
-        </div>
-      </aside>
-      <div class="sb-resizer" role="separator" aria-orientation="vertical" aria-label="resize sidebar" title="drag to resize"></div>
-    </div>
-
     <main class="main" data-main="session" hidden={sessionHidden}> 
       {showDisconnect && <div class="disconn"><span class="pulse"></span><span>disconnected · retrying in 2s</span></div>}
       <form class="shell-row" data-shell-form>

@@ -29,6 +29,8 @@ export const workspaceRenderMethods = {
   },
 
   renderSidebarWorkspaces(workspaces) {
+    // Compatibility renderer for external left-sidebar plugins, such as pi-web-sidebar,
+    // that mount `.sidebar-wrap` and reuse the host workspace/session behavior.
     const section = this.querySelector(".sidebar .sb-section");
     if (!section) return;
     if (this.sidebarSortableRoot && section.querySelector("[data-sortable-workspaces]")) {
