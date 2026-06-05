@@ -161,7 +161,7 @@ func readDefaultPluginManifest(path string) (defaultPluginManifest, error) {
 
 func cleanDefaultPluginID(id string) string {
 	id = strings.TrimSpace(id)
-	if id == "" || strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
+	if id == "" || id == "." || strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
 		return ""
 	}
 	return id

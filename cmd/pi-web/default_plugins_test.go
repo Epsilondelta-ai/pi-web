@@ -138,7 +138,7 @@ func TestDefaultPluginManifestAndMetadataErrors(t *testing.T) {
 	if _, err := readDefaultPluginManifest(invalidJSON); err == nil {
 		t.Fatal("expected invalid json error")
 	}
-	if cleanDefaultPluginID("ok") != "ok" || cleanDefaultPluginID("bad/name") != "" || cleanDefaultPluginID("") != "" {
+	if cleanDefaultPluginID("ok") != "ok" || cleanDefaultPluginID("bad/name") != "" || cleanDefaultPluginID("") != "" || cleanDefaultPluginID(".") != "" {
 		t.Fatal("unexpected clean id result")
 	}
 	metadataPath := filepath.Join(root, "metadata.json")
