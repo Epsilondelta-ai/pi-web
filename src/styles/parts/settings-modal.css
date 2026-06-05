@@ -612,6 +612,30 @@
   .settings-dialog select {
     height: var(--hit-min);
   }
+  .settings-update {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    margin: 8px 10px 0;
+    padding: 10px;
+  }
+  .settings-update-copy small {
+    line-height: 1.45;
+  }
+  .settings-update .settings-update-release {
+    width: 100%;
+    min-height: var(--hit-min);
+    text-align: center;
+  }
+  .settings-update .settings-update-tip {
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1.45;
+  }
+  .settings-update .settings-update-tip code {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
   .auth-login summary,
   .plugin-settings summary { grid-template-columns: auto minmax(0, 1fr); }
   .auth-login-title { white-space: normal; }
@@ -635,6 +659,16 @@
 
 @media (max-width: 520px) {
   .settings-grid { grid-template-columns: 1fr; }
+  .settings-update {
+    margin-inline: 8px;
+  }
+  .settings-update-copy strong {
+    font-size: var(--text-xs);
+  }
+  .settings-update-copy [data-update-current],
+  .settings-update-copy [data-update-latest] {
+    display: inline-block;
+  }
   .settings-group-head { display: block; }
   .settings-group-badge { display: inline-block; margin-top: 8px; }
   .settings-toolbar,
