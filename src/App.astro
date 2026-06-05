@@ -160,6 +160,10 @@ function speechLanguageListId(path) {
         <button type="button" data-action="close-settings" aria-label="close settings" data-i18n-aria-label="closeSettings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       </div>
       <div class="settings-body">
+        <div class="settings-update" data-update-release-panel hidden>
+          <button class="update-release settings-update-release" type="button" data-action="show-update-tip" hidden>New Version Released!</button>
+          <span class="update-tip settings-update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+        </div>
         <div class="settings-language-row">
           <label><span data-i18n="language">Language</span>
             <select name="uiLanguage" data-ui-language>

@@ -70,6 +70,38 @@
   overflow-x: hidden;
   overflow-y: auto;
 }
+.settings-update {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  padding: 10px 12px 0;
+}
+.settings-update .settings-update-release {
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--radius-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.settings-update .settings-update-tip {
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-1);
+  background: var(--bg-0);
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+  padding: 6px 8px;
+}
+.settings-update .settings-update-tip code {
+  color: var(--accent);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-1);
+  padding: 1px 4px;
+}
 .settings-language-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

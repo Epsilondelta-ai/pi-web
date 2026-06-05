@@ -209,10 +209,14 @@ describe("pi-app sessions", () => {
     app.renderPiVersionStatus({ updateAvailable: false });
 
     const button = app.querySelector("[data-action='show-update-tip']");
+    const settingsPanel = app.querySelector("[data-update-release-panel]");
+    const settingsButton = settingsPanel.querySelector("[data-action='show-update-tip']");
     expect(button.hidden).toBe(false);
+    expect(settingsPanel.hidden).toBe(false);
+    expect(settingsButton.hidden).toBe(false);
     expect(document.querySelector(".pi-web-notification-popup")).toBeNull();
     button.click();
-    expect(app.querySelector("[data-update-tip]").hidden).toBe(false);
+    app.querySelectorAll("[data-update-tip]").forEach((tip) => expect(tip.hidden).toBe(false));
   });
 
   it("clears pi update polling on disconnect", async () => {
