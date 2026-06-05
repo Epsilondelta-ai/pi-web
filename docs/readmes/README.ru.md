@@ -100,8 +100,11 @@ export function activate(context) {
 
 - `context.app`: элемент `<pi-app>`.
 - `context.plugin`: разобранный манифест.
+- `context.rxjs`: namespace RxJS, предоставленный pi-web core.
 - `context.api.get(path)` / `context.api.post(path, body)`: вызов HTTP API pi-web.
 - `context.backend(method, { workspaceId, data })`: вызов необязательного backend; `data` — JSON для stdin.
+
+См. [Plugin development](../plugins/README.ru.md) для полного API плагинов и использования core RxJS.
 
 Необязательные backend-скрипты выполняются локально по запросу. JavaScript использует Node; Go автоматически собирается и кэшируется. Скрипт получает `method` и `workspaceRoot`, читает JSON из stdin и должен вывести валидный JSON в stdout.
 
