@@ -134,7 +134,7 @@ function extensionCandidates(basename: string): string[] {
 }
 
 function iconUrl(iconName: string): string {
-  const icon = iconDefinitions[iconName] || iconDefinitions.file;
+  const icon = iconDefinitions[iconName];
   const svg = icon.folder ? folderSvg(icon) : fileSvg(icon);
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
