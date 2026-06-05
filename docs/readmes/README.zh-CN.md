@@ -104,7 +104,7 @@ export function activate(context) {
 - `context.api.get(path)` / `context.api.post(path, body)`：调用 pi-web HTTP API。
 - `context.backend(method, { workspaceId, data })`：调用可选后端；`data` 是 stdin JSON。
 
-完整插件 API 和 core RxJS 用法见 [Plugin development](../plugins.zh-CN.md)。
+完整插件 API 和 core RxJS 用法见 [Plugin development](../plugins/README.zh-CN.md)。
 
 可选 backend 脚本在本地按需执行。JavaScript 使用 Node；Go 会自动构建并缓存。脚本接收 `method`、`workspaceRoot` 参数，从 stdin 读取 JSON，并向 stdout 输出有效 JSON。
 

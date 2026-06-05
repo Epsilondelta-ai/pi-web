@@ -104,7 +104,7 @@ entry モジュールは `activate(context)` または `default(context)` を ex
 - `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP API の呼び出し。
 - `context.backend(method, { workspaceId, data })`: 任意のバックエンド呼び出し。`data` が stdin JSON です。
 
-完全なプラグイン API と core RxJS の使い方は [Plugin development](../plugins.ja.md) を参照してください。
+完全なプラグイン API と core RxJS の使い方は [Plugin development](../plugins/README.ja.md) を参照してください。
 
 任意の backend スクリプトはローカルで必要に応じて実行されます。JavaScript は Node、Go は自動ビルド/キャッシュです。スクリプトは `method` と `workspaceRoot` 引数を受け取り、stdin から JSON を読み、stdout に有効な JSON を出力する必要があります。
 

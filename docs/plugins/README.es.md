@@ -1,8 +1,8 @@
 # Plugins
 
-[English](plugins.md) | [한국어](plugins.ko.md) | [简体中文](plugins.zh-CN.md) | [日本語](plugins.ja.md) |
-[Español](plugins.es.md) | [Português (BR)](plugins.pt-BR.md) | [Français](plugins.fr.md) |
-[Русский](plugins.ru.md) | [Deutsch](plugins.de.md)
+[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) |
+[Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
+[Русский](README.ru.md) | [Deutsch](README.de.md)
 
 Los plugins son experimentales y están pensados para código local de confianza. La API puede cambiar antes de ser
 estable.

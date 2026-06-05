@@ -117,7 +117,7 @@ The plugin context includes:
 - `context.backend(method, { workspaceId, data })`: call the optional backend script. `workspaceId` is optional; `data`
   becomes the backend stdin JSON.
 
-See [Plugin development](docs/plugins.md) for the full plugin API and core RxJS usage guide.
+See [Plugin development](docs/plugins/README.md) for the full plugin API and core RxJS usage guide.
 
 Optional backend scripts are executed locally on demand. JavaScript backends run with Node; Go backends are built and
 cached automatically. The script receives `method` and `workspaceRoot` arguments, reads the `data` JSON from stdin,

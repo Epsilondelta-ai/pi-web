@@ -1,8 +1,8 @@
 # 플러그인
 
-[English](plugins.md) | [한국어](plugins.ko.md) | [简体中文](plugins.zh-CN.md) | [日本語](plugins.ja.md) |
-[Español](plugins.es.md) | [Português (BR)](plugins.pt-BR.md) | [Français](plugins.fr.md) |
-[Русский](plugins.ru.md) | [Deutsch](plugins.de.md)
+[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) |
+[Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
+[Русский](README.ru.md) | [Deutsch](README.de.md)
 
 플러그인은 실험적 기능이며 신뢰할 수 있는 로컬 코드용입니다. 안정화 전까지 API는 변경될 수 있습니다.
 
