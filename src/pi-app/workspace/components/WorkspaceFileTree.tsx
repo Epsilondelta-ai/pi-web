@@ -8,7 +8,7 @@ import {
   uploadWorkspaceFile,
 } from "../../../shared/api/api";
 import { decorateFileTree, type FileTreeNode, type GitStatusMap, type RawFileNode } from "../../../shared/file-tree/file-tree-model";
-import { resolveMaterialFileIcon } from "../../../shared/icons/material-file-icons";
+import { resolveFileIcon } from "../../../shared/icons/file-icons";
 
 type WorkspaceTreeUpdate = { files?: RawFileNode[]; statusMap?: GitStatusMap; selectedPath?: string };
 type Props = { initialFiles?: RawFileNode[]; initialStatusMap?: GitStatusMap };
@@ -244,7 +244,7 @@ function FileTreeRow({ node, style, dragHandle }: {
   const status = item.gitStatus !== "clean" ? item.gitStatus : item.dirtyDescendants ? "dirty" : "clean";
   const classes = ["tree-node", item.kind, status, node.isSelected && "selected"].filter(Boolean).join(" ");
   const glyph = isDir ? (node.isOpen ? "▾" : "▸") : "";
-  const icon = resolveMaterialFileIcon({ name: item.name, path: item.path, kind: item.kind, open: node.isOpen });
+  const icon = resolveFileIcon({ name: item.name, path: item.path, kind: item.kind, open: node.isOpen });
 
   const onClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if ((event.target as Element).closest(".tree-row-menu")) return;
