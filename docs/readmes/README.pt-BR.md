@@ -24,7 +24,7 @@ Instale o binário mais recente do GitHub Releases:
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
-O instalador também instala os plugins confiáveis padrão: notificações toast, navegador de arquivos, visualizador Git, barra lateral, compositor de chat, notificações do Discord e notificações do Telegram. Defina `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` para ignorá-los.
+O instalador e `pi-web update` instalam os plugins confiáveis padrão quando não há plugins locais instalados: notificações toast, navegador de arquivos, visualizador Git, barra lateral, compositor de chat, notificações do Discord e notificações do Telegram. Defina `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` para ignorá-los ou `always` para reinstalá-los.
 
 Atualize o binário instalado:
 

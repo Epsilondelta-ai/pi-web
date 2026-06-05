@@ -24,8 +24,9 @@ type serverOptions struct {
 }
 
 type updateOptions struct {
-	CurrentVersion string
-	RepositorySlug string
+	CurrentVersion       string
+	RepositorySlug       string
+	DefaultPluginOptions defaultPluginInstallOptions
 }
 
 func newRootCommand(deps rootDependencies) *cobra.Command {
@@ -75,8 +76,9 @@ func newUpdateCommand(update func(io.Writer, updateOptions) error) *cobra.Comman
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return update(cmd.OutOrStdout(), updateOptions{
-				CurrentVersion: version,
-				RepositorySlug: githubRepositorySlug,
+				CurrentVersion:       version,
+				RepositorySlug:       githubRepositorySlug,
+				DefaultPluginOptions: defaultPluginInstallOptionsFromEnv(),
 			})
 		},
 	}

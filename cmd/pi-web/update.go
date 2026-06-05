@@ -130,6 +130,13 @@ func (u *githubSelfUpdater) DetectLatest(slug string) (*selfupdate.Release, bool
 	return u.detector.DetectLatest(slug)
 }
 
+func installDefaultPluginsIfConfigured(out io.Writer, options defaultPluginInstallOptions) error {
+	if options.Mode == "" {
+		return nil
+	}
+	return installDefaultPluginsIfNeeded(out, options)
+}
+
 func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUpdater) error {
 	current, err := parseCurrentVersion(options.CurrentVersion)
 	if err != nil {
@@ -142,14 +149,14 @@ func runUpdateWithUpdater(out io.Writer, options updateOptions, updater binaryUp
 	}
 	if release.Version.Equals(current) {
 		fmt.Fprintf(out, "pi-web %s is already up to date\n", current)
-		return nil
+		return installDefaultPluginsIfConfigured(out, options.DefaultPluginOptions)
 	}
 
 	fmt.Fprintf(out, "Updated pi-web from %s to %s\n", current, release.Version)
 	if release.URL != "" {
 		fmt.Fprintf(out, "Release: %s\n", release.URL)
 	}
-	return nil
+	return installDefaultPluginsIfConfigured(out, options.DefaultPluginOptions)
 }
 
 func parseCurrentVersion(value string) (semver.Version, error) {

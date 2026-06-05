@@ -24,7 +24,7 @@
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
-Установщик также устанавливает доверенные плагины по умолчанию: toast-уведомления, файловый браузер, Git viewer, боковую панель, композер чата, уведомления Discord и уведомления Telegram. Задайте `PI_WEB_INSTALL_DEFAULT_PLUGINS=never`, чтобы пропустить их.
+Установщик и `pi-web update` устанавливают доверенные плагины по умолчанию, когда локально не установлен ни один плагин: toast-уведомления, файловый браузер, Git viewer, боковую панель, композер чата, уведомления Discord и Telegram. Задайте `PI_WEB_INSTALL_DEFAULT_PLUGINS=never`, чтобы пропустить их, или `always`, чтобы переустановить.
 
 Обновите установленный бинарный файл:
 
