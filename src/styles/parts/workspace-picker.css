@@ -14,7 +14,6 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  vertical-align: -2px;
 }
 .prompt-meta-item svg {
   display: block;
