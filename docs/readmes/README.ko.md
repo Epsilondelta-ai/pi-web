@@ -104,7 +104,7 @@ entry 모듈은 `activate(context)` 또는 `default(context)`를 export합니다
 - `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP API 호출.
 - `context.backend(method, { workspaceId, data })`: 선택적 백엔드 호출. `data`가 stdin JSON입니다.
 
-전체 플러그인 API와 core RxJS 사용법은 [Plugin development](../plugins.md)를 참고하세요.
+전체 플러그인 API와 core RxJS 사용법은 [Plugin development](../plugins.ko.md)를 참고하세요.
 
 선택적 backend 스크립트는 로컬에서 실행됩니다. JavaScript는 Node로 실행되고 Go는 자동 빌드/캐시됩니다. 스크립트는 `method`, `workspaceRoot` 인자를 받고 stdin에서 JSON을 읽어 stdout에 유효한 JSON을 출력해야 합니다.
 

@@ -100,8 +100,11 @@ Der Plugin-context enthält:
 
 - `context.app`: das `<pi-app>`-Element.
 - `context.plugin`: das geparste Manifest.
+- `context.rxjs`: der von pi-web core bereitgestellte RxJS-Namespace.
 - `context.api.get(path)` / `context.api.post(path, body)`: pi-web-HTTP-APIs aufrufen.
 - `context.backend(method, { workspaceId, data })`: optionales Backend aufrufen; `data` ist das stdin-JSON.
+
+Weitere Informationen zur vollständigen Plugin-API und core RxJS-Nutzung findest du unter [Plugin development](../plugins.de.md).
 
 Optionale Backend-Skripte laufen lokal bei Bedarf. JavaScript nutzt Node; Go wird automatisch gebaut und gecacht. Das Skript erhält `method` und `workspaceRoot`, liest JSON von stdin und muss gültiges JSON auf stdout ausgeben.
 
