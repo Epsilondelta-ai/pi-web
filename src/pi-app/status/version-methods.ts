@@ -69,18 +69,13 @@ export const versionMethods = {
     const currentVersion: string = status?.currentVersion || "current";
     const latestVersion: string = status?.latestVersion || "latest";
     panels.forEach((panel) => {
-      const current: Element | null = panel.querySelector("[data-update-current]");
-      const latest: Element | null = panel.querySelector("[data-update-latest]");
       panel.hidden = !updateAvailable;
-
-      if (current) {
+      panel.querySelectorAll<HTMLElement>("[data-update-current]").forEach((current: HTMLElement) => {
         current.textContent = currentVersion;
-      }
-
-      if (latest) {
+      });
+      panel.querySelectorAll<HTMLElement>("[data-update-latest]").forEach((latest: HTMLElement) => {
         latest.textContent = latestVersion;
-      }
-
+      });
       panel.querySelectorAll<HTMLElement>("[data-update-tip]").forEach((tip: HTMLElement) => {
         tip.hidden = !updateAvailable;
       });
