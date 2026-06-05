@@ -304,6 +304,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   gap: var(--space-2);
+  align-items: stretch;
 }
 .plugin-list {
   display: grid;
@@ -312,8 +313,8 @@
   font-size: var(--text-xs);
 }
 .plugin-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
   align-items: center;
   border: 1px solid var(--border-dim);
@@ -323,10 +324,16 @@
 .plugin-row span,
 .plugin-row small {
   display: block;
+  min-width: 0;
+}
+.plugin-row small {
+  overflow-wrap: anywhere;
 }
 .plugin-actions {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
+  justify-content: flex-end;
 }
 .plugin-row strong {
   color: var(--fg-1);
@@ -548,16 +555,25 @@
   .settings-dialog select {
     height: var(--hit-min);
   }
-  .auth-login summary { grid-template-columns: auto minmax(0, 1fr); }
+  .auth-login summary,
+  .plugin-settings summary { grid-template-columns: auto minmax(0, 1fr); }
   .auth-login-title { white-space: normal; }
   .auth-login-title em { display: none; }
-  .auth-login summary small { grid-column: 1 / -1; text-align: left; white-space: normal; }
-  .auth-login summary::after { display: none; }
+  .auth-login summary small,
+  .plugin-settings summary small { grid-column: 1 / -1; text-align: left; white-space: normal; }
+  .auth-login summary::after,
+  .plugin-settings summary::after { display: none; }
   .auth-login-fields,
   .oauth-login-fields { grid-template-columns: 1fr; }
   .oauth-login-fields button,
   .oauth-login-fields a,
   .oauth-login-fields input { width: 100%; }
+  .plugin-install-row { grid-template-columns: 1fr; }
+  .plugin-install-row button,
+  .plugin-row button { width: 100%; }
+  .plugin-row { grid-template-columns: 1fr; }
+  .plugin-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; }
+  .plugin-actions button:first-child:not([hidden]) { grid-column: 1 / -1; }
 }
 
 @media (max-width: 520px) {
