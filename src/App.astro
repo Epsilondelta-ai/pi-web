@@ -1,13 +1,6 @@
 ---
 import EmptySessionShell from "./app-shell/EmptySessionShell.astro";
-import {
-  ArrowUp,
-  ChevronRight,
-  CornerDownLeft,
-  Menu,
-  Settings,
-  X,
-} from "@lucide/astro";
+import AppIcon from "./shared/icons/AppIcon.astro";
 import { UI_LOCALES } from "./i18n/locales";
 import {
   SETTINGS_FIELDS as settingsFields,
@@ -86,8 +79,8 @@ function speechLanguageListId(path) {
 
 <pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
   <header class="topbar">
-    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style="display:none"><ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" /></button>
-    <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar"><Menu size={16} strokeWidth={1.75} aria-hidden="true" /></button>
+    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style="display:none"><AppIcon name="chevron-right" size={16} strokeWidth={1.75} /></button>
+    <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar"><AppIcon name="menu" size={16} strokeWidth={1.75} /></button>
     <span class="brand" aria-label="pi.dev / web">
       <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
     </span>
@@ -96,7 +89,7 @@ function speechLanguageListId(path) {
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
     <div class="actions" data-plugin-toolbar>
-      <button class="iconbtn" type="button" data-action="open-settings" title="settings" aria-label="open settings"><Settings size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+      <button class="iconbtn" type="button" data-action="open-settings" title="settings" aria-label="open settings"><AppIcon name="settings" size={14} strokeWidth={1.75} /></button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
     </div>
   </header>
@@ -111,11 +104,11 @@ function speechLanguageListId(path) {
         <div class="card-head"><span class="left">open a folder</span></div>
         <form class="input-row" data-path-form>
           <input name="path" placeholder="~/code/my-project   or   /Users/me/Code/project" autocomplete="off" />
-          <button class="open-btn" type="submit" aria-label="open typed path">open <CornerDownLeft size={12} strokeWidth={1.75} aria-hidden="true" /></button>
+          <button class="open-btn" type="submit" aria-label="open typed path">open <AppIcon name="corner-down-left" size={12} strokeWidth={1.75} /></button>
         </form>
         <div style="padding:0 16px 12px;font-size:11px;color:var(--fg-3)">paste a path, pick from <code>~</code>, or drop a folder onto the window.</div>
         <div class="folder-browser" data-folder-browser>
-          <div class="folder-browser-head"><button type="button" data-action="folder-up"><ArrowUp size={12} strokeWidth={1.75} aria-hidden="true" /> up</button><span data-folder-path>~</span><button type="button" data-action="folder-open-current">open this folder</button></div>
+          <div class="folder-browser-head"><button type="button" data-action="folder-up"><AppIcon name="arrow-up" size={12} strokeWidth={1.75} /> up</button><span data-folder-path>~</span><button type="button" data-action="folder-open-current">open this folder</button></div>
           <div class="folder-list" data-folder-list></div>
         </div>
         <form class="clone-row" data-clone-form>
@@ -128,10 +121,10 @@ function speechLanguageListId(path) {
         <div class="card-head"><span class="left">recent workspaces</span><span class="right" data-workspace-count>{workspaces.length} known</span></div>
         {workspaces.slice(0, 4).map((workspace) => (
           <button class="recent-row" type="button" data-workspace={workspace.id} aria-label={`open ${workspace.name}`}>
-            <span class="glyph"><ChevronRight size={12} strokeWidth={1.75} aria-hidden="true" /></span>
+            <span class="glyph"><AppIcon name="chevron-right" size={12} strokeWidth={1.75} /></span>
             <span class="ws-info"><span class="name">{workspace.name}</span><span class="path">{workspace.path}</span></span>
             <span class="ws-stat">{workspace.live ? <><span class="live">● live</span><span class="lbl">{workspace.sessionCount} sessions</span></> : <><span>{workspace.lastUsed}</span><span class="lbl">{workspace.sessionCount} sessions</span></>}</span>
-            <span class="open-cta">open <CornerDownLeft size={12} strokeWidth={1.75} aria-hidden="true" /></span>
+            <span class="open-cta">open <AppIcon name="corner-down-left" size={12} strokeWidth={1.75} /></span>
           </button>
         ))}
       </div>
@@ -155,7 +148,7 @@ function speechLanguageListId(path) {
     <form class="settings-dialog" data-settings-form role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
       <div class="settings-head">
         <div><strong id="settings-title" data-i18n="settingsTitle">pi settings</strong><small data-i18n="settingsSubtitle">pi-web settings only</small></div>
-        <button type="button" data-action="close-settings" aria-label="close settings" data-i18n-aria-label="closeSettings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
+        <button type="button" data-action="close-settings" aria-label="close settings" data-i18n-aria-label="closeSettings"><AppIcon name="x" size={14} strokeWidth={1.75} /></button>
       </div>
       <div class="settings-body">
         <div class="settings-update" data-update-release-panel hidden>
@@ -340,7 +333,7 @@ function speechLanguageListId(path) {
     </form>
   </div>
 
-  <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
+  <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks"><AppIcon name="x" size={14} strokeWidth={1.75} /></button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
 </pi-app>
 
 <script>

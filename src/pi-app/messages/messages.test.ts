@@ -210,8 +210,8 @@ describe("pi-app messages", () => {
     app.syncReadAloudFromSettingsState();
     const replay = app.querySelector("[data-action='read-response']");
     expect(replay.getAttribute("aria-label")).toBe("Read response aloud");
-    expect(replay.querySelector("[data-lucide='volume-2']")).not.toBeNull();
-    expect(app.querySelector("[data-action='stop-response'] [data-lucide='square']")).not.toBeNull();
+    expect(replay.querySelector("[data-icon='volume-2']")).not.toBeNull();
+    expect(app.querySelector("[data-action='stop-response'] [data-icon='square']")).not.toBeNull();
     expect(replay.textContent).toBe("");
 
     app.appendMessage({ kind: "pi", text: "**spoken** response" });
@@ -388,7 +388,7 @@ describe("pi-app messages", () => {
     expect(app.querySelector(".msg.loading")).toBeNull();
   });
 
-  it("renders lucide-style tool icons while unknown tools keep the dot", async () => {
+  it("renders inline tool icons while unknown tools keep the dot", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);
 
