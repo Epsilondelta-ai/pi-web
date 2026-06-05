@@ -66,13 +66,26 @@ export const versionMethods = {
     if (!buttons.length && !panels.length) return;
 
     const updateAvailable: boolean = !!status?.updateAvailable && status?.latestVersion !== status?.currentVersion;
+    const currentVersion: string = status?.currentVersion || "current";
+    const latestVersion: string = status?.latestVersion || "latest";
     panels.forEach((panel) => {
+      const current: Element | null = panel.querySelector("[data-update-current]");
+      const latest: Element | null = panel.querySelector("[data-update-latest]");
       panel.hidden = !updateAvailable;
+
+      if (current) {
+        current.textContent = currentVersion;
+      }
+
+      if (latest) {
+        latest.textContent = latestVersion;
+      }
     });
     buttons.forEach((button) => {
       button.hidden = !updateAvailable;
+
       if (updateAvailable) {
-        button.title = `Current ${status.currentVersion}; latest ${status.latestVersion}`;
+        button.title = `Current ${currentVersion}; latest ${latestVersion}`;
       }
     });
 

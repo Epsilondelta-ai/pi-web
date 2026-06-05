@@ -213,7 +213,10 @@ describe("pi-app sessions", () => {
     const settingsButton = settingsPanel.querySelector("[data-action='show-update-tip']");
     expect(button.hidden).toBe(false);
     expect(settingsPanel.hidden).toBe(false);
+    expect(settingsPanel.querySelector("[data-update-current]").textContent).toBe("1.0.0");
+    expect(settingsPanel.querySelector("[data-update-latest]").textContent).toBe("1.1.0");
     expect(settingsButton.hidden).toBe(false);
+    expect(settingsButton.textContent.trim()).toBe("Show update command");
     expect(document.querySelector(".pi-web-notification-popup")).toBeNull();
     button.click();
     app.querySelectorAll("[data-update-tip]").forEach((tip) => expect(tip.hidden).toBe(false));

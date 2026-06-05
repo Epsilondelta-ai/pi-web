@@ -87,8 +87,10 @@ export function installPiAppFixture() {
           </select>
           <span data-settings-path></span>
           <div data-update-release-panel hidden>
+            <strong>pi-web update available</strong>
+            <small><span data-update-current>current</span> → <span data-update-latest>latest</span>. Update when ready.</small>
             <button class="update-release" type="button" data-action="show-update-tip" hidden>
-              New Version Released!
+              Show update command
             </button>
             <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
           </div>

@@ -159,7 +159,11 @@ function speechLanguageListId(path) {
       </div>
       <div class="settings-body">
         <div class="settings-update" data-update-release-panel hidden>
-          <button class="update-release settings-update-release" type="button" data-action="show-update-tip" hidden>New Version Released!</button>
+          <div class="settings-update-copy">
+            <strong>pi-web update available</strong>
+            <small><span data-update-current>current</span> → <span data-update-latest>latest</span>. Update when you are ready, then restart pi-web.</small>
+          </div>
+          <button class="update-release settings-update-release" type="button" data-action="show-update-tip" hidden>Show update command</button>
           <span class="update-tip settings-update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
         </div>
         <div class="settings-language-row">

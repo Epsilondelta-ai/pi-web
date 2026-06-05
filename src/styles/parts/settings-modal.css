@@ -71,23 +71,48 @@
   overflow-y: auto;
 }
 .settings-update {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
   align-items: center;
-  padding: 10px 12px 0;
+  margin: 10px 12px 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+  border-radius: var(--radius-2);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-0));
+}
+.settings-update-copy {
+  min-width: 0;
+}
+.settings-update-copy strong {
+  display: block;
+  color: var(--fg-0);
+  font-size: var(--text-sm);
+}
+.settings-update-copy small {
+  display: block;
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  margin-top: 2px;
+}
+.settings-update-copy [data-update-current],
+.settings-update-copy [data-update-latest] {
+  color: var(--accent);
+  font-family: var(--font-mono);
 }
 .settings-update .settings-update-release {
   border: 1px solid var(--accent);
-  background: transparent;
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-0);
   border-radius: var(--radius-1);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  padding: 4px 6px;
+  padding: 5px 8px;
   white-space: nowrap;
 }
 .settings-update .settings-update-tip {
+  grid-column: 1 / -1;
+  width: fit-content;
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-1);
   background: var(--bg-0);
