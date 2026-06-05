@@ -96,8 +96,6 @@ function speechLanguageListId(path) {
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
     <div class="actions" data-plugin-toolbar>
-      <button class="update-release topbar-update-release" type="button" data-action="show-update-tip" hidden>New Version Released!</button>
-      <span class="update-tip topbar-update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
       <button class="iconbtn" type="button" data-action="open-settings" title="settings" aria-label="open settings"><Settings size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
     </div>
@@ -160,6 +158,13 @@ function speechLanguageListId(path) {
         <button type="button" data-action="close-settings" aria-label="close settings" data-i18n-aria-label="closeSettings"><X size={14} strokeWidth={1.75} aria-hidden="true" /></button>
       </div>
       <div class="settings-body">
+        <div class="settings-update" data-update-release-panel hidden>
+          <div class="settings-update-copy">
+            <strong>pi-web update available</strong>
+            <small><span data-update-current>current</span> → <span data-update-latest>latest</span>. Update when you are ready, then restart pi-web.</small>
+          </div>
+          <span class="update-tip settings-update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+        </div>
         <div class="settings-language-row">
           <label><span data-i18n="language">Language</span>
             <select name="uiLanguage" data-ui-language>

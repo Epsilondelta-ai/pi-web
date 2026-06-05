@@ -86,6 +86,11 @@ export function installPiAppFixture() {
             <option value="global">global</option>
           </select>
           <span data-settings-path></span>
+          <div data-update-release-panel hidden>
+            <strong>pi-web update available</strong>
+            <small><span data-update-current>current</span> → <span data-update-latest>latest</span>. Update when ready.</small>
+            <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+          </div>
           <div data-auth-form>
             <select data-auth-provider></select>
             <input data-auth-api-key type="password" />

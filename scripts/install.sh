@@ -23,7 +23,7 @@ Environment variables:
   PI_WEB_PI_INSTALL_URL
                       pi installer URL. Default: https://pi.dev/install.sh
   PI_WEB_INSTALL_DEFAULT_PLUGINS
-                      Install default plugins: auto, always, or never. Default: auto
+                      Install default plugins when none exist: auto, always, or never. Default: auto
   PI_WEB_DEFAULT_PLUGIN_URLS
                       Space-separated plugin GitHub URLs to install.
 
@@ -155,6 +155,15 @@ install_default_plugins() {
   plugin_root="$HOME/.pi-web/plugins"
   metadata_root="$plugin_root/.metadata"
   mkdir -p "$plugin_root" "$metadata_root"
+
+  if [ "$INSTALL_DEFAULT_PLUGINS" = "auto" ]; then
+    for plugin_dir in "$plugin_root"/*; do
+      if [ -f "$plugin_dir/plugin.json" ]; then
+        echo "Default plugins already present; skipping"
+        return
+      fi
+    done
+  fi
 
   for plugin_url in $DEFAULT_PLUGIN_URLS; do
     plugin_tmp="$TMP_DIR/plugin-$(basename "$plugin_url").$$"

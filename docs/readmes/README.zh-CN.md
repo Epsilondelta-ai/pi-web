@@ -24,7 +24,7 @@
 curl -fsSL https://raw.githubusercontent.com/Epsilondelta-ai/pi-web/main/scripts/install.sh | sh
 ```
 
-安装器还会安装默认可信插件：toast 通知、文件浏览器、Git 查看器、侧边栏、聊天输入器、Discord 通知和 Telegram 通知。设置 `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` 可跳过。
+安装器和 `pi-web update` 会在本地没有已安装插件时安装默认可信插件：toast 通知、文件浏览器、Git 查看器、侧边栏、聊天输入器、Discord 通知和 Telegram 通知。设置 `PI_WEB_INSTALL_DEFAULT_PLUGINS=never` 可跳过，设置为 `always` 可重新安装。
 
 更新已安装的二进制文件：
 
