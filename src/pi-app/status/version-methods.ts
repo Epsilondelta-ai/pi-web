@@ -80,6 +80,10 @@ export const versionMethods = {
       if (latest) {
         latest.textContent = latestVersion;
       }
+
+      panel.querySelectorAll<HTMLElement>("[data-update-tip]").forEach((tip: HTMLElement) => {
+        tip.hidden = !updateAvailable;
+      });
     });
     buttons.forEach((button) => {
       button.hidden = !updateAvailable;
