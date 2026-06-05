@@ -1,3 +1,5 @@
+import * as rxjs from "rxjs";
+
 import {
   apiBase,
   cancelSession,
@@ -37,6 +39,8 @@ type PluginUpdateStatus = {
 
 type PluginCleanup = () => unknown | Promise<unknown>;
 
+type RxjsApi = typeof rxjs;
+
 type PluginCleanupObject = {
   deactivate?: PluginCleanup;
   dispose?: PluginCleanup;
@@ -57,6 +61,7 @@ type PluginModule = {
 type PluginContext = {
   app: HTMLElement;
   plugin: PluginManifest;
+  rxjs: RxjsApi;
   api: {
     get(path: string): Promise<unknown>;
     post(path: string, body: unknown): Promise<unknown>;
@@ -415,6 +420,7 @@ export const pluginMethods = {
     return {
       app: host,
       plugin,
+      rxjs,
       api: {
         get(path: string): Promise<unknown> {
           return request(path, "GET");

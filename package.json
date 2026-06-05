@@ -55,6 +55,7 @@
     "react": "^19.2.6",
     "react-arborist": "^3.7.0",
     "react-dom": "^19.2.6",
+    "rxjs": "^7.8.0",
     "virtual-scroller": "^1.16.4",
     "zod": "^4.4.3"
   },

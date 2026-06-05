@@ -219,6 +219,7 @@ describe("pluginMethods", () => {
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
+    expect(typeof context.rxjs.BehaviorSubject).toBe("function");
     expect(api.apiBase).toHaveBeenCalled();
   });
 
