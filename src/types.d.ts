@@ -14,6 +14,7 @@ declare global {
     piWeb?: import("./pi-app/plugins/plugin-subjects").PiWebSubjects;
   }
 
+  var piWeb: import("./pi-app/plugins/plugin-subjects").PiWebSubjects;
   var fetch: typeof globalThis.fetch;
   var EventSource: typeof globalThis.EventSource;
 }

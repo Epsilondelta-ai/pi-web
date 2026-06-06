@@ -67,15 +67,15 @@ export function activate(): () => void {
 
 pi-web exposes one browser global for shared standards.
 
-- `window.piWeb.subject(name)`: get or create a shared RxJS `Subject`.
-- `window.piWeb.behaviorSubject(name, initialValue)`: get or create a shared RxJS `BehaviorSubject`.
-- `window.piWeb.replaySubject(name, bufferSize)`: get or create a shared RxJS `ReplaySubject`.
-- `window.piWeb.asyncSubject(name)`: get or create a shared RxJS `AsyncSubject`.
-- `window.piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, and `listSubjects()` manage the
+- `piWeb.subject(name)`: get or create a shared RxJS `Subject`.
+- `piWeb.behaviorSubject(name, initialValue)`: get or create a shared RxJS `BehaviorSubject`.
+- `piWeb.replaySubject(name, bufferSize)`: get or create a shared RxJS `ReplaySubject`.
+- `piWeb.asyncSubject(name)`: get or create a shared RxJS `AsyncSubject`.
+- `piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, and `listSubjects()` manage the
   registry.
 
 Older builds may pass a compatibility `context` argument to `activate(context)`. New plugins should prefer browser APIs
-such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and `window.piWeb`.
+such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and `piWeb`.
 
 ## localStorage standard
 
@@ -144,7 +144,7 @@ import type { BehaviorSubject } from "rxjs";
 type LanguageCode = "en" | "ko" | "ja";
 
 export function activate(): void {
-  const language$: BehaviorSubject<LanguageCode> = window.piWeb.behaviorSubject<LanguageCode>(
+  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>(
     "core.language",
     "en",
   );
@@ -160,7 +160,7 @@ import { filter, type Subscription } from "rxjs";
 type LanguageCode = "en" | "ko" | "ja";
 
 export function activate(): () => void {
-  const subscription: Subscription = window.piWeb
+  const subscription: Subscription = piWeb
     .behaviorSubject<LanguageCode>("core.language", "en")
     .pipe(filter((language: LanguageCode): boolean => language.length > 0))
     .subscribe((language: LanguageCode): void => {
@@ -217,14 +217,14 @@ deleted on unload.
 import type { Subscription } from "rxjs";
 
 export function activate(): () => void {
-  const subscription: Subscription = window.piWeb
+  const subscription: Subscription = piWeb
     .subject<string>("plugin.example.closed")
     .subscribe((value: string): void => console.log(value));
 
   return (): void => {
     subscription.unsubscribe();
-    window.piWeb.completeSubject("plugin.example.closed");
-    window.piWeb.deleteSubject("plugin.example.closed");
+    piWeb.completeSubject("plugin.example.closed");
+    piWeb.deleteSubject("plugin.example.closed");
   };
 }
 ```

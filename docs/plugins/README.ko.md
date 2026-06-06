@@ -67,15 +67,15 @@ export function activate(): () => void {
 
 pi-web은 공유 표준용 browser global 하나를 노출합니다.
 
-- `window.piWeb.subject(name)`: 공유 RxJS `Subject`를 가져오거나 생성합니다.
-- `window.piWeb.behaviorSubject(name, initialValue)`: 공유 RxJS `BehaviorSubject`를 가져오거나 생성합니다.
-- `window.piWeb.replaySubject(name, bufferSize)`: 공유 RxJS `ReplaySubject`를 가져오거나 생성합니다.
-- `window.piWeb.asyncSubject(name)`: 공유 RxJS `AsyncSubject`를 가져오거나 생성합니다.
-- `window.piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, `listSubjects()`는 registry를
+- `piWeb.subject(name)`: 공유 RxJS `Subject`를 가져오거나 생성합니다.
+- `piWeb.behaviorSubject(name, initialValue)`: 공유 RxJS `BehaviorSubject`를 가져오거나 생성합니다.
+- `piWeb.replaySubject(name, bufferSize)`: 공유 RxJS `ReplaySubject`를 가져오거나 생성합니다.
+- `piWeb.asyncSubject(name)`: 공유 RxJS `AsyncSubject`를 가져오거나 생성합니다.
+- `piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, `listSubjects()`는 registry를
   관리합니다.
 
 이전 build는 compatibility `context` argument를 `activate(context)`에 전달할 수 있습니다. 새 플러그인은
-`document`, `localStorage`, `fetch`, 직접 `rxjs` import, `window.piWeb` 같은 browser API를 우선 사용해야 합니다.
+`document`, `localStorage`, `fetch`, 직접 `rxjs` import, `piWeb` 같은 browser API를 우선 사용해야 합니다.
 
 ## localStorage 표준
 
@@ -144,7 +144,7 @@ import type { BehaviorSubject } from "rxjs";
 type LanguageCode = "en" | "ko" | "ja";
 
 export function activate(): void {
-  const language$: BehaviorSubject<LanguageCode> = window.piWeb.behaviorSubject<LanguageCode>(
+  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>(
     "core.language",
     "en",
   );
@@ -160,7 +160,7 @@ import { filter, type Subscription } from "rxjs";
 type LanguageCode = "en" | "ko" | "ja";
 
 export function activate(): () => void {
-  const subscription: Subscription = window.piWeb
+  const subscription: Subscription = piWeb
     .behaviorSubject<LanguageCode>("core.language", "en")
     .pipe(filter((language: LanguageCode): boolean => language.length > 0))
     .subscribe((language: LanguageCode): void => {
@@ -217,14 +217,14 @@ complete 또는 delete할 수 있습니다.
 import type { Subscription } from "rxjs";
 
 export function activate(): () => void {
-  const subscription: Subscription = window.piWeb
+  const subscription: Subscription = piWeb
     .subject<string>("plugin.example.closed")
     .subscribe((value: string): void => console.log(value));
 
   return (): void => {
     subscription.unsubscribe();
-    window.piWeb.completeSubject("plugin.example.closed");
-    window.piWeb.deleteSubject("plugin.example.closed");
+    piWeb.completeSubject("plugin.example.closed");
+    piWeb.deleteSubject("plugin.example.closed");
   };
 }
 ```
