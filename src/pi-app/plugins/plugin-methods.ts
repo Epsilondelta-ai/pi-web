@@ -510,8 +510,8 @@ export const pluginMethods = {
       return;
     }
 
-    await this.deactivateLoadedPlugin(pluginId);
     await updatePlugin(pluginId);
+    await this.deactivateLoadedPlugin(pluginId);
     await this.loadPlugins();
     console.info(`Plugin updated: ${pluginId}`);
   },
