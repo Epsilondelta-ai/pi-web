@@ -186,6 +186,12 @@ describe("workspace residual method coverage", () => {
     expect(app.querySelector("[data-git-panel]").textContent).toContain("no commits");
     expect(app.querySelector(".tree-list").hidden).toBe(true);
     await app.refreshGitHistory();
+    app.querySelector("[data-git-panel]").hidden = true;
+    const showGitHistory = app.showGitHistory;
+    app.showGitHistory = vi.fn();
+    await app.refreshGitHistory();
+    expect(app.showGitHistory).not.toHaveBeenCalled();
+    app.showGitHistory = showGitHistory;
 
     vi.mocked(api.getGitHistory).mockResolvedValueOnce({ commits: Array.from({ length: 30 }, (_, i) => ({ hash: `h${i}`, shortHash: `s${i}`, subject: `sub${i}`, date: "bad-date", files: [{ path: "p", oldPath: "o", status: "renamed" }] })) });
     await app.showGitHistory();
