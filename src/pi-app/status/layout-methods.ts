@@ -10,7 +10,6 @@ export const layoutMethods = {
     this.dataset.route = route;
     this.querySelector('[data-view="picker"]')?.toggleAttribute("hidden", route !== "picker");
     this.querySelector('[data-view="workspace"]')?.toggleAttribute("hidden", route !== "workspace");
-    this.querySelector("[data-plugin-sidebar-open]")?.toggleAttribute("hidden", route !== "workspace");
     if (route === "picker") {
       this.querySelector('.picker-shell input[name="path"]')?.focus();
       if (this.apiConnected) void this.browseFolder();
@@ -54,7 +53,7 @@ export const layoutMethods = {
 
   closeTreeFromOutside(event) {
     if (this.dataset.tree !== "on") return;
-    const selector = ".tree, [data-plugin-sidebar-open], [data-file-editor-modal]";
+    const selector = ".tree, [data-file-editor-modal]";
     const path = event.composedPath?.() || [];
     if (path.some((node) => node?.matches?.(selector))) return;
     const target = event.target;

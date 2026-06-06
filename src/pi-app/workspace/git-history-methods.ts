@@ -40,19 +40,6 @@ export const gitHistoryMethods = {
     panel.hidden = false;
     fileTree.hidden = true;
     this.querySelector("[data-action='show-git-history']")?.classList.add("on");
-    this.querySelector("[data-action='show-file-tree']")?.classList.remove("on");
-  },
-
-  showFileTreePanel() {
-    this.togglePluginSidebar?.("file-browser", true);
-    this.querySelector("[data-git-panel]")?.setAttribute("hidden", "");
-    this.querySelector(".tree-list")?.removeAttribute("hidden");
-    this.querySelector("[data-action='show-git-history']")?.classList.remove("on");
-    this.querySelector("[data-action='show-file-tree']")?.classList.add("on");
-    void this.ensureWorkspaceTreeMounted?.();
-    if (this.apiConnected && this.dataset.activeWorkspaceId && !this.workspaceMetaLoadedFor?.has?.(this.dataset.activeWorkspaceId)) {
-      void this.loadWorkspaceMeta?.(this.dataset.activeWorkspaceId);
-    }
   },
 
   setGitPanelMode(mode) {
