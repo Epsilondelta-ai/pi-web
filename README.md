@@ -68,68 +68,43 @@ It bundles an Astro-based frontend and a Go backend into a single executable, so
 - **Internationalized UI**: Switch the browser UI across English, Korean, Chinese, Japanese, Spanish, Portuguese,
   French, Russian, and German.
 - **AG-UI bridge**: Expose session runs through an AG-UI-compatible SSE endpoint for client integrations.
-- **Plugins (in development)**: Load trusted local/GitHub JavaScript plugins that can add UI panels, call pi-web APIs,
-  and optionally delegate plugin-specific work to a local backend script.
+- **Plugins (in development)**: Load trusted local/GitHub JavaScript plugins that extend UI through stable DOM hooks
+  and share state through `piWeb` RxJS subjects.
 - **Single executable**: Distribute the Astro static build embedded in a Go binary with built-in update support.
 
 ## Plugins (in development)
 
-Plugins are experimental and intended for trusted local code. The API can still change before it is treated as stable.
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes the `piWeb` shared RxJS Subject
+registry, and documents stable names for cross-plugin state and DOM extension points.
 
 Install plugins from **Settings → Plugins** with either a local folder path or a GitHub `owner/repo` value. A plugin folder
-must contain a `plugin.json` manifest and an entry JavaScript module.
+must contain `plugin.json` and the JavaScript file named by `entry`.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` is required. `backend` is optional. Both paths must stay inside the plugin folder.
-
 ```js
-export function activate(context) {
+export function activate() {
   const panel = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
-  return () => {
-    panel.remove();
-  };
+  return () => panel.remove();
 }
 ```
 
-The entry module may export `activate(context)` or `default(context)`. Returning a function, or an object with
-`deactivate()`/`dispose()`, lets pi-web clean up the plugin during reload, disable, or uninstall. A module-level
-`deactivate(context)` export is also supported.
+Core plugin standards:
 
-The plugin context includes:
+- Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
+  `piWeb.asyncSubject(...)`.
+- Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, and `plugin.<pluginId>.*`.
+- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, `.app-body[data-view="workspace"]`,
+  `.main[data-main]`, and `[data-plugin-sidebar]`.
 
-- `context.app`: the `<pi-app>` element.
-- `context.plugin`: the parsed manifest.
-- `context.rxjs`: the RxJS namespace provided by pi-web core.
-- `context.api.get(path)` / `context.api.post(path, body)`: call pi-web HTTP APIs.
-- `context.backend(method, { workspaceId, data })`: call the optional backend script. `workspaceId` is optional; `data`
-  becomes the backend stdin JSON.
-
-See [Plugin development](docs/plugins/README.md) for the full plugin API and core RxJS usage guide.
-
-Optional backend scripts are executed locally on demand. JavaScript backends run with Node; Go backends are built and
-cached automatically. The script receives `method` and `workspaceRoot` arguments, reads the `data` JSON from stdin,
-and must print valid JSON to stdout.
-
-```js
-const [, , method, workspaceRoot] = process.argv;
-let input = "";
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-});
-process.stdin.on("end", () => {
-  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
-});
-```
+See [Plugin development](docs/plugins/README.md) for the plugin standard.

@@ -60,61 +60,44 @@ pi-web --port 9999
 - **语音和通知**：朗读响应，使用浏览器或本地 Whisper 语音转录，并配置 Discord/Telegram 完成通知。
 - **国际化 UI**：在英语、韩语、中文、日语、西班牙语、葡萄牙语、法语、俄语和德语之间切换浏览器 UI。
 - **AG-UI 桥接**：通过 AG-UI 兼容的 SSE 端点暴露会话运行，供客户端集成使用。
-- **插件（开发中）**：通过可信的本地/GitHub JavaScript 插件添加 UI 面板，并调用 pi-web API 或本地后端脚本。
+- **Plugins (in development)**: Load trusted local/GitHub JavaScript plugins that extend UI through stable DOM hooks
+  and share state through `piWeb` RxJS subjects.
 - **单个可执行文件**：将 Astro 静态构建嵌入 Go 二进制文件发布，并支持内置更新。
 
-## 插件（开发中）
 
-插件仍是实验性功能，面向可信的本地代码。在被视为稳定功能之前，API 仍可能变化。
+## Plugins (in development)
 
-在 **Settings → Plugins** 中通过本地文件夹路径或 GitHub `owner/repo` 安装。插件文件夹必须包含 `plugin.json` 和入口 JavaScript 模块。
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes the `piWeb` shared RxJS Subject
+registry, and documents stable names for cross-plugin state and DOM extension points.
+
+Install plugins from **Settings → Plugins** with either a local folder path or a GitHub `owner/repo` value. A plugin folder
+must contain `plugin.json` and the JavaScript file named by `entry`.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` 必填，`backend` 可选。两个路径都必须位于插件文件夹内。
-
 ```js
-export function activate(context) {
+export function activate() {
   const panel = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
-  return () => {
-    panel.remove();
-  };
+  return () => panel.remove();
 }
 ```
 
-入口模块导出 `activate(context)` 或 `default(context)`。返回函数，或返回带 `deactivate()`/`dispose()` 的对象，可在 reload、disable、uninstall 时清理插件。也支持模块级 `deactivate(context)`。
+Core plugin standards:
 
-插件 context 包含：
+- Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
+  `piWeb.asyncSubject(...)`.
+- Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, and `plugin.<pluginId>.*`.
+- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, `.app-body[data-view="workspace"]`,
+  `.main[data-main]`, and `[data-plugin-sidebar]`.
 
-- `context.app`：`<pi-app>` 元素。
-- `context.plugin`：解析后的清单。
-- `context.rxjs`：由 pi-web core 提供的 RxJS 命名空间。
-- `context.api.get(path)` / `context.api.post(path, body)`：调用 pi-web HTTP API。
-- `context.backend(method, { workspaceId, data })`：调用可选后端；`data` 是 stdin JSON。
-
-完整插件 API 和 core RxJS 用法见 [Plugin development](../plugins/README.zh-CN.md)。
-
-可选 backend 脚本在本地按需执行。JavaScript 使用 Node；Go 会自动构建并缓存。脚本接收 `method`、`workspaceRoot` 参数，从 stdin 读取 JSON，并向 stdout 输出有效 JSON。
-
-```js
-const [, , method, workspaceRoot] = process.argv;
-let input = "";
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-});
-process.stdin.on("end", () => {
-  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
-});
-```
+See [Plugin development](../plugins/README.md) for the plugin standard.

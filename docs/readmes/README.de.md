@@ -60,61 +60,44 @@ Sie bündelt ein Astro-basiertes Frontend und ein Go-Backend in einer einzelnen 
 - **Sprache und Benachrichtigungen**: Lies Antworten vor, nutze Browser- oder lokale Whisper-Sprachtranskription und konfiguriere Discord/Telegram-Fertigmeldungen.
 - **Internationalisierte UI**: Wechsle die Browser-UI zwischen Englisch, Koreanisch, Chinesisch, Japanisch, Spanisch, Portugiesisch, Französisch, Russisch und Deutsch.
 - **AG-UI-Bridge**: Stellt Session-Läufe über einen AG-UI-kompatiblen SSE-Endpunkt für Client-Integrationen bereit.
-- **Plugins (in Entwicklung)**: Lädt vertrauenswürdige lokale/GitHub-JavaScript-Plugins, um UI-Panels hinzuzufügen und pi-web-APIs oder lokale Backend-Skripte aufzurufen.
+- **Plugins (in development)**: Load trusted local/GitHub JavaScript plugins that extend UI through stable DOM hooks
+  and share state through `piWeb` RxJS subjects.
 - **Einzelne ausführbare Datei**: Verteilt den statischen Astro-Build eingebettet in ein Go-Binary mit integrierter Update-Unterstützung.
 
-## Plugins (in Entwicklung)
 
-Plugins sind experimentell und für vertrauenswürdigen lokalen Code gedacht. Die API kann sich noch ändern, bevor sie als stabil gilt.
+## Plugins (in development)
 
-Installiere Plugins unter **Settings → Plugins** mit einem lokalen Pfad oder GitHub-Wert `owner/repo`. Der Ordner muss `plugin.json` und ein Entry-JavaScript-Modul enthalten.
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes the `piWeb` shared RxJS Subject
+registry, and documents stable names for cross-plugin state and DOM extension points.
+
+Install plugins from **Settings → Plugins** with either a local folder path or a GitHub `owner/repo` value. A plugin folder
+must contain `plugin.json` and the JavaScript file named by `entry`.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` ist erforderlich. `backend` ist optional. Beide Pfade müssen innerhalb des Plugin-Ordners bleiben.
-
 ```js
-export function activate(context) {
+export function activate() {
   const panel = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
-  return () => {
-    panel.remove();
-  };
+  return () => panel.remove();
 }
 ```
 
-Das Entry-Modul exportiert `activate(context)` oder `default(context)`. Wenn es eine Funktion oder ein Objekt mit `deactivate()`/`dispose()` zurückgibt, wird es bei reload, disable oder uninstall bereinigt. `deactivate(context)` auf Modulebene wird ebenfalls unterstützt.
+Core plugin standards:
 
-Der Plugin-context enthält:
+- Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
+  `piWeb.asyncSubject(...)`.
+- Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, and `plugin.<pluginId>.*`.
+- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, `.app-body[data-view="workspace"]`,
+  `.main[data-main]`, and `[data-plugin-sidebar]`.
 
-- `context.app`: das `<pi-app>`-Element.
-- `context.plugin`: das geparste Manifest.
-- `context.rxjs`: der von pi-web core bereitgestellte RxJS-Namespace.
-- `context.api.get(path)` / `context.api.post(path, body)`: pi-web-HTTP-APIs aufrufen.
-- `context.backend(method, { workspaceId, data })`: optionales Backend aufrufen; `data` ist das stdin-JSON.
-
-Weitere Informationen zur vollständigen Plugin-API und core RxJS-Nutzung findest du unter [Plugin development](../plugins/README.de.md).
-
-Optionale Backend-Skripte laufen lokal bei Bedarf. JavaScript nutzt Node; Go wird automatisch gebaut und gecacht. Das Skript erhält `method` und `workspaceRoot`, liest JSON von stdin und muss gültiges JSON auf stdout ausgeben.
-
-```js
-const [, , method, workspaceRoot] = process.argv;
-let input = "";
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-});
-process.stdin.on("end", () => {
-  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
-});
-```
+See [Plugin development](../plugins/README.md) for the plugin standard.

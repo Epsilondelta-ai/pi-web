@@ -4,28 +4,24 @@
 [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
 [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-Plugins are trusted local code. pi-web keeps the host small and gives plugins a few standards: manifest shape,
-lifecycle, storage names, and a shared RxJS Subject registry.
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes a shared RxJS Subject registry, and
+standardizes the names plugins use to share state.
 
 ## Responsibility split
 
-Core owns app-wide infrastructure only.
+Core owns only app-wide plugin infrastructure.
 
-- Settings standard and settings storage keys.
-- Language standard and language storage key.
 - Plugin install, load, reload, disable, uninstall, and cleanup lifecycle.
-- Shared RxJS Subject registry.
+- `piWeb` shared RxJS Subject registry.
 - Standard channel names and payload contracts.
+- Stable DOM hook names for toolbar, settings, and main-area extensions.
 
 Plugins own user-facing features.
 
-- Chat UI, composer, transcript rendering, prompt submission, attachments.
-- Sessions, active session state, and session persistence.
-- Shortcuts and command handling.
-- Toast notifications.
-- Plugin-specific state and settings.
+- Chat UI, composer, transcript rendering, sessions, shortcuts, toasts, panels, and plugin-specific settings.
+- Plugin-specific state and persistence.
 
-Core does not store chat sessions, own shortcut behavior, or render toast UI. A plugin may do that directly.
+Core does not store chat sessions, own shortcut behavior, render toast UI, or provide feature APIs for plugins.
 
 ## Folder structure
 
@@ -37,12 +33,11 @@ JavaScript file named by `entry`.
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` is required. `backend` is optional. Both paths must stay inside the plugin folder.
+`entry` is required. Paths must stay inside the plugin folder.
 
 ## Entry module
 
@@ -53,9 +48,8 @@ is also supported.
 ```ts
 export function activate(): () => void {
   const panel: HTMLElement = document.createElement("section");
-  panel.dataset.pluginPanel = "hello-panel";
   panel.textContent = "Hello from hello-panel";
-  document.querySelector("[data-plugin-sidebar]")?.append(panel);
+  document.querySelector("[data-main]")?.append(panel);
 
   return (): void => {
     panel.remove();
@@ -63,59 +57,15 @@ export function activate(): () => void {
 }
 ```
 
-## Plugin globals
+Plugins should use browser APIs such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and the `piWeb`
+global.
 
-pi-web exposes one browser global for shared standards.
-
-- `piWeb.subject(name)`: get or create a shared RxJS `Subject`.
-- `piWeb.behaviorSubject(name, initialValue)`: get or create a shared RxJS `BehaviorSubject`.
-- `piWeb.replaySubject(name, bufferSize)`: get or create a shared RxJS `ReplaySubject`.
-- `piWeb.asyncSubject(name)`: get or create a shared RxJS `AsyncSubject`.
-- `piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, and `listSubjects()` manage the
-  registry.
-
-Older builds may pass a compatibility `context` argument to `activate(context)`. New plugins should prefer browser APIs
-such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and `piWeb`.
-
-## localStorage standard
-
-Plugins use the browser `localStorage` API directly. pi-web does not wrap storage. The standard is only key naming and
-JSON shape.
-
-```ts
-type SessionState = {
-  activeSessionId: string | null;
-};
-
-const storageKey: string = "pi-web:plugin:session:state";
-const state: SessionState = { activeSessionId: "default" };
-localStorage.setItem(storageKey, JSON.stringify(state));
-```
-
-Use these key patterns.
-
-| Owner | Key | Value |
-| --- | --- | --- |
-| core | `pi-web:settings` | app settings JSON |
-| core | `pi-web:language` | language code string |
-| plugin | `pi-web:plugin:<pluginId>:settings` | plugin settings JSON |
-| plugin | `pi-web:plugin:<pluginId>:state` | plugin state JSON |
-| session plugin | `pi-web:plugin:session:sessions` | session list JSON |
-| session plugin | `pi-web:plugin:session:active-session-id` | active session id string |
-
-Rules:
-
-- Use `pi-web:` as the top-level prefix.
-- Use the manifest `plugin.id` in plugin keys.
-- Store structured values as JSON.
-- Plugins may define more keys under `pi-web:plugin:<pluginId>:`.
-
-## RxJS standard
+## Shared Subject registry
 
 Plugins import RxJS directly for operators, `Observable`, `Subscription`, and local subjects.
 
 ```ts
-import { filter, map, type Subscription } from "rxjs";
+import { filter, type Subscription } from "rxjs";
 ```
 
 pi-web only provides a shared Subject registry so plugins can get the same Subject instance by name. It does not wrap
@@ -144,10 +94,7 @@ import type { BehaviorSubject } from "rxjs";
 type LanguageCode = "en" | "ko" | "ja";
 
 export function activate(): void {
-  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>(
-    "core.language",
-    "en",
-  );
+  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>("core.language", "en");
   language$.next("ko");
 }
 ```
@@ -179,9 +126,8 @@ Registry rules:
 - A name cannot be reused with a different Subject kind.
 - For `behaviorSubject`, the first call owns the initial value. Later initial values are ignored.
 - `deleteSubject` is for plugin-owned channels. Do not delete core channels.
-- Permissions and read-only policies are intentionally not part of this standard.
 
-## Standard channels
+## Channel naming standard
 
 Use `$` suffixes for variables that hold RxJS streams. Channel names do not include `$`.
 
@@ -192,15 +138,13 @@ Use `$` suffixes for variables that hold RxJS streams. Channel names do not incl
 | `core.settings.changed` | `Subject` | `{ key: string; value: unknown }` | core |
 | `chat.input` | `BehaviorSubject` | input text string | chat plugin |
 | `chat.input.submitted` | `Subject` | `{ text: string; attachments: unknown[] }` | chat plugin |
-| `chat.message.received` | `Subject` | message object | chat plugin |
 | `session.activeId` | `BehaviorSubject` | `string | null` | session plugin |
 | `session.changed` | `Subject` | session change object | session plugin |
 | `shortcut.pressed` | `Subject` | shortcut event object | shortcuts plugin |
 | `toast.requested` | `Subject` | toast request object | toast plugin |
-| `button.clicked` | `Subject` | button event object | owning plugin |
-| `touch.pressed` | `Subject` | touch event object | owning plugin |
+| `plugin.<pluginId>.*` | any | plugin-defined | owning plugin |
 
-## Naming rules
+Naming rules:
 
 - Core channels start with `core.`.
 - Feature plugin channels start with the feature name: `chat.`, `session.`, `shortcut.`, `toast.`.
@@ -208,52 +152,16 @@ Use `$` suffixes for variables that hold RxJS streams. Channel names do not incl
 - Event channels use verbs or past-tense event names: `changed`, `submitted`, `received`, `pressed`.
 - State channels use nouns: `core.language`, `session.activeId`, `chat.input`.
 
-## Cleanup
+## DOM hook standard
 
-Plugins must unsubscribe from subscriptions and remove DOM they created. Plugin-owned Subjects may be completed or
-deleted on unload.
+Use these stable selectors when a plugin needs to attach UI to pi-web.
 
-```ts
-import type { Subscription } from "rxjs";
+| Area | Selector | Use |
+| --- | --- | --- |
+| Header actions | `[data-plugin-toolbar]` | Add icon buttons to the top-right header actions. |
+| Settings modal | `[data-plugin-settings-root]` | Add plugin-specific settings sections inside the settings modal. |
+| Main workspace area | `.app-body[data-view="workspace"]` | Read or observe the workspace layout container. |
+| Main content surface | `.main[data-main]` | Add or replace primary main-area content when your plugin owns it. |
+| Sidebar surface | `[data-plugin-sidebar]` | Add optional side panels such as file browsers or git views. |
 
-export function activate(): () => void {
-  const subscription: Subscription = piWeb
-    .subject<string>("plugin.example.closed")
-    .subscribe((value: string): void => console.log(value));
-
-  return (): void => {
-    subscription.unsubscribe();
-    piWeb.completeSubject("plugin.example.closed");
-    piWeb.deleteSubject("plugin.example.closed");
-  };
-}
-```
-
-## Optional backend scripts
-
-Optional backend scripts are executed locally on demand. JavaScript backends run with Node; Go backends are built and
-cached automatically. The script receives `method` and `workspaceRoot` arguments, reads the `data` JSON from stdin, and
-must print valid JSON to stdout.
-
-```ts
-type BackendInput = Record<string, unknown>;
-
-type BackendOutput = {
-  method: string;
-  workspaceRoot: string;
-  received: BackendInput;
-};
-
-const [, , method = "", workspaceRoot = ""]: string[] = process.argv;
-let input = "";
-
-process.stdin.on("data", (chunk: Buffer): void => {
-  input += chunk.toString("utf8");
-});
-
-process.stdin.on("end", (): void => {
-  const received: BackendInput = JSON.parse(input || "{}") as BackendInput;
-  const output: BackendOutput = { method, workspaceRoot, received };
-  console.log(JSON.stringify(output));
-});
-```
+Plugins must remove DOM they created and unsubscribe from subscriptions during cleanup.

@@ -1,64 +1,55 @@
-# プラグイン
+# Plugins
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) |
 [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
 [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-プラグインは信頼できるローカルコードです。pi-web は host を小さく保ち、manifest、lifecycle、storage key 名、共有 RxJS Subject registry の標準だけを提供します。
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes a shared RxJS Subject registry, and
+standardizes the names plugins use to share state.
 
-## 責任分担
+## Responsibility split
 
-Core はアプリ全体の基盤だけを担当します。
+Core owns only app-wide plugin infrastructure.
 
-- 設定標準と settings storage key。
-- 言語標準と language storage key。
-- プラグインの install、load、reload、disable、uninstall、cleanup lifecycle。
-- 共有 RxJS Subject registry。
-- 標準 channel 名と payload contract。
+- Plugin install, load, reload, disable, uninstall, and cleanup lifecycle.
+- `piWeb` shared RxJS Subject registry.
+- Standard channel names and payload contracts.
+- Stable DOM hook names for toolbar, settings, and main-area extensions.
 
-プラグインはユーザー向け機能を担当します。
+Plugins own user-facing features.
 
-- Chat UI、composer、transcript rendering、prompt submit、attachments。
-- Sessions、active session state、session persistence。
-- Shortcuts と command handling。
-- Toast notifications。
-- プラグイン固有の state と settings。
+- Chat UI, composer, transcript rendering, sessions, shortcuts, toasts, panels, and plugin-specific settings.
+- Plugin-specific state and persistence.
 
-Core は chat sessions を保存せず、shortcut behavior を所有せず、toast UI を render しません。それらはプラグインが直接実装できます。
+Core does not store chat sessions, own shortcut behavior, render toast UI, or provide feature APIs for plugins.
 
-## フォルダ構成
+## Folder structure
 
-プラグインフォルダには `plugin.json` と entry module が必要です。TypeScript プラグインは `entry` が指す JavaScript file へ bundle または compile
-してください。
+A plugin folder must contain `plugin.json` and an entry module. TypeScript plugins must be bundled or compiled to the
+JavaScript file named by `entry`.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` は必須、`backend` は任意です。どちらの path もプラグインフォルダ内にある必要があります。
+`entry` is required. Paths must stay inside the plugin folder.
 
 ## Entry module
 
-Entry module は `activate(context)` または `default(context)` を export できます。function、または `deactivate()` / `dispose()` を持つ
-object を返すと、pi-web は reload、disable、uninstall 時に cleanup します。Module-level `deactivate(context)` export もサポートします。
+The entry module may export `activate()` or `default()`. Returning a function, or an object with `deactivate()` or
+`dispose()`, lets pi-web clean up the plugin during reload, disable, or uninstall. A module-level `deactivate()` export
+is also supported.
 
 ```ts
-type PluginContext = {
-  app: HTMLElement;
-  plugin: { id: string; name?: string };
-};
-
-export function activate(context: PluginContext): () => void {
+export function activate(): () => void {
   const panel: HTMLElement = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name ?? context.plugin.id}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
   return (): void => {
     panel.remove();
@@ -66,58 +57,19 @@ export function activate(context: PluginContext): () => void {
 }
 ```
 
-## Plugin context
+Plugins should use browser APIs such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and the `piWeb`
+global.
 
-- `context.app`: `<pi-app>` element。
-- `context.plugin`: parsed manifest。
-- `context.piWeb`: 共有 Subject registry を含む pi-web standard object。
-- `context.rxjs`: compatibility RxJS namespace。Bundle 済み plugin では直接 `rxjs` import を優先します。
-- `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP APIs を呼び出します。
-- `context.backend(method, { workspaceId, data })`: 任意の backend script を呼び出します。`workspaceId` は任意で、`data` は backend stdin
-  JSON になります。
-- `context.mount.chat(element)` / `context.mount.composer(element)`: chat または composer surface を mount します。
-- `context.chat`: transcript messages の append、stream、render、finalize、scroll。
-- `context.composer`: prompt input の read、set、submit、cancel、attach、clear。
-- `context.session`: active process session の確認、prompt post、steer、cancel、process events の subscribe。
-- `context.files`: workspace files の search/read。
-- `context.shell`: workspace shell command の実行。
+## Shared Subject registry
 
-## localStorage 標準
-
-プラグインは browser `localStorage` API を直接使います。pi-web は storage を wrap しません。標準は key naming と JSON shape だけです。
+Plugins import RxJS directly for operators, `Observable`, `Subscription`, and local subjects.
 
 ```ts
-type SessionState = {
-  activeSessionId: string | null;
-};
-
-const storageKey: string = "pi-web:plugin:session:state";
-const state: SessionState = { activeSessionId: "default" };
-localStorage.setItem(storageKey, JSON.stringify(state));
+import { filter, type Subscription } from "rxjs";
 ```
 
-| Owner | Key | Value |
-| --- | --- | --- |
-| core | `pi-web:settings` | app settings JSON |
-| core | `pi-web:language` | language code string |
-| plugin | `pi-web:plugin:<pluginId>:settings` | plugin settings JSON |
-| plugin | `pi-web:plugin:<pluginId>:state` | plugin state JSON |
-| session plugin | `pi-web:plugin:session:sessions` | session list JSON |
-| session plugin | `pi-web:plugin:session:active-session-id` | active session id string |
-
-Rules: top-level prefix は `pi-web:`。Plugin key には manifest の `plugin.id` を使います。構造化値は JSON として保存します。Plugins は
-`pi-web:plugin:<pluginId>:` 以下に追加 key を定義できます。
-
-## RxJS 標準
-
-Plugins は operators、`Observable`、`Subscription`、local subjects のために RxJS を直接 import します。
-
-```ts
-import { filter, map, type Subscription } from "rxjs";
-```
-
-pi-web は共有 Subject registry だけを提供し、plugins が同じ名前で同じ Subject instance を取得できるようにします。Operators や observable composition は
-wrap しません。
+pi-web only provides a shared Subject registry so plugins can get the same Subject instance by name. It does not wrap
+operators or observable composition.
 
 ```ts
 import type { BehaviorSubject, Subject } from "rxjs";
@@ -134,37 +86,28 @@ type PiWebSubjects = {
 };
 ```
 
-Publisher example:
+Example publisher:
 
 ```ts
+import type { BehaviorSubject } from "rxjs";
+
 type LanguageCode = "en" | "ko" | "ja";
 
-type PluginContext = {
-  piWeb: PiWebSubjects;
-};
-
-export function activate(context: PluginContext): void {
-  const language$: BehaviorSubject<LanguageCode> = context.piWeb.behaviorSubject<LanguageCode>(
-    "core.language",
-    "en",
-  );
+export function activate(): void {
+  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>("core.language", "en");
   language$.next("ko");
 }
 ```
 
-Subscriber example:
+Example subscriber:
 
 ```ts
 import { filter, type Subscription } from "rxjs";
 
 type LanguageCode = "en" | "ko" | "ja";
 
-type PluginContext = {
-  piWeb: PiWebSubjects;
-};
-
-export function activate(context: PluginContext): () => void {
-  const subscription: Subscription = context.piWeb
+export function activate(): () => void {
+  const subscription: Subscription = piWeb
     .behaviorSubject<LanguageCode>("core.language", "en")
     .pipe(filter((language: LanguageCode): boolean => language.length > 0))
     .subscribe((language: LanguageCode): void => {
@@ -177,13 +120,16 @@ export function activate(context: PluginContext): () => void {
 }
 ```
 
-Registry rules: 同じ `name` は同じ Subject instance を返します。同じ name を別の Subject kind で再利用できません。`behaviorSubject` は最初の call が
-initial value を所有し、後の initial value は無視します。`deleteSubject` は plugin-owned channels 用です。Permissions と read-only policies
-はこの標準に含めません。
+Registry rules:
 
-## 標準 channels
+- The same `name` returns the same Subject instance.
+- A name cannot be reused with a different Subject kind.
+- For `behaviorSubject`, the first call owns the initial value. Later initial values are ignored.
+- `deleteSubject` is for plugin-owned channels. Do not delete core channels.
 
-RxJS stream を保持する変数には `$` suffix を使います。Channel name には `$` を含めません。
+## Channel naming standard
+
+Use `$` suffixes for variables that hold RxJS streams. Channel names do not include `$`.
 
 | Channel | Kind | Payload | Owner |
 | --- | --- | --- | --- |
@@ -192,66 +138,30 @@ RxJS stream を保持する変数には `$` suffix を使います。Channel nam
 | `core.settings.changed` | `Subject` | `{ key: string; value: unknown }` | core |
 | `chat.input` | `BehaviorSubject` | input text string | chat plugin |
 | `chat.input.submitted` | `Subject` | `{ text: string; attachments: unknown[] }` | chat plugin |
-| `chat.message.received` | `Subject` | message object | chat plugin |
 | `session.activeId` | `BehaviorSubject` | `string | null` | session plugin |
 | `session.changed` | `Subject` | session change object | session plugin |
 | `shortcut.pressed` | `Subject` | shortcut event object | shortcuts plugin |
 | `toast.requested` | `Subject` | toast request object | toast plugin |
-| `button.clicked` | `Subject` | button event object | owning plugin |
-| `touch.pressed` | `Subject` | touch event object | owning plugin |
+| `plugin.<pluginId>.*` | any | plugin-defined | owning plugin |
 
-## Naming rules
+Naming rules:
 
-Core channels は `core.` で始めます。Feature plugin channels は feature name で始めます: `chat.`, `session.`, `shortcut.`,
-`toast.`。Private plugin channels は `plugin.<pluginId>.` で始めます。Event channels は verb または past-tense event name を使います:
-`changed`, `submitted`, `received`, `pressed`。State channels は nouns を使います: `core.language`, `session.activeId`,
-`chat.input`。
+- Core channels start with `core.`.
+- Feature plugin channels start with the feature name: `chat.`, `session.`, `shortcut.`, `toast.`.
+- Private plugin channels start with `plugin.<pluginId>.`.
+- Event channels use verbs or past-tense event names: `changed`, `submitted`, `received`, `pressed`.
+- State channels use nouns: `core.language`, `session.activeId`, `chat.input`.
 
-## Cleanup
+## DOM hook standard
 
-Plugins は subscriptions を unsubscribe し、自分が作成した DOM を削除する必要があります。Plugin-owned Subjects は unload 時に complete または delete
-できます。
+Use these stable selectors when a plugin needs to attach UI to pi-web.
 
-```ts
-import type { Subscription } from "rxjs";
+| Area | Selector | Use |
+| --- | --- | --- |
+| Header actions | `[data-plugin-toolbar]` | Add icon buttons to the top-right header actions. |
+| Settings modal | `[data-plugin-settings-root]` | Add plugin-specific settings sections inside the settings modal. |
+| Main workspace area | `.app-body[data-view="workspace"]` | Read or observe the workspace layout container. |
+| Main content surface | `.main[data-main]` | Add or replace primary main-area content when your plugin owns it. |
+| Sidebar surface | `[data-plugin-sidebar]` | Add optional side panels such as file browsers or git views. |
 
-export function activate(context: PluginContext): () => void {
-  const subscription: Subscription = context.piWeb
-    .subject<string>("plugin.example.closed")
-    .subscribe((value: string): void => console.log(value));
-
-  return (): void => {
-    subscription.unsubscribe();
-    context.piWeb.completeSubject("plugin.example.closed");
-    context.piWeb.deleteSubject("plugin.example.closed");
-  };
-}
-```
-
-## 任意 backend scripts
-
-任意 backend scripts は必要時にローカルで実行されます。JavaScript backends は Node で実行され、Go backends は自動で build/cache されます。Script は `method`
-と `workspaceRoot` arguments を受け取り、stdin から `data` JSON を読み、stdout に valid JSON を出力する必要があります。
-
-```ts
-type BackendInput = Record<string, unknown>;
-
-type BackendOutput = {
-  method: string;
-  workspaceRoot: string;
-  received: BackendInput;
-};
-
-const [, , method = "", workspaceRoot = ""]: string[] = process.argv;
-let input = "";
-
-process.stdin.on("data", (chunk: Buffer): void => {
-  input += chunk.toString("utf8");
-});
-
-process.stdin.on("end", (): void => {
-  const received: BackendInput = JSON.parse(input || "{}") as BackendInput;
-  const output: BackendOutput = { method, workspaceRoot, received };
-  console.log(JSON.stringify(output));
-});
-```
+Plugins must remove DOM they created and unsubscribe from subscriptions during cleanup.
