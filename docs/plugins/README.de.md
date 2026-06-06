@@ -4,12 +4,33 @@
 [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
 [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-Plugins sind experimentell und für vertrauenswürdigen lokalen Code gedacht. Die API kann sich vor der Stabilisierung
-ändern.
+Plugins sind vertrauenswürdiger lokaler Code. pi-web hält den Host klein und stellt nur Standards für Manifest,
+Lifecycle, Storage-Namen und eine gemeinsame RxJS Subject Registry bereit.
+
+## Verantwortlichkeiten
+
+Core besitzt nur die globale Infrastruktur.
+
+- Settings-Standard und Storage Keys für Settings.
+- Language-Standard und Storage Key für Language.
+- Plugin install, load, reload, disable, uninstall und cleanup lifecycle.
+- Gemeinsame RxJS Subject Registry.
+- Standard channel names und payload contracts.
+
+Plugins besitzen die nutzerseitigen Funktionen.
+
+- Chat UI, composer, transcript rendering, prompt submission und attachments.
+- Sessions, active session state und session persistence.
+- Shortcuts und command handling.
+- Toast notifications.
+- Plugin-spezifische state und settings.
+
+Core speichert keine chat sessions, besitzt kein shortcut behavior und rendert keine toast UI. Das kann ein Plugin
+direkt tun.
 
 ## Ordnerstruktur
 
-Ein Plugin-Ordner muss `plugin.json` und ein Entry-Modul enthalten. TypeScript-Plugins müssen in die von `entry`
+Ein Plugin-Ordner muss `plugin.json` und ein entry module enthalten. TypeScript-Plugins müssen in die von `entry`
 benannte JavaScript-Datei gebündelt oder kompiliert werden.
 
 ```json
@@ -24,11 +45,11 @@ benannte JavaScript-Datei gebündelt oder kompiliert werden.
 
 `entry` ist erforderlich. `backend` ist optional. Beide Pfade müssen innerhalb des Plugin-Ordners bleiben.
 
-## Entry-Modul
+## Entry module
 
-Das Entry-Modul kann `activate(context)` oder `default(context)` exportieren. Wenn es eine Funktion oder ein Objekt mit
-`deactivate()` oder `dispose()` zurückgibt, kann pi-web das Plugin bei reload, disable oder uninstall bereinigen. Ein
-Modul-Export `deactivate(context)` wird ebenfalls unterstützt.
+Das entry module kann `activate(context)` oder `default(context)` exportieren. Wenn eine Funktion oder ein Objekt mit
+`deactivate()` oder `dispose()` zurückgegeben wird, räumt pi-web das Plugin bei reload, disable oder uninstall auf. Ein
+module-level Export `deactivate(context)` wird ebenfalls unterstützt.
 
 ```ts
 type PluginContext = {
@@ -50,62 +71,176 @@ export function activate(context: PluginContext): () => void {
 
 ## Plugin context
 
-- `context.app`: das `<pi-app>`-Element.
+- `context.app`: das `<pi-app>` Element.
 - `context.plugin`: das geparste Manifest.
-- `context.rxjs`: der von pi-web core bereitgestellte RxJS-Namespace.
-- `context.api.get(path)` / `context.api.post(path, body)`: ruft pi-web HTTP APIs auf.
-- `context.backend(method, { workspaceId, data })`: ruft das optionale backend-Skript auf. `workspaceId` ist optional;
-  `data` wird zum backend stdin JSON.
-- `context.mount.chat(element)` / `context.mount.composer(element)`: mountet chat- oder composer-Surfaces.
-- `context.chat`: hängt Transcript-Nachrichten an, streamt, rendert, finalisiert und scrollt.
-- `context.composer`: liest, setzt, sendet, bricht ab, hängt an oder leert die Prompt-Eingabe.
-- `context.session`: prüft die aktive Session, sendet Prompts, steuert, bricht ab oder abonniert Session-Events.
-- `context.files`: sucht oder liest Workspace-Dateien.
-- `context.shell`: führt Workspace-Shell-Befehle aus.
+- `context.piWeb`: pi-web Standardobjekt, inklusive gemeinsamer Subject Registry.
+- `context.rxjs`: Compatibility RxJS Namespace. In gebündelten Plugins direkte `rxjs` Imports bevorzugen.
+- `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP APIs aufrufen.
+- `context.backend(method, { workspaceId, data })`: optionales backend script aufrufen. `workspaceId` ist optional;
+  `data` wird backend stdin JSON.
+- `context.mount.chat(element)` / `context.mount.composer(element)`: chat oder composer surfaces mounten.
+- `context.chat`: transcript messages append, stream, render, finalize und scroll.
+- `context.composer`: prompt input read, set, submit, cancel, attach oder clear.
+- `context.session`: active process session inspizieren, prompts posten, steer, cancel oder process events subscriben.
+- `context.files`: workspace files suchen/lesen.
+- `context.shell`: workspace shell commands ausführen.
 
-## Core RxJS für Plugins
+## localStorage Standard
 
-pi-web installiert RxJS im core und stellt es als `context.rxjs` bereit. Verwende dies statt einer separat gebündelten
-RxJS-Kopie, wenn Plugins kompatible Observables, Subjects oder Subscriptions benötigen.
+Plugins verwenden die Browser API `localStorage` direkt. pi-web wrappt Storage nicht. Der Standard definiert nur Key
+Naming und JSON Shape.
 
 ```ts
-import type { BehaviorSubject, Subscription } from "rxjs";
-
-type PluginContext = {
-  rxjs: typeof import("rxjs");
+type SessionState = {
+  activeSessionId: string | null;
 };
 
-type PluginState = {
-  count: number;
+const storageKey: string = "pi-web:plugin:session:state";
+const state: SessionState = { activeSessionId: "default" };
+localStorage.setItem(storageKey, JSON.stringify(state));
+```
+
+| Owner | Key | Value |
+| --- | --- | --- |
+| core | `pi-web:settings` | app settings JSON |
+| core | `pi-web:language` | language code string |
+| plugin | `pi-web:plugin:<pluginId>:settings` | plugin settings JSON |
+| plugin | `pi-web:plugin:<pluginId>:state` | plugin state JSON |
+| session plugin | `pi-web:plugin:session:sessions` | session list JSON |
+| session plugin | `pi-web:plugin:session:active-session-id` | active session id string |
+
+Regeln: `pi-web:` als Top-Level Prefix verwenden; in Plugin Keys die Manifest `plugin.id` nutzen; strukturierte Werte
+als
+JSON speichern; Plugins können weitere Keys unter `pi-web:plugin:<pluginId>:` definieren.
+
+## RxJS Standard
+
+Plugins importieren RxJS direkt für operators, `Observable`, `Subscription` und lokale subjects.
+
+```ts
+import { filter, map, type Subscription } from "rxjs";
+```
+
+pi-web stellt nur eine gemeinsame Subject Registry bereit, damit Plugins per Name dieselbe Subject Instanz erhalten. Es
+wrappt keine operators und keine observable composition.
+
+```ts
+import type { BehaviorSubject, Subject } from "rxjs";
+
+type PiWebSubjects = {
+  subject<T>(name: string): Subject<T>;
+  behaviorSubject<T>(name: string, initialValue: T): BehaviorSubject<T>;
+  replaySubject<T>(name: string, bufferSize?: number): import("rxjs").ReplaySubject<T>;
+  asyncSubject<T>(name: string): import("rxjs").AsyncSubject<T>;
+  hasSubject(name: string): boolean;
+  deleteSubject(name: string): boolean;
+  completeSubject(name: string): void;
+  listSubjects(): string[];
+};
+```
+
+Publisher:
+
+```ts
+type LanguageCode = "en" | "ko" | "ja";
+
+type PluginContext = {
+  piWeb: PiWebSubjects;
+};
+
+export function activate(context: PluginContext): void {
+  const language$: BehaviorSubject<LanguageCode> = context.piWeb.behaviorSubject<LanguageCode>(
+    "core.language",
+    "en",
+  );
+  language$.next("ko");
+}
+```
+
+Subscriber:
+
+```ts
+import { filter, type Subscription } from "rxjs";
+
+type LanguageCode = "en" | "ko" | "ja";
+
+type PluginContext = {
+  piWeb: PiWebSubjects;
 };
 
 export function activate(context: PluginContext): () => void {
-  const state$: BehaviorSubject<PluginState> = new context.rxjs.BehaviorSubject<PluginState>({ count: 0 });
-  const subscription: Subscription = state$.subscribe((state: PluginState): void => {
-    console.log("plugin state", state);
-  });
-
-  state$.next({ count: 1 });
+  const subscription: Subscription = context.piWeb
+    .behaviorSubject<LanguageCode>("core.language", "en")
+    .pipe(filter((language: LanguageCode): boolean => language.length > 0))
+    .subscribe((language: LanguageCode): void => {
+      console.log(language);
+    });
 
   return (): void => {
     subscription.unsubscribe();
-    state$.complete();
   };
 }
 ```
 
-Importiere kein Runtime-RxJS aus einem ungebündelten Browser-Plugin-Entry. Wenn ein Plugin gebündelt wird, halte `rxjs`
-als external oder `peerDependency` und verwende zur Laufzeit `context.rxjs`, damit Plugins keine isolierten
-RxJS-Instanzen erzeugen.
+Registry Regeln:
 
-RxJS-Sharing teilt nur die Bibliotheksinstanz. Plugins teilen Zustand nur, wenn sie dasselbe `Subject`,
-`BehaviorSubject` oder Observable-Objekt über plugin context, eine Host-API oder eine andere explizite Bridge
-weitergeben.
+- Derselbe `name` gibt dieselbe Subject Instanz zurück.
+- Ein Name kann nicht mit einem anderen Subject kind wiederverwendet werden.
+- Bei `behaviorSubject` besitzt der erste Aufruf den initial value. Spätere initial values werden ignoriert.
+- `deleteSubject` ist für plugin-owned channels. Core channels nicht löschen.
+- Permissions und read-only policies sind bewusst nicht Teil dieses Standards.
 
-## Optionale backend-Skripte
+## Standard channels
 
-Optionale backend-Skripte werden bei Bedarf lokal ausgeführt. JavaScript-backends laufen mit Node; Go-backends werden
-automatisch gebaut und gecacht. Das Skript erhält die Argumente `method` und `workspaceRoot`, liest das `data` JSON von
+Verwende den Suffix `$` für Variablen mit RxJS streams. Channel names enthalten kein `$`.
+
+| Channel | Kind | Payload | Owner |
+| --- | --- | --- | --- |
+| `core.language` | `BehaviorSubject` | language code string | core |
+| `core.language.changed` | `Subject` | language code string | core |
+| `core.settings.changed` | `Subject` | `{ key: string; value: unknown }` | core |
+| `chat.input` | `BehaviorSubject` | input text string | chat plugin |
+| `chat.input.submitted` | `Subject` | `{ text: string; attachments: unknown[] }` | chat plugin |
+| `chat.message.received` | `Subject` | message object | chat plugin |
+| `session.activeId` | `BehaviorSubject` | `string | null` | session plugin |
+| `session.changed` | `Subject` | session change object | session plugin |
+| `shortcut.pressed` | `Subject` | shortcut event object | shortcuts plugin |
+| `toast.requested` | `Subject` | toast request object | toast plugin |
+| `button.clicked` | `Subject` | button event object | owning plugin |
+| `touch.pressed` | `Subject` | touch event object | owning plugin |
+
+## Namensregeln
+
+Core channels starten mit `core.`. Feature plugin channels starten mit dem Feature-Namen: `chat.`, `session.`,
+`shortcut.`, `toast.`. Private plugin channels starten mit `plugin.<pluginId>.`. Event channels nutzen Verben oder
+Past-Tense Eventnamen: `changed`, `submitted`, `received`, `pressed`. State channels nutzen Nomen: `core.language`,
+`session.activeId`, `chat.input`.
+
+## Cleanup
+
+Plugins müssen subscriptions unsubscriben und selbst erzeugtes DOM entfernen. Plugin-owned Subjects können bei unload
+completed oder deleted werden.
+
+```ts
+import type { Subscription } from "rxjs";
+
+export function activate(context: PluginContext): () => void {
+  const subscription: Subscription = context.piWeb
+    .subject<string>("plugin.example.closed")
+    .subscribe((value: string): void => console.log(value));
+
+  return (): void => {
+    subscription.unsubscribe();
+    context.piWeb.completeSubject("plugin.example.closed");
+    context.piWeb.deleteSubject("plugin.example.closed");
+  };
+}
+```
+
+## Optionale backend scripts
+
+Optionale backend scripts werden lokal bei Bedarf ausgeführt. JavaScript backends laufen mit Node; Go backends werden
+automatisch gebaut und gecached. Das Script erhält die Argumente `method` und `workspaceRoot`, liest das `data` JSON aus
 stdin und muss gültiges JSON nach stdout schreiben.
 
 ```ts
@@ -125,7 +260,7 @@ process.stdin.on("data", (chunk: Buffer): void => {
 });
 
 process.stdin.on("end", (): void => {
-  const received: BackendInput = JSON.parse(input || "{}");
+  const received: BackendInput = JSON.parse(input || "{}") as BackendInput;
   const output: BackendOutput = { method, workspaceRoot, received };
   console.log(JSON.stringify(output));
 });
