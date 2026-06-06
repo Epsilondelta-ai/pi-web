@@ -25,11 +25,8 @@ describe("pi-app session bootstrap", () => {
     }));
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
-    const sessionMain = app.querySelector("[data-main='session']");
-    const emptyMain = document.createElement("main");
+    const sessionMain = app.querySelector("[data-main]");
     sessionMain.hidden = true;
-    emptyMain.dataset.main = "empty";
-    app.append(emptyMain);
     app.loadWorkspaceCommands = vi.fn();
     app.loadRuntimeStatus = vi.fn();
     app.loadWorkspaceMeta = vi.fn();
@@ -38,8 +35,7 @@ describe("pi-app session bootstrap", () => {
     await app.bootstrapAPI();
     expect(app.dataset.activeWorkspaceId).toBe("w2");
     expect(app.dataset.activeSessionId).toBe("s2");
-    expect(sessionMain.hidden).toBe(true);
-    expect(emptyMain.hidden).toBe(false);
+    expect(sessionMain.hidden).toBe(false);
     expect(app.termInner.querySelector("[data-welcome-banner]")).toBeNull();
     expect(app.termInner.querySelector(".ascii-banner")).toBeNull();
     expect(app.loadWorkspaceMeta).toHaveBeenCalledWith("w2");
@@ -60,11 +56,8 @@ describe("pi-app session bootstrap", () => {
     }));
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
-    const sessionMain = app.querySelector("[data-main='session']");
-    const emptyMain = document.createElement("main");
+    const sessionMain = app.querySelector("[data-main]");
     sessionMain.hidden = true;
-    emptyMain.dataset.main = "empty";
-    app.append(emptyMain);
     app.loadWorkspaceCommands = vi.fn();
     app.loadRuntimeStatus = vi.fn();
     app.loadWorkspaceMeta = vi.fn();
@@ -73,7 +66,6 @@ describe("pi-app session bootstrap", () => {
     await app.bootstrapAPI();
 
     expect(sessionMain.hidden).toBe(false);
-    expect(emptyMain.hidden).toBe(true);
     expect(app.termInner.textContent).toContain("loaded");
   });
 });
@@ -86,8 +78,7 @@ describe("pi-app empty session", () => {
     const app = await connectPiApp();
     app.prompt.value = "hello";
     await app.submitPrompt();
-    expect(app.querySelector("[data-main='session']").hidden).toBe(false);
-    expect(app.querySelector("[data-main='empty']").hidden).toBe(true);
+    expect(app.querySelector("[data-main]").hidden).toBe(false);
     expect(app.querySelector(".msg[data-kind='user'] .body").textContent).toBe("hello");
     expect(app.querySelector(".msg.loading .spinner")).not.toBeNull();
     expect(app.querySelector(".ascii-banner")).toBeNull();

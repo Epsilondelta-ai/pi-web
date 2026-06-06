@@ -1,27 +1,3 @@
-.sb-collapse:hover { color: var(--accent); border-color: var(--border); }
-
-.app:not(:has(.sidebar-wrap)) .topbar .sb-expand-btn,
-.app:not(:has(.sidebar-wrap)) .topbar .hamburger {
-  display: none !important;
-}
-
-.topbar .sb-expand-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  background: var(--bg-1);
-  color: var(--fg-2);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  border-radius: var(--radius-1);
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 4px;
-}
-.topbar .sb-expand-btn:hover { color: var(--accent); border-color: var(--accent); }
-
 .sidebar {
   background: var(--bg-2);
   border-right: 1px solid var(--border);

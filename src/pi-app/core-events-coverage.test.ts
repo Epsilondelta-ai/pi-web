@@ -77,27 +77,7 @@ describe("pi-app core events coverage", () => {
     app.closeTreeFromOutside({ target: app.querySelector(".tree"), composedPath: () => [app.querySelector(".tree")] });
     expect(app.dataset.tree).toBe("on");
 
-    app.toggleDrawer(true);
-    expect(app.querySelector('[data-action="open-drawer"]').getAttribute("aria-label")).toBe("close sidebar");
-    app.toggleDrawer(false);
-    expect(app.querySelector('[data-action="open-drawer"]').getAttribute("aria-label")).toBe("open sidebar");
-
-    localStorage.setItem("pi.sb.width", "999");
     app.restoreSidebar();
-    expect(app.dataset.sidebarWidth).toBe("480");
-    localStorage.setItem("pi.sb.collapsed", "1");
-    app.restoreSidebar();
-    expect(app.dataset.sidebar).toBe("collapsed");
-    app.collapseSidebar(false);
-    expect(app.querySelector(".sidebar-wrap").hidden).toBe(false);
-
-    app.dataset.sidebarWidth = "280";
-    app.startResize({ preventDefault: vi.fn(), clientX: 100 });
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: -100 }));
-    expect(app.dataset.sidebarWidth).toBe("200");
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 500 }));
-    expect(app.dataset.sidebarWidth).toBe("480");
-    window.dispatchEvent(new PointerEvent("pointerup"));
 
     app.notifyTranscriptNodeHeightDidChange = vi.fn();
     const card = document.createElement("div");

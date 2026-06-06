@@ -625,27 +625,21 @@ describe("workspace bootstrap coverage", () => {
     expect(() => app.openActiveWorkspaceGroup("bare")).not.toThrow();
   });
 
-  it("shows the empty shell when bootstrap has no session to load", async () => {
+  it("keeps main empty when bootstrap has no session to load", async () => {
     const app = await connectPiApp();
     app.dataset.route = "workspace";
     const sessionMain = app.querySelector("main") || document.createElement("main");
-    const emptyMain = document.createElement("main");
-    const emptyWorkspace = document.createElement("span");
-    sessionMain.dataset.main = "session";
-    emptyMain.dataset.main = "empty";
-    emptyMain.hidden = true;
-    emptyWorkspace.dataset.emptyWorkspace = "";
+    sessionMain.toggleAttribute("data-main", true);
+    sessionMain.replaceChildren();
     if (!sessionMain.isConnected) app.append(sessionMain);
-    app.append(emptyMain, emptyWorkspace);
     globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
       ? okJson({ workspaces: [] })
       : okJson({}));
 
     await app.bootstrapAPI();
 
-    expect(sessionMain.hidden).toBe(true);
-    expect(emptyMain.hidden).toBe(false);
-    expect(emptyWorkspace.textContent).toBe("pi-web");
+    expect(sessionMain.hidden).toBe(false);
+    expect(sessionMain.childElementCount).toBe(0);
   });
 
   it("boots, refreshes, and applies workspace metadata", async () => {

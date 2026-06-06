@@ -3,8 +3,6 @@
   .app-body { grid-template-columns: 1fr !important; }
   .app-body.with-tree { grid-template-columns: 1fr !important; }
   .main, .prompt-region { grid-column: 1 !important; }
-  .sb-resizer,
-  .sb-collapse { display: none; }
   .sidebar {
     position: absolute;
     left: 0; top: 0; bottom: 0;
@@ -16,8 +14,6 @@
     box-shadow: var(--shadow-drawer);
     border-right: 1px solid var(--border);
   }
-  .app-body.drawer-open .sidebar { transform: translateX(0); }
-  .app-body.drawer-open .scrim { display: block; }
   .tree {
     position: absolute;
     right: 0; top: 0; bottom: 0;
@@ -30,11 +26,9 @@
   }
   .app-body.tree-open .tree { transform: translateX(0); }
   .app-body.tree-open .scrim { display: block; }
-  .topbar .hamburger { display: inline-flex; }
   .topbar .brand { display: none; }
   .tree-title { display: none; }
   .prompt-region { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
-  .topbar .hamburger,
   .topbar .iconbtn,
   .attach-btn,
   .send-btn,
@@ -57,7 +51,6 @@
 }
 
 @media (min-width: 881px) {
-  .topbar .hamburger { display: none; }
   .topbar .iconbtn.mobile-only { display: none; }
 }
 ::-webkit-scrollbar { width: 8px; height: 8px; }

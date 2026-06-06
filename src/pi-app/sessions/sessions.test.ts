@@ -72,11 +72,8 @@ describe("pi-app sessions", () => {
     }));
     const app = await connectPiApp();
     const sessionMain = app.querySelector("main");
-    const emptyMain = document.createElement("main");
-    sessionMain.dataset.main = "session";
+    sessionMain.toggleAttribute("data-main", true);
     sessionMain.hidden = true;
-    emptyMain.dataset.main = "empty";
-    app.append(emptyMain);
     app.apiConnected = true;
     app.dataset.activeWorkspaceId = "w1";
     app.connectEvents = vi.fn();
@@ -86,8 +83,7 @@ describe("pi-app sessions", () => {
 
     expect(app.dataset.activeSessionId).toBe("s1");
     expect(app.dataset.session).toBe("empty");
-    expect(sessionMain.hidden).toBe(true);
-    expect(emptyMain.hidden).toBe(false);
+    expect(sessionMain.hidden).toBe(false);
     expect(app.querySelector("[data-session='s1']").classList.contains("selected")).toBe(true);
     expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(false);
   });

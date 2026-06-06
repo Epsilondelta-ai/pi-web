@@ -14,16 +14,9 @@ function appendSessionShell(app, workspaceId = "w1") {
   activeTitle.dataset.activeSessionTitle = "";
   app.append(activeTitle);
   const sessionMain = app.querySelector("main") || document.createElement("main");
-  sessionMain.dataset.main = "session";
-  const emptyMain = document.createElement("main");
-  emptyMain.dataset.main = "empty";
-  emptyMain.hidden = true;
+  sessionMain.toggleAttribute("data-main", true);
   if (!sessionMain.isConnected) app.append(sessionMain);
-  app.append(emptyMain);
-  const emptyWorkspace = document.createElement("span");
-  emptyWorkspace.dataset.emptyWorkspace = "";
-  app.append(emptyWorkspace);
-  return { activeTitle, sessionMain, emptyMain, emptyWorkspace };
+  return { activeTitle, sessionMain };
 }
 
 function mockFetchJson(body, ok = true) {
@@ -89,7 +82,6 @@ describe("pi-app session method mutations", () => {
     const oldRow = app.createSessionRow("w1", { id: "old", title: "old", lastUsed: "now", active: true });
     const row = app.createSessionRow("w1", { id: "s1", title: "one", lastUsed: "now" });
     app.append(oldRow, row);
-    app.toggleDrawer = vi.fn();
     app.loadSession = vi.fn();
     app.loadWorkspaceCommands = vi.fn();
     app.loadRuntimeStatus = vi.fn();
@@ -104,7 +96,6 @@ describe("pi-app session method mutations", () => {
     expect(app.loadSession).toHaveBeenCalledWith("s1");
 
     activeTitle.remove();
-    delete app.toggleDrawer;
     app.apiConnected = false;
     await app.pickSession(row);
     expect(JSON.parse(localStorage.getItem("pi.activeSession"))).toEqual({ workspaceId: "w1", sessionId: "s1" });

@@ -93,7 +93,6 @@ export const sessionMethods = {
     }
     this.resetActiveSessionState();
     this.showSessionMain();
-    this.toggleDrawer?.(false);
     if (this.apiConnected) await this.loadSession(row.dataset.session);
     else storeActiveSession(row.dataset.workspace, row.dataset.session);
     this.scrollTerm();
@@ -175,13 +174,8 @@ export const sessionMethods = {
   },
 
   updateEmptySessionWorkspaceLabel(workspaceId) {
-    const label = this.querySelector(`[data-workspace='${workspaceId}'] .label`)?.textContent
-      || workspaceId
-      || "pi-web";
-    const empty = this.querySelector("[data-empty-workspace]");
     const title = this.querySelector("[data-active-session-title]");
-    if (empty) empty.textContent = label;
-    if (title && !this.dataset.activeSessionId) title.textContent = "new session";
+    if (title && !this.dataset.activeSessionId) title.textContent = workspaceId ? "new session" : "no session";
   },
 
   activateCreatedSession(workspaceId, session) {
@@ -236,16 +230,14 @@ export const sessionMethods = {
   },
   showSessionMain() {
     this.dataset.session = "active";
-    this.querySelector("[data-main='session']")?.removeAttribute("hidden");
-    this.querySelector("[data-main='empty']")?.setAttribute("hidden", "");
+    this.querySelector("[data-main]")?.removeAttribute("hidden");
     this.scrollTerm();
   },
 
   showEmptyMain(workspaceId = this.dataset.activeWorkspaceId || "") {
     this.dataset.session = "empty";
     this.updateEmptySessionWorkspaceLabel(workspaceId);
-    this.querySelector("[data-main='session']")?.setAttribute("hidden", "");
-    this.querySelector("[data-main='empty']")?.removeAttribute("hidden");
+    this.querySelector("[data-main]")?.removeAttribute("hidden");
   },
 
   ...sessionMenuMethods,

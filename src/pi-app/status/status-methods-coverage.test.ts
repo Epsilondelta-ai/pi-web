@@ -44,8 +44,8 @@ describe("status method branch coverage", () => {
     const el = host(`
       <section data-view="picker"><div class="picker-shell"><input name="path"></div></section>
       <section data-view="workspace" class="app-body"><div class="term"></div></section>
-      <button data-action="toggle-tree"></button><button data-action="toggle-plugin-sidebar" data-plugin-panel="git-viewer"></button><button data-action="open-drawer"></button>
-      <div class="tree" data-plugin-sidebar><div data-plugin-panel="file-browser"></div><div data-plugin-panel="git-viewer"></div><div data-plugin-sidebar-empty></div></div><div class="sidebar-wrap"></div><button class="sb-expand-btn"></button>
+      <button data-action="toggle-tree"></button><button data-action="toggle-plugin-sidebar" data-plugin-panel="git-viewer"></button>
+      <div class="tree" data-plugin-sidebar><div data-plugin-panel="file-browser"></div><div data-plugin-panel="git-viewer"></div><div data-plugin-sidebar-empty></div></div>
     `);
     el.trapSettingsFocus = vi.fn();
     el.closeModals = vi.fn();
@@ -60,27 +60,9 @@ describe("status method branch coverage", () => {
     el.route("workspace");
     expect(el.querySelector('[data-view="workspace"]').hidden).toBe(false);
 
-    vi.spyOn(Storage.prototype, "getItem").mockReturnValueOnce(null).mockImplementationOnce(() => { throw new Error("blocked"); });
     el.restoreSidebar();
-    el.restoreSidebar();
-    vi.restoreAllMocks();
-    const originalLocalStorage = globalThis.localStorage;
-    Object.defineProperty(globalThis, "localStorage", { configurable: true, get: () => { throw new Error("blocked"); } });
-    el.restoreSidebar();
-    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: originalLocalStorage });
-    localStorage.setItem("pi.sb.width", "bad");
-    el.restoreSidebar();
-    localStorage.setItem("pi.sb.width", "120");
-    el.restoreSidebar();
-    expect(el.dataset.sidebarWidth).toBe("200");
-    el.dataset.sidebar = "open";
-    el.applyGrid();
-    expect(el.querySelector(".app-body").style.gridTemplateColumns).toContain("200px");
-    const sidebar = el.querySelector(".sidebar-wrap");
-    sidebar.remove();
     el.applyGrid();
     expect(el.querySelector(".app-body").style.gridTemplateColumns).toBe("1fr");
-    el.querySelector(".app-body").insertAdjacentElement("afterbegin", sidebar);
     el.toggleTree();
     el.togglePluginSidebar("git-viewer");
     expect(el.querySelector('[data-plugin-panel="git-viewer"]').hidden).toBe(false);
@@ -88,8 +70,6 @@ describe("status method branch coverage", () => {
     el.syncPluginSidebarPanels();
     el.togglePluginSidebar();
     el.toggleTree();
-    el.toggleDrawer();
-    el.toggleDrawer();
     el.dataset.tree = "off";
     el.closeTreeFromOutside({ target: document.createElement("span") });
     const treeForNoTreeBranch = el.querySelector("[data-plugin-sidebar]");
@@ -105,21 +85,8 @@ describe("status method branch coverage", () => {
     el.closeTreeFromOutside({ target: document.createElement("span"), composedPath: () => [{ matches: () => true }] });
     el.closeTreeFromOutside({ target: null, composedPath: () => [] });
     el.closeTreeFromOutside({ target: { closest: () => null }, composedPath: () => [] });
-    const appBody = el.querySelector(".app-body");
-    appBody.remove();
-    el.toggleDrawer();
-    el.append(appBody);
-
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
-    el.dataset.sidebar = "collapsed";
     el.restoreSidebar();
-    el.collapseSidebar(true);
-    delete el.dataset.sidebarWidth;
-    el.startResize({ preventDefault: vi.fn(), clientX: 10 });
-    delete el.dataset.sidebarWidth;
-    window.dispatchEvent(new PointerEvent("pointerup"));
-    window.dispatchEvent(new PointerEvent("pointermove", { clientX: 500 }));
-    window.dispatchEvent(new PointerEvent("pointerup"));
     vi.restoreAllMocks();
 
     el.notifyTranscriptNodeHeightDidChange = vi.fn();

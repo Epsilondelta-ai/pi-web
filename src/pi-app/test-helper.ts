@@ -18,47 +18,37 @@ function memoryStorage() {
 export function installPiAppFixture() {
   vi.stubGlobal("localStorage", memoryStorage());
   document.body.innerHTML = `
-    <pi-app data-tree="on" data-sidebar="open">
-      <button
-        class="hamburger"
-        type="button"
-        data-action="open-drawer"
-        aria-label="open sidebar"
-        aria-expanded="false"
-      >≡</button>
+    <pi-app data-tree="on">
       <section data-view="picker" hidden></section>
       <section class="app-body with-tree" data-view="workspace">
-        <div class="sidebar-wrap">
-          <aside class="sidebar">
-            <div class="sb-section">
-              <div class="sb-head">
-                <span>workspaces</span>
-                <span class="sb-head-actions">
-                  <button class="add" type="button" data-action="route-picker">+ open</button>
-                  <button
-                    class="refresh"
-                    type="button"
-                    data-action="refresh-workspaces"
-                    title="refresh workspaces"
-                    aria-label="refresh workspaces"
-                  >↻</button>
-                </span>
-              </div>
+        <aside class="sidebar">
+          <div class="sb-section">
+            <div class="sb-head">
+              <span>workspaces</span>
+              <span class="sb-head-actions">
+                <button class="add" type="button" data-action="route-picker">+ open</button>
+                <button
+                  class="refresh"
+                  type="button"
+                  data-action="refresh-workspaces"
+                  title="refresh workspaces"
+                  aria-label="refresh workspaces"
+                >↻</button>
+              </span>
             </div>
-          </aside>
-          <div class="sb-footer">
-            <button class="update-release" type="button" data-action="show-update-tip" hidden>
-              New Version Released!
-            </button>
-            <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
-            <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
           </div>
+        </aside>
+        <div class="sb-footer">
+          <button class="update-release" type="button" data-action="show-update-tip" hidden>
+            New Version Released!
+          </button>
+          <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
+          <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
         </div>
-        <main data-main="session"><div class="term"><div class="term-inner"></div></div></main>
+        <main data-main><div class="term"><div class="term-inner"></div></div></main>
         <aside class="tree"></aside>
-        <div class="scrim" data-action="close-drawer"></div>
+        <div class="scrim"></div>
       </section>
-      <button class="sb-expand-btn"></button>
       <div class="prompt-region">
         <div class="slash-pop" hidden>
           <div class="slash-list">
@@ -166,8 +156,7 @@ export function installEmptySessionFixture() {
   vi.stubGlobal("localStorage", memoryStorage());
   document.body.innerHTML = `
     <pi-app data-active-session-id="s1" data-session="empty">
-      <main data-main="session" hidden><div class="term"><div class="term-inner"></div></div></main>
-      <main data-main="empty"><div class="empty-shell">new session</div></main>
+      <main data-main><div class="term"><div class="term-inner"></div></div></main>
       <div class="prompt-region">
         <div class="slash-pop" hidden></div>
         <div class="attach-chips" hidden></div>

@@ -376,8 +376,6 @@ export const workspaceBootstrapMethods = {
     const group = this.findWorkspaceGroup(workspaceId);
     const name = group?.querySelector(".label")?.textContent || workspaceId;
     const label = this.querySelector("[data-active-workspace]");
-    const empty = this.querySelector("[data-empty-workspace]");
     if (label) label.textContent = name;
-    if (empty) empty.textContent = name;
   },
 };

@@ -8,9 +8,6 @@
   grid-row: 2;
   min-width: 0;
 }
-.app:has(.sidebar-wrap:not([hidden])) .prompt-region { grid-column: 2; }
-.app[data-sidebar="collapsed"] .prompt-region { grid-column: 1; }
-
 .prompt-bar {
   display: grid;
   grid-template-columns: auto 1fr auto;

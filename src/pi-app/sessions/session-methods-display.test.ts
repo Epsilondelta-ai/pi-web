@@ -14,16 +14,9 @@ function appendSessionShell(app, workspaceId = "w1") {
   activeTitle.dataset.activeSessionTitle = "";
   app.append(activeTitle);
   const sessionMain = app.querySelector("main") || document.createElement("main");
-  sessionMain.dataset.main = "session";
-  const emptyMain = document.createElement("main");
-  emptyMain.dataset.main = "empty";
-  emptyMain.hidden = true;
+  sessionMain.toggleAttribute("data-main", true);
   if (!sessionMain.isConnected) app.append(sessionMain);
-  app.append(emptyMain);
-  const emptyWorkspace = document.createElement("span");
-  emptyWorkspace.dataset.emptyWorkspace = "";
-  app.append(emptyWorkspace);
-  return { activeTitle, sessionMain, emptyMain, emptyWorkspace };
+  return { activeTitle, sessionMain };
 }
 
 function mockFetchJson(body, ok = true) {
@@ -77,15 +70,14 @@ describe("pi-app session method display states", () => {
     app.apiConnected = false;
     app.dataset.activeWorkspaceId = "";
     await app.newSession();
-    expect(shell.emptyWorkspace.textContent).toBe("pi-web");
+    expect(app.dataset.session).toBe("empty");
 
     app.dataset.activeWorkspaceId = "w1";
     await app.newSession();
-    expect(shell.emptyWorkspace.textContent).toBe("demo");
     expect(shell.activeTitle.textContent).toBe("new session");
     app.querySelector("[data-workspace='w1'] .label")?.remove();
     await app.newSession("w1");
-    expect(shell.emptyWorkspace.textContent).toBe("w1");
+    expect(app.dataset.session).toBe("empty");
 
     app.dataset.activeSessionId = "existing";
     await app.newSession("w1");
@@ -96,9 +88,7 @@ describe("pi-app session method display states", () => {
     app.apiConnected = true;
     app.connectEvents = vi.fn();
     await app.newSession("w1");
-    expect(shell.sessionMain.hidden).toBe(true);
-    expect(shell.emptyMain.hidden).toBe(false);
-    expect(shell.emptyWorkspace.textContent).toBe("w1");
+    expect(shell.sessionMain.hidden).toBe(false);
     expect(app.dataset.activeSessionId).toBe("created");
 
     app.dataset.activeSessionId = "";
@@ -144,7 +134,7 @@ describe("pi-app session method display states", () => {
 
   it("handles display helpers and menu variants", async () => {
     const app = await connectPiApp();
-    const { sessionMain, emptyMain } = appendSessionShell(app);
+    const { sessionMain } = appendSessionShell(app);
     app.removeLoadingMessage = vi.fn();
     app.updatePrompt = vi.fn();
     app.resetActiveSessionState();
@@ -158,12 +148,9 @@ describe("pi-app session method display states", () => {
 
     app.showSessionMain();
     expect(sessionMain.hidden).toBe(false);
-    expect(emptyMain.hidden).toBe(true);
     app.showEmptyMain();
-    expect(sessionMain.hidden).toBe(true);
-    expect(emptyMain.hidden).toBe(false);
+    expect(sessionMain.hidden).toBe(false);
     sessionMain.remove();
-    emptyMain.remove();
     app.showSessionMain();
     app.showEmptyMain();
 

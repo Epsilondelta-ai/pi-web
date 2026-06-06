@@ -22,8 +22,7 @@ describe("pi-app input actions coverage", () => {
     const calls = [];
     [
       "route", "refreshWorkspaces", "browseFolder", "loadFolder", "openWorkspacePath", "toggleTree", "togglePluginSidebar", "showFileTreePanel", "showGitHistory", "loadMoreGitHistory", "selectGitCommit", "closeGitDetail", "refreshTree",
-      "refreshGitHistory", "openFile", "collapseSidebar",
-      "toggleDrawer", "toggleTool", "showFullToolOutput", "toggleWorkspace", "deleteWorkspace", "deleteWorkspaceSessions",
+      "refreshGitHistory", "openFile", "toggleTool", "showFullToolOutput", "toggleWorkspace", "deleteWorkspace", "deleteWorkspaceSessions",
       "newSession", "toggleSessionMenu", "renameSession", "deleteSession", "submitFallbackChoice", "showUpdateTip", "openSettingsModal",
       "closeSettingsModal", "saveSettingsForm", "saveAuthForm", "logoutAuthProvider", "startOAuthLogin", "logoutOAuthProvider", "sendOAuthInput", "pickSession", "openWorkspace", "fillPrompt", "pickSlash",
     ].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
@@ -31,7 +30,7 @@ describe("pi-app input actions coverage", () => {
     app.currentFolderParent = "/";
     const actions = [
       "route-picker", "route-workspace", "refresh-workspaces", "browse-folder", "folder-enter", "folder-up",
-      "folder-open-current", "toggle-tree", "toggle-plugin-sidebar", "show-file-tree", "show-git-history", "load-more-git-history", "select-git-commit", "close-git-detail", "refresh-tree", "tree-root-menu", "open-file", "collapse-sidebar", "expand-sidebar", "open-drawer", "close-drawer",
+      "folder-open-current", "toggle-tree", "toggle-plugin-sidebar", "show-file-tree", "show-git-history", "load-more-git-history", "select-git-commit", "close-git-detail", "refresh-tree", "tree-root-menu", "open-file",
       "toggle-tool", "show-full-tool-output", "toggle-workspace", "delete-workspace", "delete-workspace-sessions", "new-session",
       "session-menu-toggle", "rename-session", "delete-session", "show-update-tip", "open-settings", "close-settings", "save-settings",
       "save-auth-provider", "logout-auth-provider", "start-oauth-login", "logout-oauth-provider", "send-oauth-input",
