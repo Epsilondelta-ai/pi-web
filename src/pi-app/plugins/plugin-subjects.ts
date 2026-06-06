@@ -28,7 +28,7 @@ type PiWebWindow = Window & typeof globalThis & {
 const registry: Map<string, SubjectEntry> = new Map<string, SubjectEntry>();
 
 function piWebVersion(): string {
-  return typeof __PI_WEB_VERSION__ === "string" ? __PI_WEB_VERSION__ : "dev";
+  return __PI_WEB_VERSION__;
 }
 
 function assertSubjectKind(name: string, expectedKind: PiWebSubjectKind, entry: SubjectEntry): void {
