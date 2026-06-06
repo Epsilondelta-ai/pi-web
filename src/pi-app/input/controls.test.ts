@@ -957,7 +957,7 @@ describe("pi-app controls", () => {
     const tree = app.querySelector(".tree");
     const main = app.querySelector("main");
 
-    app.toggleTree(true);
+    app.togglePluginSidebar("file-browser", true);
     tree.click();
     expect(app.dataset.tree).toBe("on");
 
@@ -975,7 +975,7 @@ describe("pi-app controls", () => {
     removable.addEventListener("click", () => removable.remove());
     tree.append(removable);
 
-    app.toggleTree(true);
+    app.togglePluginSidebar("file-browser", true);
     removable.click();
 
     expect(app.dataset.tree).toBe("on");
@@ -989,7 +989,7 @@ describe("pi-app controls", () => {
     modal.dataset.fileEditorModal = "";
     app.append(modal);
 
-    app.toggleTree(true);
+    app.togglePluginSidebar("file-browser", true);
     modal.click();
 
     expect(app.dataset.tree).toBe("on");

@@ -44,6 +44,7 @@ export const gitHistoryMethods = {
   },
 
   showFileTreePanel() {
+    this.togglePluginSidebar?.("file-browser", true);
     this.querySelector("[data-git-panel]")?.setAttribute("hidden", "");
     this.querySelector(".tree-list")?.removeAttribute("hidden");
     this.querySelector("[data-action='show-git-history']")?.classList.remove("on");

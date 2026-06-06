@@ -44,7 +44,7 @@ describe("status method branch coverage", () => {
     const el = host(`
       <section data-view="picker"><div class="picker-shell"><input name="path"></div></section>
       <section data-view="workspace" class="app-body"><div class="term"></div></section>
-      <button data-action="toggle-tree"></button><button data-action="toggle-plugin-sidebar" data-plugin-panel="git-viewer"></button>
+      <button data-plugin-sidebar-open></button>
       <div class="tree" data-plugin-sidebar><div data-plugin-panel="file-browser"></div><div data-plugin-panel="git-viewer"></div><div data-plugin-sidebar-empty></div></div>
     `);
     el.trapSettingsFocus = vi.fn();
@@ -63,13 +63,13 @@ describe("status method branch coverage", () => {
     el.restoreSidebar();
     el.applyGrid();
     expect(el.querySelector(".app-body").style.gridTemplateColumns).toBe("1fr");
-    el.toggleTree();
+    el.togglePluginSidebar("file-browser");
     el.togglePluginSidebar("git-viewer");
     expect(el.querySelector('[data-plugin-panel="git-viewer"]').hidden).toBe(false);
     delete el.querySelector("[data-plugin-sidebar]").dataset.activePluginPanel;
     el.syncPluginSidebarPanels();
     el.togglePluginSidebar();
-    el.toggleTree();
+    el.togglePluginSidebar("file-browser");
     el.dataset.tree = "off";
     el.closeTreeFromOutside({ target: document.createElement("span") });
     const treeForNoTreeBranch = el.querySelector("[data-plugin-sidebar]");
@@ -77,10 +77,10 @@ describe("status method branch coverage", () => {
     el.syncPluginSidebarPanels();
     el.append(treeForNoTreeBranch);
     el.dataset.tree = "on";
-    el.closeTreeFromOutside({ target: el.querySelector("[data-action='toggle-plugin-sidebar']") });
+    el.closeTreeFromOutside({ target: el.querySelector(".tree") });
     el.dataset.tree = "on";
     const insideTree = document.createElement("span");
-    insideTree.closest = (selector) => selector === ".tree, [data-action='toggle-plugin-sidebar'], [data-file-editor-modal]" ? insideTree : null;
+    insideTree.closest = (selector) => selector === ".tree, [data-plugin-sidebar-open], [data-file-editor-modal]" ? insideTree : null;
     el.closeTreeFromOutside({ target: insideTree, composedPath: () => [] });
     el.closeTreeFromOutside({ target: document.createElement("span"), composedPath: () => [{ matches: () => true }] });
     el.closeTreeFromOutside({ target: null, composedPath: () => [] });
