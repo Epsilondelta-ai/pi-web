@@ -72,7 +72,7 @@ describe("workspace residual method coverage", () => {
   });
 
   it("covers bootstrap session selection, metadata, older messages, and workspace activation branches", async () => {
-    const app = owner(`<span data-active-workspace></span><span data-empty-workspace></span><span data-active-session-title></span><div data-git-status></div><div data-workspace-group="w1"><button class="ws-row"></button><div class="sessions"></div><span class="label">One</span><button data-session="s1" data-title="Saved" data-workspace="w1"></button></div>`);
+    const app = owner(`<span data-active-workspace></span><span data-active-session-title></span><div data-git-status></div><div data-workspace-group="w1"><button class="ws-row"></button><div class="sessions"></div><span class="label">One</span><button data-session="s1" data-title="Saved" data-workspace="w1"></button></div>`);
     localStorage.setItem("pi.activeSession", JSON.stringify({ workspaceId: "w2", sessionId: "s2" }));
     vi.mocked(api.getWorkspaces).mockResolvedValueOnce({ workspaces: [
       { id: "w1", name: "One", sessions: [{ id: "s1", title: "First" }] },

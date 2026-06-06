@@ -1,5 +1,4 @@
 @import "./styles/parts/foundation-layout.css";
-@import "./styles/parts/empty-shell.css";
 @import "./styles/parts/sidebar-workspaces.css";
 @import "./styles/parts/session-agent-children.css";
 @import "./styles/parts/terminal-messages.css";

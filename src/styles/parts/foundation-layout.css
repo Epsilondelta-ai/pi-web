@@ -83,21 +83,6 @@ button.tc-head {
   padding-top: env(safe-area-inset-top);
   box-sizing: content-box;
 }
-.topbar .hamburger {
-  display: none;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--fg-1);
-  border-radius: var(--radius-1);
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  padding: 0;
-}
-.topbar .hamburger:hover { border-color: var(--border-hi); }
 .topbar .brand {
   display: flex;
   align-items: baseline;
@@ -199,54 +184,15 @@ button.tc-head {
 .app-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   grid-template-rows: minmax(0, 1fr) auto;
   min-height: 0;
   position: relative;
 }
-.app-body.with-tree { grid-template-columns: 280px 1fr 320px; }
-
-.sidebar-wrap {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  display: flex;
-  grid-column: 1;
-  grid-row: 1 / 3;
-}
-.sidebar-wrap > .sidebar { flex: 1 1 auto; min-width: 0; }
-
-.sb-resizer {
-  position: absolute;
-  top: 0;
-  right: -2px;
-  bottom: 0;
-  width: 6px;
-  cursor: col-resize;
-  background: transparent;
-  z-index: 5;
-  transition: background var(--dur-fast);
-  user-select: none;
-  touch-action: none;
-}
-.sb-resizer:hover,
-.sb-resizer:active { background: var(--accent); opacity: 0.4; }
+.app-body.with-tree { grid-template-columns: 1fr 320px; }
 
 .sb-head-actions {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-.sb-collapse {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--fg-3);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border-radius: var(--radius-1);
-  line-height: 1;
 }

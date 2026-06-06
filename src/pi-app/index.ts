@@ -228,7 +228,6 @@ class PiApp extends HTMLElement {
       void this.updateWhisperCacheStatus?.();
     });
     this.bindChatSurfaceEvents();
-    this.querySelector(".sb-resizer")?.addEventListener("pointerdown", (event) => this.startResize(event));
     window.addEventListener("pi-workspace-tree:refresh", (event) => {
       const workspaceId = this.dataset.activeWorkspaceId;
       const selectedPath = (event as CustomEvent)?.detail?.selectedPath || "";

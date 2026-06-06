@@ -1,22 +1,5 @@
 import { fullToolBody } from "../messages/tool-output-rendering";
 
-const SIDEBAR_WIDTH_KEY = "pi.sb.width";
-
-function readStoredSidebarWidth() {
-  try {
-    const storedWidthValue = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    if (!storedWidthValue) return undefined;
-    const width = Number(storedWidthValue);
-    return Number.isFinite(width) ? Math.min(480, Math.max(200, width)) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function storeSidebarWidth(width) {
-  try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width)); } catch {}
-}
-
 export const layoutMethods = {
   shortcut(event) {
     if (event.key === "Tab") this.trapSettingsFocus?.(event);
@@ -87,65 +70,16 @@ export const layoutMethods = {
     this.toggleTree(false);
   },
 
-  toggleDrawer(forceOpen) {
-    const body = this.querySelector(".app-body");
-    if (!body) return;
-    const open = forceOpen ?? !body.classList.contains("drawer-open");
-    body.classList.toggle("drawer-open", open);
-    const button = this.querySelector('[data-action="open-drawer"]');
-    button?.setAttribute("aria-expanded", String(open));
-    button?.setAttribute("aria-label", open ? "close sidebar" : "open sidebar");
-  },
-
-  collapseSidebar(collapsed) {
-    this.dataset.sidebar = collapsed ? "collapsed" : "open";
-    this.querySelector(".sidebar-wrap")?.toggleAttribute("hidden", collapsed);
-    const expand = this.querySelector(".sb-expand-btn");
-    if (expand) expand.style.display = collapsed ? "inline-flex" : "none";
-    try { localStorage.setItem("pi.sb.collapsed", collapsed ? "1" : "0"); } catch {}
+  restoreSidebar() {
     this.applyGrid();
   },
 
-  restoreSidebar() {
-    const width = readStoredSidebarWidth();
-    if (width) this.dataset.sidebarWidth = String(width);
-    if (this.dataset.sidebar === "collapsed") {
-      this.collapseSidebar(true);
-      return;
-    }
-    try { this.collapseSidebar(localStorage.getItem("pi.sb.collapsed") === "1"); } catch { this.applyGrid(width); }
-  },
-
-  applyGrid(width = Number(this.dataset.sidebarWidth || 280)) {
+  applyGrid() {
     const body = this.querySelector(".app-body");
     if (!body) return;
     const tree = this.dataset.tree === "on";
-    const hasSidebar = !!this.querySelector(".sidebar-wrap");
-    const collapsed = !hasSidebar || this.dataset.sidebar === "collapsed";
     const treeWidth = 320;
-    const expandedColumns = tree ? `${width}px 1fr ${treeWidth}px` : `${width}px 1fr`;
-    const collapsedColumns = tree ? `1fr ${treeWidth}px` : "1fr";
-    body.style.gridTemplateColumns = collapsed ? collapsedColumns : expandedColumns;
-  },
-
-  startResize(event) {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = Number(this.dataset.sidebarWidth || 280);
-    const saveWidth = (width) => storeSidebarWidth(width);
-    const move = (moveEvent) => {
-      const width = Math.min(480, Math.max(200, startWidth + moveEvent.clientX - startX));
-      this.dataset.sidebarWidth = String(width);
-      this.applyGrid(width);
-      saveWidth(width);
-    };
-    const stopResize = () => {
-      storeSidebarWidth(Number(this.dataset.sidebarWidth || startWidth));
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", stopResize);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", stopResize);
+    body.style.gridTemplateColumns = tree ? `1fr ${treeWidth}px` : "1fr";
   },
 
   toggleTool(button) {

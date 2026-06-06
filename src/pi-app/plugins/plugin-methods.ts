@@ -132,7 +132,6 @@ type PluginHost = HTMLElement & {
   prompt?: HTMLTextAreaElement | null;
   attachmentContents?: unknown[];
   attachments?: HTMLElement | null;
-  requiredChatFallbackCleanup?: PluginCleanup;
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
@@ -246,49 +245,6 @@ function renderPluginUpdateStatus(host: PluginHost, status: PluginUpdateStatus):
   }
 }
 
-function createRequiredChatFallback(host: PluginHost): PluginCleanup | undefined {
-  const appBody: HTMLElement | null = host.querySelector(".app-body");
-  if (!appBody) {
-    return undefined;
-  }
-  const chat = document.createElement("main");
-  chat.className = "main pi-web-chat-required-fallback";
-  chat.dataset.main = "session";
-  chat.dataset.pluginChatRoot = "";
-  chat.innerHTML = [
-    `<div class="term"><div class="term-inner">`,
-    `<div class="msg" data-kind="banner"><div class="prefix pi">pi &gt;</div>`,
-    `<div class="body">pi-web-chat plugin is required for chat input. Install or enable pi-web-chat.</div></div>`,
-    `</div></div>`,
-  ].join("");
-  const composer = document.createElement("section");
-  composer.className = "prompt-region pi-web-chat-required-fallback";
-  composer.dataset.pluginComposerRoot = "";
-  composer.innerHTML = [
-    `<div class="prompt-bar"><div class="prompt-input-col">`,
-    `<textarea class="prompt-textarea" rows="1" disabled`,
-    ` placeholder="pi-web-chat plugin required"></textarea></div>`,
-    `<div class="prompt-actions"><button class="send-btn is-disabled" type="button"`,
-    ` aria-label="send" title="send" aria-disabled="true" disabled>send</button></div></div>`,
-    `<div class="prompt-meta" data-prompt-meta>chat plugin missing</div>`,
-  ].join("");
-  appBody.append(chat, composer);
-  host.refreshChatSurfaceRefs?.();
-  host.initTranscriptWindow?.();
-
-  return () => {
-    chat.remove();
-    composer.remove();
-  };
-}
-
-function ensureRequiredChatSurface(host: PluginHost): void {
-  if (host.querySelector(".term-inner") && host.querySelector(".prompt-textarea")) {
-    return;
-  }
-  host.requiredChatFallbackCleanup = createRequiredChatFallback(host);
-}
-
 function rootAttribute(kind: "chat" | "composer"): "pluginChatRoot" | "pluginComposerRoot" {
   return kind === "chat" ? "pluginChatRoot" : "pluginComposerRoot";
 }
@@ -358,8 +314,6 @@ export const pluginMethods = {
   async loadPlugins(): Promise<void> {
     ensurePiWebSubjects();
     const host: PluginHost = this as PluginHost;
-    host.requiredChatFallbackCleanup?.();
-    host.requiredChatFallbackCleanup = undefined;
     const response = (await getPlugins()) as { plugins?: PluginManifest[] };
     const plugins: PluginManifest[] = response.plugins || [];
     renderPluginList(host, plugins);
@@ -384,7 +338,6 @@ export const pluginMethods = {
         console.error(`Plugin failed: ${pluginLabel(plugin)}`, error);
       }
     }
-    ensureRequiredChatSurface(host);
   },
 
   async deactivateLoadedPlugin(pluginId: string): Promise<void> {

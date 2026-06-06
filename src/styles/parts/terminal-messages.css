@@ -69,9 +69,6 @@
   grid-column: 1;
   grid-row: 1;
 }
-.app:has(.sidebar-wrap:not([hidden])) .main { grid-column: 2; }
-.app[data-sidebar="collapsed"] .main { grid-column: 1; }
-
 .shell-row {
   flex-shrink: 0;
   display: grid;

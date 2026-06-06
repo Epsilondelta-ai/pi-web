@@ -931,20 +931,6 @@ describe("pi-app controls", () => {
     expect(app.style.getPropertyValue("--app-viewport-height")).toBe("567px");
   });
 
-  it("toggles the mobile sidebar drawer from the hamburger button", async () => {
-    const app = await connectPiApp();
-    const hamburger = app.querySelector(".hamburger");
-    const body = app.querySelector(".app-body");
-    hamburger.click();
-    expect(body.classList.contains("drawer-open")).toBe(true);
-    expect(hamburger.getAttribute("aria-expanded")).toBe("true");
-    expect(hamburger.getAttribute("aria-label")).toBe("close sidebar");
-    hamburger.click();
-    expect(body.classList.contains("drawer-open")).toBe(false);
-    expect(hamburger.getAttribute("aria-expanded")).toBe("false");
-    expect(hamburger.getAttribute("aria-label")).toBe("open sidebar");
-  });
-
   it("renders a terminal dot spinner and advances its frame", async () => {
     const app = await connectPiApp();
     app.renderMessages([]);

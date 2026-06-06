@@ -280,10 +280,6 @@ export const inputMethods = {
       }));
     }
     if (action === "open-file") this.openFile(actionTarget);
-    if (action === "collapse-sidebar") this.collapseSidebar(true);
-    if (action === "expand-sidebar") this.collapseSidebar(false);
-    if (action === "open-drawer") this.toggleDrawer();
-    if (action === "close-drawer") this.toggleDrawer(false);
     if (action === "toggle-tool") this.toggleTool(button);
     if (action === "show-full-tool-output") this.showFullToolOutput(actionTarget);
     if (action !== "session-menu-toggle") this.closeSessionMenus(actionTarget?.closest(".session-row"));

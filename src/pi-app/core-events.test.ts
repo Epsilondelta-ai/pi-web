@@ -68,19 +68,17 @@ describe("pi-app core events", () => {
       }),
     });
     ["submitWorkspacePath", "submitCloneWorkspace", "submitShellCommand", "saveSettingsForm", "fillSettingsForm", "fillModelControls", "syncCustomSettingInput", "setModelControlsLoading",
-      "submitPrompt", "cancelActiveSession", "handlePromptPaste", "navigateList", "pickSlash", "addFiles", "startResize",
+      "submitPrompt", "cancelActiveSession", "handlePromptPaste", "navigateList", "pickSlash", "addFiles",
       "shortcut", "closeSessionMenus", "populateBrowserVoiceLanguageOptions"].forEach((name) => { app[name] = (...args) => calls.push([name, ...args]); });
     app.slashPopover.hidden = false;
     app.slashPopover.removeAttribute("hidden");
     const pathForm = document.createElement("form");
     const cloneForm = document.createElement("form");
     const shellForm = document.createElement("form");
-    const resizer = document.createElement("div");
     pathForm.dataset.pathForm = "";
     cloneForm.dataset.cloneForm = "";
     shellForm.dataset.shellForm = "";
-    resizer.className = "sb-resizer";
-    app.append(pathForm, cloneForm, shellForm, resizer);
+    app.append(pathForm, cloneForm, shellForm);
     app.bindDomEvents();
 
     pathForm.dispatchEvent(new Event("submit"));
@@ -100,7 +98,6 @@ describe("pi-app core events", () => {
     app.prompt.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     app.attachButton.click();
     app.fileInput.dispatchEvent(new Event("change"));
-    resizer.dispatchEvent(new PointerEvent("pointerdown"));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     window.dispatchEvent(new Event("click"));
     voicesChanged();

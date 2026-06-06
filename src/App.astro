@@ -1,5 +1,4 @@
 ---
-import EmptySessionShell from "./app-shell/EmptySessionShell.astro";
 import AppIcon from "./shared/icons/AppIcon.astro";
 import { UI_LOCALES } from "./i18n/locales";
 import {
@@ -23,12 +22,10 @@ const activeSessionID = activeSession?.id || "";
 const activeWorkspaceID = activeWorkspace?.id || "";
 const workspaceVisible = initialRoute !== "picker";
 const pickerVisible = initialRoute === "picker";
-const emptyVisible = initialSession === "empty" || !activeSession;
 const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
 const bodyGrid = treeOpen ? "1fr 320px" : "1fr";
 const pickerHidden = !pickerVisible;
 const workspaceHidden = !workspaceVisible;
-const emptyHidden = !emptyVisible;
 const settingsFieldByPath = Object.fromEntries(settingsFields.map((field) => [field.path, field]));
 const settingsGroups = [
   {
@@ -79,8 +76,6 @@ function speechLanguageListId(path) {
 
 <pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
   <header class="topbar">
-    <button class="sb-expand-btn" type="button" data-action="expand-sidebar" aria-label="show sidebar" style="display:none"><AppIcon name="chevron-right" size={16} strokeWidth={1.75} /></button>
-    <button class="hamburger" type="button" data-action="open-drawer" aria-label="open sidebar"><AppIcon name="menu" size={16} strokeWidth={1.75} /></button>
     <span class="brand" aria-label="pi.dev / web">
       <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
     </span>
@@ -89,6 +84,7 @@ function speechLanguageListId(path) {
       <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
     </span>
     <div class="actions" data-plugin-toolbar>
+      <button class="iconbtn" type="button" data-action="toggle-plugin-sidebar" data-plugin-panel="file-browser" title="files" aria-label="toggle plugin sidebar"><AppIcon name="menu" size={14} strokeWidth={1.75} /></button>
       <button class="iconbtn" type="button" data-action="open-settings" title="settings" aria-label="open settings"><AppIcon name="settings" size={14} strokeWidth={1.75} /></button>
       <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
     </div>
@@ -132,14 +128,12 @@ function speechLanguageListId(path) {
   </section>
 
   <section class={bodyClass} data-view="workspace" hidden={workspaceHidden} style={`grid-template-columns:${bodyGrid}`}> 
-    <main class="main" data-main="empty" hidden={emptyHidden}> 
-      <EmptySessionShell workspaceName={activeWorkspaceName} />
-    </main>
+    <main class="main" data-main></main>
 
     <aside class="tree" aria-label="plugin sidebar" data-plugin-sidebar data-active-plugin-panel="file-browser" hidden={treeHidden}> 
       <div class="plugin-sidebar-empty" data-plugin-sidebar-empty>Install file browser or git viewer plugin.</div>
     </aside>
-    <div class="scrim" data-action="close-drawer"></div>
+    <div class="scrim"></div>
   </section>
 
 

@@ -333,23 +333,20 @@ describe("pluginMethods", () => {
     await host.loadPlugins();
 
     expect(host.querySelector("[data-plugin-chat-root]")).toBeNull();
-    expect(host.requiredChatFallbackCleanup).toBeUndefined();
   });
 
-  it("creates a required chat fallback when no chat plugin mounts", async () => {
+  it("leaves chat empty when no chat plugin mounts", async () => {
     const host = hostWithList();
-    host.innerHTML += `<section class="app-body"></section>`;
+    host.innerHTML += `<section class="app-body"><main data-main></main></section>`;
     host.refreshChatSurfaceRefs = vi.fn();
     host.initTranscriptWindow = vi.fn();
     api.getPlugins.mockResolvedValueOnce({ plugins: [] });
 
     await host.loadPlugins();
 
-    expect(host.querySelector("[data-plugin-chat-root] .term-inner")?.textContent).toContain("pi-web-chat");
-    expect(host.querySelector("[data-plugin-composer-root] .prompt-textarea")?.disabled).toBe(true);
-    expect(host.requiredChatFallbackCleanup).toEqual(expect.any(Function));
-    await host.loadPlugins();
-    expect(host.querySelectorAll("[data-plugin-chat-root]")).toHaveLength(1);
+    expect(host.querySelector("[data-main]")?.childElementCount).toBe(0);
+    expect(host.querySelector("[data-plugin-chat-root]")).toBeNull();
+    expect(host.querySelector("[data-plugin-composer-root]")).toBeNull();
   });
 
   it("covers optional plugin host fallbacks", async () => {

@@ -16,12 +16,10 @@ describe("pi-app workspace navigation", () => {
     }));
     const app = await connectPiApp();
     const sessionMain = app.querySelector("main");
-    const emptyMain = document.createElement("main");
     const activeWorkspace = document.createElement("span");
-    sessionMain.dataset.main = "session";
-    emptyMain.dataset.main = "empty";
+    sessionMain.toggleAttribute("data-main", true);
     activeWorkspace.dataset.activeWorkspace = "";
-    app.append(emptyMain, activeWorkspace);
+    app.append(activeWorkspace);
     app.apiConnected = true;
     app.dataset.activeWorkspaceId = "hahn";
     app.loadWorkspaceCommands = vi.fn();
