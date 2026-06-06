@@ -262,7 +262,6 @@ export const inputMethods = {
     if (action === "folder-enter") this.loadFolder(actionTarget.dataset.path);
     if (action === "folder-up") this.loadFolder(this.currentFolderParent);
     if (action === "folder-open-current") this.openWorkspacePath(this.currentFolder);
-    if (action === "show-file-tree") this.showFileTreePanel?.();
     if (action === "show-git-history") this.showGitHistory?.();
     if (action === "load-more-git-history") this.loadMoreGitHistory?.();
     if (action === "select-git-commit") this.selectGitCommit?.(actionTarget.dataset.hash);

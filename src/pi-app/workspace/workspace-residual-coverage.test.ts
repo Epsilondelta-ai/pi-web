@@ -180,13 +180,18 @@ describe("workspace residual method coverage", () => {
   });
 
   it("covers git history panels, pagination, details, templates, and errors", async () => {
-    const app = owner(`<div data-git-panel hidden></div><div class="tree-list"></div><button data-action="show-git-history"></button><button data-action="show-file-tree"></button>`);
+    const app = owner(`<div data-git-panel hidden></div><div class="tree-list"></div><button data-action="show-git-history"></button>`);
     vi.mocked(api.getGitHistory).mockResolvedValueOnce({ commits: [] });
     await app.showGitHistory();
     expect(app.querySelector("[data-git-panel]").textContent).toContain("no commits");
-    app.showFileTreePanel();
-    expect(app.querySelector(".tree-list").hidden).toBe(false);
+    expect(app.querySelector(".tree-list").hidden).toBe(true);
     await app.refreshGitHistory();
+    app.querySelector("[data-git-panel]").hidden = true;
+    const showGitHistory = app.showGitHistory;
+    app.showGitHistory = vi.fn();
+    await app.refreshGitHistory();
+    expect(app.showGitHistory).not.toHaveBeenCalled();
+    app.showGitHistory = showGitHistory;
 
     vi.mocked(api.getGitHistory).mockResolvedValueOnce({ commits: Array.from({ length: 30 }, (_, i) => ({ hash: `h${i}`, shortHash: `s${i}`, subject: `sub${i}`, date: "bad-date", files: [{ path: "p", oldPath: "o", status: "renamed" }] })) });
     await app.showGitHistory();

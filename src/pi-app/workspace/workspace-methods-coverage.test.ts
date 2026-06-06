@@ -420,16 +420,12 @@ describe("workspace folder/render/bootstrap coverage", () => {
     tree.className = "tree-list";
     const show = document.createElement("button");
     show.dataset.action = "show-git-history";
-    const file = document.createElement("button");
-    file.dataset.action = "show-file-tree";
-    app.append(panel, tree, show, file);
+    app.append(panel, tree, show);
 
     globalThis.fetch = vi.fn(async () => failJson("git <bad>"));
     await app.showGitHistory();
     expect(panel.innerHTML).toContain("git &lt;bad&gt;");
-    app.showFileTreePanel();
-    expect(panel.hidden).toBe(true);
-    expect(tree.hidden).toBe(false);
+    expect(tree.hidden).toBe(true);
     await app.refreshGitHistory();
 
     panel.hidden = false;
