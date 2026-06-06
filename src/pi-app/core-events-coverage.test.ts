@@ -49,9 +49,6 @@ describe("pi-app core events coverage", () => {
     const app = await connectPiApp();
     const workspace = app.querySelector('[data-view="workspace"]');
     const picker = app.querySelector('[data-view="picker"]');
-    const toggle = document.createElement("button");
-    toggle.dataset.action = "toggle-tree";
-    app.append(toggle);
     const pickerInput = document.createElement("input");
     pickerInput.name = "path";
     pickerInput.focus = vi.fn();
@@ -68,12 +65,12 @@ describe("pi-app core events coverage", () => {
     app.route("workspace");
     expect(app.scrollTerm).toHaveBeenCalled();
 
-    app.toggleTree(false);
+    app.togglePluginSidebar(undefined, false);
     expect(app.dataset.tree).toBe("off");
-    app.toggleTree(true);
+    app.togglePluginSidebar("file-browser", true);
     app.closeTreeFromOutside({ target: document.createElement("div"), composedPath: () => [] });
     expect(app.dataset.tree).toBe("off");
-    app.toggleTree(true);
+    app.togglePluginSidebar("file-browser", true);
     app.closeTreeFromOutside({ target: app.querySelector(".tree"), composedPath: () => [app.querySelector(".tree")] });
     expect(app.dataset.tree).toBe("on");
 

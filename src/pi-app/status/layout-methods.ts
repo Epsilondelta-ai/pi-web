@@ -10,9 +10,7 @@ export const layoutMethods = {
     this.dataset.route = route;
     this.querySelector('[data-view="picker"]')?.toggleAttribute("hidden", route !== "picker");
     this.querySelector('[data-view="workspace"]')?.toggleAttribute("hidden", route !== "workspace");
-    this.querySelectorAll('[data-action="toggle-plugin-sidebar"]').forEach((button) => {
-      button.toggleAttribute("hidden", route !== "workspace");
-    });
+    this.querySelector("[data-plugin-sidebar-open]")?.toggleAttribute("hidden", route !== "workspace");
     if (route === "picker") {
       this.querySelector('.picker-shell input[name="path"]')?.focus();
       if (this.apiConnected) void this.browseFolder();
@@ -30,9 +28,6 @@ export const layoutMethods = {
     tree?.setAttribute("data-active-plugin-panel", nextPanel);
     body?.classList.toggle("with-tree", treeEnabled);
     body?.classList.toggle("tree-open", treeEnabled);
-    this.querySelectorAll('[data-action="toggle-plugin-sidebar"]').forEach((button) => {
-      button.classList.toggle("on", treeEnabled && button.dataset.pluginPanel === nextPanel);
-    });
     tree?.toggleAttribute("hidden", !treeEnabled);
     this.syncPluginSidebarPanels?.();
     if (treeEnabled) {
@@ -43,9 +38,6 @@ export const layoutMethods = {
     this.applyGrid();
   },
 
-  toggleTree(forceOpen) {
-    this.togglePluginSidebar?.("file-browser", forceOpen);
-  },
 
   syncPluginSidebarPanels() {
     const tree = this.querySelector("[data-plugin-sidebar]") || this.querySelector(".tree");
@@ -62,12 +54,12 @@ export const layoutMethods = {
 
   closeTreeFromOutside(event) {
     if (this.dataset.tree !== "on") return;
-    const selector = ".tree, [data-action='toggle-plugin-sidebar'], [data-file-editor-modal]";
+    const selector = ".tree, [data-plugin-sidebar-open], [data-file-editor-modal]";
     const path = event.composedPath?.() || [];
     if (path.some((node) => node?.matches?.(selector))) return;
     const target = event.target;
     if (target?.closest?.(selector)) return;
-    this.toggleTree(false);
+    this.togglePluginSidebar?.(undefined, false);
   },
 
   restoreSidebar() {

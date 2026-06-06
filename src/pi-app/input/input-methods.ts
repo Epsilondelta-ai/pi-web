@@ -262,8 +262,6 @@ export const inputMethods = {
     if (action === "folder-enter") this.loadFolder(actionTarget.dataset.path);
     if (action === "folder-up") this.loadFolder(this.currentFolderParent);
     if (action === "folder-open-current") this.openWorkspacePath(this.currentFolder);
-    if (action === "toggle-tree") this.toggleTree();
-    if (action === "toggle-plugin-sidebar") this.togglePluginSidebar?.(actionTarget?.dataset.pluginPanel || button?.dataset.pluginPanel);
     if (action === "show-file-tree") this.showFileTreePanel?.();
     if (action === "show-git-history") this.showGitHistory?.();
     if (action === "load-more-git-history") this.loadMoreGitHistory?.();

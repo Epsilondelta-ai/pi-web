@@ -430,6 +430,18 @@ describe("pluginMethods", () => {
     expect(host.loadPlugins).toHaveBeenCalledTimes(7);
   });
 
+  it("keeps an active plugin loaded when its update request fails", async () => {
+    const host = hostWithList();
+    host.deactivateLoadedPlugin = vi.fn();
+    host.loadPlugins = vi.fn();
+    api.updatePlugin.mockRejectedValueOnce(new Error("offline"));
+
+    await expect(host.updatePluginById("plug")).rejects.toThrow("offline");
+
+    expect(host.deactivateLoadedPlugin).not.toHaveBeenCalled();
+    expect(host.loadPlugins).not.toHaveBeenCalled();
+  });
+
   it("checks plugin updates and shows row actions", async () => {
     const host = hostWithList();
     api.getPlugins.mockResolvedValueOnce({ plugins: [{ id: "chat", version: "1.0.0", entry: "index.js" }] });
