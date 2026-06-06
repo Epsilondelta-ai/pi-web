@@ -46,21 +46,16 @@ JavaScript 파일로 bundle 또는 compile해야 합니다.
 
 ## Entry module
 
-Entry module은 `activate(context)` 또는 `default(context)`를 export할 수 있습니다. function을 반환하거나
-`deactivate()` 또는 `dispose()`를 가진 object를 반환하면 pi-web이 reload, disable, uninstall 때 cleanup합니다.
-Module-level `deactivate(context)` export도 지원합니다.
+Entry module은 `activate()` 또는 `default()`를 export할 수 있습니다. function을 반환하거나 `deactivate()` 또는
+`dispose()`를 가진 object를 반환하면 pi-web이 reload, disable, uninstall 때 cleanup합니다. Module-level
+`deactivate()` export도 지원합니다.
 
 ```ts
-type PluginContext = {
-  app: HTMLElement;
-  plugin: { id: string; name?: string };
-};
-
-export function activate(context: PluginContext): () => void {
+export function activate(): () => void {
   const panel: HTMLElement = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name ?? context.plugin.id}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.dataset.pluginPanel = "hello-panel";
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-plugin-sidebar]")?.append(panel);
 
   return (): void => {
     panel.remove();
@@ -68,21 +63,19 @@ export function activate(context: PluginContext): () => void {
 }
 ```
 
-## Plugin context
+## Plugin globals
 
-- `context.app`: `<pi-app>` element.
-- `context.plugin`: parse된 manifest.
-- `context.piWeb`: 공유 Subject registry를 포함한 pi-web 표준 object.
-- `context.rxjs`: compatibility RxJS namespace. Bundle된 plugin에서는 직접 `rxjs` import를 우선 사용합니다.
-- `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP API 호출.
-- `context.backend(method, { workspaceId, data })`: 선택 backend script 호출. `workspaceId`는 선택이고 `data`는 backend stdin
-  JSON입니다.
-- `context.mount.chat(element)` / `context.mount.composer(element)`: chat 또는 composer surface mount.
-- `context.chat`: transcript message append, stream, render, finalize, scroll.
-- `context.composer`: prompt input read, set, submit, cancel, attach, clear.
-- `context.session`: active process session 조회, prompt post, steer, cancel, process event subscribe.
-- `context.files`: workspace file search/read.
-- `context.shell`: workspace shell command 실행.
+pi-web은 공유 표준용 browser global 하나를 노출합니다.
+
+- `window.piWeb.subject(name)`: 공유 RxJS `Subject`를 가져오거나 생성합니다.
+- `window.piWeb.behaviorSubject(name, initialValue)`: 공유 RxJS `BehaviorSubject`를 가져오거나 생성합니다.
+- `window.piWeb.replaySubject(name, bufferSize)`: 공유 RxJS `ReplaySubject`를 가져오거나 생성합니다.
+- `window.piWeb.asyncSubject(name)`: 공유 RxJS `AsyncSubject`를 가져오거나 생성합니다.
+- `window.piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, `listSubjects()`는 registry를
+  관리합니다.
+
+이전 build는 compatibility `context` argument를 `activate(context)`에 전달할 수 있습니다. 새 플러그인은
+`document`, `localStorage`, `fetch`, 직접 `rxjs` import, `window.piWeb` 같은 browser API를 우선 사용해야 합니다.
 
 ## localStorage 표준
 
@@ -146,14 +139,12 @@ type PiWebSubjects = {
 Publisher 예시:
 
 ```ts
+import type { BehaviorSubject } from "rxjs";
+
 type LanguageCode = "en" | "ko" | "ja";
 
-type PluginContext = {
-  piWeb: PiWebSubjects;
-};
-
-export function activate(context: PluginContext): void {
-  const language$: BehaviorSubject<LanguageCode> = context.piWeb.behaviorSubject<LanguageCode>(
+export function activate(): void {
+  const language$: BehaviorSubject<LanguageCode> = window.piWeb.behaviorSubject<LanguageCode>(
     "core.language",
     "en",
   );
@@ -168,12 +159,8 @@ import { filter, type Subscription } from "rxjs";
 
 type LanguageCode = "en" | "ko" | "ja";
 
-type PluginContext = {
-  piWeb: PiWebSubjects;
-};
-
-export function activate(context: PluginContext): () => void {
-  const subscription: Subscription = context.piWeb
+export function activate(): () => void {
+  const subscription: Subscription = window.piWeb
     .behaviorSubject<LanguageCode>("core.language", "en")
     .pipe(filter((language: LanguageCode): boolean => language.length > 0))
     .subscribe((language: LanguageCode): void => {
@@ -229,15 +216,15 @@ complete 또는 delete할 수 있습니다.
 ```ts
 import type { Subscription } from "rxjs";
 
-export function activate(context: PluginContext): () => void {
-  const subscription: Subscription = context.piWeb
+export function activate(): () => void {
+  const subscription: Subscription = window.piWeb
     .subject<string>("plugin.example.closed")
     .subscribe((value: string): void => console.log(value));
 
   return (): void => {
     subscription.unsubscribe();
-    context.piWeb.completeSubject("plugin.example.closed");
-    context.piWeb.deleteSubject("plugin.example.closed");
+    window.piWeb.completeSubject("plugin.example.closed");
+    window.piWeb.deleteSubject("plugin.example.closed");
   };
 }
 ```

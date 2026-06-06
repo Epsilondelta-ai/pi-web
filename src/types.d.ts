@@ -11,6 +11,7 @@ declare global {
 
   interface Window {
     PI_WEB_API_BASE?: string;
+    piWeb?: import("./pi-app/plugins/plugin-subjects").PiWebSubjects;
   }
 
   var fetch: typeof globalThis.fetch;

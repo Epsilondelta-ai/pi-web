@@ -65,6 +65,7 @@ describe("pluginMethods", () => {
   });
 
   afterEach(() => {
+    window.piWeb?.listSubjects().forEach((name) => window.piWeb.deleteSubject(name));
     vi.restoreAllMocks();
     document.body.innerHTML = "";
   });
@@ -220,7 +221,28 @@ describe("pluginMethods", () => {
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
     expect(typeof context.rxjs.BehaviorSubject).toBe("function");
+    expect(typeof window.piWeb.subject).toBe("function");
     expect(api.apiBase).toHaveBeenCalled();
+  });
+
+  it("provides a shared window piWeb subject registry", () => {
+    const host = hostWithList();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const first = window.piWeb.behaviorSubject("core.language", "en");
+    const second = window.piWeb.behaviorSubject("core.language", "ko");
+    const closed = window.piWeb.subject("plugin.p.closed");
+
+    first.next("ja");
+
+    expect(context.plugin.id).toBe("p");
+    expect(first).toBe(second);
+    expect(second.value).toBe("ja");
+    expect(window.piWeb.hasSubject("plugin.p.closed")).toBe(true);
+    expect(window.piWeb.listSubjects()).toContain("core.language");
+    expect(() => window.piWeb.subject("core.language")).toThrow("already exists as behaviorSubject");
+    expect(closed).toBe(window.piWeb.subject("plugin.p.closed"));
+    window.piWeb.completeSubject("plugin.p.closed");
+    expect(window.piWeb.deleteSubject("plugin.p.closed")).toBe(true);
   });
 
   it("provides plugin mount and host surface APIs", async () => {

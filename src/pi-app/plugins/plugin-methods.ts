@@ -1,5 +1,6 @@
 import * as rxjs from "rxjs";
 
+import { ensurePiWebSubjects } from "./plugin-subjects";
 import {
   apiBase,
   cancelSession,
@@ -355,6 +356,7 @@ async function runPluginCleanup(active: ActivePlugin): Promise<void> {
 
 export const pluginMethods = {
   async loadPlugins(): Promise<void> {
+    ensurePiWebSubjects();
     const host: PluginHost = this as PluginHost;
     host.requiredChatFallbackCleanup?.();
     host.requiredChatFallbackCleanup = undefined;
@@ -416,6 +418,7 @@ export const pluginMethods = {
   },
 
   pluginContext(plugin: PluginManifest): PluginContext {
+    ensurePiWebSubjects();
     const host: PluginHost = this as PluginHost;
     return {
       app: host,

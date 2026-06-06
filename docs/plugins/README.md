@@ -46,21 +46,16 @@ JavaScript file named by `entry`.
 
 ## Entry module
 
-The entry module may export `activate(context)` or `default(context)`. Returning a function, or an object with
-`deactivate()` or `dispose()`, lets pi-web clean up the plugin during reload, disable, or uninstall. A module-level
-`deactivate(context)` export is also supported.
+The entry module may export `activate()` or `default()`. Returning a function, or an object with `deactivate()` or
+`dispose()`, lets pi-web clean up the plugin during reload, disable, or uninstall. A module-level `deactivate()` export
+is also supported.
 
 ```ts
-type PluginContext = {
-  app: HTMLElement;
-  plugin: { id: string; name?: string };
-};
-
-export function activate(context: PluginContext): () => void {
+export function activate(): () => void {
   const panel: HTMLElement = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name ?? context.plugin.id}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.dataset.pluginPanel = "hello-panel";
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-plugin-sidebar]")?.append(panel);
 
   return (): void => {
     panel.remove();
@@ -68,21 +63,19 @@ export function activate(context: PluginContext): () => void {
 }
 ```
 
-## Plugin context
+## Plugin globals
 
-- `context.app`: the `<pi-app>` element.
-- `context.plugin`: the parsed manifest.
-- `context.piWeb`: pi-web standards object, including the shared Subject registry.
-- `context.rxjs`: compatibility RxJS namespace. Prefer direct `rxjs` imports in bundled plugins.
-- `context.api.get(path)` / `context.api.post(path, body)`: call pi-web HTTP APIs.
-- `context.backend(method, { workspaceId, data })`: call the optional backend script. `workspaceId` is optional;
-  `data` becomes the backend stdin JSON.
-- `context.mount.chat(element)` / `context.mount.composer(element)`: mount chat or composer surfaces.
-- `context.chat`: append, stream, render, finalize, and scroll transcript messages.
-- `context.composer`: read, set, submit, cancel, attach, or clear prompt input.
-- `context.session`: inspect the active process session, post prompts, steer, cancel, or subscribe to process events.
-- `context.files`: search or read workspace files.
-- `context.shell`: run workspace shell commands.
+pi-web exposes one browser global for shared standards.
+
+- `window.piWeb.subject(name)`: get or create a shared RxJS `Subject`.
+- `window.piWeb.behaviorSubject(name, initialValue)`: get or create a shared RxJS `BehaviorSubject`.
+- `window.piWeb.replaySubject(name, bufferSize)`: get or create a shared RxJS `ReplaySubject`.
+- `window.piWeb.asyncSubject(name)`: get or create a shared RxJS `AsyncSubject`.
+- `window.piWeb.hasSubject(name)`, `deleteSubject(name)`, `completeSubject(name)`, and `listSubjects()` manage the
+  registry.
+
+Older builds may pass a compatibility `context` argument to `activate(context)`. New plugins should prefer browser APIs
+such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and `window.piWeb`.
 
 ## localStorage standard
 
@@ -146,14 +139,12 @@ type PiWebSubjects = {
 Example publisher:
 
 ```ts
+import type { BehaviorSubject } from "rxjs";
+
 type LanguageCode = "en" | "ko" | "ja";
 
-type PluginContext = {
-  piWeb: PiWebSubjects;
-};
-
-export function activate(context: PluginContext): void {
-  const language$: BehaviorSubject<LanguageCode> = context.piWeb.behaviorSubject<LanguageCode>(
+export function activate(): void {
+  const language$: BehaviorSubject<LanguageCode> = window.piWeb.behaviorSubject<LanguageCode>(
     "core.language",
     "en",
   );
@@ -168,12 +159,8 @@ import { filter, type Subscription } from "rxjs";
 
 type LanguageCode = "en" | "ko" | "ja";
 
-type PluginContext = {
-  piWeb: PiWebSubjects;
-};
-
-export function activate(context: PluginContext): () => void {
-  const subscription: Subscription = context.piWeb
+export function activate(): () => void {
+  const subscription: Subscription = window.piWeb
     .behaviorSubject<LanguageCode>("core.language", "en")
     .pipe(filter((language: LanguageCode): boolean => language.length > 0))
     .subscribe((language: LanguageCode): void => {
@@ -229,15 +216,15 @@ deleted on unload.
 ```ts
 import type { Subscription } from "rxjs";
 
-export function activate(context: PluginContext): () => void {
-  const subscription: Subscription = context.piWeb
+export function activate(): () => void {
+  const subscription: Subscription = window.piWeb
     .subject<string>("plugin.example.closed")
     .subscribe((value: string): void => console.log(value));
 
   return (): void => {
     subscription.unsubscribe();
-    context.piWeb.completeSubject("plugin.example.closed");
-    context.piWeb.deleteSubject("plugin.example.closed");
+    window.piWeb.completeSubject("plugin.example.closed");
+    window.piWeb.deleteSubject("plugin.example.closed");
   };
 }
 ```
