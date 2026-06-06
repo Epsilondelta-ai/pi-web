@@ -161,8 +161,6 @@ Naming 규칙:
 | --- | --- | --- |
 | Header actions | `[data-plugin-toolbar]` | Top-right header actions에 icon button을 추가합니다. |
 | Settings modal | `[data-plugin-settings-root]` | Settings modal 안에 plugin-specific settings section을 추가합니다. |
-| Main workspace area | `.app-body[data-view="workspace"]` | Workspace layout container를 읽거나 observe합니다. |
-| Main content surface | `.main[data-main]` | 플러그인이 소유하는 primary main-area content를 추가하거나 교체합니다. |
-| Sidebar surface | `[data-plugin-sidebar]` | File browser나 git view 같은 optional side panel을 추가합니다. |
+| Main content surface | `.main[data-main]` | Element를 만들어 main 영역에 append합니다. |
 
 플러그인은 cleanup 때 자신이 만든 DOM을 제거하고 subscription을 unsubscribe해야 합니다.

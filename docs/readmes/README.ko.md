@@ -96,7 +96,6 @@ Core plugin standard:
 - Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
   `piWeb.asyncSubject(...)`.
 - Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, `plugin.<pluginId>.*`.
-- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, `.app-body[data-view="workspace"]`,
-  `.main[data-main]`, `[data-plugin-sidebar]`.
+- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, `.main[data-main]`.
 
 자세한 표준은 [Plugin development](../plugins/README.ko.md)를 참고하세요.

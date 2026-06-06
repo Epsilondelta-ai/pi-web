@@ -160,8 +160,6 @@ Use these stable selectors when a plugin needs to attach UI to pi-web.
 | --- | --- | --- |
 | Header actions | `[data-plugin-toolbar]` | Add icon buttons to the top-right header actions. |
 | Settings modal | `[data-plugin-settings-root]` | Add plugin-specific settings sections inside the settings modal. |
-| Main workspace area | `.app-body[data-view="workspace"]` | Read or observe the workspace layout container. |
-| Main content surface | `.main[data-main]` | Add or replace primary main-area content when your plugin owns it. |
-| Sidebar surface | `[data-plugin-sidebar]` | Add optional side panels such as file browsers or git views. |
+| Main content surface | `.main[data-main]` | Create an element and append it to the main area. |
 
 Plugins must remove DOM they created and unsubscribe from subscriptions during cleanup.
