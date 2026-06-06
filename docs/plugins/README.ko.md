@@ -1,44 +1,56 @@
-# 플러그인
+# Plugins
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) |
 [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
 [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-플러그인은 실험적 기능이며 신뢰할 수 있는 로컬 코드용입니다. 안정화 전까지 API는 변경될 수 있습니다.
+플러그인은 신뢰할 수 있는 로컬 코드입니다. pi-web core는 작게 유지합니다. core는 플러그인을 로드하고, 공유 RxJS
+Subject registry를 노출하고, 플러그인들이 상태를 공유할 때 사용할 이름만 표준화합니다.
 
-## 폴더 구조
+## 책임 분리
 
-플러그인 폴더에는 `plugin.json`과 entry 모듈이 필요합니다. TypeScript 플러그인은 `entry`가 가리키는 JavaScript 파일로 번들 또는 컴파일해야 합니다.
+Core는 app-wide plugin infrastructure만 소유합니다.
+
+- Plugin install, load, reload, disable, uninstall, cleanup lifecycle.
+- `piWeb` 공유 RxJS Subject registry.
+- 표준 channel name과 payload contract.
+- Toolbar, settings, main-area extension을 위한 안정적인 DOM hook name.
+
+플러그인은 user-facing feature를 소유합니다.
+
+- Chat UI, composer, transcript rendering, sessions, shortcuts, toasts, panels, plugin-specific settings.
+- Plugin-specific state and persistence.
+
+Core는 chat session을 저장하거나 shortcut behavior를 소유하거나 toast UI를 렌더링하거나 plugin feature API를 제공하지
+않습니다.
+
+## Folder structure
+
+플러그인 폴더에는 `plugin.json`과 entry module이 필요합니다. TypeScript 플러그인은 `entry`가 가리키는 JavaScript
+파일로 bundle 또는 compile되어야 합니다.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry`는 필수이고 `backend`는 선택입니다. 두 경로 모두 플러그인 폴더 안에 있어야 합니다.
+`entry`는 필수입니다. path는 plugin folder 안에 있어야 합니다.
 
-## Entry 모듈
+## Entry module
 
-Entry 모듈은 `activate(context)` 또는 `default(context)`를 export할 수 있습니다. 함수 또는 `deactivate()`나
-`dispose()` 객체를 반환하면 reload, disable, uninstall 시 pi-web이 플러그인을 정리합니다. 모듈 레벨
-`deactivate(context)` export도 지원합니다.
+Entry module은 `activate()` 또는 `default()`를 export할 수 있습니다. function을 반환하거나 `deactivate()` 또는
+`dispose()`를 가진 object를 반환하면 pi-web이 reload, disable, uninstall 때 cleanup합니다. Module-level
+`deactivate()` export도 지원합니다.
 
 ```ts
-type PluginContext = {
-  app: HTMLElement;
-  plugin: { id: string; name?: string };
-};
-
-export function activate(context: PluginContext): () => void {
+export function activate(): () => void {
   const panel: HTMLElement = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name ?? context.plugin.id}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
   return (): void => {
     panel.remove();
@@ -46,84 +58,110 @@ export function activate(context: PluginContext): () => void {
 }
 ```
 
-## 플러그인 context
+플러그인은 `document`, `localStorage`, `fetch`, 직접 `rxjs` import, `piWeb` global 같은 browser API를 사용해야
+합니다.
 
-- `context.app`: `<pi-app>` 엘리먼트.
-- `context.plugin`: 파싱된 매니페스트.
-- `context.rxjs`: pi-web core가 제공하는 RxJS namespace.
-- `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP API 호출.
-- `context.backend(method, { workspaceId, data })`: 선택적 backend 스크립트 호출. `workspaceId`는 선택이고
-  `data`는 backend stdin JSON이 됩니다.
-- `context.mount.chat(element)` / `context.mount.composer(element)`: chat 또는 composer surface mount.
-- `context.chat`: transcript message append, stream, render, finalize, scroll.
-- `context.composer`: prompt 입력 읽기, 설정, 제출, 취소, 첨부, 초기화.
-- `context.session`: active session 확인, prompt 전송, steer, cancel, session event 구독.
-- `context.files`: workspace 파일 검색 또는 읽기.
-- `context.shell`: workspace shell command 실행.
+## Shared Subject registry
 
-## 플러그인용 core RxJS
-
-pi-web은 core에 RxJS를 설치하고 `context.rxjs`로 노출합니다. 플러그인끼리 호환되는 observable, subject,
-subscription이 필요하면 별도 RxJS 사본을 번들하지 말고 이것을 사용하세요.
+플러그인은 operator, `Observable`, `Subscription`, local subject를 위해 RxJS를 직접 import합니다.
 
 ```ts
-import type { BehaviorSubject, Subscription } from "rxjs";
+import { filter, type Subscription } from "rxjs";
+```
 
-type PluginContext = {
-  rxjs: typeof import("rxjs");
+pi-web은 현재 `piWeb.version`과, 플러그인이 같은 이름으로 같은 Subject instance를 얻을 수 있는 공유 Subject
+registry만 제공합니다. Operator나 observable composition은 감싸지 않습니다.
+
+```ts
+import type { BehaviorSubject, Subject } from "rxjs";
+
+type PiWebSubjects = {
+  readonly version: string;
+  subject<T>(name: string): Subject<T>;
+  behaviorSubject<T>(name: string, initialValue: T): BehaviorSubject<T>;
+  replaySubject<T>(name: string, bufferSize?: number): import("rxjs").ReplaySubject<T>;
+  asyncSubject<T>(name: string): import("rxjs").AsyncSubject<T>;
+  hasSubject(name: string): boolean;
+  deleteSubject(name: string): boolean;
+  completeSubject(name: string): void;
+  listSubjects(): string[];
 };
+```
 
-type PluginState = {
-  count: number;
-};
+Publisher 예시:
 
-export function activate(context: PluginContext): () => void {
-  const state$: BehaviorSubject<PluginState> = new context.rxjs.BehaviorSubject<PluginState>({ count: 0 });
-  const subscription: Subscription = state$.subscribe((state: PluginState): void => {
-    console.log("plugin state", state);
-  });
+```ts
+import type { BehaviorSubject } from "rxjs";
 
-  state$.next({ count: 1 });
+type LanguageCode = "en" | "ko" | "ja";
+
+export function activate(): void {
+  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>("core.language", "en");
+  language$.next("ko");
+}
+```
+
+Subscriber 예시:
+
+```ts
+import { filter, type Subscription } from "rxjs";
+
+type LanguageCode = "en" | "ko" | "ja";
+
+export function activate(): () => void {
+  const subscription: Subscription = piWeb
+    .behaviorSubject<LanguageCode>("core.language", "en")
+    .pipe(filter((language: LanguageCode): boolean => language.length > 0))
+    .subscribe((language: LanguageCode): void => {
+      console.log(language);
+    });
 
   return (): void => {
     subscription.unsubscribe();
-    state$.complete();
   };
 }
 ```
 
-번들하지 않은 브라우저 플러그인 entry에서는 런타임 RxJS import를 사용하지 마세요. 플러그인을 번들한다면 `rxjs`는
-external 또는 `peerDependency`로 두고 런타임에서는 `context.rxjs`를 사용하세요. 그래야 플러그인마다 분리된 RxJS
-인스턴스를 만들지 않습니다.
+Registry 규칙:
 
-RxJS 공유는 라이브러리 인스턴스만 공유합니다. 실제 상태 공유는 같은 `Subject`, `BehaviorSubject`, observable
-객체를 plugin context, host API, 명시적 bridge로 전달할 때만 가능합니다.
+- 같은 `name`은 같은 Subject instance를 반환합니다.
+- 하나의 name을 다른 Subject kind로 재사용할 수 없습니다.
+- `behaviorSubject`에서는 첫 호출의 initial value가 기준입니다. 이후 initial value는 무시합니다.
+- `deleteSubject`는 plugin-owned channel용입니다. Core channel은 삭제하지 않습니다.
 
-## 선택적 backend 스크립트
+## Channel naming standard
 
-선택적 backend 스크립트는 요청 시 로컬에서 실행됩니다. JavaScript backend는 Node로 실행되고 Go backend는 자동
-빌드/캐시됩니다. 스크립트는 `method`, `workspaceRoot` 인자를 받고 stdin에서 `data` JSON을 읽어 stdout에 유효한
-JSON을 출력해야 합니다.
+RxJS stream을 담은 변수에는 `$` suffix를 사용합니다. Channel name에는 `$`를 넣지 않습니다.
 
-```ts
-type BackendInput = Record<string, unknown>;
+| Channel | Kind | Payload | Owner |
+| --- | --- | --- | --- |
+| `core.language` | `BehaviorSubject` | language code string | core |
+| `core.language.changed` | `Subject` | language code string | core |
+| `core.settings.changed` | `Subject` | `{ key: string; value: unknown }` | core |
+| `chat.input` | `BehaviorSubject` | input text string | chat plugin |
+| `chat.input.submitted` | `Subject` | `{ text: string; attachments: unknown[] }` | chat plugin |
+| `session.activeId` | `BehaviorSubject` | `string | null` | session plugin |
+| `session.changed` | `Subject` | session change object | session plugin |
+| `shortcut.pressed` | `Subject` | shortcut event object | shortcuts plugin |
+| `toast.requested` | `Subject` | toast request object | toast plugin |
+| `plugin.<pluginId>.*` | any | plugin-defined | owning plugin |
 
-type BackendOutput = {
-  method: string;
-  workspaceRoot: string;
-  received: BackendInput;
-};
+Naming 규칙:
 
-const [, , method = "", workspaceRoot = ""]: string[] = process.argv;
-let input = "";
+- Core channel은 `core.`로 시작합니다.
+- Feature plugin channel은 feature name으로 시작합니다: `chat.`, `session.`, `shortcut.`, `toast.`.
+- Private plugin channel은 `plugin.<pluginId>.`로 시작합니다.
+- Event channel은 verb 또는 past-tense event name을 사용합니다: `changed`, `submitted`, `received`, `pressed`.
+- State channel은 noun을 사용합니다: `core.language`, `session.activeId`, `chat.input`.
 
-process.stdin.on("data", (chunk: Buffer): void => {
-  input += chunk.toString("utf8");
-});
+## DOM hook standard
 
-process.stdin.on("end", (): void => {
-  const received: BackendInput = JSON.parse(input || "{}");
-  const output: BackendOutput = { method, workspaceRoot, received };
-  console.log(JSON.stringify(output));
-});
-```
+플러그인이 pi-web에 UI를 붙일 때 아래 안정적인 selector를 사용합니다.
+
+| Area | Selector | Use |
+| --- | --- | --- |
+| Header actions | `[data-plugin-toolbar]` | Top-right header actions에 icon button을 추가합니다. |
+| Settings modal | `[data-plugin-settings-root]` | Settings modal 안에 plugin-specific settings section을 추가합니다. |
+| Main content surface | `.main[data-main]` | Element를 만들어 main 영역에 append합니다. |
+
+플러그인은 cleanup 때 자신이 만든 DOM을 제거하고 subscription을 unsubscribe해야 합니다.

@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({
 
 vi.mock("../../shared/api/api", () => api);
 
+import packageJson from "../../../package.json";
 import { pluginMethods } from "./plugin-methods";
 
 function hostWithList() {
@@ -65,6 +66,7 @@ describe("pluginMethods", () => {
   });
 
   afterEach(() => {
+    piWeb?.listSubjects().forEach((name) => piWeb.deleteSubject(name));
     vi.restoreAllMocks();
     document.body.innerHTML = "";
   });
@@ -220,7 +222,37 @@ describe("pluginMethods", () => {
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
     expect(typeof context.rxjs.BehaviorSubject).toBe("function");
+    expect(piWeb.version).toBe(packageJson.version);
+    expect(typeof piWeb.subject).toBe("function");
     expect(api.apiBase).toHaveBeenCalled();
+  });
+
+  it("provides a shared global piWeb subject registry", () => {
+    const host = hostWithList();
+    const context = host.pluginContext({ id: "p", entry: "index.js" });
+    const first = piWeb.behaviorSubject("core.language", "en");
+    const second = piWeb.behaviorSubject("core.language", "ko");
+    const closed = piWeb.subject("plugin.p.closed");
+    const replay = piWeb.replaySubject("plugin.p.replayed", 2);
+    const async = piWeb.asyncSubject("plugin.p.async");
+
+    first.next("ja");
+
+    expect(context.plugin.id).toBe("p");
+    expect(first).toBe(second);
+    expect(second.value).toBe("ja");
+    expect(piWeb.hasSubject("plugin.p.closed")).toBe(true);
+    expect(piWeb.hasSubject("plugin.p.replayed")).toBe(true);
+    expect(piWeb.hasSubject("plugin.p.async")).toBe(true);
+    expect(piWeb.listSubjects()).toContain("core.language");
+    expect(() => piWeb.subject("core.language")).toThrow("already exists as behaviorSubject");
+    expect(closed).toBe(piWeb.subject("plugin.p.closed"));
+    expect(replay).toBe(piWeb.replaySubject("plugin.p.replayed"));
+    expect(async).toBe(piWeb.asyncSubject("plugin.p.async"));
+    piWeb.completeSubject("plugin.p.closed");
+    piWeb.completeSubject("plugin.p.missing");
+    expect(piWeb.deleteSubject("plugin.p.closed")).toBe(true);
+    expect(piWeb.deleteSubject("plugin.p.closed")).toBe(false);
   });
 
   it("provides plugin mount and host surface APIs", async () => {

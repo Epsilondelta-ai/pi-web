@@ -60,61 +60,43 @@ Astro 기반 프런트엔드와 Go 백엔드를 단일 실행 파일로 묶어, 
 - **음성 및 알림**: 응답을 소리 내어 읽고, 브라우저 또는 로컬 Whisper 음성 전사를 사용하고, Discord/Telegram 완료 알림을 설정합니다.
 - **국제화 UI**: 브라우저 UI를 영어, 한국어, 중국어, 일본어, 스페인어, 포르투갈어, 프랑스어, 러시아어, 독일어로 전환합니다.
 - **AG-UI 브리지**: 클라이언트 통합을 위해 AG-UI 호환 SSE 엔드포인트로 세션 실행을 노출합니다.
-- **플러그인(개발 중)**: 신뢰할 수 있는 로컬/GitHub JavaScript 플러그인으로 UI 패널을 추가하고 pi-web API 또는 로컬 백엔드 스크립트를 호출합니다.
+- **플러그인(개발 중)**: 신뢰할 수 있는 로컬/GitHub JavaScript 플러그인으로 안정적인 DOM hook에 UI를 붙이고
+  `piWeb` RxJS subject로 상태를 공유합니다.
 - **단일 실행 파일**: Go 바이너리에 Astro 정적 빌드를 내장해 배포하며, 내장 업데이트를 지원합니다.
 
 ## 플러그인(개발 중)
 
-플러그인은 실험적 기능이며 신뢰할 수 있는 로컬 코드용입니다. 안정 기능으로 취급되기 전까지 API는 변경될 수 있습니다.
+플러그인은 신뢰할 수 있는 로컬 코드입니다. pi-web core는 작게 유지합니다. core는 plugin load lifecycle,
+`piWeb` 공유 RxJS Subject registry, cross-plugin state와 DOM extension point의 안정적인 이름만 문서화합니다.
 
-**Settings → Plugins**에서 로컬 폴더 경로나 GitHub `owner/repo` 값으로 설치합니다. 플러그인 폴더에는 `plugin.json`과 entry JavaScript 모듈이 필요합니다.
+**Settings → Plugins**에서 로컬 폴더 경로나 GitHub `owner/repo` 값으로 설치합니다. 플러그인 폴더에는
+`plugin.json`과 `entry`가 가리키는 JavaScript 파일이 필요합니다.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry`는 필수이고 `backend`는 선택입니다. 두 경로 모두 플러그인 폴더 안에 있어야 합니다.
-
 ```js
-export function activate(context) {
+export function activate() {
   const panel = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
-  return () => {
-    panel.remove();
-  };
+  return () => panel.remove();
 }
 ```
 
-entry 모듈은 `activate(context)` 또는 `default(context)`를 export합니다. 함수 또는 `deactivate()`/`dispose()` 객체를 반환하면 reload, disable, uninstall 시 정리됩니다. 모듈 레벨 `deactivate(context)`도 지원합니다.
+Core plugin standard:
 
-플러그인 context:
+- Current version: `piWeb.version`.
+- Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
+  `piWeb.asyncSubject(...)`.
+- Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, `plugin.<pluginId>.*`.
+- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, `.main[data-main]`.
 
-- `context.app`: `<pi-app>` 엘리먼트.
-- `context.plugin`: 파싱된 매니페스트.
-- `context.rxjs`: pi-web core가 제공하는 RxJS namespace.
-- `context.api.get(path)` / `context.api.post(path, body)`: pi-web HTTP API 호출.
-- `context.backend(method, { workspaceId, data })`: 선택적 백엔드 호출. `data`가 stdin JSON입니다.
-
-전체 플러그인 API와 core RxJS 사용법은 [Plugin development](../plugins/README.ko.md)를 참고하세요.
-
-선택적 backend 스크립트는 로컬에서 실행됩니다. JavaScript는 Node로 실행되고 Go는 자동 빌드/캐시됩니다. 스크립트는 `method`, `workspaceRoot` 인자를 받고 stdin에서 JSON을 읽어 stdout에 유효한 JSON을 출력해야 합니다.
-
-```js
-const [, , method, workspaceRoot] = process.argv;
-let input = "";
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-});
-process.stdin.on("end", () => {
-  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
-});
-```
+자세한 표준은 [Plugin development](../plugins/README.ko.md)를 참고하세요.

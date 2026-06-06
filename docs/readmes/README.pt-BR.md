@@ -60,61 +60,44 @@ Ela empacota um frontend baseado em Astro e um backend em Go em um único execut
 - **Voz e notificações**: Leia respostas em voz alta, use transcrição de voz do navegador ou Whisper local e configure notificações de conclusão no Discord/Telegram.
 - **UI internacionalizada**: Alterne a UI do navegador entre inglês, coreano, chinês, japonês, espanhol, português, francês, russo e alemão.
 - **Ponte AG-UI**: Expõe execuções de sessão por um endpoint SSE compatível com AG-UI para integrações de clientes.
-- **Plugins (em desenvolvimento)**: Carrega plugins JavaScript confiáveis locais/GitHub para adicionar painéis de UI e chamar APIs do pi-web ou scripts backend locais.
+- **Plugins (in development)**: Load trusted local/GitHub JavaScript plugins that extend UI through stable DOM hooks
+  and share state through `piWeb` RxJS subjects.
 - **Executável único**: Distribui a build estática do Astro embutida em um binário Go com suporte integrado a atualização.
 
-## Plugins (em desenvolvimento)
 
-Plugins são experimentais e destinados a código local confiável. A API ainda pode mudar antes de ser considerada estável.
+## Plugins (in development)
 
-Instale em **Settings → Plugins** usando um caminho local ou um valor GitHub `owner/repo`. A pasta deve conter `plugin.json` e um módulo JavaScript de entrada.
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes the `piWeb` shared RxJS Subject
+registry, and documents stable names for cross-plugin state and DOM extension points.
+
+Install plugins from **Settings → Plugins** with either a local folder path or a GitHub `owner/repo` value. A plugin folder
+must contain `plugin.json` and the JavaScript file named by `entry`.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` é obrigatório. `backend` é opcional. Ambos os caminhos devem permanecer dentro da pasta do plugin.
-
 ```js
-export function activate(context) {
+export function activate() {
   const panel = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
-  return () => {
-    panel.remove();
-  };
+  return () => panel.remove();
 }
 ```
 
-O módulo de entrada exporta `activate(context)` ou `default(context)`. Retornar uma função, ou um objeto com `deactivate()`/`dispose()`, permite limpeza durante reload, disable ou uninstall. `deactivate(context)` no módulo também é suportado.
+Core plugin standards:
 
-O context do plugin inclui:
+- Current version: `piWeb.version`.
+- Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
+  `piWeb.asyncSubject(...)`.
+- Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, and `plugin.<pluginId>.*`.
+- DOM hooks: `[data-plugin-toolbar]`, `[data-plugin-settings-root]`, and `.main[data-main]`.
 
-- `context.app`: o elemento `<pi-app>`.
-- `context.plugin`: o manifesto analisado.
-- `context.rxjs`: o namespace RxJS fornecido pelo pi-web core.
-- `context.api.get(path)` / `context.api.post(path, body)`: chamadas às APIs HTTP do pi-web.
-- `context.backend(method, { workspaceId, data })`: chamada ao backend opcional; `data` é o JSON de stdin.
-
-Consulte [Plugin development](../plugins/README.pt-BR.md) para a API completa de plugins e o uso do core RxJS.
-
-Scripts backend opcionais rodam localmente sob demanda. JavaScript usa Node; Go é compilado e armazenado em cache automaticamente. O script recebe `method` e `workspaceRoot`, lê JSON de stdin e deve imprimir JSON válido em stdout.
-
-```js
-const [, , method, workspaceRoot] = process.argv;
-let input = "";
-process.stdin.on("data", (chunk) => {
-  input += chunk;
-});
-process.stdin.on("end", () => {
-  console.log(JSON.stringify({ method, workspaceRoot, received: JSON.parse(input || "{}") }));
-});
-```
+See [Plugin development](../plugins/README.md) for the plugin standard.

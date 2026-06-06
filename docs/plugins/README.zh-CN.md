@@ -1,43 +1,55 @@
-# 插件
+# Plugins
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) |
 [Español](README.es.md) | [Português (BR)](README.pt-BR.md) | [Français](README.fr.md) |
 [Русский](README.ru.md) | [Deutsch](README.de.md)
 
-插件是实验性功能，适用于可信的本地代码。API 在稳定前可能会变化。
+Plugins are trusted local code. pi-web core stays small: it loads plugins, exposes a shared RxJS Subject registry, and
+standardizes the names plugins use to share state.
 
-## 文件夹结构
+## Responsibility split
 
-插件文件夹必须包含 `plugin.json` 和入口模块。TypeScript 插件应被打包或编译成 `entry` 指向的 JavaScript 文件。
+Core owns only app-wide plugin infrastructure.
+
+- Plugin install, load, reload, disable, uninstall, and cleanup lifecycle.
+- `piWeb` shared RxJS Subject registry.
+- Standard channel names and payload contracts.
+- Stable DOM hook names for toolbar, settings, and main-area extensions.
+
+Plugins own user-facing features.
+
+- Chat UI, composer, transcript rendering, sessions, shortcuts, toasts, panels, and plugin-specific settings.
+- Plugin-specific state and persistence.
+
+Core does not store chat sessions, own shortcut behavior, render toast UI, or provide feature APIs for plugins.
+
+## Folder structure
+
+A plugin folder must contain `plugin.json` and an entry module. TypeScript plugins must be bundled or compiled to the
+JavaScript file named by `entry`.
 
 ```json
 {
   "id": "hello-panel",
   "name": "Hello Panel",
   "version": "0.1.0",
-  "entry": "index.js",
-  "backend": "backend.js"
+  "entry": "index.js"
 }
 ```
 
-`entry` 是必需的，`backend` 是可选的。两个路径都必须位于插件文件夹内。
+`entry` is required. Paths must stay inside the plugin folder.
 
-## 入口模块
+## Entry module
 
-入口模块可以导出 `activate(context)` 或 `default(context)`。返回函数，或返回带有 `deactivate()` / `dispose()`
-的对象，可让 pi-web 在重新加载、禁用或卸载时清理插件。也支持模块级 `deactivate(context)` 导出。
+The entry module may export `activate()` or `default()`. Returning a function, or an object with `deactivate()` or
+`dispose()`, lets pi-web clean up the plugin during reload, disable, or uninstall. A module-level `deactivate()` export
+is also supported.
 
 ```ts
-type PluginContext = {
-  app: HTMLElement;
-  plugin: { id: string; name?: string };
-};
-
-export function activate(context: PluginContext): () => void {
+export function activate(): () => void {
   const panel: HTMLElement = document.createElement("section");
-  panel.dataset.pluginPanel = context.plugin.id;
-  panel.textContent = `Hello from ${context.plugin.name ?? context.plugin.id}`;
-  context.app.querySelector("[data-plugin-sidebar]")?.append(panel);
+  panel.textContent = "Hello from hello-panel";
+  document.querySelector("[data-main]")?.append(panel);
 
   return (): void => {
     panel.remove();
@@ -45,82 +57,110 @@ export function activate(context: PluginContext): () => void {
 }
 ```
 
-## 插件 context
+Plugins should use browser APIs such as `document`, `localStorage`, `fetch`, direct `rxjs` imports, and the `piWeb`
+global.
 
-- `context.app`：`<pi-app>` 元素。
-- `context.plugin`：已解析的清单。
-- `context.rxjs`：由 pi-web core 提供的 RxJS 命名空间。
-- `context.api.get(path)` / `context.api.post(path, body)`：调用 pi-web HTTP API。
-- `context.backend(method, { workspaceId, data })`：调用可选 backend 脚本。`workspaceId` 可选，`data` 会成为
-  backend 的 stdin JSON。
-- `context.mount.chat(element)` / `context.mount.composer(element)`：挂载 chat 或 composer surface。
-- `context.chat`：追加、流式写入、渲染、结束并滚动 transcript 消息。
-- `context.composer`：读取、设置、提交、取消、附加或清空 prompt 输入。
-- `context.session`：检查 active session，发送 prompt，steer，cancel，或订阅 session events。
-- `context.files`：搜索或读取 workspace 文件。
-- `context.shell`：运行 workspace shell 命令。
+## Shared Subject registry
 
-## 插件使用 core RxJS
-
-pi-web 在 core 中安装 RxJS，并通过 `context.rxjs` 暴露。插件需要兼容的 observable、subject 或 subscription 时，
-请使用它，而不要打包单独的 RxJS 副本。
+Plugins import RxJS directly for operators, `Observable`, `Subscription`, and local subjects.
 
 ```ts
-import type { BehaviorSubject, Subscription } from "rxjs";
+import { filter, type Subscription } from "rxjs";
+```
 
-type PluginContext = {
-  rxjs: typeof import("rxjs");
+pi-web only provides the current `piWeb.version` and a shared Subject registry so plugins can get the same Subject
+instance by name. It does not wrap operators or observable composition.
+
+```ts
+import type { BehaviorSubject, Subject } from "rxjs";
+
+type PiWebSubjects = {
+  readonly version: string;
+  subject<T>(name: string): Subject<T>;
+  behaviorSubject<T>(name: string, initialValue: T): BehaviorSubject<T>;
+  replaySubject<T>(name: string, bufferSize?: number): import("rxjs").ReplaySubject<T>;
+  asyncSubject<T>(name: string): import("rxjs").AsyncSubject<T>;
+  hasSubject(name: string): boolean;
+  deleteSubject(name: string): boolean;
+  completeSubject(name: string): void;
+  listSubjects(): string[];
 };
+```
 
-type PluginState = {
-  count: number;
-};
+Example publisher:
 
-export function activate(context: PluginContext): () => void {
-  const state$: BehaviorSubject<PluginState> = new context.rxjs.BehaviorSubject<PluginState>({ count: 0 });
-  const subscription: Subscription = state$.subscribe((state: PluginState): void => {
-    console.log("plugin state", state);
-  });
+```ts
+import type { BehaviorSubject } from "rxjs";
 
-  state$.next({ count: 1 });
+type LanguageCode = "en" | "ko" | "ja";
+
+export function activate(): void {
+  const language$: BehaviorSubject<LanguageCode> = piWeb.behaviorSubject<LanguageCode>("core.language", "en");
+  language$.next("ko");
+}
+```
+
+Example subscriber:
+
+```ts
+import { filter, type Subscription } from "rxjs";
+
+type LanguageCode = "en" | "ko" | "ja";
+
+export function activate(): () => void {
+  const subscription: Subscription = piWeb
+    .behaviorSubject<LanguageCode>("core.language", "en")
+    .pipe(filter((language: LanguageCode): boolean => language.length > 0))
+    .subscribe((language: LanguageCode): void => {
+      console.log(language);
+    });
 
   return (): void => {
     subscription.unsubscribe();
-    state$.complete();
   };
 }
 ```
 
-未打包的浏览器插件 entry 不要导入运行时 RxJS。如果插件会被打包，请将 `rxjs` 保持为 external 或
-`peerDependency`，并在运行时使用 `context.rxjs`，避免每个插件创建隔离的 RxJS 实例。
+Registry rules:
 
-共享 RxJS 只共享库实例。插件只有通过 plugin context、host API 或其他显式 bridge 传递同一个 `Subject`、
-`BehaviorSubject` 或 observable 对象时，才会共享状态。
+- The same `name` returns the same Subject instance.
+- A name cannot be reused with a different Subject kind.
+- For `behaviorSubject`, the first call owns the initial value. Later initial values are ignored.
+- `deleteSubject` is for plugin-owned channels. Do not delete core channels.
 
-## 可选 backend 脚本
+## Channel naming standard
 
-可选 backend 脚本会按需在本地执行。JavaScript backend 使用 Node 运行；Go backend 会自动构建并缓存。脚本接收
-`method` 和 `workspaceRoot` 参数，从 stdin 读取 `data` JSON，并且必须向 stdout 输出有效 JSON。
+Use `$` suffixes for variables that hold RxJS streams. Channel names do not include `$`.
 
-```ts
-type BackendInput = Record<string, unknown>;
+| Channel | Kind | Payload | Owner |
+| --- | --- | --- | --- |
+| `core.language` | `BehaviorSubject` | language code string | core |
+| `core.language.changed` | `Subject` | language code string | core |
+| `core.settings.changed` | `Subject` | `{ key: string; value: unknown }` | core |
+| `chat.input` | `BehaviorSubject` | input text string | chat plugin |
+| `chat.input.submitted` | `Subject` | `{ text: string; attachments: unknown[] }` | chat plugin |
+| `session.activeId` | `BehaviorSubject` | `string | null` | session plugin |
+| `session.changed` | `Subject` | session change object | session plugin |
+| `shortcut.pressed` | `Subject` | shortcut event object | shortcuts plugin |
+| `toast.requested` | `Subject` | toast request object | toast plugin |
+| `plugin.<pluginId>.*` | any | plugin-defined | owning plugin |
 
-type BackendOutput = {
-  method: string;
-  workspaceRoot: string;
-  received: BackendInput;
-};
+Naming rules:
 
-const [, , method = "", workspaceRoot = ""]: string[] = process.argv;
-let input = "";
+- Core channels start with `core.`.
+- Feature plugin channels start with the feature name: `chat.`, `session.`, `shortcut.`, `toast.`.
+- Private plugin channels start with `plugin.<pluginId>.`.
+- Event channels use verbs or past-tense event names: `changed`, `submitted`, `received`, `pressed`.
+- State channels use nouns: `core.language`, `session.activeId`, `chat.input`.
 
-process.stdin.on("data", (chunk: Buffer): void => {
-  input += chunk.toString("utf8");
-});
+## DOM hook standard
 
-process.stdin.on("end", (): void => {
-  const received: BackendInput = JSON.parse(input || "{}");
-  const output: BackendOutput = { method, workspaceRoot, received };
-  console.log(JSON.stringify(output));
-});
-```
+Use these stable selectors when a plugin needs to attach UI to pi-web.
+
+| Area | Selector | Use |
+| --- | --- | --- |
+| Header actions | `[data-plugin-toolbar]` | Add icon buttons to the top-right header actions. |
+| Settings modal | `[data-plugin-settings-root]` | Add plugin-specific settings sections inside the settings modal. |
+| Main content surface | `.main[data-main]` | Create an element and append it to the main area. |
+
+Plugins must remove DOM they created and unsubscribe from subscriptions during cleanup.
