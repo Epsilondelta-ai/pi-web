@@ -69,13 +69,14 @@ export function activate(): () => void {
 import { filter, type Subscription } from "rxjs";
 ```
 
-pi-web은 플러그인이 같은 이름으로 같은 Subject instance를 얻을 수 있도록 공유 Subject registry만 제공합니다.
-Operator나 observable composition은 감싸지 않습니다.
+pi-web은 현재 `piWeb.version`과, 플러그인이 같은 이름으로 같은 Subject instance를 얻을 수 있는 공유 Subject
+registry만 제공합니다. Operator나 observable composition은 감싸지 않습니다.
 
 ```ts
 import type { BehaviorSubject, Subject } from "rxjs";
 
 type PiWebSubjects = {
+  readonly version: string;
   subject<T>(name: string): Subject<T>;
   behaviorSubject<T>(name: string, initialValue: T): BehaviorSubject<T>;
   replaySubject<T>(name: string, bufferSize?: number): import("rxjs").ReplaySubject<T>;

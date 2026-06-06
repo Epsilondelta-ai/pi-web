@@ -68,13 +68,14 @@ Plugins import RxJS directly for operators, `Observable`, `Subscription`, and lo
 import { filter, type Subscription } from "rxjs";
 ```
 
-pi-web only provides a shared Subject registry so plugins can get the same Subject instance by name. It does not wrap
-operators or observable composition.
+pi-web only provides the current `piWeb.version` and a shared Subject registry so plugins can get the same Subject
+instance by name. It does not wrap operators or observable composition.
 
 ```ts
 import type { BehaviorSubject, Subject } from "rxjs";
 
 type PiWebSubjects = {
+  readonly version: string;
   subject<T>(name: string): Subject<T>;
   behaviorSubject<T>(name: string, initialValue: T): BehaviorSubject<T>;
   replaySubject<T>(name: string, bufferSize?: number): import("rxjs").ReplaySubject<T>;

@@ -101,6 +101,7 @@ export function activate() {
 
 Core plugin standards:
 
+- Current version: `piWeb.version`.
 - Shared Subject registry: `piWeb.subject(...)`, `piWeb.behaviorSubject(...)`, `piWeb.replaySubject(...)`,
   `piWeb.asyncSubject(...)`.
 - Channel names: `core.*`, `chat.*`, `session.*`, `shortcut.*`, `toast.*`, and `plugin.<pluginId>.*`.

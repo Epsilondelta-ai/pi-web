@@ -7,7 +7,10 @@ type SubjectEntry = {
   subject: Subject<unknown>;
 };
 
+declare const __PI_WEB_VERSION__: string;
+
 export type PiWebSubjects = {
+  readonly version: string;
   subject<T>(name: string): Subject<T>;
   behaviorSubject<T>(name: string, initialValue: T): BehaviorSubject<T>;
   replaySubject<T>(name: string, bufferSize?: number): ReplaySubject<T>;
@@ -23,6 +26,10 @@ type PiWebWindow = Window & typeof globalThis & {
 };
 
 const registry: Map<string, SubjectEntry> = new Map<string, SubjectEntry>();
+
+function piWebVersion(): string {
+  return typeof __PI_WEB_VERSION__ === "string" ? __PI_WEB_VERSION__ : "dev";
+}
 
 function assertSubjectKind(name: string, expectedKind: PiWebSubjectKind, entry: SubjectEntry): void {
   if (entry.kind !== expectedKind) {
@@ -53,6 +60,7 @@ function getSubject<T>(name: string, kind: PiWebSubjectKind, factory: () => Subj
 
 export function createPiWebSubjects(): PiWebSubjects {
   return {
+    version: piWebVersion(),
     subject<T>(name: string): Subject<T> {
       return getSubject<T>(name, "subject", (): Subject<T> => new Subject<T>());
     },
