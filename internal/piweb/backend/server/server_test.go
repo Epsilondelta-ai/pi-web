@@ -550,29 +550,6 @@ func TestAuthEndpointsSaveListAndLogoutAPIKeys(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeSplitEndpointsUseMockStatusWhenPiDisabled(t *testing.T) {
-	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
-	modelReq := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-model", nil)
-	modelRes := httptest.NewRecorder()
-	server.Handler().ServeHTTP(modelRes, modelReq)
-	if modelRes.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", modelRes.Code, modelRes.Body.String())
-	}
-	if !strings.Contains(modelRes.Body.String(), `"model":"GPT-5.5"`) || strings.Contains(modelRes.Body.String(), "weeklyQuota") {
-		t.Fatalf("unexpected model body: %s", modelRes.Body.String())
-	}
-
-	quotaReq := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-quota?model=GPT-5.5", nil)
-	quotaRes := httptest.NewRecorder()
-	server.Handler().ServeHTTP(quotaRes, quotaReq)
-	if quotaRes.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", quotaRes.Code, quotaRes.Body.String())
-	}
-	if !strings.Contains(quotaRes.Body.String(), `"weeklyQuota":14`) || strings.Contains(quotaRes.Body.String(), "currentBranch") {
-		t.Fatalf("unexpected quota body: %s", quotaRes.Body.String())
-	}
-}
-
 func TestCreateSessionEndpoint(t *testing.T) {
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
 	store := NewMockStore()

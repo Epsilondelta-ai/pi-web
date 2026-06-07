@@ -46,7 +46,7 @@ func TestQuotaMappersReturnRemainingPercent(t *testing.T) {
 	}
 }
 
-func TestRuntimeModelStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
+func TestRuntimeStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
@@ -66,7 +66,7 @@ func TestRuntimeModelStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	status, err := RuntimeModelStatusFromSettings(root)
+	status, err := runtimeStatusFromSettings(root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestRuntimeModelStatusFromSettingsReadsEffectiveSettings(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeModelStatusUsesSettingsWithoutPiRPC(t *testing.T) {
+func TestWorkspaceRuntimeStatusUsesSettingsWithoutPiRPC(t *testing.T) {
 	home := t.TempDir()
 	root := t.TempDir()
 	t.Setenv("HOME", home)
@@ -86,7 +86,7 @@ func TestWorkspaceRuntimeModelStatusUsesSettingsWithoutPiRPC(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	status, err := WorkspaceRuntimeModelStatus(context.Background(), root)
+	status, err := WorkspaceRuntimeStatus(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,11 +95,22 @@ func TestWorkspaceRuntimeModelStatusUsesSettingsWithoutPiRPC(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeQuotaStatusFallsBackToEnv(t *testing.T) {
+func TestWorkspaceRuntimeStatusFallsBackToEnvQuota(t *testing.T) {
+	home := t.TempDir()
 	root := t.TempDir()
+	t.Setenv("HOME", home)
 	t.Setenv("PI_WEB_5H_QUOTA", "33")
 	t.Setenv("PI_WEB_WEEKLY_QUOTA", "44")
-	status := WorkspaceRuntimeQuotaStatus(context.Background(), root, "unknown")
+	if err := os.MkdirAll(filepath.Join(home, ".pi", "agent"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultModel":"unknown"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	status, err := WorkspaceRuntimeStatus(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if status.FiveHourQuota == nil || *status.FiveHourQuota != 33 || status.WeeklyQuota == nil || *status.WeeklyQuota != 44 {
 		t.Fatalf("unexpected quota status: %+v", status)
 	}
@@ -124,7 +135,7 @@ func TestRuntimeQuotaIgnoresProjectWebStatusAndClampsEnv(t *testing.T) {
 	}
 }
 
-func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectWebStatus(t *testing.T) {
+func TestWorkspaceRuntimeStatusPrefersLiveQuotaOverStaleProjectWebStatus(t *testing.T) {
 	oldClient := http.DefaultClient
 	t.Cleanup(func() { http.DefaultClient = oldClient })
 	home := t.TempDir()
@@ -139,6 +150,9 @@ func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectWebStatus(t *test
 	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "auth.json"), []byte(`{"openai-codex":{"access":"oa","accountId":"acct"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(filepath.Join(home, ".pi", "agent", "settings.json"), []byte(`{"defaultModel":"GPT-5.5"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(root, ".pi", "pi-web.json"), []byte(`{"status":{"fiveHourQuota":86,"weeklyQuota":54}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +161,10 @@ func TestWorkspaceRuntimeQuotaStatusPrefersLiveOverStaleProjectWebStatus(t *test
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
 	})}
 
-	status := WorkspaceRuntimeQuotaStatus(context.Background(), root, "GPT-5.5")
+	status, err := WorkspaceRuntimeStatus(context.Background(), root)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if status.FiveHourQuota == nil || *status.FiveHourQuota != 92 || status.WeeklyQuota == nil || *status.WeeklyQuota != 87 {
 		t.Fatalf("expected live quota, got %+v", status)
 	}

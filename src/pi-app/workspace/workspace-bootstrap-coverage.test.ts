@@ -50,16 +50,13 @@ describe("workspace bootstrap coverage", () => {
     app.applyRuntimeStatus({ model: "m", warning: "careful" });
     app.applyRuntimeStatus(null);
     expect(app.notifyRuntimeWarning).toHaveBeenCalledWith("careful");
-    globalThis.fetch = vi.fn(async (url) => String(url).includes("runtime-model")
-      ? failJson("model failed")
-      : okJson({ status: { model: "fallback" } }));
+    globalThis.fetch = vi.fn(async () => okJson({ status: { model: "fallback" } }));
     await app.loadRuntimeStatus("w1");
     expect(app.updatePromptMeta).toHaveBeenLastCalledWith({ model: "fallback" });
-    globalThis.fetch = vi.fn(async () => failJson("quota failed"));
-    await app.loadRuntimeQuota("w1", "m");
+    globalThis.fetch = vi.fn(async () => failJson("status failed"));
+    await app.loadRuntimeStatus("w1");
     app.apiConnected = false;
     await app.loadRuntimeStatus("w1");
-    await app.loadRuntimeQuota("w1", "m");
   });
 
   it("covers settings form language, auth, focus, and patch branches", async () => {

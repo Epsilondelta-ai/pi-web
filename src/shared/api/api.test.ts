@@ -34,8 +34,6 @@ import {
   getWorkspaceFile,
   getWorkspaceFiles,
   getWorkspaceModels,
-  getWorkspaceRuntimeModel,
-  getWorkspaceRuntimeQuota,
   getWorkspaceRuntimeStatus,
   getWorkspaceSessions,
   getWorkspaceSettings,
@@ -202,12 +200,6 @@ describe("api adapter", () => {
     expect(gitCommit.url).toBe("http://backend.test/api/workspaces/w%2F1/git/commit?hash=a%2Fb");
     const status = await getWorkspaceRuntimeStatus("w1");
     expect(status.url).toBe("http://backend.test/api/workspaces/w1/runtime-status");
-    const model = await getWorkspaceRuntimeModel("w1");
-    expect(model.url).toBe("http://backend.test/api/workspaces/w1/runtime-model");
-    const quota = await getWorkspaceRuntimeQuota("w1", "GPT-5.5");
-    expect(quota.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota?model=GPT-5.5");
-    const quotaDefault = await getWorkspaceRuntimeQuota("w1");
-    expect(quotaDefault.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota");
   });
 
   it("manages auth and oauth requests", async () => {

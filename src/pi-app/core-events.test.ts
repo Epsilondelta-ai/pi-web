@@ -195,10 +195,9 @@ describe("pi-app core events", () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async (url) => {
       const path = String(url);
-      if (path.endsWith("/runtime-model")) {
+      if (path.endsWith("/runtime-status")) {
         return { ok: true, json: async () => ({ status: { model: "M", warning: "OAuth token expired" } }) };
       }
-      if (path.includes("/runtime-quota")) return { ok: true, json: async () => ({ status: { fiveHourQuota: 12 } }) };
       return { ok: true, json: async () => ({ workspaces: [] }) };
     });
     const app = await connectPiApp();

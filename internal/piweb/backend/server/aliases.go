@@ -147,19 +147,7 @@ func fallbackWorkspaceModels(root string, err error) WorkspaceModelsResponse {
 func WorkspaceRuntimeStatus(ctx context.Context, root string) (backendruntime.RuntimeStatus, error) {
 	return backendruntime.WorkspaceRuntimeStatus(ctx, root)
 }
-func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (backendruntime.RuntimeStatus, error) {
-	return backendruntime.WorkspaceRuntimeModelStatus(ctx, root)
-}
-func WorkspaceRuntimeQuotaStatus(ctx context.Context, root string, model string) backendruntime.RuntimeStatus {
-	return backendruntime.WorkspaceRuntimeQuotaStatus(ctx, root, model)
-}
 func MockRuntimeStatus() backendruntime.RuntimeStatus { return backendruntime.MockRuntimeStatus() }
-func MockRuntimeModelStatus() backendruntime.RuntimeStatus {
-	return backendruntime.MockRuntimeModelStatus()
-}
-func MockRuntimeQuotaStatus() backendruntime.RuntimeStatus {
-	return backendruntime.MockRuntimeQuotaStatus()
-}
 func DetectPiVersionStatus(ctx context.Context) (PiVersionStatus, error) {
 	return backendruntime.DetectPiVersionStatus(ctx)
 }
