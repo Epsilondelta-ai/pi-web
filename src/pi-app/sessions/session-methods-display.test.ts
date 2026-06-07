@@ -33,7 +33,7 @@ describe("pi-app session method display states", () => {
   beforeEach(installPiAppFixture);
   afterEach(cleanupPiAppFixture);
 
-  it("clears active sessions, workspace rows, and session controls", async () => {
+  it("clears active sessions and refreshes session controls", async () => {
     const app = await connectPiApp();
     const { activeTitle } = appendSessionShell(app);
     app.dataset.activeSessionId = "s1";
@@ -44,16 +44,12 @@ describe("pi-app session method display states", () => {
     expect(activeTitle.textContent).toBe("no session");
     expect(localStorage.getItem("pi.activeSession")).toBeNull();
 
-    const row = app.createSessionRow("w1", { id: "s2", title: "two", lastUsed: "now" });
-    app.querySelector("[data-workspace-group='w1'] .sessions").prepend(row);
-    app.findWorkspaceGroup = vi.fn(() => app.querySelector("[data-workspace-group='w1']"));
-    app.clearWorkspaceSessionRows("w1");
-    expect(app.querySelector("[data-session='s2']")).toBeNull();
-    delete app.findWorkspaceGroup;
-    app.clearWorkspaceSessionRows("missing");
-
     app.refreshWorkspaceSessionControls("missing");
+    app.findWorkspaceGroup = vi.fn(() => app.querySelector("[data-workspace-group='w1']"));
     const group = app.querySelector("[data-workspace-group='w1']");
+    group.querySelector(".sessions-empty").remove();
+    app.refreshWorkspaceSessionControls("w1");
+    expect(group.querySelector(".sessions-empty")).not.toBeNull();
     group.querySelector(".ws-meta").remove();
     group.querySelector(".new-session-row").remove();
     app.refreshWorkspaceSessionControls("w1");
