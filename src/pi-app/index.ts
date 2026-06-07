@@ -83,8 +83,11 @@ class PiApp extends HTMLElement {
   }
 
   handleAppClick(event: MouseEvent): void {
-    const target: HTMLElement | null = event.target instanceof HTMLElement ? event.target.closest("[data-action]") : null;
-    if (!target) return;
+    const target: HTMLElement | null = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-action]") : null;
+
+    if (!target) {
+      return;
+    }
     const methods = this as unknown as Record<string, (...args: unknown[]) => unknown>;
     const actions: Record<string, () => unknown> = {
       "open-settings": (): unknown => methods.openSettingsModal?.(),
