@@ -1,141 +1,24 @@
 ---
 import AppIcon from "./shared/icons/AppIcon.astro";
 import { UI_LOCALES } from "./i18n/locales";
-import {
-  SETTINGS_FIELDS as settingsFields,
-  SPEECH_LANGUAGE_OPTIONS as speechLanguageOptions,
-} from "./pi-app/workspace/settings-schema";
-
-const {
-  initialRoute = "workspace",
-  initialSession = "active",
-  treeOpen = false,
-  showDisconnect = false,
-  workspaces = [],
-} = Astro.props;
-
-const activeWorkspace = workspaces[0];
-const activeSession = activeWorkspace?.sessions?.[0];
-const activeWorkspaceName = activeWorkspace?.name || "pi-web";
-const activeSessionTitle = activeSession?.title || "no session";
-const activeSessionID = activeSession?.id || "";
-const activeWorkspaceID = activeWorkspace?.id || "";
-const workspaceVisible = initialRoute !== "picker";
-const pickerVisible = initialRoute === "picker";
-const bodyClass = ["app-body", treeOpen && "with-tree", treeOpen && "tree-open"].filter(Boolean).join(" ");
-const bodyGrid = treeOpen ? "1fr 320px" : "1fr";
-const pickerHidden = !pickerVisible;
-const workspaceHidden = !workspaceVisible;
-const settingsFieldByPath = Object.fromEntries(settingsFields.map((field) => [field.path, field]));
-const settingsGroups = [
-  {
-    title: "Model",
-    titleKey: "model",
-    description: "provider, model, thinking",
-    descriptionKey: "modelDescription",
-    paths: ["defaultProvider", "defaultModel", "defaultThinkingLevel"],
-  },
-  {
-    title: "Conversation",
-    titleKey: "conversation",
-    description: "prompt flow and transcript behavior",
-    descriptionKey: "conversationDescription",
-    paths: ["compaction.enabled", "enableSkillCommands", "steeringMode", "followUpMode", "hideThinkingBlock"],
-  },
-  {
-    title: "Voice",
-    titleKey: "voice",
-    description: "read aloud output",
-    descriptionKey: "voiceDescription",
-    paths: ["readResponsesAloud", "voice.language"],
-  },
-  {
-    title: "Speech",
-    titleKey: "speech",
-    description: "speech input and transcription",
-    descriptionKey: "speechDescription",
-    paths: ["enableSpeechInput", "speechInput.language"],
-  },
-  {
-    title: "Warnings",
-    titleKey: "warnings",
-    description: "usage and safety notices",
-    descriptionKey: "warningsDescription",
-    paths: ["warnings.anthropicExtraUsage"],
-  },
-].map((group) => ({ ...group, fields: group.paths.map((path) => settingsFieldByPath[path]).filter(Boolean) }));
-const treeHidden = !treeOpen;
-const statusColor = showDisconnect ? "var(--danger)" : "var(--fg-3)";
-const statusTitle = showDisconnect ? "disconnected" : "connecting";
-
-function speechLanguageListId(path) {
-  return `speech-language-options-${path.replace(/[^a-z0-9_-]/gi, "-")}`;
-}
-
+import { SETTINGS_FIELDS as settingsFields } from "./pi-app/settings/settings-schema";
+const { workspaces = [] } = Astro.props;
+const modelFields = settingsFields.filter((field) => ["defaultProvider", "defaultModel", "defaultThinkingLevel"].includes(field.path));
 ---
 
-<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID} data-initial-workspaces={JSON.stringify(workspaces)}>
+<pi-app class="app" data-initial-workspaces={JSON.stringify(workspaces)}>
   <header class="topbar">
-    <span class="brand" aria-label="pi.dev / web">
-      <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>
-    </span>
-    <span class="crumb">
-      <span class="sep">/</span><span class="ws" data-active-workspace>{activeWorkspaceName}</span>
-      <span class="sep">/</span><span class="session" data-active-session-title title={`${activeSessionTitle} · ${activeSessionID}`}>{activeSessionTitle}</span>
-    </span>
+    <span class="brand" aria-label="pi.dev / web"><span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span></span>
+    <span class="crumb"><span class="sep">/</span><span class="ws" data-active-workspace>plugins</span></span>
     <div class="actions" data-plugin-toolbar>
       <button class="iconbtn" type="button" data-action="open-settings" title="settings" aria-label="open settings"><AppIcon name="settings" size={14} strokeWidth={1.75} /></button>
-      <span class="iconbtn statusbtn" style={`color:${statusColor}`} title={statusTitle}>●</span>
+      <span class="iconbtn statusbtn" title="plugin host">●</span>
     </div>
   </header>
 
-  <section class="picker-shell" data-view="picker" hidden={pickerHidden}> 
-    <div class="picker-inner">
-      <div class="picker-header-row">
-        <p class="picker-tag"><span class="accent">pi.dev</span> &mdash; open a folder to start a session. No login.</p>
-        <button class="cancel-btn" type="button" data-action="route-workspace">cancel</button>
-      </div>
-      <div class="picker-card">
-        <div class="card-head"><span class="left">open a folder</span></div>
-        <form class="input-row" data-path-form>
-          <input name="path" placeholder="~/code/my-project   or   /Users/me/Code/project" autocomplete="off" />
-          <button class="open-btn" type="submit" aria-label="open typed path">open <AppIcon name="corner-down-left" size={12} strokeWidth={1.75} /></button>
-        </form>
-        <div style="padding:0 16px 12px;font-size:11px;color:var(--fg-3)">paste a path, pick from <code>~</code>, or drop a folder onto the window.</div>
-        <div class="folder-browser" data-folder-browser>
-          <div class="folder-browser-head"><button type="button" data-action="folder-up"><AppIcon name="arrow-up" size={12} strokeWidth={1.75} /> up</button><span data-folder-path>~</span><button type="button" data-action="folder-open-current">open this folder</button></div>
-          <div class="folder-list" data-folder-list></div>
-        </div>
-        <form class="clone-row" data-clone-form>
-          <input name="gitUrl" placeholder="git clone URL" autocomplete="off" />
-          <input name="name" placeholder="folder name (optional)" autocomplete="off" />
-          <button type="submit">clone & open</button>
-        </form>
-      </div>
-      <div class="picker-card" data-recent-workspaces>
-        <div class="card-head"><span class="left">recent workspaces</span><span class="right" data-workspace-count>{workspaces.length} known</span></div>
-        {workspaces.slice(0, 4).map((workspace) => (
-          <button class="recent-row" type="button" data-workspace={workspace.id} aria-label={`open ${workspace.name}`}>
-            <span class="glyph"><AppIcon name="chevron-right" size={12} strokeWidth={1.75} /></span>
-            <span class="ws-info"><span class="name">{workspace.name}</span><span class="path">{workspace.path}</span></span>
-            <span class="ws-stat">{workspace.live ? <><span class="live">● live</span><span class="lbl">{workspace.sessionCount} sessions</span></> : <><span>{workspace.lastUsed}</span><span class="lbl">{workspace.sessionCount} sessions</span></>}</span>
-            <span class="open-cta">open <AppIcon name="corner-down-left" size={12} strokeWidth={1.75} /></span>
-          </button>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class={bodyClass} data-view="workspace" hidden={workspaceHidden} style={`grid-template-columns:${bodyGrid}`}> 
+  <section class="app-body" data-view="workspace">
     <main class="main" data-main></main>
-
-    <aside class="tree" aria-label="plugin sidebar" data-plugin-sidebar data-active-plugin-panel="file-browser" hidden={treeHidden}> 
-      <div class="plugin-sidebar-empty" data-plugin-sidebar-empty>Install file browser or git viewer plugin.</div>
-    </aside>
-    <div class="scrim"></div>
   </section>
-
-
 
   <div class="settings-modal" data-settings-modal hidden>
     <form class="settings-dialog" data-settings-form role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
@@ -144,59 +27,24 @@ function speechLanguageListId(path) {
         <button type="button" data-action="close-settings" aria-label="close settings" data-i18n-aria-label="closeSettings"><AppIcon name="x" size={14} strokeWidth={1.75} /></button>
       </div>
       <div class="settings-body">
-        <div class="settings-update" data-update-release-panel hidden>
-          <div class="settings-update-copy">
-            <strong>pi-web update available</strong>
-            <small><span data-update-current>current</span> → <span data-update-latest>latest</span>. Update when you are ready, then restart pi-web.</small>
-          </div>
-          <span class="update-tip settings-update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
-        </div>
         <div class="settings-language-row">
-          <label><span data-i18n="language">Language</span>
-            <select name="uiLanguage" data-ui-language>
-              {UI_LOCALES.map((locale) => <option value={locale.code}>{locale.label}</option>)}
-            </select>
-          </label>
+          <label><span data-i18n="language">Language</span><select name="uiLanguage" data-ui-language>{UI_LOCALES.map((locale) => <option value={locale.code}>{locale.label}</option>)}</select></label>
           <small data-i18n="languageHint">Changes apply immediately and are saved on this device.</small>
         </div>
         <div class="settings-toolbar">
-          <label><span data-i18n="scope">scope</span>
-            <select name="scope" data-settings-scope>
-              <option value="project" data-i18n="project">project</option>
-              <option value="global" data-i18n="global">global</option>
-            </select>
-          </label>
+          <label><span data-i18n="scope">scope</span><select name="scope" data-settings-scope><option value="project" data-i18n="project">project</option><option value="global" data-i18n="global">global</option></select></label>
           <span data-settings-path>—</span>
         </div>
         <details class="auth-login" data-auth-form>
-          <summary>
-            <span class="auth-login-title"><span data-i18n="authTitle">Authentication</span> <em data-i18n="authMode">API key login</em></span>
-            <small data-auth-status>API key is stored in ~/.pi/agent/auth.json</small>
-          </summary>
+          <summary><span class="auth-login-title"><span data-i18n="authTitle">Authentication</span> <em data-i18n="authMode">API key login</em></span><small data-auth-status>API key is stored in ~/.pi/agent/auth.json</small></summary>
           <div class="auth-login-fields">
-            <label><span data-i18n="provider">provider</span>
-              <select data-auth-provider>
-                <option value="">loading providers…</option>
-              </select>
-            </label>
-            <label><span data-i18n="apiKey">API key</span>
-              <input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" data-i18n-placeholder="pasteApiKey" />
-            </label>
-            <div class="auth-login-actions">
-              <button type="button" data-action="save-auth-provider" data-i18n="saveKey">save key</button>
-              <button type="button" data-action="logout-auth-provider" data-i18n="logout">logout</button>
-            </div>
+            <label><span data-i18n="provider">provider</span><select data-auth-provider><option value="">loading providers…</option></select></label>
+            <label><span data-i18n="apiKey">API key</span><input data-auth-api-key type="password" autocomplete="off" placeholder="paste API key" data-i18n-placeholder="pasteApiKey" /></label>
+            <div class="auth-login-actions"><button type="button" data-action="save-auth-provider" data-i18n="saveKey">save key</button><button type="button" data-action="logout-auth-provider" data-i18n="logout">logout</button></div>
           </div>
           <div class="oauth-login-fields">
-            <label><span data-i18n="oauthProvider">OAuth provider</span>
-              <select data-oauth-provider>
-                <option value="" data-i18n="loadingOAuthProviders">loading OAuth providers…</option>
-              </select>
-            </label>
-            <div class="auth-login-actions">
-              <button type="button" data-action="start-oauth-login" data-i18n="loginWithOAuth">login with OAuth</button>
-              <button type="button" data-action="logout-oauth-provider" data-i18n="logout">logout</button>
-            </div>
+            <label><span data-i18n="oauthProvider">OAuth provider</span><select data-oauth-provider><option value="" data-i18n="loadingOAuthProviders">loading OAuth providers…</option></select></label>
+            <div class="auth-login-actions"><button type="button" data-action="start-oauth-login" data-i18n="loginWithOAuth">login with OAuth</button><button type="button" data-action="logout-oauth-provider" data-i18n="logout">logout</button></div>
             <a data-oauth-link href="#" target="_blank" rel="noreferrer" hidden data-i18n="openLoginPage">open login page</a>
             <input data-oauth-input autocomplete="off" placeholder="prompt input or redirect URL" data-i18n-placeholder="oauthInput" hidden />
             <button type="button" data-action="send-oauth-input" hidden data-i18n="send">send</button>
@@ -204,135 +52,34 @@ function speechLanguageListId(path) {
           </div>
         </details>
         <details class="plugin-settings" data-plugin-settings open>
-          <summary>
-            <span class="auth-login-title">Plugins <em>local JavaScript</em></span>
-            <small>Install a local folder containing plugin.json and an entry module.</small>
-          </summary>
+          <summary><span class="auth-login-title">Plugins <em>local JavaScript</em></span><small>Install a local folder containing plugin.json and an entry module.</small></summary>
           <div class="plugin-install-row">
-            <select data-plugin-source aria-label="plugin source">
-              <option value="github">GitHub</option>
-              <option value="local">local path</option>
-            </select>
+            <select data-plugin-source aria-label="plugin source"><option value="github">GitHub</option><option value="local">local path</option></select>
             <input data-plugin-path autocomplete="off" placeholder="/Users/me/dev/pi-web-plugin or owner/repo" />
-            <button type="button" data-action="install-plugin">install</button>
-            <button type="button" data-action="check-plugin-updates">check updates</button>
-            <button type="button" data-action="reload-plugins">reinstall GitHub</button>
+            <button type="button" data-action="install-plugin">install</button><button type="button" data-action="check-plugin-updates">check updates</button><button type="button" data-action="reload-plugins">reinstall GitHub</button>
           </div>
           <div class="plugin-list" data-plugin-list>No plugins installed.</div>
         </details>
         <div class="plugin-settings-root" data-plugin-settings-root></div>
-        <div class="settings-groups">
-          {settingsGroups.map((group) => (
-            <section class:list={["settings-group", group.title === "Speech" && "settings-group-speech"]}>
-              <div class="settings-group-head">
-                <div>
-                  <strong data-i18n={group.titleKey}>{group.title}</strong>
-                  <small data-i18n={group.descriptionKey}>{group.description}</small>
-                </div>
-                {group.title === "Speech" && <span class="settings-group-badge" data-i18n="browserLocal">browser + local</span>}
-              </div>
-              {group.title === "Speech" && (
-                <p class="settings-group-note" data-i18n="speechNote">Enable the mic, choose recognition language, then optionally cache a local Whisper model for offline transcription.</p>
-              )}
-              <div class:list={["settings-grid", group.title === "Speech" && "settings-speech-grid"]}>
-                {group.fields.map((field) => (
-                  <label
-                    class="settings-field"
-                    data-secure-context-only={field.path === "enableSpeechInput" ? "https" : undefined}
-                    hidden={field.path === "enableSpeechInput"}
-                  >
-                    <span>{field.label}</span>
-                      {field.type === "text" ? (
-                      <input data-setting={field.path} autocomplete="off" placeholder={field.hint} />
-                    ) : field.type === "password" ? (
-                      <input data-setting={field.path} type="password" autocomplete="off" placeholder={field.hint} />
-                    ) : field.type === "providerSelect" || field.type === "modelSelect" ? (
-                      <>
-                        <select data-setting={field.path} disabled>
-                          <option value="inherit">loading models…</option>
-                        </select>
-                        <input data-custom-setting={field.path} autocomplete="off" placeholder={`custom ${field.label}`} hidden />
-                      </>
-                    ) : field.type === "boolean" ? (
-                      <select data-setting={field.path}>
-                        <option value="inherit">inherit</option>
-                        <option value="true">on</option>
-                        <option value="false">off</option>
-                      </select>
-                    ) : field.type === "checkbox" ? (
-                      <span class="settings-checkbox"><input type="checkbox" data-setting={field.path} /> <span data-i18n="enabled">Enabled</span></span>
-                    ) : field.type === "speechLanguage" ? (
-                      <>
-                        <input
-                          data-setting={field.path}
-                          list={speechLanguageListId(field.path)}
-                          autocomplete="off"
-                          placeholder="Search language…"
-                          data-i18n-placeholder="searchLanguage"
-                        />
-                        <datalist id={speechLanguageListId(field.path)}>
-                          {speechLanguageOptions.map((language) => (
-                            <option value={language.label} label={language.value} data-language-value={language.value} />
-                          ))}
-                        </datalist>
-                      </>
-                    ) : (
-                      <select data-setting={field.path}>
-                        <option value="inherit">inherit</option>
-                        {field.values.map((value) => <option value={value}>{value}</option>)}
-                      </select>
-                    )}
-                    <small>effective: not set</small>
-                  </label>
-                ))}
-                {group.title === "Speech" && (
-                  <>
-                    <label class="settings-field" data-speech-advanced data-secure-context-only="https" hidden>
-                      <span class="settings-label-row"><span data-i18n="useLocalWhisper">Use local Whisper</span> <em data-i18n="enhanced">Enhanced</em></span>
-                      <span class="settings-checkbox"><input type="checkbox" data-setting="speechInput.useLocalWhisper" /> <span data-i18n="enabled">Enabled</span></span>
-                      <small>effective: not set</small>
-                    </label>
-                    <label class="settings-field settings-whisper-model" data-speech-advanced data-secure-context-only="https" hidden>
-                      <span data-i18n="whisperModel">Whisper model</span>
-                      <span class="settings-select-action">
-                        <select data-setting="speechInput.whisperModel">
-                          <option value="tiny-q5">tiny-q5 · compact · ~31MB</option>
-                          <option value="tiny">tiny · balanced · ~75MB</option>
-                          <option value="base-q5">base-q5 · compact quality · ~57MB</option>
-                          <option value="base">base · better quality · ~142MB</option>
-                          <option value="small-q5">small-q5 · high quality compact · ~181MB</option>
-                          <option value="small">small · high quality · ~466MB</option>
-                          <option value="medium-q5">medium-q5 · very high quality compact · ~582MB</option>
-                          <option value="medium">medium · very high quality · ~1.5GB</option>
-                          <option value="large-v3-q5">large-v3-q5 · best compact · ~1.2GB</option>
-                          <option value="large-v3">large-v3 · best quality · ~3GB+</option>
-                        </select>
-                        <button type="button" data-action="download-whisper-model" hidden data-i18n="download">download</button>
-                      </span>
-                      <small data-whisper-status>not checked</small>
-                    </label>
-                  </>
-                )}
-              </div>
-            </section>
-          ))}
-        </div>
-
+        <section class="settings-group">
+          <div class="settings-group-head"><div><strong data-i18n="model">Model</strong><small data-i18n="modelDescription">provider, model, thinking</small></div></div>
+          <div class="settings-grid">
+            {modelFields.map((field) => (
+              <label class="settings-field">
+                <span>{field.label}</span>
+                {field.type === "providerSelect" || field.type === "modelSelect" ? <><select data-setting={field.path} disabled><option value="inherit">loading models…</option></select><input data-custom-setting={field.path} autocomplete="off" placeholder={`custom ${field.label}`} hidden /></> : <select data-setting={field.path}><option value="inherit">inherit</option>{field.values?.map((value) => <option value={value}>{value}</option>)}</select>}
+                <small>effective: not set</small>
+              </label>
+            ))}
+          </div>
+        </section>
       </div>
-      <div class="settings-foot">
-        <span data-settings-status>blank fields inherit from effective settings</span>
-        <button type="button" data-action="close-settings" data-i18n="cancel">cancel</button>
-        <button type="submit" data-i18n="save">save</button>
-      </div>
+      <div class="settings-foot"><span data-settings-status>open a workspace to edit project settings</span><button type="submit" data-i18n="save">save</button></div>
     </form>
   </div>
-
-  <div class="twk-panel" data-tweaks hidden><div class="twk-hd"><b>Tweaks</b><button class="twk-x" type="button" data-action="close-tweaks" aria-label="Close tweaks"><AppIcon name="x" size={14} strokeWidth={1.75} /></button></div><div class="twk-body"><div class="twk-sect">Layout</div><button class="twk-btn secondary" type="button" data-action="route-picker">workspace picker</button><button class="twk-btn secondary" type="button" data-action="route-workspace">session view</button><button class="twk-btn secondary" type="button" data-action="new-session">new session</button></div></div>
 </pi-app>
 
 <script>
-  import "@vitejs/plugin-react/preamble";
-
   window.addEventListener("DOMContentLoaded", () => {
     void import("./pi-app/index");
   }, { once: true });

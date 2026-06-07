@@ -3,19 +3,11 @@ import * as rxjs from "rxjs";
 import { ensurePiWebSubjects } from "./plugin-subjects";
 import {
   apiBase,
-  cancelSession,
   getPluginUpdates,
   getPlugins,
-  getWorkspaceFile,
-  getWorkspaceSession,
   installPlugin,
-  postPrompt,
   reloadPlugins,
-  runShellCommand,
-  searchWorkspaceFiles,
-  sessionEvents,
   setPluginEnabled,
-  steerSession,
   uninstallPlugin,
   updatePlugin,
 } from "../../shared/api/api";
@@ -63,6 +55,7 @@ type PluginContext = {
   app: HTMLElement;
   plugin: PluginManifest;
   rxjs: RxjsApi;
+  initialWorkspaces: unknown[];
   api: {
     get(path: string): Promise<unknown>;
     post(path: string, body: unknown): Promise<unknown>;
@@ -71,38 +64,6 @@ type PluginContext = {
   mount: {
     chat(element: HTMLElement): PluginCleanup;
     composer(element: HTMLElement): PluginCleanup;
-  };
-  chat: {
-    appendMessage(message: unknown): void;
-    appendDelta(delta: unknown): void;
-    renderMessages(messages: unknown[]): void;
-    finalizeStreamingMessages(): void;
-    scrollToBottom(): void;
-  };
-  composer: {
-    getPrompt(): string;
-    setPrompt(value: string): void;
-    submitPrompt(): Promise<void>;
-    cancelActiveSession(): Promise<void>;
-    addAttachment(file: File): Promise<void>;
-    clearAttachments(): void;
-  };
-  session: {
-    activeId(): string;
-    activeWorkspaceId(): string;
-    running(): boolean;
-    get(sessionId: string, options?: { limit?: number; before?: string }): Promise<unknown>;
-    postPrompt(sessionId: string, text: string, attachments?: unknown[]): Promise<unknown>;
-    steer(sessionId: string, text: string, attachments?: unknown[]): Promise<unknown>;
-    cancel(sessionId: string): Promise<unknown>;
-    events(sessionId: string, options?: unknown): unknown;
-  };
-  files: {
-    search(workspaceId: string, query: string): Promise<unknown>;
-    read(workspaceId: string, path: string): Promise<unknown>;
-  };
-  shell: {
-    run(workspaceId: string, command: string): Promise<unknown>;
   };
 };
 
@@ -117,18 +78,7 @@ type PluginHost = HTMLElement & {
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
   importPluginModule?: (url: string) => Promise<PluginModule>;
-  updatePrompt?: () => void;
-  appendMessage?: (message: unknown) => void;
-  appendDelta?: (delta: unknown) => void;
-  renderMessages?: (messages: unknown[]) => void;
-  finalizeStreamingMessages?: () => void;
-  scrollTerm?: () => void;
-  submitPrompt?: () => Promise<void>;
-  cancelActiveSession?: () => Promise<void>;
-  addFiles?: (files: FileList | File[]) => Promise<void>;
-  prompt?: HTMLTextAreaElement | null;
-  attachmentContents?: unknown[];
-  attachments?: HTMLElement | null;
+  workspaceList?: unknown[];
 };
 
 function pluginAssetUrl(plugin: PluginManifest): string {
@@ -367,6 +317,7 @@ export const pluginMethods = {
       app: host,
       plugin,
       rxjs,
+      initialWorkspaces: Array.isArray(host.workspaceList) ? host.workspaceList : [],
       api: {
         get(path: string): Promise<unknown> {
           return request(path, "GET");
@@ -385,96 +336,6 @@ export const pluginMethods = {
         },
         composer(element: HTMLElement): PluginCleanup {
           return mountPluginSurface(host, "composer", element);
-        },
-      },
-      chat: {
-        appendMessage(message: unknown): void {
-          host.appendMessage?.(message);
-        },
-        appendDelta(delta: unknown): void {
-          host.appendDelta?.(delta);
-        },
-        renderMessages(messages: unknown[]): void {
-          host.renderMessages?.(messages);
-        },
-        finalizeStreamingMessages(): void {
-          host.finalizeStreamingMessages?.();
-        },
-        scrollToBottom(): void {
-          host.scrollTerm?.();
-        },
-      },
-      composer: {
-        getPrompt(): string {
-          return host.prompt?.value || "";
-        },
-        setPrompt(value: string): void {
-          if (host.prompt) {
-            host.prompt.value = value;
-          }
-          host.updatePrompt?.();
-        },
-        submitPrompt(): Promise<void> {
-          return host.submitPrompt?.() || Promise.resolve();
-        },
-        cancelActiveSession(): Promise<void> {
-          return host.cancelActiveSession?.() || Promise.resolve();
-        },
-        addAttachment(file: File): Promise<void> {
-          return host.addFiles?.([file]) || Promise.resolve();
-        },
-        clearAttachments(): void {
-          host.attachmentContents = [];
-          host.attachments?.replaceChildren();
-          if (host.attachments) {
-            host.attachments.hidden = true;
-          }
-          host.updatePrompt?.();
-        },
-      },
-      session: {
-        activeId(): string {
-          return host.dataset.activeSessionId || "";
-        },
-        activeWorkspaceId(): string {
-          return host.dataset.activeWorkspaceId || "";
-        },
-        running(): boolean {
-          return host.classList.contains("running") || host.dataset.mode === "running";
-        },
-        get(sessionId: string, options?: { limit?: number; before?: string }): Promise<unknown> {
-          const workspaceId: string = host.querySelector(`[data-session='${CSS.escape(sessionId)}']`)?.getAttribute("data-workspace")
-            || host.dataset.activeWorkspaceId
-            || "";
-          if (!workspaceId) {
-            return Promise.reject(new Error("session workspace is required"));
-          }
-          return getWorkspaceSession(workspaceId, sessionId, options || {});
-        },
-        postPrompt(sessionId: string, text: string, attachments: unknown[] = []): Promise<unknown> {
-          return postPrompt(sessionId, text, attachments);
-        },
-        steer(sessionId: string, text: string, attachments: unknown[] = []): Promise<unknown> {
-          return steerSession(sessionId, text, attachments);
-        },
-        cancel(sessionId: string): Promise<unknown> {
-          return cancelSession(sessionId);
-        },
-        events(sessionId: string, options?: unknown): unknown {
-          return sessionEvents(sessionId, options as Parameters<typeof sessionEvents>[1]);
-        },
-      },
-      files: {
-        search(workspaceId: string, query: string): Promise<unknown> {
-          return searchWorkspaceFiles(workspaceId, query);
-        },
-        read(workspaceId: string, path: string): Promise<unknown> {
-          return getWorkspaceFile(workspaceId, path);
-        },
-      },
-      shell: {
-        run(workspaceId: string, command: string): Promise<unknown> {
-          return runShellCommand(workspaceId, command);
         },
       },
     };

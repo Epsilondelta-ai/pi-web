@@ -150,6 +150,7 @@ describe("oauth methods", () => {
 
   it("covers optional DOM and guard branches", async () => {
     const app = await connectPiApp();
+    app.oauthState = { providers: [{ id: "anthropic", name: "Anthropic", configured: false }] };
     app.fillOAuthForm();
     app.querySelector("[data-oauth-provider]").remove();
     app.fillOAuthForm();

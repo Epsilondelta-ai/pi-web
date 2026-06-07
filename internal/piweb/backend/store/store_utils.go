@@ -1,9 +1,8 @@
 package store
 
 import (
-	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
-
 	"errors"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -16,7 +15,7 @@ func ValidateWorkspacePath(path string) (string, error) {
 	if path == "" {
 		return "", errors.New("path is required")
 	}
-	path, err := backendfiles.ExpandUserPath(path)
+	path, err := expandUserPath(path)
 	if err != nil {
 		return "", err
 	}
@@ -31,6 +30,21 @@ func ValidateWorkspacePath(path string) (string, error) {
 	}
 	return filepath.Clean(path), nil
 }
+func expandUserPath(path string) (string, error) {
+	if path == "~" || strings.HasPrefix(path, "~/") || strings.HasPrefix(path, "~\\") {
+		home, err := os.UserHomeDir()
+		if err != nil || home == "" {
+			return "", errors.New("home directory not found")
+		}
+		if path == "~" {
+			return home, nil
+		}
+		rel := strings.TrimPrefix(strings.TrimPrefix(path, "~/"), "~\\")
+		return filepath.Join(home, rel), nil
+	}
+	return path, nil
+}
+
 func slug(value string) string {
 	value = strings.ToLower(value)
 	value = strings.TrimSpace(value)

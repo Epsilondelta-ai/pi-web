@@ -1,22 +1,33 @@
 # `src/pi-app`
 
-`src/pi-app` contains the `<pi-app>` custom element shell plus feature method groups.
+`src/pi-app` is the minimal `<pi-app>` host shell.
+
+Core keeps only:
 
 ```text
 src/pi-app/
-├── index.ts          # custom element registration and method composition
-├── constants.ts      # shared browser storage/constants
-├── test-helper.ts    # shared DOM fixture helpers
-├── editor/           # file preview, editing, and syntax highlighting
-├── input/            # prompt input, attachments, drafts, fallback choices
-├── messages/         # transcript message and tool output rendering
-├── sessions/         # session list, hierarchy, storage, and switching
-├── status/           # runtime status, version, layout, and notification helpers
-├── transcript/       # virtualized transcript window helpers
-└── workspace/        # workspace bootstrap, folders, settings, and rendering
-    └── components/   # workspace-owned React components
+├── index.ts          # custom element registration, plugin host bridge, settings event wiring
+├── constants.ts      # shared constants still used by the host/settings surface
+├── plugins/          # plugin loading, backend bridge, mount API, piWeb subject registry
+└── settings/         # pi/auth/OAuth/settings modal helpers and schemas
 ```
 
-Keep tests next to the feature they exercise. New custom-element methods should live in the feature folder and be composed in `index.ts`.
+Do not restore the former built-in feature folders here:
 
-Shared cross-feature modules live in `src/shared/<domain>/`; do not add new generic files to `src/lib`.
+- `input/`
+- `messages/`
+- `sessions/`
+- `status/`
+- `transcript/`
+- `workspace/`
+
+Those surfaces are owned by default plugins:
+
+- files/editor: `pi-web-file-browser`
+- git view: `pi-web-git-viewer`
+- workspace/session sidebar: `pi-web-sidebar`
+- chat/composer/session execution: `pi-web-chat`
+
+The host may expose compatibility bridge methods for plugins, such as `openWorkspacePath`, `deleteWorkspace`,
+`newSession`, `deleteSession`, `renameSession`, and `deleteWorkspaceSessions`, but these methods must delegate to
+backend registry APIs or dispatch plugin-consumable events instead of reintroducing built-in UI/session ownership.
