@@ -529,17 +529,17 @@ describe("workspace bootstrap coverage", () => {
     app.renderWorkspaces = vi.fn();
     app.openWorkspace = vi.fn();
     globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces/open")
-      ? okJson({})
-      : okJson({ workspaces: null }));
+      ? okJson({ id: "opened", path: "/missing" })
+      : okJson({}));
     await app.openWorkspacePath("/missing");
-    expect(app.renderWorkspaces).toHaveBeenCalledWith([]);
+    expect(app.openWorkspace).toHaveBeenCalledWith("opened");
 
     const cloneForm = document.createElement("form");
     cloneForm.innerHTML = `<input name="gitUrl" value="https://x/repo.git"><input name="name" value=""><button type="submit"></button>`;
     cloneForm.reset = vi.fn();
     globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces/clone")
       ? okJson({ workspace: undefined })
-      : okJson({ workspaces: null }));
+      : okJson({}));
     app.currentFolder = "";
     await app.submitCloneWorkspace({ preventDefault: vi.fn(), currentTarget: cloneForm });
     expect(cloneForm.reset).toHaveBeenCalled();
@@ -550,7 +550,7 @@ describe("workspace bootstrap coverage", () => {
     expect(cloneFormNoButton.reset).toHaveBeenCalled();
 
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    globalThis.fetch = vi.fn(async () => okJson({ workspaces: null }));
+    globalThis.fetch = vi.fn(async () => okJson({ deleted: true }));
     await app.deleteWorkspace("w1");
     expect(app.renderWorkspaces).toHaveBeenCalledWith([]);
   });
@@ -567,19 +567,17 @@ describe("workspace bootstrap coverage", () => {
     app.showSessionSwitchLoading("none");
     app.termInner = savedTermInner;
     app.querySelector("[data-action='refresh-workspaces']")?.remove();
-    globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
-      ? okJson({ workspaces: [{ id: "stored", name: "stored", path: "/stored", sessions: [{ id: "other", title: "other" }] }] })
-      : okJson({}));
+    app.dataset.initialWorkspaces = JSON.stringify([
+      { id: "stored", name: "stored", path: "/stored", sessions: [{ id: "other", title: "other" }] },
+    ]);
+    globalThis.fetch = vi.fn(async () => okJson({ ok: true }));
     await app.bootstrapAPI();
-    globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
-      ? okJson({})
-      : okJson({}));
-    await app.bootstrapAPI();
-    globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
-      ? okJson({ workspaces: null })
-      : okJson({}));
+    app.dataset.activeWorkspaceId = "stored";
+    globalThis.fetch = vi.fn(async () => okJson({ sessions: [] }));
     await app.refreshWorkspaces();
-    expect(app.renderWorkspaces).toHaveBeenCalledWith([]);
+    expect(app.renderWorkspaces).toHaveBeenCalledWith([
+      { id: "stored", name: "stored", path: "/stored", sessions: [], sessionCount: 0, live: false },
+    ]);
 
     app.sessionLoadToken = Symbol("old");
     globalThis.fetch = vi.fn(async () => { throw new Error("session fail"); });
@@ -629,9 +627,8 @@ describe("workspace bootstrap coverage", () => {
     sessionMain.toggleAttribute("data-main", true);
     sessionMain.replaceChildren();
     if (!sessionMain.isConnected) app.append(sessionMain);
-    globalThis.fetch = vi.fn(async (url) => String(url).endsWith("/workspaces")
-      ? okJson({ workspaces: [] })
-      : okJson({}));
+    app.dataset.initialWorkspaces = "[]";
+    globalThis.fetch = vi.fn(async () => okJson({ ok: true }));
 
     await app.bootstrapAPI();
 
@@ -651,16 +648,19 @@ describe("workspace bootstrap coverage", () => {
     tree.className = "tree-list";
     git.dataset.gitStatus = "";
     app.append(activeLabel, activeTitle, tree, git);
+    app.dataset.initialWorkspaces = JSON.stringify([{
+      id: "w1", name: "one", path: "/one", sessions: [{ id: "s1", title: "first", lastUsed: "now" }],
+    }]);
     app.renderSlashCommands = vi.fn();
     app.route = vi.fn();
     app.connectEvents = vi.fn();
     app.updatePromptMeta = vi.fn();
     globalThis.fetch = vi.fn(async (url) => {
       const value = String(url);
-      if (value.endsWith("/workspaces-null")) return okJson({});
-      if (value.endsWith("/workspaces")) return okJson({ workspaces: [{
-        id: "w1", name: "one", path: "/one", sessions: [{ id: "s1", title: "first", lastUsed: "now" }],
-      }] });
+      if (value.endsWith("/health")) return okJson({ ok: true });
+      if (value.endsWith("/workspaces/w1/sessions")) {
+        return okJson({ sessions: [{ id: "s1", title: "first", lastUsed: "now", workspaceId: "w1" }] });
+      }
       if (value.includes("/files")) return okJson({ files: [{ type: "file", name: "a.ts", depth: 0 }] });
       if (value.includes("/git/status")) return okJson({ branch: "main", dirty: 2 });
       if (value.includes("/commands")) return okJson({ commands: [{ command: "/x" }] });

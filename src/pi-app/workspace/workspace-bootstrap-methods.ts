@@ -1,9 +1,10 @@
 import {
   getGitStatus,
-  getSession,
   getWorkspaceCommands,
   getWorkspaceFiles,
-  getWorkspaces,
+  getWorkspaceSession,
+  getWorkspaceSessions,
+  health,
 } from "../../shared/api/api";
 import { readStoredActiveSession, storeActiveSession } from "../sessions/session-storage";
 
@@ -13,6 +14,15 @@ function parseInitialTreeFiles(raw) {
   if (!raw) return [];
   try {
     return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function initialWorkspacesFromDataset(app) {
+  try {
+    const parsed = JSON.parse(app.dataset.initialWorkspaces || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -35,11 +45,11 @@ function findStoredSession(workspaces, stored) {
 export const workspaceBootstrapMethods = {
   async bootstrapAPI() {
     try {
-      const [{ workspaces }] = await Promise.all([getWorkspaces()]);
+      await health();
       this.apiConnected = true;
       this.setConnection("ok");
 
-      const workspaceList = workspaces || [];
+      const workspaceList = this.workspaceList || initialWorkspacesFromDataset(this);
       const storedSession = findStoredSession(workspaceList, readStoredActiveSession());
       const activeWorkspace = storedSession?.workspace || workspaceList[0];
       const activeSession = storedSession?.session || activeWorkspace?.sessions?.[0];
@@ -145,9 +155,8 @@ export const workspaceBootstrapMethods = {
     const button = this.querySelector("[data-action='refresh-workspaces']");
     if (button && !options.quiet) button.disabled = true;
     try {
-      const { workspaces } = await getWorkspaces();
-      const activeWorkspaceId = this.dataset.activeWorkspaceId;
-      const workspaceList = this.withRefreshFallbackWorkspace(workspaces || [], activeWorkspaceId);
+      const activeWorkspaceId = this.dataset.activeWorkspaceId || this.workspaceList?.[0]?.id || "";
+      const workspaceList = await this.refreshWorkspaceSessions(activeWorkspaceId);
       this.renderWorkspaces(workspaceList);
       const openWorkspaceId = this.sidebarOpenWorkspaceId ?? activeWorkspaceId;
       if (openWorkspaceId) this.openActiveWorkspaceGroup(openWorkspaceId);
@@ -185,11 +194,20 @@ export const workspaceBootstrapMethods = {
     return !!this.querySelector(".session-row.child-session.active[data-session]");
   },
 
-  withRefreshFallbackWorkspace(workspaceList, activeWorkspaceId) {
-    if (!activeWorkspaceId || workspaceList.some((workspace) => workspace.id === activeWorkspaceId)) return workspaceList;
-    const fallback = (this.workspaceList || []).find((workspace) => workspace.id === activeWorkspaceId);
-    if (!fallback) return workspaceList;
-    return [{ ...fallback, sessions: [], sessionCount: 0, live: false }, ...workspaceList];
+  async refreshWorkspaceSessions(workspaceId) {
+    const workspaceList = this.workspaceList || initialWorkspacesFromDataset(this);
+    if (!workspaceId) return workspaceList;
+    const { sessions } = await getWorkspaceSessions(workspaceId);
+    return workspaceList.map((workspace) => {
+      if (workspace.id !== workspaceId) return workspace;
+      const nextSessions = sessions || [];
+      return {
+        ...workspace,
+        sessions: nextSessions,
+        sessionCount: nextSessions.length,
+        live: nextSessions.some((session) => session.active || session.live),
+      };
+    });
   },
 
   async refreshTree() {
@@ -204,12 +222,18 @@ export const workspaceBootstrapMethods = {
     }
   },
 
-  async loadSession(sessionId) {
+  async loadSession(sessionId, workspaceId = "") {
+    const resolvedWorkspaceId = workspaceId || this.findWorkspaceIdForSession?.(sessionId) || this.dataset.activeWorkspaceId;
     const loadToken = Symbol(sessionId);
     this.sessionLoadToken = loadToken;
     this.showSessionSwitchLoading(sessionId);
+    if (!resolvedWorkspaceId) {
+      await Promise.resolve();
+      if (this.sessionLoadToken === loadToken) this.setConnection("err");
+      return;
+    }
     try {
-      const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
+      const loaded = await getWorkspaceSession(resolvedWorkspaceId, sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE });
       if (this.sessionLoadToken !== loadToken) return;
       this.applyLoadedSession(loaded.session, loaded.messages || [], loaded.status, loaded);
     } catch {
@@ -304,7 +328,9 @@ export const workspaceBootstrapMethods = {
     this.sessionHistoryLoading = true;
     const cursor = this.sessionHistoryCursor;
     try {
-      const loaded = await getSession(sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE, before: cursor });
+      const workspaceId = this.findWorkspaceIdForSession?.(sessionId) || this.dataset.activeWorkspaceId;
+      if (!workspaceId) return;
+      const loaded = await getWorkspaceSession(workspaceId, sessionId, { limit: SESSION_MESSAGE_PAGE_SIZE, before: cursor });
       if (this.dataset.activeSessionId !== sessionId || this.sessionHistoryCursor !== cursor) return;
       this.prependLoadedMessages(loaded.messages || []);
       this.sessionHistoryCursor = loaded.cursor || "";

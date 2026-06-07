@@ -6,8 +6,8 @@ const api = vi.hoisted(() => ({
   cancelSession: vi.fn(),
   getPluginUpdates: vi.fn(),
   getPlugins: vi.fn(),
-  getSession: vi.fn(),
   getWorkspaceFile: vi.fn(),
+  getWorkspaceSession: vi.fn(),
   installPlugin: vi.fn(),
   postPrompt: vi.fn(),
   reloadPlugins: vi.fn(),
@@ -51,7 +51,7 @@ describe("pluginMethods", () => {
     api.getPlugins.mockResolvedValue({ plugins: [] });
     api.getPluginUpdates.mockResolvedValue({ plugins: [] });
     api.cancelSession.mockResolvedValue({ cancelled: true });
-    api.getSession.mockResolvedValue({ session: { id: "s1" } });
+    api.getWorkspaceSession.mockResolvedValue({ session: { id: "s1" } });
     api.getWorkspaceFile.mockResolvedValue({ file: { path: "a" } });
     api.installPlugin.mockResolvedValue({});
     api.postPrompt.mockResolvedValue({ accepted: true });
@@ -291,6 +291,7 @@ describe("pluginMethods", () => {
     await context.composer.addAttachment(new File(["x"], "x.txt"));
     context.composer.clearAttachments();
     await context.session.get("s1");
+    expect(api.getWorkspaceSession).toHaveBeenCalledWith("w1", "s1", {});
     await context.session.postPrompt("s1", "p");
     await context.session.steer("s1", "p");
     await context.session.cancel("s1");

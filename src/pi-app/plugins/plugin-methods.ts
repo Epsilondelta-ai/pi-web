@@ -6,8 +6,8 @@ import {
   cancelSession,
   getPluginUpdates,
   getPlugins,
-  getSession,
   getWorkspaceFile,
+  getWorkspaceSession,
   installPlugin,
   postPrompt,
   reloadPlugins,
@@ -441,7 +441,13 @@ export const pluginMethods = {
           return host.classList.contains("running") || host.dataset.mode === "running";
         },
         get(sessionId: string, options?: { limit?: number; before?: string }): Promise<unknown> {
-          return getSession(sessionId, options || {});
+          const workspaceId: string = host.querySelector(`[data-session='${CSS.escape(sessionId)}']`)?.getAttribute("data-workspace")
+            || host.dataset.activeWorkspaceId
+            || "";
+          if (!workspaceId) {
+            return Promise.reject(new Error("session workspace is required"));
+          }
+          return getWorkspaceSession(workspaceId, sessionId, options || {});
         },
         postPrompt(sessionId: string, text: string, attachments: unknown[] = []): Promise<unknown> {
           return postPrompt(sessionId, text, attachments);

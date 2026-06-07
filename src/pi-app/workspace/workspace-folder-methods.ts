@@ -1,7 +1,6 @@
 import {
   cloneWorkspace as cloneWorkspaceRequest,
   deleteWorkspace as deleteWorkspaceRequest,
-  getWorkspaces,
   listFolders,
   openWorkspace as openWorkspaceRequest,
 } from "../../shared/api/api";
@@ -61,11 +60,13 @@ export const workspaceFolderMethods = {
 
   async openWorkspacePath(path) {
     if (!path) return;
-    await openWorkspaceRequest(path);
-    const { workspaces } = await getWorkspaces();
-    this.renderWorkspaces(workspaces || []);
-    const workspace = (workspaces || []).find((item) => item.path === path) || workspaces?.[0];
-    if (workspace) await this.openWorkspace(workspace.id);
+    const workspace = await openWorkspaceRequest(path);
+    if (!workspace?.id) {
+      this.setConnection("err");
+      return;
+    }
+    this.upsertWorkspaceState(workspace);
+    await this.openWorkspace(workspace.id);
   },
 
   async submitCloneWorkspace(event) {
@@ -80,10 +81,11 @@ export const workspaceFolderMethods = {
     try {
       const cloned = await cloneWorkspaceRequest(this.currentFolder || "~", gitUrl, name);
       form.reset();
-      const { workspaces } = await getWorkspaces();
-      this.renderWorkspaces(workspaces || []);
-      const workspace = cloned.workspace || workspaces?.[0];
-      if (workspace) await this.openWorkspace(workspace.id);
+      const workspace = cloned.workspace || this.workspaceList?.[0];
+      if (workspace) {
+        this.upsertWorkspaceState(workspace);
+        await this.openWorkspace(workspace.id);
+      }
     } catch (error) {
       alert(error instanceof Error ? error.message : String(error));
       this.setConnection("err");
@@ -113,10 +115,26 @@ export const workspaceFolderMethods = {
     if (!confirm(`Remove workspace ${workspaceId} from this view?`)) return;
     try {
       await deleteWorkspaceRequest(workspaceId);
-      const { workspaces } = await getWorkspaces();
-      this.renderWorkspaces(workspaces || []);
+      this.removeWorkspaceFromState(workspaceId);
     } catch {
       this.setConnection("err");
+    }
+  },
+
+  upsertWorkspaceState(workspace) {
+    if (!workspace?.id) return;
+    const workspaces = Array.isArray(this.workspaceList) ? this.workspaceList : [];
+    this.renderWorkspaces([workspace, ...workspaces.filter((item) => item.id !== workspace.id)]);
+  },
+
+  removeWorkspaceFromState(workspaceId) {
+    if (!workspaceId) return;
+    const workspaces = Array.isArray(this.workspaceList) ? this.workspaceList : [];
+    this.renderWorkspaces(workspaces.filter((workspace) => workspace.id !== workspaceId));
+    if (this.dataset.activeWorkspaceId === workspaceId) {
+      this.dataset.activeWorkspaceId = "";
+      this.clearActiveSession?.(this.dataset.activeSessionId);
+      this.showEmptyMain?.("");
     }
   },
 

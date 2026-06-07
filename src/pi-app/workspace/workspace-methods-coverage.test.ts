@@ -134,7 +134,9 @@ describe("workspace folder/render/bootstrap coverage", () => {
     await customElements.whenDefined("pi-app");
     const app = document.querySelector("pi-app");
     app.apiConnected = true;
-    globalThis.fetch = vi.fn(async () => okJson({ workspaces: [] }));
+    app.renderWorkspaces([{ id: "w1", name: "one", path: "/one", sessionCount: 0, sessions: [] }]);
+    app.dataset.activeWorkspaceId = "w1";
+    globalThis.fetch = vi.fn(async () => okJson({ sessions: [] }));
 
     app.startAgentSessionDiscoveryPolling();
 
@@ -211,10 +213,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
       if (value.includes("/system/folders")) {
         return okJson({ path: "/root", folders: [] });
       }
-      if (value.endsWith("/workspaces/open")) return okJson({ id: "w1" });
-      if (value.endsWith("/workspaces")) {
-        return okJson({ workspaces: [{ id: "w1", path: "/root" }] });
-      }
+      if (value.endsWith("/workspaces/open")) return okJson({ id: "w1", path: "/root" });
       return okJson({});
     });
 
@@ -266,14 +265,13 @@ describe("workspace folder/render/bootstrap coverage", () => {
 
     app.currentFolder = "";
     globalThis.fetch = vi.fn(async (url) => {
-      if (String(url).endsWith("/workspaces/clone")) return okJson({});
-      if (String(url).endsWith("/workspaces")) return okJson({ workspaces: [{ id: "fallback", path: "/fallback" }] });
+      if (String(url).endsWith("/workspaces/clone")) return okJson({ workspace: { id: "cloned", path: "/cloned" } });
       return okJson({});
     });
     app.openWorkspace = vi.fn();
     await app.submitCloneWorkspace({ preventDefault: vi.fn(), currentTarget: cloneForm });
     expect(cloneForm.reset).toHaveBeenCalled();
-    expect(app.openWorkspace).toHaveBeenCalledWith("fallback");
+    expect(app.openWorkspace).toHaveBeenCalledWith("cloned");
 
     app.renderFolderListing({ path: "/none", folders: [{ name: "x", path: "/x" }] });
 
@@ -291,10 +289,11 @@ describe("workspace folder/render/bootstrap coverage", () => {
 
     vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     await app.deleteWorkspace("w1");
-    globalThis.fetch = vi.fn(async () => okJson({ workspaces: [] }));
+    globalThis.fetch = vi.fn(async () => okJson({ deleted: true }));
+    app.workspaceList = [{ id: "w1" }];
     app.renderWorkspaces = vi.fn();
     await app.deleteWorkspace("w1");
-    expect(app.renderWorkspaces).toHaveBeenCalledWith([]);
+    expect(app.renderWorkspaces).toHaveBeenLastCalledWith([]);
     globalThis.fetch = vi.fn(async () => failJson("delete failed"));
     window.confirm.mockReturnValue(true);
     await app.deleteWorkspace("w1");

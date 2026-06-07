@@ -7,12 +7,16 @@ import (
 	"strings"
 )
 
-func (s *Server) session(w http.ResponseWriter, r *http.Request) {
+func (s *Server) workspaceSession(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("sessionID")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	session, page, err := s.store.SessionPage(sessionID, limit, r.URL.Query().Get("before"))
 	if err != nil {
 		writeStoreError(w, err)
+		return
+	}
+	if session.Workspace != r.PathValue("workspaceID") {
+		writeStoreError(w, ErrNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -31,20 +35,40 @@ func (s *Server) sessionStatus(sessionID string) string {
 	}
 	return "idle"
 }
-func (s *Server) renameSession(w http.ResponseWriter, r *http.Request) {
+func (s *Server) renameWorkspaceSession(w http.ResponseWriter, r *http.Request) {
+	workspaceID := r.PathValue("workspaceID")
+	session, _, err := s.store.Session(r.PathValue("sessionID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	if session.Workspace != workspaceID {
+		writeStoreError(w, ErrNotFound)
+		return
+	}
 	var req RenameSessionRequest
 	if err := readJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	session, err := s.store.RenameSession(r.PathValue("sessionID"), req.Title)
+	renamed, err := s.store.RenameSession(r.PathValue("sessionID"), req.Title)
 	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"session": session})
+	writeJSON(w, http.StatusOK, map[string]any{"session": renamed})
 }
-func (s *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
+func (s *Server) deleteWorkspaceSession(w http.ResponseWriter, r *http.Request) {
+	workspaceID := r.PathValue("workspaceID")
+	session, _, err := s.store.Session(r.PathValue("sessionID"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	if session.Workspace != workspaceID {
+		writeStoreError(w, ErrNotFound)
+		return
+	}
 	if err := s.store.DeleteSession(r.PathValue("sessionID")); err != nil {
 		writeStoreError(w, err)
 		return

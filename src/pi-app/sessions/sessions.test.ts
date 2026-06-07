@@ -187,13 +187,14 @@ describe("pi-app sessions", () => {
       json: async () => ({ session: { id: "s1", title: "demo" }, messages: [] }),
     }));
     const app = await connectPiApp();
+    app.dataset.activeWorkspaceId = "w1";
     let connected;
     app.connectEvents = (sessionId, options) => {
       connected = { sessionId, options };
     };
 
     await app.loadSession("s1");
-    expect(globalThis.fetch.mock.calls.at(-1)[0]).toBe("http://backend.test/api/sessions/s1?limit=120");
+    expect(globalThis.fetch.mock.calls.at(-1)[0]).toBe("http://backend.test/api/workspaces/w1/sessions/s1?limit=120");
     expect(connected).toEqual({ sessionId: "s1", options: { replay: false } });
   });
 
@@ -237,6 +238,7 @@ describe("pi-app sessions", () => {
       }),
     }));
     const app = await connectPiApp();
+    app.dataset.activeWorkspaceId = "w1";
     app.dataset.activeSessionId = "s1";
     app.renderMessages([{ kind: "pi", text: "newer" }]);
     app.sessionHistoryCursor = "cursor";
@@ -244,7 +246,7 @@ describe("pi-app sessions", () => {
 
     await app.loadOlderSessionMessages();
 
-    expect(globalThis.fetch.mock.calls.at(-1)[0]).toBe("http://backend.test/api/sessions/s1?limit=120&before=cursor");
+    expect(globalThis.fetch.mock.calls.at(-1)[0]).toBe("http://backend.test/api/workspaces/w1/sessions/s1?limit=120&before=cursor");
     expect(app.transcriptItems).toHaveLength(2);
     expect(app.transcriptItems[0].message.text).toBe("older");
     expect(app.sessionHistoryCursor).toBe("old-cursor");

@@ -996,22 +996,24 @@ describe("pi-app controls", () => {
     expect(tree.hidden).toBe(false);
   });
 
-  it("refreshes workspaces from the sidebar refresh button", async () => {
+  it("refreshes active workspace sessions from the sidebar refresh button", async () => {
     globalThis.PI_WEB_API_BASE = "http://backend.test";
     globalThis.fetch = vi.fn(async () => ({
       ok: true,
       status: 200,
       statusText: "OK",
       json: async () => ({
-        workspaces: [{ id: "w1", name: "demo", path: "/demo", sessionCount: 0, sessions: [] }],
+        sessions: [{ id: "s1", title: "demo", workspaceId: "w1" }],
       }),
     }));
     const app = await connectPiApp();
     app.apiConnected = true;
+    app.renderWorkspaces([{ id: "w1", name: "demo", path: "/demo", sessionCount: 0, sessions: [] }]);
+    app.dataset.activeWorkspaceId = "w1";
 
     await app.refreshWorkspaces();
 
-    expect(globalThis.fetch).toHaveBeenCalledWith("http://backend.test/api/workspaces", expect.any(Object));
-    expect(app.querySelector("[data-workspace-group='w1'] .label").textContent).toBe("demo");
+    expect(globalThis.fetch).toHaveBeenCalledWith("http://backend.test/api/workspaces/w1/sessions", expect.any(Object));
+    expect(app.querySelector("[data-session='s1'] .title").textContent).toBe("demo");
   });
 });

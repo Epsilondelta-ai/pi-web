@@ -238,13 +238,17 @@ func TestWorkspaceAndSessionManagementEndpoints(t *testing.T) {
 	if err := json.NewDecoder(createRes.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	renameReq := httptest.NewRequest(http.MethodPatch, "/api/sessions/"+body.Session.ID, bytes.NewBufferString(`{"title":"renamed"}`))
+	renameReq := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/workspaces/"+workspace.ID+"/sessions/"+body.Session.ID,
+		bytes.NewBufferString(`{"title":"renamed"}`),
+	)
 	renameRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(renameRes, renameReq)
 	if renameRes.Code != http.StatusOK || !strings.Contains(renameRes.Body.String(), "renamed") {
 		t.Fatalf("rename failed: %d %s", renameRes.Code, renameRes.Body.String())
 	}
-	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/sessions/"+body.Session.ID, nil)
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/workspaces/"+workspace.ID+"/sessions/"+body.Session.ID, nil)
 	deleteRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(deleteRes, deleteReq)
 	if deleteRes.Code != http.StatusOK {

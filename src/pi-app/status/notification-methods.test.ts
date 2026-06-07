@@ -213,6 +213,7 @@ describe("pi-app notification-free session helpers", () => {
       json: async () => ({ messages: [{ kind: "user", text: "q" }, { kind: "pi", text: "answer" }] }),
     }));
     app.dataset.activeSessionId = "active";
+    app.dataset.activeWorkspaceId = "w1";
     app.isReadAloudEnabled = () => true;
     app.speakAssistantText = vi.fn();
     await app.readCompletedBackgroundSessionAloud("s2");
