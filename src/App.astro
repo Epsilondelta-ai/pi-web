@@ -78,3 +78,9 @@ const modelFields = settingsFields.filter((field) => ["defaultProvider", "defaul
     </form>
   </div>
 </pi-app>
+
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    void import("./pi-app/index");
+  }, { once: true });
+</script>
