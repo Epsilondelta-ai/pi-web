@@ -1,5 +1,12 @@
 const DEV_API_BASE = "http://127.0.0.1:8732";
 
+export type PluginEvent = {
+  id?: number;
+  type: string;
+  payload?: unknown;
+  at?: string;
+};
+
 function isLoopbackDevHost(): boolean {
   const hostname = globalThis.location?.hostname;
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
@@ -33,6 +40,28 @@ export function getPiVersionStatus() { return request("/api/pi/version"); }
 export function getPiUpdateStatus() { return request("/api/pi/update"); }
 export function getPlugins() { return request("/api/plugins"); }
 export function getPluginUpdates() { return request("/api/plugins/updates"); }
+export function connectPluginEvents(
+  pluginId: string,
+  channel: string,
+  onEvent: (event: PluginEvent) => void,
+  eventTypes: string[] = [],
+): () => void {
+  if (typeof EventSource === "undefined") return (): void => undefined;
+
+  const path = `/api/plugins/${encodeURIComponent(pluginId)}/events/${encodeURIComponent(channel)}`;
+  const source = new EventSource(`${apiBase()}${path}`);
+  const handleEvent = (message: MessageEvent<string>): void => {
+    const parsed = JSON.parse(message.data) as PluginEvent;
+    onEvent(parsed);
+  };
+  source.onmessage = eventTypes.length === 0 ? handleEvent : null;
+  eventTypes.forEach((eventType: string): void => source.addEventListener(eventType, handleEvent as EventListener));
+  return (): void => source.close();
+}
+export function publishPluginEvent(pluginId: string, channel: string, type: string, payload: unknown = {}) {
+  const path = `/api/plugins/${encodeURIComponent(pluginId)}/events/${encodeURIComponent(channel)}`;
+  return request(path, { method: "POST", body: JSON.stringify({ payload, type }) });
+}
 export function getAuthProviders() { return request("/api/auth/providers"); }
 export function getOAuthProviders() { return request("/api/auth/oauth/providers"); }
 export function getWorkspaceModels(workspaceId) { return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/models`); }

@@ -3,9 +3,11 @@ import * as rxjs from "rxjs";
 import { ensurePiWebSubjects } from "./plugin-subjects";
 import {
   apiBase,
+  connectPluginEvents,
   getPluginUpdates,
   getPlugins,
   installPlugin,
+  publishPluginEvent,
   reloadPlugins,
   setPluginEnabled,
   uninstallPlugin,
@@ -61,6 +63,10 @@ type PluginContext = {
     post(path: string, body: unknown): Promise<unknown>;
   };
   backend(method: string, body: unknown): Promise<unknown>;
+  events: {
+    publish(channel: string, type: string, payload?: unknown): Promise<unknown>;
+    subscribe(channel: string, eventTypes: string[], callback: (event: unknown) => void): PluginCleanup;
+  };
   mount: {
     chat(element: HTMLElement): PluginCleanup;
     composer(element: HTMLElement): PluginCleanup;
@@ -329,6 +335,14 @@ export const pluginMethods = {
       backend(method: string, body: unknown): Promise<unknown> {
         const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
         return request(path, "POST", body);
+      },
+      events: {
+        publish(channel: string, type: string, payload: unknown = {}): Promise<unknown> {
+          return publishPluginEvent(plugin.id, channel, type, payload);
+        },
+        subscribe(channel: string, eventTypes: string[], callback: (event: unknown) => void): PluginCleanup {
+          return connectPluginEvents(plugin.id, channel, callback, eventTypes);
+        },
       },
       mount: {
         chat(element: HTMLElement): PluginCleanup {

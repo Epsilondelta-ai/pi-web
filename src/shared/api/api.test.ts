@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  connectPluginEvents,
   deleteWorkspace,
   getAuthProviders,
   getOAuthLoginSession,
@@ -19,6 +20,7 @@ import {
   installPlugin,
   logoutProvider,
   openWorkspace,
+  publishPluginEvent,
   reloadPlugins,
   saveAPIKey,
   saveWorkspaceSettings,
@@ -100,6 +102,13 @@ describe("api adapter", () => {
     expect((await uninstallPlugin("p/1")).options.method).toBe("DELETE");
     expect(JSON.parse((await openWorkspace("/repo")).options.body)).toEqual({ path: "/repo" });
     expect((await deleteWorkspace("w/1")).options.method).toBe("DELETE");
+    expect(JSON.parse((await publishPluginEvent("p/1", "active/state", "active.start", { sessionId: "s1" })).options.body)).toEqual({
+      payload: { sessionId: "s1" },
+      type: "active.start",
+    });
+    expect((await publishPluginEvent("p/1", "active/state", "active.start", { sessionId: "s1" })).url).toBe(
+      "http://backend.test/api/plugins/p%2F1/events/active%2Fstate",
+    );
     expect(JSON.parse((await startPiUpdate()).options.body)).toEqual({ source: "", workspaceId: "" });
     expect(JSON.parse((await startPiUpdate("source", "w1")).options.body)).toEqual({ source: "source", workspaceId: "w1" });
     expect(JSON.parse((await saveAPIKey("anthropic", "key")).options.body)).toEqual({ provider: "anthropic", apiKey: "key" });
@@ -107,6 +116,28 @@ describe("api adapter", () => {
     expect(JSON.parse((await sendOAuthLoginInput("s/1", "code")).options.body)).toEqual({ value: "code" });
     expect((await logoutProvider("anthropic")).options.method).toBe("DELETE");
     expect(JSON.parse((await saveWorkspaceSettings("w1", "project", { theme: "dark" })).options.body)).toEqual({ scope: "project", settings: { theme: "dark" } });
+  });
+
+  it("connects plugin event streams", () => {
+    const listeners = new Map<string, EventListener>();
+    const close = vi.fn();
+    globalThis.EventSource = vi.fn(function MockEventSource(url) {
+      this.addEventListener = vi.fn((type, listener) => listeners.set(type, listener));
+      this.close = close;
+      this.url = url;
+    });
+    const received = [];
+    const cleanup = connectPluginEvents("p/1", "active/state", (event) => received.push(event), ["active.start"]);
+    listeners.get("active.start")?.({ data: JSON.stringify({
+      id: 1,
+      type: "active.start",
+      payload: { sessionId: "s1", workspaceId: "w1" },
+    }) });
+
+    expect(globalThis.EventSource).toHaveBeenCalledWith("http://backend.test/api/plugins/p%2F1/events/active%2Fstate");
+    expect(received).toEqual([{ id: 1, payload: { sessionId: "s1", workspaceId: "w1" }, type: "active.start" }]);
+    cleanup();
+    expect(close).toHaveBeenCalledOnce();
   });
 
   it("surfaces backend errors and fallback messages", async () => {

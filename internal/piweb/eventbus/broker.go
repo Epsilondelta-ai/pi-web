@@ -127,7 +127,7 @@ func (b *Broker) ServeSession(w http.ResponseWriter, r *http.Request, sessionID 
 	flusher.Flush()
 
 	var after uint64
-	if value := r.Header.Get("Last-shared.Event-ID"); value != "" {
+	if value := r.Header.Get("Last-Event-ID"); value != "" {
 		after, _ = strconv.ParseUint(value, 10, 64)
 	}
 	if shouldReplayHistory(r, after) {

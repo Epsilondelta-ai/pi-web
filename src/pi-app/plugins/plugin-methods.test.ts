@@ -3,9 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
   apiBase: vi.fn(() => "http://backend.test"),
+  connectPluginEvents: vi.fn(),
   getPluginUpdates: vi.fn(),
   getPlugins: vi.fn(),
   installPlugin: vi.fn(),
+  publishPluginEvent: vi.fn(),
   reloadPlugins: vi.fn(),
   setPluginEnabled: vi.fn(),
   uninstallPlugin: vi.fn(),
@@ -38,8 +40,10 @@ describe("pluginMethods", () => {
     Object.values(api).forEach((mock) => mock.mockReset?.());
     api.apiBase.mockReturnValue("http://backend.test");
     api.getPlugins.mockResolvedValue({ plugins: [] });
+    api.connectPluginEvents.mockReturnValue(vi.fn());
     api.getPluginUpdates.mockResolvedValue({ plugins: [] });
     api.installPlugin.mockResolvedValue({});
+    api.publishPluginEvent.mockResolvedValue({});
     api.reloadPlugins.mockResolvedValue({});
     api.setPluginEnabled.mockResolvedValue({});
     api.uninstallPlugin.mockResolvedValue({});
@@ -149,11 +153,16 @@ describe("pluginMethods", () => {
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
     await context.backend("run", { ok: true });
+    await context.events.publish("active-state", "active.start", { sessionId: "s1" });
+    const cleanupEvents = context.events.subscribe("active-state", ["active.start"], () => undefined);
+    cleanupEvents();
     globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
     expect(context.app).toBe(host);
     expect(context.initialWorkspaces).toEqual([{ id: "w1" }]);
+    expect(api.publishPluginEvent).toHaveBeenCalledWith("p", "active-state", "active.start", { sessionId: "s1" });
+    expect(api.connectPluginEvents).toHaveBeenCalledWith("p", "active-state", expect.any(Function), ["active.start"]);
     expect(typeof context.rxjs.BehaviorSubject).toBe("function");
     expect(piWeb.version).toBe(packageJson.version);
     const first = piWeb.behaviorSubject("core.language", "en");
