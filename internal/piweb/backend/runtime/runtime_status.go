@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	backendauth "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/auth"
-	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 )
 
 type RuntimeStatus struct {
@@ -39,9 +38,6 @@ func WorkspaceRuntimeStatus(ctx context.Context, root string) (RuntimeStatus, er
 	}
 	if status.Warning == "" {
 		status.Warning = anthropicSubscriptionAuthWarning(status)
-	}
-	if git, err := backendfiles.RealGitStatus(root); err == nil {
-		status.CurrentBranch = git.Branch
 	}
 	applyRuntimeQuota(ctx, root, &status)
 	return status, nil

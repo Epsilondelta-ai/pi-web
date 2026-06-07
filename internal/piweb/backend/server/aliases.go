@@ -5,11 +5,8 @@ import (
 	"net/http"
 
 	backendauth "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/auth"
-	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
-	backendgit "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/git"
 	backendrunner "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/runner"
 	backendruntime "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/runtime"
-	backendsessions "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/sessions"
 	backendstore "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/store"
 	backendworkspace "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/workspace"
 	"github.com/Epsilondelta-ai/pi-web/internal/piweb/shared"
@@ -17,7 +14,6 @@ import (
 
 type Store = backendstore.Store
 type Runner = backendrunner.Runner
-type WorkspaceOpStore = backendworkspace.WorkspaceOpStore
 type EventSink = backendrunner.EventSink
 type SessionMessageStore = backendrunner.SessionMessageStore
 
@@ -25,28 +21,14 @@ type Workspace = shared.Workspace
 type Session = shared.Session
 type Message = shared.Message
 type Event = shared.Event
-type FileNode = shared.FileNode
-type FileContent = shared.FileContent
-type GitStatus = shared.GitStatus
 type PromptAttachment = shared.PromptAttachment
 type PromptRequest = shared.PromptRequest
 type RenameSessionRequest = shared.RenameSessionRequest
 type ErrorResponse = shared.ErrorResponse
 type OpenWorkspaceRequest = shared.OpenWorkspaceRequest
-type CloneWorkspaceRequest = shared.CloneWorkspaceRequest
-type ShellCommandRequest = shared.ShellCommandRequest
-type ShellCommandResult = shared.ShellCommandResult
-type CreateFileRequest = shared.CreateFileRequest
-type RenameFileRequest = shared.RenameFileRequest
-type DeleteFileRequest = shared.DeleteFileRequest
-type WriteFileRequest = shared.WriteFileRequest
-type UploadFileRequest = shared.UploadFileRequest
-type FolderEntry = shared.FolderEntry
-type FolderListing = shared.FolderListing
 type VersionStatus = shared.VersionStatus
 type PiVersionStatus = shared.PiVersionStatus
 type PiUpdateStatus = shared.PiUpdateStatus
-type SessionMessagePage = backendsessions.SessionMessagePage
 
 type PiPackageUpdateDetector = backendruntime.PiPackageUpdateDetector
 type PiPackageUpdateStatus = backendruntime.PiPackageUpdateStatus
@@ -58,32 +40,12 @@ type WorkspaceSettingsResponse = backendworkspace.WorkspaceSettingsResponse
 type SettingsPatchRequest = backendworkspace.SettingsPatchRequest
 type AuthProviderStatus = backendauth.AuthProviderStatus
 type SaveAPIKeyRequest = backendauth.SaveAPIKeyRequest
-type GitHistoryCommit = backendgit.GitHistoryCommit
-type GitCommitDetail = backendgit.GitCommitDetail
 
 type ServerStore interface {
 	SessionMessageStore
-	WorkspaceOpStore
-	AppendMessage(sessionID string, msg Message) error
-	AutoNameSession(sessionID, prompt string) (Session, bool, error)
-	CreateFile(workspaceID, rel, kind, content string) (FileContent, error)
-	CreateSession(workspaceID string) (Session, error)
-	DeleteFile(workspaceID, rel string) error
 	DeleteWorkspace(workspaceID string) error
-	Files(workspaceID string) ([]FileNode, error)
-	GitStatus(workspaceID string) (GitStatus, error)
 	OpenWorkspace(path string) (Workspace, error)
-	ReadFile(workspaceID, rel string) (FileContent, error)
-	RenameFile(workspaceID, oldRel, newRel string) error
-	RenameSession(sessionID, title string) (Session, error)
-	SearchFiles(workspaceID, query string) ([]string, error)
-	Session(sessionID string) (Session, []Message, error)
-	SessionPage(sessionID string, limit int, before string) (Session, SessionMessagePage, error)
-	Sessions(workspaceID string) ([]Session, error)
-	UploadFile(workspaceID, rel string, data []byte, overwrite bool) (FileContent, error)
 	WorkspacePath(workspaceID string) (string, error)
-	Workspaces() []Workspace
-	WriteFile(workspaceID, rel, content string) (FileContent, error)
 }
 
 type ServerBroker interface {
@@ -124,12 +86,6 @@ func uniqueWorkspaceID(base string, used map[string]int) string {
 	return backendstore.UniqueWorkspaceID(base, used)
 }
 
-func CloneGitWorkspace(ctx context.Context, store WorkspaceOpStore, req shared.CloneWorkspaceRequest) (Workspace, string, error) {
-	return backendworkspace.CloneGitWorkspace(ctx, store, req)
-}
-func RunWorkspaceShellCommand(ctx context.Context, store WorkspaceOpStore, workspaceID string, command string) (shared.ShellCommandResult, error) {
-	return backendworkspace.RunWorkspaceShellCommand(ctx, store, workspaceID, command)
-}
 func WorkspaceSettings(root string) (WorkspaceSettingsResponse, error) {
 	return backendworkspace.WorkspaceSettings(root)
 }
@@ -165,12 +121,4 @@ func parseListModelsOutput(output string) WorkspaceModelsResponse {
 
 func SaveAPIKey(req SaveAPIKeyRequest) (AuthProviderStatus, error) {
 	return backendauth.SaveAPIKey(req)
-}
-
-func ReadWorkspaceFile(root, rel string, maxBytes int64) (FileContent, error) {
-	return backendfiles.ReadWorkspaceFile(root, rel, maxBytes)
-}
-
-func CreatePiSessionFile(cwd string) (Session, string, error) {
-	return backendsessions.CreatePiSessionFile(cwd)
 }

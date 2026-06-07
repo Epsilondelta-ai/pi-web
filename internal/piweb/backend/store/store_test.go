@@ -79,30 +79,6 @@ func TestCreateSession(t *testing.T) {
 	}
 }
 
-func TestStoreFilesIncludeDeepWorkspaceTree(t *testing.T) {
-	workspaceRoot := t.TempDir()
-	deepDir := filepath.Join(workspaceRoot, "a", "b", "c", "d")
-	if err := os.MkdirAll(deepDir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(deepDir, "leaf.txt"), []byte("leaf"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	store := NewMockStore()
-	workspace, err := store.OpenWorkspace(workspaceRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	files, err := store.Files(workspace.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	leaf := files[0].Children[0].Children[0].Children[0].Children[0]
-	if leaf.Path != "a/b/c/d/leaf.txt" || leaf.Depth != 4 {
-		t.Fatalf("expected depth-4 leaf, got %#v", leaf)
-	}
-}
-
 func TestStoreRefreshesWorkspaceSessionsFromDisk(t *testing.T) {
 	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
 	workspaceRoot := t.TempDir()

@@ -1,10 +1,8 @@
 package server
 
 import (
-	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -213,40 +211,6 @@ func TestServesStaticUI(t *testing.T) {
 	server.Handler().ServeHTTP(res, req)
 	if contentType := res.Header().Get("Content-Type"); contentType != "text/css; charset=utf-8" {
 		t.Fatalf("expected gzip css content type, got %q", contentType)
-	}
-}
-
-func TestWorkspaceAndSessionManagementEndpoints(t *testing.T) {
-	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
-	store := NewMockStore()
-	workspace, err := store.OpenWorkspace(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	server := NewServer(Config{}, store, NewBroker())
-
-	createReq := httptest.NewRequest(http.MethodPost, "/api/workspaces/"+workspace.ID+"/sessions", nil)
-	createRes := httptest.NewRecorder()
-	server.Handler().ServeHTTP(createRes, createReq)
-	if createRes.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", createRes.Code, createRes.Body.String())
-	}
-
-	var body struct {
-		Session Session `json:"session"`
-	}
-	if err := json.NewDecoder(createRes.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-	renameReq := httptest.NewRequest(
-		http.MethodPatch,
-		"/api/workspaces/"+workspace.ID+"/sessions/"+body.Session.ID,
-		bytes.NewBufferString(`{"title":"renamed"}`),
-	)
-	renameRes := httptest.NewRecorder()
-	server.Handler().ServeHTTP(renameRes, renameReq)
-	if renameRes.Code != http.StatusOK || !strings.Contains(renameRes.Body.String(), "renamed") {
-		t.Fatalf("rename failed: %d %s", renameRes.Code, renameRes.Body.String())
 	}
 }
 
@@ -521,121 +485,5 @@ func TestAuthEndpointsSaveListAndLogoutAPIKeys(t *testing.T) {
 	}
 	if strings.Contains(string(saved), "anthropic") || strings.Contains(string(saved), "sk-test-secret") {
 		t.Fatalf("logout did not remove credential: %s", string(saved))
-	}
-}
-
-func TestCreateSessionEndpoint(t *testing.T) {
-	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
-	store := NewMockStore()
-	workspace, err := store.OpenWorkspace(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	server := NewServer(Config{}, store, NewBroker())
-	req := httptest.NewRequest(http.MethodPost, "/api/workspaces/"+workspace.ID+"/sessions", nil)
-	res := httptest.NewRecorder()
-	server.Handler().ServeHTTP(res, req)
-	if res.Code != http.StatusCreated {
-		t.Fatalf("expected 201, got %d: %s", res.Code, res.Body.String())
-	}
-	if !strings.Contains(res.Body.String(), `"title":"new session"`) {
-		t.Fatalf("unexpected body: %s", res.Body.String())
-	}
-}
-
-func TestSteerPublishesQueuedUserMessage(t *testing.T) {
-	broker := NewBroker()
-	broker.SetHeartbeat(time.Hour)
-	server := NewServer(Config{}, NewMockStore(), broker)
-	testServer := httptest.NewServer(server.Handler())
-	defer testServer.Close()
-
-	res, err := testServer.Client().Post(
-		testServer.URL+"/api/sessions/8e7c-44ff/steer",
-		"application/json",
-		bytes.NewBufferString(`{"text":"one more thing"}`),
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusAccepted {
-		t.Fatalf("expected steer 202, got %d", res.StatusCode)
-	}
-}
-
-func TestPromptAcceptsMultipleInlineAttachments(t *testing.T) {
-	server := NewServer(Config{}, NewMockStore(), NewBroker())
-	body, err := json.Marshal(PromptRequest{
-		Text: "review these files",
-		Attachments: []PromptAttachment{
-			{Type: "file", Name: "one.txt", Content: strings.Repeat("a", 300*1024)},
-			{Type: "file", Name: "two.txt", Content: strings.Repeat("b", 300*1024)},
-			{Type: "file", Name: "three.txt", Content: strings.Repeat("c", 300*1024)},
-			{Type: "file", Name: "four.txt", Content: strings.Repeat("d", 300*1024)},
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(body) <= 1<<20 {
-		t.Fatalf("test body should exceed the previous 1 MiB limit, got %d", len(body))
-	}
-
-	req := httptest.NewRequest(http.MethodPost, "/api/sessions/8e7c-44ff/prompt", bytes.NewReader(body))
-	res := httptest.NewRecorder()
-	server.Handler().ServeHTTP(res, req)
-	if res.Code != http.StatusAccepted {
-		t.Fatalf("expected prompt 202, got %d: %s", res.Code, res.Body.String())
-	}
-}
-
-func TestPromptPublishesSSE(t *testing.T) {
-	broker := NewBroker()
-	broker.SetHeartbeat(time.Hour)
-	server := NewServer(Config{}, NewMockStore(), broker)
-	testServer := httptest.NewServer(server.Handler())
-	defer testServer.Close()
-
-	eventsReq, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/sessions/8e7c-44ff/events", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	eventsRes, err := testServer.Client().Do(eventsReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer eventsRes.Body.Close()
-	if eventsRes.StatusCode != http.StatusOK {
-		t.Fatalf("expected event stream 200, got %d", eventsRes.StatusCode)
-	}
-
-	promptRes, err := testServer.Client().Post(testServer.URL+"/api/sessions/8e7c-44ff/prompt", "application/json", bytes.NewBufferString(`{"text":"hello"}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer promptRes.Body.Close()
-	if promptRes.StatusCode != http.StatusAccepted {
-		t.Fatalf("expected prompt 202, got %d", promptRes.StatusCode)
-	}
-
-	lines := make(chan string, 16)
-	go func() {
-		scanner := bufio.NewScanner(eventsRes.Body)
-		for scanner.Scan() {
-			lines <- scanner.Text()
-		}
-	}()
-
-	deadline := time.After(2 * time.Second)
-	for {
-		select {
-		case line := <-lines:
-			if line == "event: session.message" {
-				return
-			}
-		case <-deadline:
-			t.Fatal("timed out waiting for session.message event")
-		}
 	}
 }

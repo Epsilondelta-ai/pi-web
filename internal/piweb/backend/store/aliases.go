@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	backendfiles "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/files"
 	backendsessions "github.com/Epsilondelta-ai/pi-web/internal/piweb/backend/sessions"
 	"github.com/Epsilondelta-ai/pi-web/internal/piweb/shared"
 )
@@ -13,8 +12,6 @@ type Workspace = shared.Workspace
 type Session = shared.Session
 type Message = shared.Message
 type FileNode = shared.FileNode
-type GitStatus = shared.GitStatus
-type FileContent = shared.FileContent
 type ParsedSession = backendsessions.ParsedSession
 type SessionMessagePage = backendsessions.SessionMessagePage
 type PromptAttachment = shared.PromptAttachment
@@ -60,9 +57,3 @@ func imageDataURL(data string, mimeType string) string {
 	return backendsessions.ImageDataURL(data, mimeType)
 }
 func userMessages(raw json.RawMessage) []Message { return backendsessions.UserMessages(raw) }
-
-func RealFileTree(root string, maxDepth int) ([]FileNode, error) {
-	return backendfiles.RealFileTree(root, maxDepth)
-}
-func RealGitStatus(root string) (GitStatus, error) { return backendfiles.RealGitStatus(root) }
-func SessionShortID(id string) string              { return backendfiles.SessionShortID(id) }
