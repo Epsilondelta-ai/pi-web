@@ -58,23 +58,6 @@ func (s *Server) renameWorkspaceSession(w http.ResponseWriter, r *http.Request) 
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"session": renamed})
 }
-func (s *Server) deleteWorkspaceSession(w http.ResponseWriter, r *http.Request) {
-	workspaceID := r.PathValue("workspaceID")
-	session, _, err := s.store.Session(r.PathValue("sessionID"))
-	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	if session.Workspace != workspaceID {
-		writeStoreError(w, ErrNotFound)
-		return
-	}
-	if err := s.store.DeleteSession(r.PathValue("sessionID")); err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"deleted": true})
-}
 func (s *Server) prompt(w http.ResponseWriter, r *http.Request) {
 	sessionID := r.PathValue("sessionID")
 	if _, _, err := s.store.Session(sessionID); err != nil {

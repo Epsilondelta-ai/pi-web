@@ -282,11 +282,9 @@ export const inputMethods = {
     if (action !== "session-menu-toggle") this.closeSessionMenus(actionTarget?.closest(".session-row"));
     if (action === "toggle-workspace") this.toggleWorkspace(button.dataset.workspace);
     if (action === "delete-workspace") this.deleteWorkspace(actionTarget.dataset.workspace);
-    if (action === "delete-workspace-sessions") this.deleteWorkspaceSessions(button.dataset.workspace);
     if (action === "new-session") this.newSession(button.dataset.workspace);
     if (action === "session-menu-toggle") this.toggleSessionMenu(actionTarget.closest(".session-row"));
     if (action === "rename-session") this.renameSession(actionTarget.closest(".session-row")?.dataset.session);
-    if (action === "delete-session") this.deleteSession(actionTarget.closest(".session-row")?.dataset.session);
     if (action === "prompt-file-ref") {
       this.pickPromptFileRef(actionTarget.dataset.path);
       return;

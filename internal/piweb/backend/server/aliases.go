@@ -69,9 +69,7 @@ type ServerStore interface {
 	CreateFile(workspaceID, rel, kind, content string) (FileContent, error)
 	CreateSession(workspaceID string) (Session, error)
 	DeleteFile(workspaceID, rel string) error
-	DeleteSession(sessionID string) error
 	DeleteWorkspace(workspaceID string) error
-	DeleteWorkspaceSessions(workspaceID string) (int, error)
 	Files(workspaceID string) ([]FileNode, error)
 	GitStatus(workspaceID string) (GitStatus, error)
 	OpenWorkspace(path string) (Workspace, error)

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -179,112 +178,6 @@ func (s *Store) RenameSession(sessionID, title string) (Session, error) {
 	}
 	return Session{}, ErrNotFound
 }
-func (s *Store) DeleteSession(sessionID string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.refreshAllWorkspaceSessionsLocked()
-	for workspaceIndex := range s.workspaces {
-		sessions := s.workspaces[workspaceIndex].Sessions
-		if !containsSession(sessions, sessionID) {
-			continue
-		}
-		deletedIDs := descendantSessionIDs(sessions, sessionID)
-		s.workspaces[workspaceIndex].Sessions = keptSessions(sessions, deletedIDs)
-		s.workspaces[workspaceIndex].SessionCount = len(s.workspaces[workspaceIndex].Sessions)
-		s.deleteSessionFilesLocked(deletedIDs)
-		return nil
-	}
-	return ErrNotFound
-}
-
-func containsSession(sessions []Session, sessionID string) bool {
-	for _, session := range sessions {
-		if session.ID == sessionID {
-			return true
-		}
-	}
-	return false
-}
-
-func descendantSessionIDs(sessions []Session, sessionID string) map[string]struct{} {
-	deletedIDs := map[string]struct{}{sessionID: {}}
-	changed := true
-	for changed {
-		changed = false
-		for _, session := range sessions {
-			if _, alreadyDeleted := deletedIDs[session.ID]; alreadyDeleted || session.ParentID == "" {
-				continue
-			}
-			if _, parentDeleted := deletedIDs[session.ParentID]; parentDeleted {
-				deletedIDs[session.ID] = struct{}{}
-				changed = true
-			}
-		}
-	}
-	return deletedIDs
-}
-
-func keptSessions(sessions []Session, deletedIDs map[string]struct{}) []Session {
-	kept := sessions[:0]
-	for _, session := range sessions {
-		if _, deleted := deletedIDs[session.ID]; !deleted {
-			kept = append(kept, session)
-		}
-	}
-	return kept
-}
-
-func (s *Store) deleteSessionFilesLocked(deletedIDs map[string]struct{}) {
-	for sessionID := range deletedIDs {
-		if file := s.sessionFiles[sessionID]; file != "" {
-			_ = os.Remove(file)
-			_ = os.RemoveAll(nestedSessionDir(file))
-		}
-		delete(s.conversations, sessionID)
-		delete(s.sessionFiles, sessionID)
-		delete(s.sessionCWD, sessionID)
-	}
-	for sessionID := range deletedIDs {
-		_ = removeTeamSessionDir(sessionID)
-	}
-}
-
-func nestedSessionDir(sessionFile string) string {
-	return filepath.Join(filepath.Dir(sessionFile), strings.TrimSuffix(filepath.Base(sessionFile), filepath.Ext(sessionFile)))
-}
-
-func (s *Store) DeleteWorkspaceSessions(workspaceID string) (int, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for workspaceIndex := range s.workspaces {
-		if s.workspaces[workspaceIndex].ID != workspaceID {
-			continue
-		}
-		root := s.workspacePath[workspaceID]
-		if root == "" {
-			return 0, ErrNotFound
-		}
-		s.refreshWorkspaceSessionsLocked(workspaceIndex, true)
-		deletedIDs := map[string]struct{}{}
-		for _, session := range s.workspaces[workspaceIndex].Sessions {
-			deletedIDs[session.ID] = struct{}{}
-		}
-		if err := os.RemoveAll(piSessionDirForCWD(root)); err != nil {
-			return 0, err
-		}
-		for sessionID := range deletedIDs {
-			delete(s.conversations, sessionID)
-			delete(s.sessionFiles, sessionID)
-			delete(s.sessionCWD, sessionID)
-		}
-		delete(s.sessionDirModTime, workspaceID)
-		s.workspaces[workspaceIndex].Sessions = []Session{}
-		s.workspaces[workspaceIndex].SessionCount = 0
-		return len(deletedIDs), nil
-	}
-	return 0, ErrNotFound
-}
-
 func (s *Store) refreshAllWorkspaceSessionsLocked() {
 	for index := range s.workspaces {
 		s.refreshWorkspaceSessionsLocked(index, false)
