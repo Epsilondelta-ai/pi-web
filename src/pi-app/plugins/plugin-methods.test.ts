@@ -292,6 +292,9 @@ describe("pluginMethods", () => {
     context.composer.clearAttachments();
     await context.session.get("s1");
     expect(api.getWorkspaceSession).toHaveBeenCalledWith("w1", "s1", {});
+    host.removeAttribute("data-active-workspace-id");
+    await expect(context.session.get("missing")).rejects.toThrow("session workspace is required");
+    host.dataset.activeWorkspaceId = "w1";
     await context.session.postPrompt("s1", "p");
     await context.session.steer("s1", "p");
     await context.session.cancel("s1");

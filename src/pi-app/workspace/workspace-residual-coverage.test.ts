@@ -54,6 +54,8 @@ function owner(html = "") {
     loadVersionStatus: vi.fn(),
     route: vi.fn(),
     browseFolder: vi.fn(),
+    showEmptyMain: vi.fn(),
+    showSessionMain: vi.fn(),
     fillAuthForm: vi.fn(),
     fillOAuthForm: vi.fn(),
     pollOAuthSession: vi.fn(),
@@ -131,6 +133,9 @@ describe("workspace residual method coverage", () => {
     expect(app.loadWorkspaceContext).toHaveBeenCalledWith("w1");
     app.ensureWorkspaceTreeMounted = vi.fn();
     await workspaceBootstrapMethods.loadWorkspaceMeta.call(app, "w1");
+    app.dataset.activeWorkspaceId = "other";
+    await workspaceBootstrapMethods.loadWorkspaceMeta.call(app, "w1");
+    app.dataset.activeWorkspaceId = "w1";
     const root = document.createElement("div");
     root.dataset.initialFiles = '[{"name":"a"}]';
     app.appendChild(root);
@@ -155,6 +160,16 @@ describe("workspace residual method coverage", () => {
     expect(app.apiConnected).toBe(false);
     expect(app.setConnection).toHaveBeenCalledWith("err");
 
+    delete app.dataset.activeWorkspaceId;
+    await app.loadSession("nowhere");
+    expect(app.setConnection).toHaveBeenCalledWith("err");
+    app.setConnection.mockClear();
+    const staleMissing = app.loadSession("nowhere");
+    app.sessionLoadToken = Symbol("newer-missing");
+    await staleMissing;
+    expect(app.setConnection).not.toHaveBeenCalled();
+    app.dataset.activeWorkspaceId = "w1";
+
     vi.mocked(api.getWorkspaceSession).mockImplementationOnce(async () => {
       app.sessionLoadToken = Symbol("newer");
       return { session: { id: "old" }, messages: [] };
@@ -165,10 +180,24 @@ describe("workspace residual method coverage", () => {
     await app.loadSession("old");
     expect(app.setConnection).toHaveBeenCalledWith("err");
 
+    app.applyLoadedSession({ id: "empty", title: "empty", workspaceId: "" }, [], "idle");
+    expect(app.showEmptyMain).toHaveBeenCalled();
+    delete app.dataset.activeWorkspaceId;
+    app.applyLoadedSession({ id: "empty-no-workspace", title: "empty", workspaceId: "" }, [], "idle");
+    expect(app.showEmptyMain).toHaveBeenCalledWith("");
+    app.dataset.activeWorkspaceId = "w1";
+
     app.dataset.activeSessionId = "s1";
     app.sessionHistoryHasMore = true;
     app.sessionHistoryLoading = false;
     app.sessionHistoryCursor = "a";
+    delete app.dataset.activeWorkspaceId;
+    app.findWorkspaceIdForSession = vi.fn(() => "");
+    await app.loadOlderSessionMessages();
+    app.dataset.activeWorkspaceId = "w1";
+    delete app.findWorkspaceIdForSession;
+    app.sessionHistoryLoading = false;
+
     vi.mocked(api.getWorkspaceSession).mockImplementationOnce(async () => {
       app.dataset.activeSessionId = "other";
       return { messages: [{ kind: "pi" }], cursor: "b", hasMore: true };

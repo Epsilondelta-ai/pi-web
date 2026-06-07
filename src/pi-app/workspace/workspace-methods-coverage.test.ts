@@ -225,6 +225,8 @@ describe("workspace folder/render/bootstrap coverage", () => {
     await app.browseFolder();
     await app.loadFolder("");
     await app.openWorkspacePath("/root");
+    globalThis.fetch = vi.fn(async () => okJson({}));
+    await app.openWorkspacePath("/missing-id");
     await app.openWorkspacePath("");
 
     expect(app.currentFolder).toBe("/root");
@@ -233,7 +235,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
     expect(browser.hidden).toBe(false);
     expect(app.renderWorkspaces).toHaveBeenCalledWith([{ id: "w1", path: "/root" }]);
     expect(app.openWorkspace).toHaveBeenCalledWith("w1");
-    expect(app.setConnection).not.toHaveBeenCalledWith("err");
+    expect(app.setConnection).toHaveBeenCalledWith("err");
   });
 
   it("handles folder, clone, path, and delete failure branches", async () => {
@@ -291,9 +293,22 @@ describe("workspace folder/render/bootstrap coverage", () => {
     await app.deleteWorkspace("w1");
     globalThis.fetch = vi.fn(async () => okJson({ deleted: true }));
     app.workspaceList = [{ id: "w1" }];
+    app.dataset.activeWorkspaceId = "w1";
+    app.clearActiveSession = vi.fn();
+    app.showEmptyMain = vi.fn();
     app.renderWorkspaces = vi.fn();
     await app.deleteWorkspace("w1");
     expect(app.renderWorkspaces).toHaveBeenLastCalledWith([]);
+    expect(app.clearActiveSession).toHaveBeenCalled();
+    expect(app.showEmptyMain).toHaveBeenCalledWith("");
+    app.upsertWorkspaceState(null);
+    app.workspaceList = undefined;
+    app.upsertWorkspaceState({ id: "solo" });
+    expect(app.renderWorkspaces).toHaveBeenLastCalledWith([{ id: "solo" }]);
+    app.workspaceList = [{ id: "solo", old: true }, { id: "keep" }];
+    app.upsertWorkspaceState({ id: "solo", fresh: true });
+    expect(app.renderWorkspaces).toHaveBeenLastCalledWith([{ id: "solo", fresh: true }, { id: "keep" }]);
+    app.removeWorkspaceFromState("");
     globalThis.fetch = vi.fn(async () => failJson("delete failed"));
     window.confirm.mockReturnValue(true);
     await app.deleteWorkspace("w1");

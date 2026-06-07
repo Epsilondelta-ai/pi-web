@@ -627,9 +627,12 @@ describe("workspace bootstrap coverage", () => {
     sessionMain.toggleAttribute("data-main", true);
     sessionMain.replaceChildren();
     if (!sessionMain.isConnected) app.append(sessionMain);
-    app.dataset.initialWorkspaces = "[]";
+    app.dataset.initialWorkspaces = "{}";
     globalThis.fetch = vi.fn(async () => okJson({ ok: true }));
+    await app.bootstrapAPI();
 
+    app.workspaceList = undefined;
+    app.dataset.initialWorkspaces = "not-json";
     await app.bootstrapAPI();
 
     expect(sessionMain.hidden).toBe(false);

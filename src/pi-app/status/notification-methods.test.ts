@@ -222,6 +222,11 @@ describe("pi-app notification-free session helpers", () => {
     globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => null }));
     await app.readCompletedBackgroundSessionAloud("s5");
 
+    const savedWorkspaceId = app.dataset.activeWorkspaceId;
+    delete app.dataset.activeWorkspaceId;
+    await app.readCompletedBackgroundSessionAloud("s6");
+    app.dataset.activeWorkspaceId = savedWorkspaceId;
+
     app.speakAssistantText = vi.fn();
     await app.readCompletedBackgroundSessionAloud("");
     await app.readCompletedBackgroundSessionAloud("active");
