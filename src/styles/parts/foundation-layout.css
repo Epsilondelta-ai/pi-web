@@ -141,9 +141,7 @@ button.tc-head {
 .topbar .iconbtn.statusbtn {
   min-width: 32px;
   padding: 0;
-  cursor: default;
 }
-.topbar .iconbtn.statusbtn:hover { border-color: transparent; }
 
 .topbar .back-btn {
   height: 32px;
