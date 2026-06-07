@@ -94,8 +94,7 @@ describe("workspace folder/render/bootstrap coverage", () => {
     delete app.dataset.activeWorkspaceId;
     app.openActiveWorkspaceGroup("");
     expect(sidebarEvents.at(-1)).toEqual({ activeWorkspaceId: "", openWorkspaceId: "" });
-    const emptyGroup = app.createWorkspaceGroup({ id: "empty", name: "empty", path: "/empty", sessionCount: 0 });
-    expect(emptyGroup.querySelector(".clear-sessions-row")).toBeNull();
+    app.createWorkspaceGroup({ id: "empty", name: "empty", path: "/empty", sessionCount: 0 });
     expect(app.workspaceHasActiveSession({ id: "empty" })).toBe(false);
     expect(input.value).toBe("/tmp");
     expect(path.textContent).toBe("tmp");

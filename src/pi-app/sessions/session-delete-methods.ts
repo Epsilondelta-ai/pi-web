@@ -1,51 +1,6 @@
-import {
-  deleteWorkspaceSession,
-  deleteWorkspaceSessions as deleteWorkspaceSessionsRequest,
-} from "../../shared/api/api";
 import { clearStoredActiveSession } from "./session-storage";
 
 export const sessionDeleteMethods = {
-  async deleteSession(sessionId) {
-    this.closeSessionMenus();
-    if (!sessionId || !this.apiConnected) return;
-    if (!confirm(`Delete session ${sessionId}? This removes the local JSONL file.`)) return;
-    try {
-      const workspaceId = this.findWorkspaceIdForSession(sessionId);
-      if (!workspaceId) {
-        this.setConnection("err");
-        return;
-      }
-      await deleteWorkspaceSession(workspaceId, sessionId);
-      const deletedSessionIds = this.deletedSessionIdsWithDescendants(workspaceId, sessionId);
-      const shouldClearActiveSession = deletedSessionIds.has(this.dataset.activeSessionId);
-      if (shouldClearActiveSession) this.clearActiveSession(this.dataset.activeSessionId);
-      if (!this.sidebarSortableRoot) this.removeSessionRows(deletedSessionIds);
-      this.removeWorkspaceSessionsFromState(workspaceId, deletedSessionIds);
-      if (!this.sidebarSortableRoot) this.refreshWorkspaceSessionControls(workspaceId);
-    } catch {
-      this.setConnection("err");
-    }
-  },
-
-  async deleteWorkspaceSessions(workspaceId) {
-    this.closeSessionMenus();
-    if (!workspaceId || !this.apiConnected) return;
-    const count = this.countWorkspaceSessions(workspaceId);
-    const suffix = count ? ` (${count} shown)` : "";
-    if (!confirm(`Delete all sessions in this workspace${suffix}? This removes local JSONL files.`)) return;
-    try {
-      const deletedSessionIds = this.workspaceSessionIds(workspaceId);
-      await deleteWorkspaceSessionsRequest(workspaceId);
-      const shouldClearActiveSession = deletedSessionIds.has(this.dataset.activeSessionId)
-        || (workspaceId === this.dataset.activeWorkspaceId && !!this.dataset.activeSessionId);
-      if (shouldClearActiveSession) this.clearActiveSession(this.dataset.activeSessionId);
-      if (!this.sidebarSortableRoot) this.clearWorkspaceSessionRows(workspaceId);
-      this.replaceWorkspaceSessionsInState(workspaceId, []);
-    } catch {
-      this.setConnection("err");
-    }
-  },
-
   clearActiveSession(sessionId) {
     clearStoredActiveSession(sessionId);
     this.eventSource?.close();
@@ -153,12 +108,8 @@ export const sessionDeleteMethods = {
     const count = this.countWorkspaceSessions(workspaceId);
     const countLabel = group.querySelector(".ws-count") || group.querySelector(".ws-meta");
     if (countLabel) countLabel.textContent = String(count);
-    sessions?.querySelector("[data-action='delete-workspace-sessions']")?.remove();
     sessions?.querySelector(".sessions-empty")?.remove();
     const newSessionRow = sessions?.querySelector(".new-session-row");
-    if (sessions && newSessionRow && count > 0) {
-      sessions.insertBefore(this.createDeleteWorkspaceSessionsRow(workspaceId), newSessionRow);
-    }
     if (sessions && newSessionRow && count === 0) {
       sessions.insertBefore(this.createEmptySessionsRow(), newSessionRow);
     }

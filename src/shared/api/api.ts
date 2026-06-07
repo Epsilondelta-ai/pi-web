@@ -177,10 +177,6 @@ export function getWorkspaceSessions(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`);
 }
 
-export function deleteWorkspaceSessions(workspaceId) {
-  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`, { method: "DELETE" });
-}
-
 export function createSession(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions`, { method: "POST" });
 }
@@ -293,12 +289,6 @@ export function renameWorkspaceSession(workspaceId, sessionId, title) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions/${encodeURIComponent(sessionId)}`, {
     method: "PATCH",
     body: JSON.stringify({ title }),
-  });
-}
-
-export function deleteWorkspaceSession(workspaceId, sessionId) {
-  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions/${encodeURIComponent(sessionId)}`, {
-    method: "DELETE",
   });
 }
 

@@ -218,14 +218,6 @@ func (s *Server) runningSessionIDs() map[string]bool {
 	return s.runner.RunningSessionIDs()
 }
 
-func (s *Server) deleteWorkspaceSessions(w http.ResponseWriter, r *http.Request) {
-	deletedCount, err := s.store.DeleteWorkspaceSessions(r.PathValue("workspaceID"))
-	if err != nil {
-		writeStoreError(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"deletedCount": deletedCount, "sessions": []Session{}})
-}
 func (s *Server) workspaceFiles(w http.ResponseWriter, r *http.Request) {
 	files, err := s.store.Files(r.PathValue("workspaceID"))
 	if err != nil {

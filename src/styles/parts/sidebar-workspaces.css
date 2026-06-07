@@ -321,8 +321,6 @@ button.session-row:not(.new-session-row) {
 .row-action:hover { color: var(--accent); border-color: var(--accent); }
 .row-action.danger:hover { color: var(--danger); border-color: var(--danger); }
 
-button.session-row.clear-sessions-row,
-.clear-sessions-row,
 button.session-row.new-session-row,
 .new-session-row {
   display: flex;
@@ -347,35 +345,15 @@ button.session-row.new-session-row:hover,
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-3));
 }
-button.session-row.clear-sessions-row,
-.clear-sessions-row {
-  color: var(--danger);
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 10%, var(--bg-3));
-  margin-bottom: 0;
-}
-button.session-row.clear-sessions-row:hover,
-.clear-sessions-row:hover {
-  border-color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 10%, var(--bg-3));
-}
 button.session-row.new-session-row .title,
-.new-session-row .title,
-button.session-row.clear-sessions-row .title,
-.clear-sessions-row .title {
+.new-session-row .title {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
 }
-button.session-row.clear-sessions-row .title,
-.clear-sessions-row .title {
-  color: var(--danger);
-}
 button.session-row.new-session-row svg,
-.new-session-row svg,
-button.session-row.clear-sessions-row svg,
-.clear-sessions-row svg {
+.new-session-row svg {
   display: block;
   flex: 0 0 auto;
 }

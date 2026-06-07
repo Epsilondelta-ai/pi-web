@@ -30,11 +30,7 @@ describe("pi-app sessions", () => {
     app.append(app.createWorkspaceGroup({ id: "w1", name: "demo", path: "/demo", sessions: [] }));
     app.activateCreatedSession("w1", { id: "s1", title: "new session", lastUsed: "now" });
     const rows = [...app.querySelectorAll("[data-workspace-group='w1'] .sessions > .session-row")];
-    expect(rows.map((row) => row.dataset.session || row.dataset.action)).toEqual([
-      "s1",
-      "delete-workspace-sessions",
-      "new-session",
-    ]);
+    expect(rows.map((row) => row.dataset.session || row.dataset.action)).toEqual(["s1", "new-session"]);
     expect(rows.at(-1).classList.contains("new-session-row")).toBe(true);
   });
 
@@ -86,45 +82,6 @@ describe("pi-app sessions", () => {
     expect(sessionMain.hidden).toBe(false);
     expect(app.querySelector("[data-session='s1']").classList.contains("selected")).toBe(true);
     expect(app.querySelector("[data-session='s1']").classList.contains("active")).toBe(false);
-  });
-
-  it("deletes all sessions in a workspace and clears the active session", async () => {
-    globalThis.PI_WEB_API_BASE = "http://backend.test";
-    globalThis.fetch = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      json: async () => ({ deletedCount: 2, sessions: [] }),
-    }));
-    const app = await connectPiApp();
-    app.apiConnected = true;
-    app.dataset.activeWorkspaceId = "w1";
-    app.dataset.activeSessionId = "s1";
-    app.eventSource = { close: vi.fn() };
-    app.append(app.createWorkspaceGroup({
-      id: "w1",
-      name: "demo",
-      path: "/demo",
-      sessionCount: 2,
-      sessions: [
-        { id: "s1", title: "one", lastUsed: "now" },
-        { id: "s2", title: "two", lastUsed: "1m ago" },
-      ],
-    }));
-    localStorage.setItem("pi.activeSession", JSON.stringify({ workspaceId: "w1", sessionId: "s1" }));
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-
-    await app.deleteWorkspaceSessions("w1");
-
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      "http://backend.test/api/workspaces/w1/sessions",
-      expect.objectContaining({ method: "DELETE" }),
-    );
-    const sessionRows = app.querySelectorAll("[data-workspace-group='w1'] > .sessions > .session-row[data-session]");
-    expect(sessionRows).toHaveLength(0);
-    expect(app.querySelector("[data-workspace-group='w1'] .ws-count").textContent).toBe("0");
-    expect(app.dataset.activeSessionId).toBe("");
-    expect(localStorage.getItem("pi.activeSession")).toBeNull();
   });
 
   it("sends prompt text as steering while running", async () => {

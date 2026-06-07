@@ -149,44 +149,6 @@ func TestStoreRefreshPreservesInMemoryMessages(t *testing.T) {
 	}
 }
 
-func TestDeleteWorkspaceSessionsRemovesCachedAndDiskSessions(t *testing.T) {
-	t.Setenv("PI_CODING_AGENT_SESSION_DIR", t.TempDir())
-	workspaceRoot := t.TempDir()
-	store := NewMockStore()
-	workspace, err := store.OpenWorkspace(workspaceRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	cached, err := store.CreateSession(workspace.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := CreatePiSessionFile(workspaceRoot); err != nil {
-		t.Fatal(err)
-	}
-
-	deleted, err := store.DeleteWorkspaceSessions(workspace.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if deleted != 2 {
-		t.Fatalf("expected 2 deleted sessions, got %d", deleted)
-	}
-	if _, _, ok := store.SessionRuntime(cached.ID); ok {
-		t.Fatalf("expected runtime metadata for %s to be cleared", cached.ID)
-	}
-	sessions, err := store.Sessions(workspace.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(sessions) != 0 {
-		t.Fatalf("expected no sessions, got %#v", sessions)
-	}
-	if parsed, err := LoadPiSessions(piSessionDirForCWD(workspaceRoot)); err == nil && len(parsed) != 0 {
-		t.Fatalf("expected session files to be removed, got %#v", parsed)
-	}
-}
-
 func TestOpenWorkspace(t *testing.T) {
 	store := NewMockStore()
 	workspace, err := store.OpenWorkspace("/tmp/My Project")

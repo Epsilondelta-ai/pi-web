@@ -112,7 +112,6 @@ describe("SortableWorkspaceSidebar", () => {
     const { host, root } = renderSidebar({ activeWorkspaceId: "w2", activeSessionId: "" });
 
     expect(host.querySelector('[data-workspace-group="w2"] .sessions-empty')?.textContent).toContain("no sessions yet");
-    expect(host.querySelector('[data-workspace-group="w2"] .clear-sessions-row')).toBeNull();
     expect(host.querySelector('[data-workspace-group="w2"] .new-session-row')).not.toBeNull();
     act(() => root.unmount());
   });
