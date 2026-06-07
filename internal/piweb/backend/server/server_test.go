@@ -26,6 +26,35 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 }
 
+func TestPluginOwnedRoutesAreNotRegistered(t *testing.T) {
+	server := NewServer(Config{}, NewMockStore(), NewBroker())
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/system/folders"},
+		{http.MethodPost, "/api/workspaces/clone"},
+		{http.MethodGet, "/api/workspaces/pi-mono/files"},
+		{http.MethodGet, "/api/workspaces/pi-mono/files/search"},
+		{http.MethodGet, "/api/workspaces/pi-mono/git/status"},
+		{http.MethodGet, "/api/workspaces/pi-mono/sessions"},
+		{http.MethodPost, "/api/workspaces/pi-mono/sessions"},
+		{http.MethodPost, "/api/workspaces/pi-mono/shell"},
+		{http.MethodPost, "/api/sessions/session-1/prompt"},
+		{http.MethodPost, "/api/sessions/session-1/ag-ui"},
+		{http.MethodGet, "/api/sessions/session-1/events"},
+	}
+
+	for _, route := range routes {
+		req := httptest.NewRequest(route.method, route.path, nil)
+		res := httptest.NewRecorder()
+		server.Handler().ServeHTTP(res, req)
+		if res.Code != http.StatusNotFound && res.Code != http.StatusMethodNotAllowed {
+			t.Fatalf("expected %s %s to stay plugin-owned/unhandled, got %d", route.method, route.path, res.Code)
+		}
+	}
+}
+
 func TestVersionEndpoint(t *testing.T) {
 	server := NewServer(Config{
 		CurrentVersion: "1.0.0",
