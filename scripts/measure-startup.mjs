@@ -28,7 +28,7 @@ const mime = {
 };
 
 const api = {
-  "/api/workspaces": { workspaces: [{ id: "w1", name: "measure", path: root, sessions: [{ id: "s1", title: "startup", workspaceId: "w1" }], sessionCount: 1, lastUsed: "now" }] },
+  "/api/health": { ok: true },
   "/api/workspaces/w1/files": { files: [{ name: "src", path: "src", kind: "dir", children: [{ name: "main.ts", path: "src/main.ts", kind: "file" }] }] },
   "/api/workspaces/w1/files/src%2Fmain.ts": { path: "src/main.ts", mime: "text/typescript", previewKind: "text", content: "export const value = 1;\n" },
   "/api/workspaces/w1/git/status": { branch: "main", dirty: 0, files: {} },
@@ -38,7 +38,7 @@ const api = {
   "/api/workspaces/w1/models": { providers: [] },
   "/api/auth/providers": { providers: [] },
   "/api/auth/oauth/providers": { providers: [] },
-  "/api/sessions/s1": { session: { id: "s1", title: "startup", workspaceId: "w1" }, messages: [], status: "idle", cursor: "", hasMore: false },
+  "/api/workspaces/w1/sessions/s1": { session: { id: "s1", title: "startup", workspaceId: "w1" }, messages: [], status: "idle", cursor: "", hasMore: false },
   "/api/version": { current: "test", latest: "test", updateAvailable: false },
 };
 

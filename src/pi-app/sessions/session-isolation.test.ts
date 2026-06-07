@@ -98,7 +98,7 @@ describe("pi-app session isolation", () => {
   it("keeps the latest session load when older requests finish later", async () => {
     let resolveFirst;
     globalThis.fetch = vi.fn((url) => {
-      if (String(url).includes("/api/sessions/s1?")) {
+      if (String(url).includes("/api/workspaces/w1/sessions/s1?")) {
         return new Promise((resolve) => {
           resolveFirst = resolve;
         });

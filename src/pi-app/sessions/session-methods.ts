@@ -1,6 +1,6 @@
 import {
   createSession,
-  renameSession as renameSessionRequest,
+  renameWorkspaceSession,
 } from "../../shared/api/api";
 import { escapeHtml } from "../../shared/renderers/renderers";
 import { sessionDeleteMethods } from "./session-delete-methods";
@@ -139,7 +139,9 @@ export const sessionMethods = {
     const title = prompt("Rename session", current)?.trim();
     if (!title) return;
     try {
-      const { session } = await renameSessionRequest(sessionId, title);
+      const workspaceId = this.findWorkspaceIdForSession?.(sessionId) || this.dataset.activeWorkspaceId;
+      if (!workspaceId) return;
+      const { session } = await renameWorkspaceSession(workspaceId, sessionId, title);
       const row = this.querySelector(`[data-session='${sessionId}']`);
       if (row) {
         row.dataset.title = session.title;

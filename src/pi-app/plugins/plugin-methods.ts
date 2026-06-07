@@ -6,8 +6,8 @@ import {
   cancelSession,
   getPluginUpdates,
   getPlugins,
-  getSession,
   getWorkspaceFile,
+  getWorkspaceSession,
   installPlugin,
   postPrompt,
   reloadPlugins,
@@ -117,9 +117,6 @@ type PluginHost = HTMLElement & {
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
   importPluginModule?: (url: string) => Promise<PluginModule>;
-  refreshChatSurfaceRefs?: () => void;
-  bindChatSurfaceEvents?: () => void;
-  initTranscriptWindow?: () => void;
   updatePrompt?: () => void;
   appendMessage?: (message: unknown) => void;
   appendDelta?: (delta: unknown) => void;
@@ -274,18 +271,9 @@ function mountPluginSurface(
   } else {
     appBody.append(element);
   }
-  host.refreshChatSurfaceRefs?.();
-  host.bindChatSurfaceEvents?.();
-  host.initTranscriptWindow?.();
-  host.updatePrompt?.();
-
   return () => {
     element.remove();
     root.hidden = previousHidden;
-    host.refreshChatSurfaceRefs?.();
-    host.bindChatSurfaceEvents?.();
-    host.initTranscriptWindow?.();
-    host.updatePrompt?.();
   };
 }
 
@@ -453,7 +441,13 @@ export const pluginMethods = {
           return host.classList.contains("running") || host.dataset.mode === "running";
         },
         get(sessionId: string, options?: { limit?: number; before?: string }): Promise<unknown> {
-          return getSession(sessionId, options || {});
+          const workspaceId: string = host.querySelector(`[data-session='${CSS.escape(sessionId)}']`)?.getAttribute("data-workspace")
+            || host.dataset.activeWorkspaceId
+            || "";
+          if (!workspaceId) {
+            return Promise.reject(new Error("session workspace is required"));
+          }
+          return getWorkspaceSession(workspaceId, sessionId, options || {});
         },
         postPrompt(sessionId: string, text: string, attachments: unknown[] = []): Promise<unknown> {
           return postPrompt(sessionId, text, attachments);

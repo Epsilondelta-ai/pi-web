@@ -1,4 +1,4 @@
-import { getSession, sessionEvents } from "../../shared/api/api";
+import { getWorkspaceSession, sessionEvents } from "../../shared/api/api";
 import { parseFallbackChoices } from "../input/fallback-choices";
 
 type BackgroundSessionWatch = {
@@ -196,7 +196,9 @@ export const notificationMethods = {
     if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId)) return;
     const generation = this.readAloudGeneration || 0;
     try {
-      const result = await getSession(sessionId, { limit: 20 });
+      const workspaceId = this.findWorkspaceIdForSession?.(sessionId) || this.dataset.activeWorkspaceId;
+      if (!workspaceId) return;
+      const result = await getWorkspaceSession(workspaceId, sessionId, { limit: 20 });
       if (!this.canReadCompletedBackgroundSessionAloud?.(sessionId) || (this.readAloudGeneration || 0) !== generation) return;
       const messages = result?.messages || [];
       const assistantMessage = [...messages].reverse().find((message) => message?.kind === "pi" && message.text);

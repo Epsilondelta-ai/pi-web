@@ -19,12 +19,13 @@ describe("pi-app session bootstrap", () => {
       status: 200,
       statusText: "OK",
       json: async () => {
-        if (String(url).endsWith("/workspaces")) return { workspaces: testWorkspaces() };
+        if (String(url).endsWith("/health")) return { ok: true };
         return { session: { id: "s2", title: "second", workspaceId: "w2" }, messages: [] };
       },
     }));
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
+    app.dataset.initialWorkspaces = JSON.stringify(testWorkspaces());
     const sessionMain = app.querySelector("[data-main]");
     sessionMain.hidden = true;
     app.loadWorkspaceCommands = vi.fn();
@@ -50,12 +51,13 @@ describe("pi-app session bootstrap", () => {
       status: 200,
       statusText: "OK",
       json: async () => {
-        if (String(url).endsWith("/workspaces")) return { workspaces: testWorkspaces() };
+        if (String(url).endsWith("/health")) return { ok: true };
         return { session: { id: "s2", title: "second", workspaceId: "w2" }, messages: [{ kind: "pi", text: "loaded" }] };
       },
     }));
     const app = document.querySelector("pi-app");
     await customElements.whenDefined("pi-app");
+    app.dataset.initialWorkspaces = JSON.stringify(testWorkspaces());
     const sessionMain = app.querySelector("[data-main]");
     sessionMain.hidden = true;
     app.loadWorkspaceCommands = vi.fn();

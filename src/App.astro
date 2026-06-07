@@ -74,7 +74,7 @@ function speechLanguageListId(path) {
 
 ---
 
-<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID}>
+<pi-app class="app" data-route={initialRoute} data-tree={treeOpen ? "on" : "off"} data-session={initialSession} data-active-session-id={activeSessionID} data-active-workspace-id={activeWorkspaceID} data-initial-workspaces={JSON.stringify(workspaces)}>
   <header class="topbar">
     <span class="brand" aria-label="pi.dev / web">
       <span class="pi">pi.dev</span><span class="slash">/</span><span class="web">web</span><span class="cursor-block"></span>

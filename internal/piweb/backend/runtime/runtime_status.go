@@ -21,36 +21,13 @@ type RuntimeStatus struct {
 }
 
 func MockRuntimeStatus() RuntimeStatus {
-	status := MockRuntimeModelStatus()
-	quota := MockRuntimeQuotaStatus()
-	status.FiveHourQuota = quota.FiveHourQuota
-	status.WeeklyQuota = quota.WeeklyQuota
-	return status
-}
-
-func MockRuntimeModelStatus() RuntimeStatus {
-	return RuntimeStatus{Model: "GPT-5.5", CurrentBranch: "main"}
-}
-
-func MockRuntimeQuotaStatus() RuntimeStatus {
 	fiveHour := 84
 	weekly := 14
-	return RuntimeStatus{FiveHourQuota: &fiveHour, WeeklyQuota: &weekly}
+	return RuntimeStatus{Model: "GPT-5.5", CurrentBranch: "main", FiveHourQuota: &fiveHour, WeeklyQuota: &weekly}
 }
 
 func WorkspaceRuntimeStatus(ctx context.Context, root string) (RuntimeStatus, error) {
-	status, err := WorkspaceRuntimeModelStatus(ctx, root)
-	if err != nil {
-		return status, err
-	}
-	quota := WorkspaceRuntimeQuotaStatus(ctx, root, status.Model)
-	status.FiveHourQuota = quota.FiveHourQuota
-	status.WeeklyQuota = quota.WeeklyQuota
-	return status, nil
-}
-
-func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatus, error) {
-	status, err := RuntimeModelStatusFromSettings(root)
+	status, err := runtimeStatusFromSettings(root)
 	if err != nil {
 		status, err = CurrentPiModelStatus(ctx, root)
 		if err != nil {
@@ -66,10 +43,11 @@ func WorkspaceRuntimeModelStatus(ctx context.Context, root string) (RuntimeStatu
 	if git, err := backendfiles.RealGitStatus(root); err == nil {
 		status.CurrentBranch = git.Branch
 	}
+	applyRuntimeQuota(ctx, root, &status)
 	return status, nil
 }
 
-func RuntimeModelStatusFromSettings(root string) (RuntimeStatus, error) {
+func runtimeStatusFromSettings(root string) (RuntimeStatus, error) {
 	settings, err := backendworkspace.WorkspaceSettings(root)
 	if err != nil {
 		return RuntimeStatus{}, err
@@ -149,10 +127,11 @@ func anthropicSubscriptionAuthWarning(status RuntimeStatus) string {
 	return ""
 }
 
-func WorkspaceRuntimeQuotaStatus(ctx context.Context, root string, model string) RuntimeStatus {
-	fiveHour, weekly := LiveQuotaForModel(ctx, model)
+func applyRuntimeQuota(ctx context.Context, root string, status *RuntimeStatus) {
+	fiveHour, weekly := LiveQuotaForModel(ctx, status.Model)
 	if fiveHour == nil && weekly == nil {
 		fiveHour, weekly = RuntimeQuota(root)
 	}
-	return RuntimeStatus{FiveHourQuota: fiveHour, WeeklyQuota: weekly}
+	status.FiveHourQuota = fiveHour
+	status.WeeklyQuota = weekly
 }

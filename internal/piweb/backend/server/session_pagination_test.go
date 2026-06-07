@@ -12,10 +12,10 @@ import (
 )
 
 func TestSessionEndpointReturnsMessagePage(t *testing.T) {
-	store, sessionID := pagedSessionStore(t, 5)
+	store, workspaceID, sessionID := pagedSessionStore(t, 5)
 	server := NewServer(Config{}, store, NewBroker())
 
-	req := httptest.NewRequest(http.MethodGet, "/api/sessions/"+sessionID+"?limit=2", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspaceID+"/sessions/"+sessionID+"?limit=2", nil)
 	res := httptest.NewRecorder()
 	server.Handler().ServeHTTP(res, req)
 
@@ -40,11 +40,11 @@ func TestSessionEndpointReturnsMessagePage(t *testing.T) {
 }
 
 func TestSessionEndpointReturnsOlderMessagePage(t *testing.T) {
-	store, sessionID := pagedSessionStore(t, 5)
+	store, workspaceID, sessionID := pagedSessionStore(t, 5)
 	server := NewServer(Config{}, store, NewBroker())
 
-	first := requestSessionPage(t, server, sessionID, "?limit=2")
-	older := requestSessionPage(t, server, sessionID, "?limit=2&before="+first.Cursor)
+	first := requestSessionPage(t, server, workspaceID, sessionID, "?limit=2")
+	older := requestSessionPage(t, server, workspaceID, sessionID, "?limit=2&before="+first.Cursor)
 
 	if got := messageTexts(older.Messages); strings.Join(got, ",") != "message 1,message 2" {
 		t.Fatalf("unexpected older messages: %#v", got)
@@ -55,7 +55,7 @@ func TestSessionEndpointReturnsOlderMessagePage(t *testing.T) {
 }
 
 func TestWorkspaceListingDoesNotRetainFullConversationBodies(t *testing.T) {
-	store, _ := pagedSessionStore(t, 3)
+	store, _, _ := pagedSessionStore(t, 3)
 	workspaces := store.Workspaces()
 	if len(workspaces) != 1 || len(workspaces[0].Sessions) != 1 {
 		t.Fatalf("unexpected workspaces: %#v", workspaces)
@@ -65,13 +65,13 @@ func TestWorkspaceListingDoesNotRetainFullConversationBodies(t *testing.T) {
 	}
 }
 
-func requestSessionPage(t *testing.T, server *Server, sessionID string, query string) struct {
+func requestSessionPage(t *testing.T, server *Server, workspaceID string, sessionID string, query string) struct {
 	Messages []Message `json:"messages"`
 	Cursor   string    `json:"cursor"`
 	HasMore  bool      `json:"hasMore"`
 } {
 	t.Helper()
-	req := httptest.NewRequest(http.MethodGet, "/api/sessions/"+sessionID+query, nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/workspaces/"+workspaceID+"/sessions/"+sessionID+query, nil)
 	res := httptest.NewRecorder()
 	server.Handler().ServeHTTP(res, req)
 	if res.Code != http.StatusOK {
@@ -88,7 +88,7 @@ func requestSessionPage(t *testing.T, server *Server, sessionID string, query st
 	return body
 }
 
-func pagedSessionStore(t *testing.T, count int) (*Store, string) {
+func pagedSessionStore(t *testing.T, count int) (*Store, string, string) {
 	t.Helper()
 	sessionRoot := t.TempDir()
 	workspaceRoot := t.TempDir()
@@ -116,7 +116,7 @@ func pagedSessionStore(t *testing.T, count int) (*Store, string) {
 	if len(workspace.Sessions) != 1 {
 		t.Fatalf("expected one session: %#v", workspace)
 	}
-	return store, workspace.Sessions[0].ID
+	return store, workspace.ID, workspace.Sessions[0].ID
 }
 
 func appendSessionTestLine(t *testing.T, file string, value map[string]any) {

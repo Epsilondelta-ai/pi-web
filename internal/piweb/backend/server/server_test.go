@@ -238,13 +238,17 @@ func TestWorkspaceAndSessionManagementEndpoints(t *testing.T) {
 	if err := json.NewDecoder(createRes.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	renameReq := httptest.NewRequest(http.MethodPatch, "/api/sessions/"+body.Session.ID, bytes.NewBufferString(`{"title":"renamed"}`))
+	renameReq := httptest.NewRequest(
+		http.MethodPatch,
+		"/api/workspaces/"+workspace.ID+"/sessions/"+body.Session.ID,
+		bytes.NewBufferString(`{"title":"renamed"}`),
+	)
 	renameRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(renameRes, renameReq)
 	if renameRes.Code != http.StatusOK || !strings.Contains(renameRes.Body.String(), "renamed") {
 		t.Fatalf("rename failed: %d %s", renameRes.Code, renameRes.Body.String())
 	}
-	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/sessions/"+body.Session.ID, nil)
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/api/workspaces/"+workspace.ID+"/sessions/"+body.Session.ID, nil)
 	deleteRes := httptest.NewRecorder()
 	server.Handler().ServeHTTP(deleteRes, deleteReq)
 	if deleteRes.Code != http.StatusOK {
@@ -547,29 +551,6 @@ func TestAuthEndpointsSaveListAndLogoutAPIKeys(t *testing.T) {
 	}
 	if strings.Contains(string(saved), "anthropic") || strings.Contains(string(saved), "sk-test-secret") {
 		t.Fatalf("logout did not remove credential: %s", string(saved))
-	}
-}
-
-func TestWorkspaceRuntimeSplitEndpointsUseMockStatusWhenPiDisabled(t *testing.T) {
-	server := NewServer(Config{EnablePiExecution: false}, NewMockStore(), NewBroker())
-	modelReq := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-model", nil)
-	modelRes := httptest.NewRecorder()
-	server.Handler().ServeHTTP(modelRes, modelReq)
-	if modelRes.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", modelRes.Code, modelRes.Body.String())
-	}
-	if !strings.Contains(modelRes.Body.String(), `"model":"GPT-5.5"`) || strings.Contains(modelRes.Body.String(), "weeklyQuota") {
-		t.Fatalf("unexpected model body: %s", modelRes.Body.String())
-	}
-
-	quotaReq := httptest.NewRequest(http.MethodGet, "/api/workspaces/pi-mono/runtime-quota?model=GPT-5.5", nil)
-	quotaRes := httptest.NewRecorder()
-	server.Handler().ServeHTTP(quotaRes, quotaReq)
-	if quotaRes.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d: %s", quotaRes.Code, quotaRes.Body.String())
-	}
-	if !strings.Contains(quotaRes.Body.String(), `"weeklyQuota":14`) || strings.Contains(quotaRes.Body.String(), "currentBranch") {
-		t.Fatalf("unexpected quota body: %s", quotaRes.Body.String())
 	}
 }
 

@@ -118,10 +118,6 @@ export function startPiUpdate(source = "", workspaceId = "") {
   });
 }
 
-export function getWorkspaces() {
-  return request("/api/workspaces");
-}
-
 export function getAuthProviders() {
   return request("/api/auth/providers");
 }
@@ -214,15 +210,6 @@ export function getWorkspaceRuntimeStatus(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-status`);
 }
 
-export function getWorkspaceRuntimeModel(workspaceId) {
-  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-model`);
-}
-
-export function getWorkspaceRuntimeQuota(workspaceId, model = "") {
-  const query = model ? `?model=${encodeURIComponent(model)}` : "";
-  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/runtime-quota${query}`);
-}
-
 export function getWorkspaceSettings(workspaceId) {
   return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/settings`);
 }
@@ -292,23 +279,27 @@ export function runShellCommand(workspaceId, command) {
   });
 }
 
-export function getSession(sessionId, options: { limit?: number; before?: string } = {}) {
+export function getWorkspaceSession(workspaceId, sessionId, options: { limit?: number; before?: string } = {}) {
   const params = new URLSearchParams();
   if (options.limit) params.set("limit", String(options.limit));
   if (options.before) params.set("before", options.before);
   const query = params.toString() ? `?${params}` : "";
-  return request(`/api/sessions/${encodeURIComponent(sessionId)}${query}`);
+  return request(
+    `/api/workspaces/${encodeURIComponent(workspaceId)}/sessions/${encodeURIComponent(sessionId)}${query}`,
+  );
 }
 
-export function renameSession(sessionId, title) {
-  return request(`/api/sessions/${encodeURIComponent(sessionId)}`, {
+export function renameWorkspaceSession(workspaceId, sessionId, title) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions/${encodeURIComponent(sessionId)}`, {
     method: "PATCH",
     body: JSON.stringify({ title }),
   });
 }
 
-export function deleteSession(sessionId) {
-  return request(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+export function deleteWorkspaceSession(workspaceId, sessionId) {
+  return request(`/api/workspaces/${encodeURIComponent(workspaceId)}/sessions/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+  });
 }
 
 export function cancelSession(sessionId) {

@@ -4,10 +4,11 @@ vi.mock("../../shared/api/api", () => ({
   getGitCommit: vi.fn(),
   getGitHistory: vi.fn(),
   getGitStatus: vi.fn(),
-  getSession: vi.fn(),
   getWorkspaceCommands: vi.fn(),
   getWorkspaceFiles: vi.fn(),
-  getWorkspaces: vi.fn(),
+  getWorkspaceSession: vi.fn(),
+  getWorkspaceSessions: vi.fn(),
+  health: vi.fn(),
   getOAuthLoginSession: vi.fn(),
   getOAuthProviders: vi.fn(),
   getAuthProviders: vi.fn(),
@@ -53,6 +54,8 @@ function owner(html = "") {
     loadVersionStatus: vi.fn(),
     route: vi.fn(),
     browseFolder: vi.fn(),
+    showEmptyMain: vi.fn(),
+    showSessionMain: vi.fn(),
     fillAuthForm: vi.fn(),
     fillOAuthForm: vi.fn(),
     pollOAuthSession: vi.fn(),
@@ -74,14 +77,15 @@ describe("workspace residual method coverage", () => {
   it("covers bootstrap session selection, metadata, older messages, and workspace activation branches", async () => {
     const app = owner(`<span data-active-workspace></span><span data-active-session-title></span><div data-git-status></div><div data-workspace-group="w1"><button class="ws-row"></button><div class="sessions"></div><span class="label">One</span><button data-session="s1" data-title="Saved" data-workspace="w1"></button></div>`);
     localStorage.setItem("pi.activeSession", JSON.stringify({ workspaceId: "w2", sessionId: "s2" }));
-    vi.mocked(api.getWorkspaces).mockResolvedValueOnce({ workspaces: [
+    vi.mocked(api.health).mockResolvedValueOnce({ ok: true });
+    app.dataset.initialWorkspaces = JSON.stringify([
       { id: "w1", name: "One", sessions: [{ id: "s1", title: "First" }] },
       { id: "w2", name: "Two", sessions: [{ id: "s2", title: "Stored", workspaceId: "w2" }] },
-    ] });
+    ]);
     vi.mocked(api.getWorkspaceFiles).mockResolvedValue({ files: [{ name: "a" }] });
     vi.mocked(api.getGitStatus).mockResolvedValue({ branch: "main", dirty: 1, files: { a: "modified" } });
     vi.mocked(api.getWorkspaceCommands).mockResolvedValue({ commands: ["/x"] });
-    vi.mocked(api.getSession).mockResolvedValueOnce({ session: { id: "s2", title: "Stored", workspaceId: "w2" }, messages: [{ kind: "pi" }], status: "running", cursor: "c1", hasMore: true });
+    vi.mocked(api.getWorkspaceSession).mockResolvedValueOnce({ session: { id: "s2", title: "Stored", workspaceId: "w2" }, messages: [{ kind: "pi" }], status: "running", cursor: "c1", hasMore: true });
 
     await app.bootstrapAPI();
     expect(app.dataset.activeWorkspaceId).toBe("w2");
@@ -107,7 +111,7 @@ describe("workspace residual method coverage", () => {
     app.sessionHistoryLoading = false;
     app.dataset.activeSessionId = "s2";
     app.sessionHistoryCursor = "c1";
-    vi.mocked(api.getSession).mockResolvedValueOnce({ messages: [{ kind: "user" }], cursor: "c0", hasMore: false });
+    vi.mocked(api.getWorkspaceSession).mockResolvedValueOnce({ messages: [{ kind: "user" }], cursor: "c0", hasMore: false });
     await app.loadOlderSessionMessages();
     expect(app.renderTranscriptWindow).toHaveBeenCalledWith({ stickToBottom: false, preservePrepend: true });
     app.prependLoadedMessages([]);
@@ -129,6 +133,9 @@ describe("workspace residual method coverage", () => {
     expect(app.loadWorkspaceContext).toHaveBeenCalledWith("w1");
     app.ensureWorkspaceTreeMounted = vi.fn();
     await workspaceBootstrapMethods.loadWorkspaceMeta.call(app, "w1");
+    app.dataset.activeWorkspaceId = "other";
+    await workspaceBootstrapMethods.loadWorkspaceMeta.call(app, "w1");
+    app.dataset.activeWorkspaceId = "w1";
     const root = document.createElement("div");
     root.dataset.initialFiles = '[{"name":"a"}]';
     app.appendChild(root);
@@ -148,33 +155,57 @@ describe("workspace residual method coverage", () => {
 
   it("covers bootstrap failure and stale load/older-message guards", async () => {
     const app = owner();
-    vi.mocked(api.getWorkspaces).mockRejectedValueOnce(new Error("offline"));
+    vi.mocked(api.health).mockRejectedValueOnce(new Error("offline"));
     await app.bootstrapAPI();
     expect(app.apiConnected).toBe(false);
     expect(app.setConnection).toHaveBeenCalledWith("err");
 
-    vi.mocked(api.getSession).mockImplementationOnce(async () => {
+    delete app.dataset.activeWorkspaceId;
+    await app.loadSession("nowhere");
+    expect(app.setConnection).toHaveBeenCalledWith("err");
+    app.setConnection.mockClear();
+    const staleMissing = app.loadSession("nowhere");
+    app.sessionLoadToken = Symbol("newer-missing");
+    await staleMissing;
+    expect(app.setConnection).not.toHaveBeenCalled();
+    app.dataset.activeWorkspaceId = "w1";
+
+    vi.mocked(api.getWorkspaceSession).mockImplementationOnce(async () => {
       app.sessionLoadToken = Symbol("newer");
       return { session: { id: "old" }, messages: [] };
     });
     await app.loadSession("old");
     app.sessionLoadToken = Symbol("old");
-    vi.mocked(api.getSession).mockRejectedValueOnce(new Error("bad"));
+    vi.mocked(api.getWorkspaceSession).mockRejectedValueOnce(new Error("bad"));
     await app.loadSession("old");
     expect(app.setConnection).toHaveBeenCalledWith("err");
+
+    app.applyLoadedSession({ id: "empty", title: "empty", workspaceId: "" }, [], "idle");
+    expect(app.showEmptyMain).toHaveBeenCalled();
+    delete app.dataset.activeWorkspaceId;
+    app.applyLoadedSession({ id: "empty-no-workspace", title: "empty", workspaceId: "" }, [], "idle");
+    expect(app.showEmptyMain).toHaveBeenCalledWith("");
+    app.dataset.activeWorkspaceId = "w1";
 
     app.dataset.activeSessionId = "s1";
     app.sessionHistoryHasMore = true;
     app.sessionHistoryLoading = false;
     app.sessionHistoryCursor = "a";
-    vi.mocked(api.getSession).mockImplementationOnce(async () => {
+    delete app.dataset.activeWorkspaceId;
+    app.findWorkspaceIdForSession = vi.fn(() => "");
+    await app.loadOlderSessionMessages();
+    app.dataset.activeWorkspaceId = "w1";
+    delete app.findWorkspaceIdForSession;
+    app.sessionHistoryLoading = false;
+
+    vi.mocked(api.getWorkspaceSession).mockImplementationOnce(async () => {
       app.dataset.activeSessionId = "other";
       return { messages: [{ kind: "pi" }], cursor: "b", hasMore: true };
     });
     await app.loadOlderSessionMessages();
     app.dataset.activeSessionId = "s1";
     app.sessionHistoryCursor = "a";
-    vi.mocked(api.getSession).mockRejectedValueOnce(new Error("older"));
+    vi.mocked(api.getWorkspaceSession).mockRejectedValueOnce(new Error("older"));
     await app.loadOlderSessionMessages();
     expect(app.setConnection).toHaveBeenCalledWith("err");
   });

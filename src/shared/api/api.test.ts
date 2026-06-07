@@ -13,9 +13,9 @@ import {
   cloneWorkspace,
   createSession,
   createWorkspaceFile,
-  deleteSession,
   deleteWorkspace,
   deleteWorkspaceFile,
+  deleteWorkspaceSession,
   deleteWorkspaceSessions,
   getGitCommit,
   getGitHistory,
@@ -28,25 +28,22 @@ import {
   getPluginUpdates,
   getPlugins,
   getPiVersionStatus,
-  getSession,
   getVersionStatus,
   getWorkspaceCommands,
+  getWorkspaceSession,
   getWorkspaceFile,
   getWorkspaceFiles,
   getWorkspaceModels,
-  getWorkspaceRuntimeModel,
-  getWorkspaceRuntimeQuota,
   getWorkspaceRuntimeStatus,
   getWorkspaceSessions,
   getWorkspaceSettings,
-  getWorkspaces,
   health,
   logoutProvider,
   listFolders,
   openWorkspace,
   installPlugin,
   postPrompt,
-  renameSession,
+  renameWorkspaceSession,
   saveAPIKey,
   renameWorkspaceFile,
   runAguiSessionPrompt,
@@ -81,11 +78,6 @@ describe("api adapter", () => {
     delete globalThis.PI_WEB_API_BASE;
     vi.restoreAllMocks();
     agui.runAgent.mockReset();
-  });
-
-  it("fetches workspaces from the configured backend", async () => {
-    const result = await getWorkspaces();
-    expect(result.url).toBe("http://backend.test/api/workspaces");
   });
 
   it("fetches version status", async () => {
@@ -128,8 +120,8 @@ describe("api adapter", () => {
     delete globalThis.PI_WEB_API_BASE;
     const original = globalThis.location;
     Object.defineProperty(globalThis, "location", { value: { port: "1234" }, configurable: true });
-    const result = await getWorkspaces();
-    expect(result.url).toBe("/api/workspaces");
+    const result = await health();
+    expect(result.url).toBe("/api/health");
     Object.defineProperty(globalThis, "location", { value: original, configurable: true });
   });
 
@@ -145,12 +137,18 @@ describe("api adapter", () => {
     Object.defineProperty(globalThis, "location", { value: original, configurable: true });
   });
 
-  it("escapes session ids in paths and supports message paging", async () => {
-    expect((await getSession("plain")).url).toBe("http://backend.test/api/sessions/plain");
-    expect((await getSession("plain", { limit: 10 })).url).toBe("http://backend.test/api/sessions/plain?limit=10");
-    expect((await getSession("plain", { before: "abc" })).url).toBe("http://backend.test/api/sessions/plain?before=abc");
-    const result = await getSession("a/b", { limit: 25, before: "123" });
-    expect(result.url).toBe("http://backend.test/api/sessions/a%2Fb?limit=25&before=123");
+  it("escapes workspace session ids in paths and supports message paging", async () => {
+    expect((await getWorkspaceSession("w1", "plain")).url).toBe(
+      "http://backend.test/api/workspaces/w1/sessions/plain",
+    );
+    expect((await getWorkspaceSession("w1", "plain", { limit: 10 })).url).toBe(
+      "http://backend.test/api/workspaces/w1/sessions/plain?limit=10",
+    );
+    expect((await getWorkspaceSession("w1", "plain", { before: "abc" })).url).toBe(
+      "http://backend.test/api/workspaces/w1/sessions/plain?before=abc",
+    );
+    const result = await getWorkspaceSession("w/1", "a/b", { limit: 25, before: "123" });
+    expect(result.url).toBe("http://backend.test/api/workspaces/w%2F1/sessions/a%2Fb?limit=25&before=123");
   });
 
   it("lists folders from the backend browser", async () => {
@@ -169,9 +167,9 @@ describe("api adapter", () => {
     const deletedWorkspaceSessions = await deleteWorkspaceSessions("w1");
     expect(deletedWorkspaceSessions.url).toBe("http://backend.test/api/workspaces/w1/sessions");
     expect(deletedWorkspaceSessions.options.method).toBe("DELETE");
-    expect((await deleteSession("s1")).options.method).toBe("DELETE");
+    expect((await deleteWorkspaceSession("w1", "s1")).options.method).toBe("DELETE");
     expect((await cancelSession("s1")).options.method).toBe("POST");
-    const renamed = await renameSession("s1", "next");
+    const renamed = await renameWorkspaceSession("w1", "s1", "next");
     expect(renamed.options.method).toBe("PATCH");
     expect(JSON.parse(renamed.options.body)).toEqual({ title: "next" });
   });
@@ -202,12 +200,6 @@ describe("api adapter", () => {
     expect(gitCommit.url).toBe("http://backend.test/api/workspaces/w%2F1/git/commit?hash=a%2Fb");
     const status = await getWorkspaceRuntimeStatus("w1");
     expect(status.url).toBe("http://backend.test/api/workspaces/w1/runtime-status");
-    const model = await getWorkspaceRuntimeModel("w1");
-    expect(model.url).toBe("http://backend.test/api/workspaces/w1/runtime-model");
-    const quota = await getWorkspaceRuntimeQuota("w1", "GPT-5.5");
-    expect(quota.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota?model=GPT-5.5");
-    const quotaDefault = await getWorkspaceRuntimeQuota("w1");
-    expect(quotaDefault.url).toBe("http://backend.test/api/workspaces/w1/runtime-quota");
   });
 
   it("manages auth and oauth requests", async () => {
@@ -283,7 +275,7 @@ describe("api adapter", () => {
       statusText: "Teapot",
       json: async () => ({ error: "short and stout" }),
     }));
-    await expect(getWorkspaces()).rejects.toThrow("short and stout");
+    await expect(health()).rejects.toThrow("short and stout");
     globalThis.fetch = vi.fn(async () => ({
       ok: false,
       status: 500,
@@ -292,14 +284,14 @@ describe("api adapter", () => {
         throw new Error("bad json");
       },
     }));
-    await expect(getWorkspaces()).rejects.toThrow("500 Server Error");
+    await expect(health()).rejects.toThrow("500 Server Error");
     globalThis.fetch = vi.fn(async () => ({
       ok: false,
       status: 400,
       statusText: "Bad Request",
       json: async () => ({}),
     }));
-    await expect(getWorkspaces()).rejects.toThrow("400 Bad Request");
+    await expect(health()).rejects.toThrow("400 Bad Request");
   });
 
   it("runs AG-UI prompts with EventSource fallback and tool callbacks", async () => {

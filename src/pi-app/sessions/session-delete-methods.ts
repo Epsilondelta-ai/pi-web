@@ -1,5 +1,5 @@
 import {
-  deleteSession as deleteSessionRequest,
+  deleteWorkspaceSession,
   deleteWorkspaceSessions as deleteWorkspaceSessionsRequest,
 } from "../../shared/api/api";
 import { clearStoredActiveSession } from "./session-storage";
@@ -10,8 +10,12 @@ export const sessionDeleteMethods = {
     if (!sessionId || !this.apiConnected) return;
     if (!confirm(`Delete session ${sessionId}? This removes the local JSONL file.`)) return;
     try {
-      await deleteSessionRequest(sessionId);
       const workspaceId = this.findWorkspaceIdForSession(sessionId);
+      if (!workspaceId) {
+        this.setConnection("err");
+        return;
+      }
+      await deleteWorkspaceSession(workspaceId, sessionId);
       const deletedSessionIds = this.deletedSessionIdsWithDescendants(workspaceId, sessionId);
       const shouldClearActiveSession = deletedSessionIds.has(this.dataset.activeSessionId);
       if (shouldClearActiveSession) this.clearActiveSession(this.dataset.activeSessionId);

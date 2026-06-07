@@ -45,6 +45,51 @@ describe("pi-app core events coverage", () => {
     expect(app.closeSessionMenus).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps plugin chat and composer surfaces opaque to core events", async () => {
+    const app = await connectPiApp();
+    const context = app.pluginContext({ id: "p", entry: "index.js" });
+    const chat = document.createElement("section");
+    chat.innerHTML = [
+      `<div class="term">`,
+      `<div class="term-inner"><p data-plugin-message>plugin</p></div>`,
+      `<span class="spinner" data-plugin-spinner></span>`,
+      `</div>`,
+    ].join("");
+    const composer = document.createElement("section");
+    composer.innerHTML = [
+      `<textarea class="prompt-textarea">plugin prompt</textarea>`,
+      `<button class="send-btn">plugin send</button>`,
+      `<button data-action="route-picker">plugin action</button>`,
+    ].join("");
+    const coreSend = app.sendButton;
+    const cleanupChat = context.mount.chat(chat);
+    const cleanupComposer = context.mount.composer(composer);
+
+    app.submitPrompt = vi.fn();
+    app.route = vi.fn();
+    app.closeSessionMenus = vi.fn();
+    app.shortcut = vi.fn();
+    composer.querySelector(".send-btn").click();
+    composer.querySelector("[data-action='route-picker']").click();
+    composer.querySelector(".prompt-textarea").dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true }));
+    app.tickSpinners();
+
+    expect(app.submitPrompt).not.toHaveBeenCalled();
+    expect(app.route).not.toHaveBeenCalled();
+    expect(app.closeSessionMenus).not.toHaveBeenCalled();
+    expect(app.shortcut).not.toHaveBeenCalled();
+    expect(chat.querySelector("[data-plugin-spinner]").dataset.frame).toBeUndefined();
+
+    app.renderMessages([{ kind: "pi", text: "core" }]);
+    coreSend.click();
+
+    expect(app.submitPrompt).toHaveBeenCalledTimes(1);
+    expect(composer.querySelector(".prompt-textarea").value).toBe("plugin prompt");
+    expect(chat.querySelector("[data-plugin-message]").textContent).toBe("plugin");
+    cleanupChat();
+    cleanupComposer();
+  });
+
   it("covers layout controls, persisted sidebar width, tool expansion, and resize", async () => {
     const app = await connectPiApp();
     const workspace = app.querySelector('[data-view="workspace"]');

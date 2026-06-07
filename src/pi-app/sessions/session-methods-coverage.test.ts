@@ -127,6 +127,17 @@ describe("pi-app session method mutations", () => {
     app.dataset.activeSessionId = "other";
     await app.renameSession("ghost");
 
+    const savedWorkspaceId = app.dataset.activeWorkspaceId;
+    delete app.dataset.activeWorkspaceId;
+    vi.spyOn(window, "prompt").mockReturnValueOnce("nowhere");
+    await app.renameSession("ghost");
+    app.dataset.activeWorkspaceId = savedWorkspaceId;
+
+    mockFetchJson({ session: { id: "ghost", title: "ghosted" } });
+    app.dataset.activeWorkspaceId = "w1";
+    vi.spyOn(window, "prompt").mockReturnValueOnce("ghosted");
+    await app.renameSession("ghost");
+
     row.querySelector(".session-main")?.remove();
     row.querySelector(".title")?.remove();
     vi.spyOn(window, "prompt").mockReturnValueOnce("childless");
@@ -167,8 +178,14 @@ describe("pi-app session method mutations", () => {
     await app.deleteSession("active");
     expect(app.clearActiveSession).toHaveBeenCalledWith("active");
 
+    const failing = app.createSessionRow("w1", { id: "failing", title: "failing", lastUsed: "now" });
+    app.append(failing);
     mockFetchJson({ error: "boom" }, false);
     app.setConnection = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    await app.deleteSession("failing");
+    expect(app.setConnection).toHaveBeenCalledWith("err");
+
     vi.spyOn(window, "confirm").mockReturnValueOnce(true);
     await app.deleteSession("missing");
     expect(app.setConnection).toHaveBeenCalledWith("err");

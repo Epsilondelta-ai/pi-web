@@ -14,8 +14,6 @@ vi.mock("../../shared/api/api", async () => {
     getPiVersionStatus: vi.fn(),
     getVersionStatus: vi.fn(),
     startPiUpdate: vi.fn(),
-    getWorkspaceRuntimeModel: vi.fn(),
-    getWorkspaceRuntimeQuota: vi.fn(),
     getWorkspaceRuntimeStatus: vi.fn(),
     sessionEvents: vi.fn(),
   };
@@ -197,23 +195,16 @@ describe("status method branch coverage", () => {
 
     el.updatePromptMeta = vi.fn();
     el.notifyRuntimeWarning = vi.fn();
-    vi.mocked(api.getWorkspaceRuntimeModel).mockResolvedValueOnce({ status: { model: "m", warning: "warn" } });
-    vi.mocked(api.getWorkspaceRuntimeQuota).mockResolvedValueOnce({ status: { quota: 1 } });
+    vi.mocked(api.getWorkspaceRuntimeStatus).mockResolvedValueOnce({ status: { model: "m", warning: "warn" } });
     await el.loadRuntimeStatus("w1");
-    await Promise.resolve();
     expect(el.notifyRuntimeWarning).toHaveBeenCalledWith("warn");
-    vi.mocked(api.getWorkspaceRuntimeModel).mockRejectedValueOnce(new Error("model"));
     vi.mocked(api.getWorkspaceRuntimeStatus).mockResolvedValueOnce({ status: { model: "fallback" } });
     await el.loadRuntimeStatus("w1");
     expect(el.updatePromptMeta).toHaveBeenCalledWith({ model: "fallback" });
-    vi.mocked(api.getWorkspaceRuntimeModel).mockRejectedValueOnce(new Error("model"));
     vi.mocked(api.getWorkspaceRuntimeStatus).mockRejectedValueOnce(new Error("status"));
     await el.loadRuntimeStatus("w1");
-    vi.mocked(api.getWorkspaceRuntimeQuota).mockRejectedValueOnce(new Error("quota"));
-    await el.loadRuntimeQuota("w1", "m");
     el.apiConnected = false;
     await el.loadRuntimeStatus("w1");
-    await el.loadRuntimeQuota("w1", "m");
     el.applyRuntimeStatus(undefined);
   });
 
