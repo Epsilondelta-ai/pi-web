@@ -117,9 +117,6 @@ type PluginHost = HTMLElement & {
   loadedPlugins?: Set<string>;
   loadPlugins?: () => Promise<void>;
   importPluginModule?: (url: string) => Promise<PluginModule>;
-  refreshChatSurfaceRefs?: () => void;
-  bindChatSurfaceEvents?: () => void;
-  initTranscriptWindow?: () => void;
   updatePrompt?: () => void;
   appendMessage?: (message: unknown) => void;
   appendDelta?: (delta: unknown) => void;
@@ -274,18 +271,9 @@ function mountPluginSurface(
   } else {
     appBody.append(element);
   }
-  host.refreshChatSurfaceRefs?.();
-  host.bindChatSurfaceEvents?.();
-  host.initTranscriptWindow?.();
-  host.updatePrompt?.();
-
   return () => {
     element.remove();
     root.hidden = previousHidden;
-    host.refreshChatSurfaceRefs?.();
-    host.bindChatSurfaceEvents?.();
-    host.initTranscriptWindow?.();
-    host.updatePrompt?.();
   };
 }
 

@@ -258,9 +258,6 @@ describe("pluginMethods", () => {
   it("provides plugin mount and host surface APIs", async () => {
     const host = hostWithList();
     host.innerHTML += `<section class="app-body"></section>`;
-    host.refreshChatSurfaceRefs = vi.fn();
-    host.bindChatSurfaceEvents = vi.fn();
-    host.initTranscriptWindow = vi.fn();
     host.updatePrompt = vi.fn();
     host.appendMessage = vi.fn();
     host.appendDelta = vi.fn();
@@ -270,7 +267,7 @@ describe("pluginMethods", () => {
     host.submitPrompt = vi.fn(async () => undefined);
     host.cancelActiveSession = vi.fn(async () => undefined);
     host.addFiles = vi.fn(async () => undefined);
-    host.prompt = null;
+    host.prompt = document.createElement("textarea");
     host.attachments = document.createElement("div");
     host.attachmentContents = [{ name: "x" }];
     host.dataset.activeWorkspaceId = "w1";
@@ -279,10 +276,9 @@ describe("pluginMethods", () => {
     const chat = document.createElement("section");
     chat.innerHTML = `<div class="term-inner"></div>`;
     const composer = document.createElement("section");
-    composer.innerHTML = `<textarea class="prompt-textarea"></textarea>`;
+    composer.innerHTML = `<textarea class="prompt-textarea"></textarea><button class="send-btn">send</button>`;
     const cleanupChat = context.mount.chat(chat);
     const cleanupComposer = context.mount.composer(composer);
-    host.prompt = composer.querySelector(".prompt-textarea");
 
     context.chat.appendMessage({ kind: "pi" });
     context.chat.appendDelta({ delta: "x" });
@@ -311,6 +307,8 @@ describe("pluginMethods", () => {
     expect(host.querySelector(".app-body > [data-plugin-chat-root]")).toBe(chat);
     expect(host.querySelector(".app-body > [data-plugin-composer-root]")).toBe(composer);
     expect(context.composer.getPrompt()).toBe("hello");
+    expect(composer.querySelector(".prompt-textarea").value).toBe("");
+    expect(host.updatePrompt).toHaveBeenCalledTimes(2);
     expect(host.appendMessage).toHaveBeenCalledWith({ kind: "pi" });
     expect(api.postPrompt).toHaveBeenCalledWith("s1", "p", []);
     expect(api.runShellCommand).toHaveBeenCalledWith("w1", "pwd");
@@ -338,8 +336,6 @@ describe("pluginMethods", () => {
   it("leaves chat empty when no chat plugin mounts", async () => {
     const host = hostWithList();
     host.innerHTML += `<section class="app-body"><main data-main></main></section>`;
-    host.refreshChatSurfaceRefs = vi.fn();
-    host.initTranscriptWindow = vi.fn();
     api.getPlugins.mockResolvedValueOnce({ plugins: [] });
 
     await host.loadPlugins();
@@ -352,9 +348,6 @@ describe("pluginMethods", () => {
   it("covers optional plugin host fallbacks", async () => {
     const host = hostWithList();
     host.innerHTML += `<section class="app-body"></section>`;
-    host.refreshChatSurfaceRefs = vi.fn();
-    host.bindChatSurfaceEvents = vi.fn();
-    host.initTranscriptWindow = vi.fn();
     const context = host.pluginContext({ id: "p", entry: "index.js" });
     const chat = document.createElement("section");
     const cleanupChat = context.mount.chat(chat);
@@ -377,9 +370,6 @@ describe("pluginMethods", () => {
   it("mounts plugin surfaces into existing roots", () => {
     const host = hostWithList();
     host.innerHTML += `<section class="app-body"><div data-plugin-chat-root hidden></div></section>`;
-    host.refreshChatSurfaceRefs = vi.fn();
-    host.bindChatSurfaceEvents = vi.fn();
-    host.initTranscriptWindow = vi.fn();
     host.updatePrompt = vi.fn();
     const context = host.pluginContext({ id: "p", entry: "index.js" });
     const chat = document.createElement("section");

@@ -127,19 +127,32 @@ class PiApp extends HTMLElement {
     this.fileInput?.addEventListener("change", () => this.addFiles(this.fileInput.files), options);
     this.installPromptDropZone?.();
   }
-  refreshChatSurfaceRefs() {
-    const activeChatRoot = this.querySelector("[data-plugin-chat-root]:not([hidden])") || this;
-    const activeComposerRoot = this.querySelector("[data-plugin-composer-root]:not([hidden])") || this;
-    this.prompt = activeComposerRoot.querySelector(".prompt-textarea");
-    this.promptBar = activeComposerRoot.querySelector(".prompt-bar");
-    this.sendButton = activeComposerRoot.querySelector(".send-btn");
-    this.stopButton = activeComposerRoot.querySelector(".stop-btn");
-    this.micButton = activeComposerRoot.querySelector(".mic-btn");
-    this.attachButton = activeComposerRoot.querySelector(".attach-btn");
-    this.fileInput = activeComposerRoot.querySelector("[data-file-input]");
-    this.attachments = activeComposerRoot.querySelector(".attach-chips");
-    this.slashPopover = activeComposerRoot.querySelector(".slash-pop");
-    this.termInner = activeChatRoot.querySelector(".term-inner");
+  refreshChatSurfaceRefs(): void {
+    const mainRoot: ParentNode = this.querySelector("[data-main]") || this;
+    this.prompt = this.coreSurfaceElement(".prompt-textarea");
+    this.promptBar = this.coreSurfaceElement(".prompt-bar");
+    this.sendButton = this.coreSurfaceElement(".send-btn");
+    this.stopButton = this.coreSurfaceElement(".stop-btn");
+    this.micButton = this.coreSurfaceElement(".mic-btn");
+    this.attachButton = this.coreSurfaceElement(".attach-btn");
+    this.fileInput = this.coreSurfaceElement("[data-file-input]");
+    this.attachments = this.coreSurfaceElement(".attach-chips");
+    this.slashPopover = this.coreSurfaceElement(".slash-pop");
+    this.termInner = this.coreSurfaceElement(".term-inner", mainRoot);
+  }
+  coreSurfaceElement(selector: string, root: ParentNode = this): Element | null {
+    return this.coreSurfaceElements(selector, root)[0] || null;
+  }
+  coreSurfaceElements(selector: string, root: ParentNode = this): Element[] {
+    return [...root.querySelectorAll(selector)].filter(
+      (element: Element): boolean => !this.elementInPluginSurface(element),
+    );
+  }
+  elementInPluginSurface(element: Element): boolean {
+    return !!element.closest("[data-plugin-chat-root], [data-plugin-composer-root]");
+  }
+  eventTargetInPluginSurface(target: EventTarget | null): boolean {
+    return target instanceof Element && this.elementInPluginSurface(target);
   }
   disconnectedCallback() {
     this.stopSpeechInput?.();
@@ -189,15 +202,17 @@ class PiApp extends HTMLElement {
     this.spinnerTimer = setInterval(() => this.tickSpinners(), 150);
   }
 
-  tickSpinners() {
+  tickSpinners(): void {
     this.spinnerIndex = (this.spinnerIndex + 1) % SPINNER_FRAME_COUNT;
-    this.querySelectorAll(".spinner").forEach((spinner) => {
-      spinner.dataset.frame = String(this.spinnerIndex);
+    this.coreSurfaceElements(".spinner").forEach((spinner: Element): void => {
+      (spinner as HTMLElement).dataset.frame = String(this.spinnerIndex);
     });
   }
 
   bindDomEvents() {
     this.addEventListener("click", (event) => {
+      if (this.eventTargetInPluginSurface(event.target)) return;
+
       (this as unknown as { handleAppClick(event: MouseEvent): void }).handleAppClick(event);
     });
     this.querySelector("[data-path-form]")?.addEventListener("submit", (event) => this.submitWorkspacePath(event));
@@ -233,8 +248,14 @@ class PiApp extends HTMLElement {
       const selectedPath = (event as CustomEvent)?.detail?.selectedPath || "";
       if (workspaceId) void this.loadWorkspaceMeta(workspaceId, { selectedPath });
     });
-    window.addEventListener("keydown", (event) => this.shortcut(event));
+    window.addEventListener("keydown", (event) => {
+      if (this.eventTargetInPluginSurface(event.target)) return;
+
+      this.shortcut(event);
+    });
     window.addEventListener("click", (event) => {
+      if (this.eventTargetInPluginSurface(event.target)) return;
+
       if (!event.target.closest?.(".session-menu, .session-menu-button")) this.closeSessionMenus();
       this.closeTreeFromOutside?.(event);
     });
