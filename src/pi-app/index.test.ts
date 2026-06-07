@@ -73,7 +73,7 @@ describe("pi-app element", () => {
   it("handles malformed dataset, startup, clicks, and workspace events", async () => {
     const app = document.createElement("pi-app");
     app.dataset.initialWorkspaces = JSON.stringify({ id: "not-array" });
-    app.innerHTML = `<button data-action="open-settings"></button><button data-action="unknown"></button><button data-action=""></button>`;
+    app.innerHTML = `<button data-action="open-settings"></button><button data-action="open-settings"><svg><path></path></svg></button><button data-action="unknown"></button><button data-action=""></button>`;
     document.body.append(app);
     app.loadPlugins = vi.fn(async () => undefined);
     app.openSettingsModal = vi.fn();
@@ -101,6 +101,7 @@ describe("pi-app element", () => {
     app.connectedCallback();
     app.setConnection("err");
     app.querySelector("[data-action='open-settings']").click();
+    app.querySelector("path").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     app.querySelector("[data-action='unknown']").click();
     app.querySelector("[data-action='']").click();
     app.handleAppClick({ target: document.createTextNode("text") } as unknown as MouseEvent);
@@ -157,6 +158,15 @@ describe("pi-app element", () => {
     expect(deleted).toEqual(["w1"]);
     expect(app.speechInputAllowed()).toBe(false);
     expect(app.loadRuntimeStatus()).toBeUndefined();
+  });
+
+  it("delegates SVG child clicks to their action button", async () => {
+    const app = createApp(`<button data-action="open-settings"><svg><path></path></svg></button>`);
+    app.openSettingsModal = vi.fn();
+
+    app.querySelector("path").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(app.openSettingsModal).toHaveBeenCalledOnce();
   });
 
   it("ignores plugin autoload errors and disabled autoload", async () => {
