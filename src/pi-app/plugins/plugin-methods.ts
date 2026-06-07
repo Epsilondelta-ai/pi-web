@@ -188,13 +188,15 @@ function renderPluginList(host: PluginHost, plugins: PluginManifest[]): void {
       row.querySelector("strong")!.textContent = pluginLabel(plugin);
       row.querySelector("[data-plugin-version]")!.textContent =
         `${plugin.id} · ${plugin.version || "dev"}`;
-      const buttons: NodeListOf<HTMLButtonElement> = row.querySelectorAll("button");
-      buttons.forEach((button: HTMLButtonElement) => {
+      const actionButtons: NodeListOf<HTMLButtonElement> = row.querySelectorAll("button[data-action]");
+      const toggleButton: HTMLButtonElement = row.querySelector("[data-action='toggle-plugin']")!;
+      const uninstallButton: HTMLButtonElement = row.querySelector("[data-action='uninstall-plugin']")!;
+      actionButtons.forEach((button: HTMLButtonElement) => {
         button.dataset.pluginId = plugin.id;
       });
-      buttons[1].dataset.pluginEnabled = String(plugin.enabled !== false);
-      buttons[1].textContent = plugin.enabled === false ? "enable" : "disable";
-      buttons[2].textContent = "remove";
+      toggleButton.dataset.pluginEnabled = String(plugin.enabled !== false);
+      toggleButton.textContent = plugin.enabled === false ? "enable" : "disable";
+      uninstallButton.textContent = "remove";
       return row;
     }),
   );

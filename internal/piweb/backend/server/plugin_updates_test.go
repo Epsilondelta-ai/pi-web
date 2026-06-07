@@ -3,6 +3,7 @@ package server
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +40,30 @@ func TestDetectPluginUpdateRejectsRemoteIDMismatch(t *testing.T) {
 	}
 }
 
+func TestDetectPluginUpdateReusesCachedGitCheckout(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	logPath := installFakePluginGit(t, "remote")
+
+	for i := 0; i < 2; i++ {
+		status := detectPluginUpdate(pluginManifest{ID: "remote", Source: "github", URL: "owner/repo", Version: "1.0.0"})
+		if !status.Checked || !status.UpdateAvailable || status.Error != "" {
+			t.Fatalf("status %d = %#v", i, status)
+		}
+	}
+
+	log, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(log), "clone --depth 1 https://github.com/owner/repo.git") != 1 {
+		t.Fatalf("expected one update-check clone, got log:\n%s", string(log))
+	}
+	if !strings.Contains(string(log), "fetch --depth 1 origin") {
+		t.Fatalf("expected cached fetch, got log:\n%s", string(log))
+	}
+}
+
 func TestUpdateGitHubPluginRejectsRemoteIDMismatchBeforeInstall(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -65,7 +90,7 @@ func TestUpdateGitHubPluginRejectsRemoteIDMismatchBeforeInstall(t *testing.T) {
 	}
 }
 
-func installFakePluginGit(t *testing.T, pluginID string) {
+func installFakePluginGit(t *testing.T, pluginID string) string {
 	t.Helper()
 	source := filepath.Join(t.TempDir(), "repo")
 	if err := os.MkdirAll(source, 0o700); err != nil {
@@ -82,12 +107,29 @@ func installFakePluginGit(t *testing.T, pluginID string) {
 	if err := os.MkdirAll(bin, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	gitScript := "#!/bin/sh\nset -eu\ndest=\"$5\"\nmkdir -p \"$dest\"\ncp -R \"$PI_WEB_FAKE_GIT_SOURCE\"/. \"$dest\"\n"
+	logPath := filepath.Join(t.TempDir(), "git.log")
+	gitScript := `#!/bin/sh
+set -eu
+printf '%s\n' "$*" >> "$PI_WEB_FAKE_GIT_LOG"
+if [ "$1" = "clone" ]; then
+  dest="$5"
+  mkdir -p "$dest/.git"
+  cp -R "$PI_WEB_FAKE_GIT_SOURCE"/. "$dest"
+  exit 0
+fi
+if [ "$1" = "-C" ]; then
+  exit 0
+fi
+echo unsupported git command "$*" >&2
+exit 2
+`
 	if err := os.WriteFile(filepath.Join(bin, "git"), []byte(gitScript), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("PI_WEB_FAKE_GIT_SOURCE", source)
+	t.Setenv("PI_WEB_FAKE_GIT_LOG", logPath)
+	return logPath
 }
 
 func TestRemotePluginVersionComparison(t *testing.T) {

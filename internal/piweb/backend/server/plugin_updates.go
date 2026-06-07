@@ -1,6 +1,8 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"os/exec"
@@ -78,16 +80,45 @@ func remoteGitHubPluginManifest(rawURL string) (pluginManifest, error) {
 	if err != nil {
 		return pluginManifest{}, err
 	}
-	tempDir, err := os.MkdirTemp("", "pi-web-plugin-update-*")
-	if err != nil {
+	cacheDir := pluginUpdateCacheDir(cloneURL)
+	if err := syncGitHubPluginUpdateCache(cloneURL, cacheDir); err != nil {
 		return pluginManifest{}, err
 	}
-	defer os.RemoveAll(tempDir)
-	cmd := exec.Command("git", "clone", "--depth", "1", cloneURL, tempDir)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return pluginManifest{}, errors.New(strings.TrimSpace(string(output)))
+	return readPluginManifest(cacheDir)
+}
+
+func pluginUpdateCacheDir(cloneURL string) string {
+	sum := sha256.Sum256([]byte(cloneURL))
+	return filepath.Join(pluginMetadataDir(), "update-cache", hex.EncodeToString(sum[:])[:24])
+}
+
+func syncGitHubPluginUpdateCache(cloneURL string, cacheDir string) error {
+	if _, err := os.Stat(filepath.Join(cacheDir, ".git")); err == nil {
+		return refreshGitHubPluginUpdateCache(cacheDir)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
 	}
-	return readPluginManifest(tempDir)
+
+	if err := os.MkdirAll(filepath.Dir(cacheDir), 0o700); err != nil {
+		return err
+	}
+	cmd := exec.Command("git", "clone", "--depth", "1", cloneURL, cacheDir)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return errors.New(strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+func refreshGitHubPluginUpdateCache(cacheDir string) error {
+	fetch := exec.Command("git", "-C", cacheDir, "fetch", "--depth", "1", "origin")
+	if output, err := fetch.CombinedOutput(); err != nil {
+		return errors.New(strings.TrimSpace(string(output)))
+	}
+	reset := exec.Command("git", "-C", cacheDir, "reset", "--hard", "FETCH_HEAD")
+	if output, err := reset.CombinedOutput(); err != nil {
+		return errors.New(strings.TrimSpace(string(output)))
+	}
+	return nil
 }
 
 func isRemotePluginVersionNewer(current string, latest string) bool {
