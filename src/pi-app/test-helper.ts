@@ -21,7 +21,7 @@ export function installPiAppFixture() {
     <pi-app data-tree="on">
       <section data-view="picker" hidden></section>
       <section class="app-body with-tree" data-view="workspace">
-        <aside class="sidebar">
+        <aside class="host-fixture-panel">
           <div class="sb-section">
             <div class="sb-head">
               <span>workspaces</span>
@@ -45,22 +45,22 @@ export function installPiAppFixture() {
           <span class="update-tip" data-update-tip hidden>Run <code>pi-web update</code>, then restart pi-web.</span>
           <div class="sb-footer-status"><span class="status-dot"></span><span>connecting</span></div>
         </div>
-        <main data-main><div class="term"><div class="term-inner"></div></div></main>
-        <aside class="tree"></aside>
+        <main data-main><div class="host-fixture-output"><div class="host-fixture-output-inner"></div></div></main>
+        <aside class="host-fixture-sidecar"></aside>
         <div class="scrim"></div>
       </section>
-      <div class="prompt-region">
+      <div class="host-fixture-input">
         <div class="slash-pop" hidden>
           <div class="slash-list">
             <button class="slash-item selected" data-slash="/model">/model</button>
           </div>
         </div>
         <div class="attach-chips" hidden></div>
-        <textarea class="prompt-textarea"></textarea>
-        <button class="stop-btn" hidden>stop</button>
+        <textarea class="host-fixture-textarea"></textarea>
+        <button class="host-fixture-stop" hidden>stop</button>
         <button class="mic-btn" data-action="toggle-speech-input" hidden>mic</button>
-        <button class="send-btn" disabled>send</button>
-        <button class="attach-btn">attach</button>
+        <button class="host-fixture-send" disabled>send</button>
+        <button class="host-fixture-attach">attach</button>
         <input data-file-input type="file" />
         <div class="prompt-meta" data-prompt-meta></div>
       </div>
@@ -156,15 +156,15 @@ export function installEmptySessionFixture() {
   vi.stubGlobal("localStorage", memoryStorage());
   document.body.innerHTML = `
     <pi-app data-active-session-id="s1" data-session="empty">
-      <main data-main><div class="term"><div class="term-inner"></div></div></main>
-      <div class="prompt-region">
+      <main data-main><div class="host-fixture-output"><div class="host-fixture-output-inner"></div></div></main>
+      <div class="host-fixture-input">
         <div class="slash-pop" hidden></div>
         <div class="attach-chips" hidden></div>
-        <textarea class="prompt-textarea"></textarea>
-        <button class="stop-btn" hidden>stop</button>
+        <textarea class="host-fixture-textarea"></textarea>
+        <button class="host-fixture-stop" hidden>stop</button>
         <button class="mic-btn" data-action="toggle-speech-input" hidden>mic</button>
-        <button class="send-btn">send</button>
-        <button class="attach-btn">attach</button>
+        <button class="host-fixture-send">send</button>
+        <button class="host-fixture-attach">attach</button>
         <input data-file-input type="file" />
       </div>
     </pi-app>
@@ -182,7 +182,7 @@ export function cleanupPiAppFixture() {
   act(() => {
     document.querySelectorAll("pi-app").forEach((app) => {
       app.workspaceTreeRoot?.unmount?.();
-      app.sidebarSortableRoot?.unmount?.();
+      app.fixtureSortableRoot?.unmount?.();
       app.remove();
     });
   });

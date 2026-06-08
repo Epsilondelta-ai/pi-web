@@ -42,23 +42,6 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-button.ws-row,
-button.session-row,
-button.tree-node,
-button.recent-row,
-button.skill-row,
-button.slash-item,
-button.tc-head {
-  appearance: none;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  width: 100%;
-}
-
 .app {
   display: flex;
   flex-direction: column;
@@ -108,8 +91,6 @@ button.tc-head {
   flex: 1;
 }
 .topbar .crumb .sep { color: var(--fg-3); padding: 0 2px; }
-.topbar .crumb .ws { color: var(--fg-1); }
-.topbar .crumb .session { color: var(--accent); overflow: hidden; text-overflow: ellipsis; }
 
 .topbar .actions {
   display: flex;
@@ -134,43 +115,6 @@ button.tc-head {
   display: block;
   flex: 0 0 auto;
 }
-.topbar .workspace-explorer-btn {
-  gap: 2px;
-  width: 42px;
-}
-.topbar .back-btn {
-  height: 32px;
-  border: 1px solid var(--border);
-  background: var(--bg-1);
-  color: var(--fg-1);
-  border-radius: var(--radius-1);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  padding: 0 12px;
-  display: inline-flex;
-  align-items: center;
-}
-.topbar .back-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-.picker-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-.cancel-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--fg-2);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  padding: 6px 14px;
-  border-radius: var(--radius-1);
-  white-space: nowrap;
-}
-.cancel-btn:hover { border-color: var(--fg-2); color: var(--fg-1); }
-
 .topbar .iconbtn:hover { color: var(--fg-1); border-color: var(--border); }
 .topbar .iconbtn.on { color: var(--accent); border-color: var(--border); }
 
@@ -182,10 +126,14 @@ button.tc-head {
   min-height: 0;
   position: relative;
 }
-.app-body.with-tree { grid-template-columns: 1fr 320px; }
-
-.sb-head-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.main {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
 }

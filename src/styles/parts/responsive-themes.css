@@ -1,53 +1,13 @@
 
 @media (max-width: 880px) {
   .app-body { grid-template-columns: 1fr !important; }
-  .app-body.with-tree { grid-template-columns: 1fr !important; }
-  .main, .prompt-region { grid-column: 1 !important; }
-  .sidebar {
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 320px;
-    max-width: 88vw;
-    transform: translateX(-100%);
-    transition: transform var(--dur-base) var(--ease-out);
-    z-index: var(--z-drawer);
-    box-shadow: var(--shadow-drawer);
-    border-right: 1px solid var(--border);
-  }
-  .tree {
-    position: absolute;
-    right: 0; top: 0; bottom: 0;
-    width: 100vw;
-    max-width: 100vw;
-    transform: translateX(100%);
-    transition: transform var(--dur-base) var(--ease-out);
-    z-index: var(--z-drawer);
-    box-shadow: var(--shadow-drawer);
-  }
-  .app-body.tree-open .tree { transform: translateX(0); }
-  .app-body.tree-open .scrim { display: block; }
+  .main { grid-column: 1 !important; }
   .topbar .brand { display: none; }
-  .tree-title { display: none; }
-  .prompt-region { padding-bottom: max(env(safe-area-inset-bottom), 10px); }
-  .topbar .iconbtn,
-  .attach-btn,
-  .send-btn,
-  .stop-btn,
-  .mic-btn {
+  .topbar .iconbtn {
     width: var(--hit-min);
     min-width: var(--hit-min);
     height: var(--hit-min);
   }
-  .shell-row button { width: var(--hit-min); height: 40px; }
-  .shell-row input { height: 40px; }
-  .prompt-textarea { min-height: var(--hit-min); }
-  .tree-row-menu { opacity: 1; }
-  .tree-node { min-height: 38px; }
-  .session-row { min-height: 44px; }
-  .ws-row { min-height: 44px; }
-  .recent-row { min-height: 56px; }
-  .tool-card .tc-head { min-height: 36px; }
-  .picker-card .card-head { padding: var(--space-3); }
 }
 
 @media (min-width: 881px) {
@@ -63,19 +23,7 @@
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
-  .cursor, .pulse { animation: none; opacity: 1; }
 }
-
-.density-compact .session-row { padding-top: 5px; padding-bottom: 5px; min-height: 30px; }
-.density-compact .ws-row { padding-top: 6px; padding-bottom: 6px; }
-.density-compact .term { padding: var(--space-2) var(--space-3) var(--space-4); }
-.density-compact .msg { margin-bottom: 8px; }
-.density-compact .tool-card .tc-head { padding: 4px var(--space-2); }
-
-.density-roomy .session-row { padding-top: 10px; padding-bottom: 10px; min-height: 44px; }
-.density-roomy .ws-row { padding-top: 12px; padding-bottom: 12px; }
-.density-roomy .term { padding: var(--space-5) var(--space-5) var(--space-8); }
-.density-roomy .msg { margin-bottom: 18px; }
 
 .accent-amber {
   --accent: #ffb86c;
@@ -84,7 +32,6 @@
   --border-focus: #ffb86c;
   --selection-bg: rgba(255,184,108,0.22);
 }
-.accent-amber .send-btn { color: #2a1500; }
 
 .accent-cyan {
   --accent: #5af2ff;
@@ -93,4 +40,3 @@
   --border-focus: #5af2ff;
   --selection-bg: rgba(90,242,255,0.22);
 }
-.accent-cyan .send-btn { color: #002a30; }
