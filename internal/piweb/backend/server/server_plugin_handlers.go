@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+type pluginEventRequest struct {
+	Type    string          `json:"type"`
+	Payload json.RawMessage `json:"payload,omitempty"`
+}
+
 func (s *Server) plugins(w http.ResponseWriter, r *http.Request) {
 	plugins, err := listPluginManifests()
 	if err != nil {
@@ -101,6 +106,71 @@ func (s *Server) pluginAsset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.ServeFile(w, r, filepath.Join(pluginRoot(), id, assetPath))
+}
+
+func (s *Server) pluginEvents(w http.ResponseWriter, r *http.Request) {
+	id := cleanPluginID(r.PathValue("pluginID"))
+	channel := cleanPluginID(r.PathValue("channel"))
+	if id == "" || channel == "" {
+		writeError(w, http.StatusBadRequest, errors.New("invalid plugin event stream"))
+		return
+	}
+
+	if _, err := readPluginManifest(filepath.Join(pluginRoot(), id)); err != nil {
+		writeError(w, http.StatusNotFound, errors.New("plugin not found"))
+		return
+	}
+
+	s.broker.ServeSession(w, r, pluginEventChannel(id, channel))
+}
+
+func (s *Server) publishPluginEvent(w http.ResponseWriter, r *http.Request) {
+	id := cleanPluginID(r.PathValue("pluginID"))
+	channel := cleanPluginID(r.PathValue("channel"))
+	if id == "" || channel == "" {
+		writeError(w, http.StatusBadRequest, errors.New("invalid plugin event publish"))
+		return
+	}
+
+	if _, err := readPluginManifest(filepath.Join(pluginRoot(), id)); err != nil {
+		writeError(w, http.StatusNotFound, errors.New("plugin not found"))
+		return
+	}
+
+	var body pluginEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	eventType := cleanPluginEventType(body.Type)
+	if eventType == "" {
+		writeError(w, http.StatusBadRequest, errors.New("event type is required"))
+		return
+	}
+
+	var payload any = map[string]any{}
+	if len(body.Payload) > 0 {
+		if err := json.Unmarshal(body.Payload, &payload); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+	}
+
+	event := s.broker.Publish(pluginEventChannel(id, channel), eventType, payload)
+	writeJSON(w, http.StatusOK, map[string]any{"event": event})
+}
+
+func pluginEventChannel(pluginID string, channel string) string {
+	return "plugin:" + pluginID + ":" + channel
+}
+
+func cleanPluginEventType(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" || strings.ContainsAny(value, "\r\n") {
+		return ""
+	}
+	return value
 }
 
 func (s *Server) pluginBackend(w http.ResponseWriter, r *http.Request) {
