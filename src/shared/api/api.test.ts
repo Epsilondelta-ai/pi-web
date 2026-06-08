@@ -45,6 +45,7 @@ describe("api adapter", () => {
 
   afterEach(() => {
     delete globalThis.PI_WEB_API_BASE;
+    delete globalThis.EventSource;
     vi.restoreAllMocks();
   });
 
@@ -138,6 +139,24 @@ describe("api adapter", () => {
     expect(received).toEqual([{ id: 1, payload: { sessionId: "s1", workspaceId: "w1" }, type: "active.start" }]);
     cleanup();
     expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("uses default plugin event messages and noops without EventSource", () => {
+    const close = vi.fn();
+    globalThis.EventSource = vi.fn(function MockEventSource() {
+      this.addEventListener = vi.fn();
+      this.close = close;
+    });
+    const received = [];
+    const cleanup = connectPluginEvents("p", "updates", (event) => received.push(event));
+    globalThis.EventSource.mock.instances[0].onmessage({ data: JSON.stringify({ type: "updates.ready" }) });
+
+    expect(received).toEqual([{ type: "updates.ready" }]);
+    cleanup();
+    expect(close).toHaveBeenCalledOnce();
+
+    delete globalThis.EventSource;
+    expect(connectPluginEvents("p", "updates", () => undefined)()).toBeUndefined();
   });
 
   it("surfaces backend errors and fallback messages", async () => {
