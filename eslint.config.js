@@ -53,7 +53,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["*.config.{js,ts}", "astro.config.ts", "vitest.config.ts", "bin/**/*.js", "scripts/clean-generated-js.mjs"],
+    files: ["*.config.{js,ts}", "astro.config.ts", "vitest.config.ts", "bin/**/*.js", "scripts/clean-generated-js.mjs", "scripts/run-vitest.mjs"],
     languageOptions: {
       globals: {
         ...globals.node,

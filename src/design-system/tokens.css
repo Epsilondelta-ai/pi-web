@@ -46,7 +46,6 @@
   --danger:        var(--ansi-red);
   --danger-bg:     rgba(255, 107, 107, 0.08);
   --info:          var(--ansi-cyan);
-  --tool-call:     #ffb86c;               --tool-call-bg:  rgba(255, 184, 108, 0.07);
   --user-msg:      #82aaff;               --thinking:      #ff79c6;               --selection-bg: rgba(0, 255, 136, 0.22);
   --selection-fg: #ffffff;
 
@@ -154,7 +153,6 @@ small, .small {
 .warn   { color: var(--warn); }
 .danger { color: var(--danger); }
 .info   { color: var(--info); }
-.tool   { color: var(--tool-call); }
 .user   { color: var(--user-msg); }
 .think  { color: var(--thinking); }
 
