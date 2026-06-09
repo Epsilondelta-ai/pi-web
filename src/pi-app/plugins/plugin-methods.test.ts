@@ -153,9 +153,17 @@ describe("pluginMethods", () => {
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
     await context.backend("run", { ok: true });
+    await context.backendStream("stream", { ok: true });
     await context.events.publish("active-state", "active.start", { sessionId: "s1" });
     const cleanupEvents = context.events.subscribe("active-state", ["active.start"], () => undefined);
     cleanupEvents();
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://backend.test/api/plugins/p/backend/stream",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Accept": "text/event-stream", "Content-Type": "application/json" },
+      }),
+    );
     globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");

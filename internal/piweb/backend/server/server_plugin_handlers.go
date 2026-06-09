@@ -209,6 +209,13 @@ func (s *Server) pluginBackend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cmd.Stdin = bytes.NewReader(payload)
+	if acceptsEventStream(r) {
+		if err := streamPluginBackendCommand(w, cmd); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+		}
+		return
+	}
+
 	output, err := runPluginBackendCommand(cmd)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
@@ -216,4 +223,8 @@ func (s *Server) pluginBackend(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(output)
+}
+
+func acceptsEventStream(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "text/event-stream")
 }
