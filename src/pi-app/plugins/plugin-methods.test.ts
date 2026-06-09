@@ -153,7 +153,8 @@ describe("pluginMethods", () => {
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
     await context.backend("run", { ok: true });
-    await context.backendStream("stream", { ok: true });
+    const abort = new AbortController();
+    await context.backendStream("stream", { ok: true }, { signal: abort.signal });
     await context.events.publish("active-state", "active.start", { sessionId: "s1" });
     const cleanupEvents = context.events.subscribe("active-state", ["active.start"], () => undefined);
     cleanupEvents();
@@ -162,6 +163,7 @@ describe("pluginMethods", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Accept": "text/event-stream", "Content-Type": "application/json" },
+        signal: abort.signal,
       }),
     );
     globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
