@@ -2,12 +2,15 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPluginInstallListAssetAndUninstall(t *testing.T) {
@@ -248,6 +251,27 @@ process.stdin.on('end', () => {
 	}
 }
 
+func TestPluginBackendStreamCopyErrorKillsProcess(t *testing.T) {
+	cmd := exec.Command("node", "-e", `setInterval(() => process.stdout.write('event: tick\\ndata: tick\\n\\n'), 1);`)
+	done := make(chan error, 1)
+
+	go func() {
+		done <- streamPluginBackendCommand(failingStreamResponseWriter{header: http.Header{}}, cmd)
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		t.Fatal("streamPluginBackendCommand hung after copy error")
+	}
+}
+
 func writePluginBackendFixture(t *testing.T, home, id, backend string) {
 	t.Helper()
 	pluginDir := filepath.Join(home, ".pi-web", "plugins", id)
@@ -265,3 +289,17 @@ func writePluginBackendFixture(t *testing.T, home, id, backend string) {
 		t.Fatal(err)
 	}
 }
+
+type failingStreamResponseWriter struct {
+	header http.Header
+}
+
+func (writer failingStreamResponseWriter) Header() http.Header {
+	return writer.header
+}
+
+func (writer failingStreamResponseWriter) Write([]byte) (int, error) {
+	return 0, errors.New("client disconnected")
+}
+
+func (writer failingStreamResponseWriter) WriteHeader(int) {}

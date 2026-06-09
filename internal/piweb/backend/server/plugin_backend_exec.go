@@ -95,12 +95,16 @@ func streamPluginBackendCommand(w http.ResponseWriter, cmd *exec.Cmd) error {
 	}()
 	stream := flushWriter{writer: w}
 	_, copyErr := io.Copy(stream, stdout)
-	waitErr := cmd.Wait()
-
 	if copyErr != nil {
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		_ = cmd.Wait()
 		writeSSEError(stream, copyErr.Error())
 		return nil
 	}
+
+	waitErr := cmd.Wait()
 	if waitErr != nil {
 		message := strings.TrimSpace(stderrBuffer.String())
 		if message == "" {
