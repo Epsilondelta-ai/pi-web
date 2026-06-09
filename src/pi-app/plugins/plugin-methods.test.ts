@@ -167,6 +167,7 @@ describe("pluginMethods", () => {
     globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
+    await expect(context.backendStream("stream", { ok: false })).rejects.toThrow("nope");
     expect(context.app).toBe(host);
     expect(context.initialWorkspaces).toEqual([{ id: "w1" }]);
     expect(api.publishPluginEvent).toHaveBeenCalledWith("p", "active-state", "active.start", { sessionId: "s1" });
