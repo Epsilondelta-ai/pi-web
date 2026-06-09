@@ -191,28 +191,14 @@ func TestPluginInstallRejectsInvalidManifest(t *testing.T) {
 func TestPluginBackendStreamsEventStream(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	pluginDir := filepath.Join(home, ".pi-web", "plugins", "stream-plugin")
-	if err := os.MkdirAll(pluginDir, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	manifest := `{"id":"stream-plugin","name":"Stream Plugin","version":"0.1.0","entry":"index.js","backend":"backend.js"}`
-	if err := os.WriteFile(filepath.Join(pluginDir, "plugin.json"), []byte(manifest), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(pluginDir, "index.js"), []byte("export default () => {};"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	backend := `#!/usr/bin/env node
+	writePluginBackendFixture(t, home, "stream-plugin", `#!/usr/bin/env node
 process.stdin.resume();
 process.stdin.on('end', () => {
   process.stdout.write(': ready\\n\\n');
   process.stdout.write('event: text.delta\\n');
   process.stdout.write('data: {"type":"text.delta","delta":"ok"}\\n\\n');
 });
-`
-	if err := os.WriteFile(filepath.Join(pluginDir, "backend.js"), []byte(backend), 0o700); err != nil {
-		t.Fatal(err)
-	}
+`)
 
 	server := NewServer(Config{}, NewMockStore(), NewBroker())
 	req := httptest.NewRequest(http.MethodPost, "/api/plugins/stream-plugin/backend/streamEventsSse", strings.NewReader(`{"data":{"runId":"r1"}}`))
@@ -228,5 +214,54 @@ process.stdin.on('end', () => {
 	}
 	if body := res.Body.String(); !strings.Contains(body, "event: text.delta") || !strings.Contains(body, "data: ") {
 		t.Fatalf("sse body = %q", body)
+	}
+}
+
+func TestPluginBackendStreamsProcessErrorsAsEventStream(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writePluginBackendFixture(t, home, "stream-plugin", `#!/usr/bin/env node
+process.stdin.resume();
+process.stdin.on('end', () => {
+  process.stdout.write('event: text.delta\\n');
+  process.stdout.write('data: {"type":"text.delta","delta":"before error"}\\n\\n');
+  process.stderr.write('backend failed');
+  process.exit(2);
+});
+`)
+
+	server := NewServer(Config{}, NewMockStore(), NewBroker())
+	req := httptest.NewRequest(http.MethodPost, "/api/plugins/stream-plugin/backend/streamEventsSse", strings.NewReader(`{"data":{"runId":"r1"}}`))
+	req.Header.Set("Accept", "text/event-stream")
+	res := httptest.NewRecorder()
+	server.Handler().ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status = %d body = %s", res.Code, res.Body.String())
+	}
+	body := res.Body.String()
+	if !strings.Contains(body, "event: text.delta") {
+		t.Fatalf("sse body missing data event = %q", body)
+	}
+	if !strings.Contains(body, "event: error") || !strings.Contains(body, "backend failed") {
+		t.Fatalf("sse body missing error event = %q", body)
+	}
+}
+
+func writePluginBackendFixture(t *testing.T, home, id, backend string) {
+	t.Helper()
+	pluginDir := filepath.Join(home, ".pi-web", "plugins", id)
+	if err := os.MkdirAll(pluginDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	manifest := `{"id":"` + id + `","name":"Stream Plugin","version":"0.1.0","entry":"index.js","backend":"backend.js"}`
+	if err := os.WriteFile(filepath.Join(pluginDir, "plugin.json"), []byte(manifest), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pluginDir, "index.js"), []byte("export default () => {};"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pluginDir, "backend.js"), []byte(backend), 0o700); err != nil {
+		t.Fatal(err)
 	}
 }

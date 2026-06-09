@@ -93,20 +93,34 @@ func streamPluginBackendCommand(w http.ResponseWriter, cmd *exec.Cmd) error {
 	go func() {
 		_, _ = io.Copy(stderrBuffer, stderr)
 	}()
-	_, copyErr := io.Copy(flushWriter{writer: w}, stdout)
+	stream := flushWriter{writer: w}
+	_, copyErr := io.Copy(stream, stdout)
 	waitErr := cmd.Wait()
 
 	if copyErr != nil {
-		return copyErr
+		writeSSEError(stream, copyErr.Error())
+		return nil
 	}
 	if waitErr != nil {
 		message := strings.TrimSpace(stderrBuffer.String())
 		if message == "" {
 			message = waitErr.Error()
 		}
-		return errors.New(message)
+		writeSSEError(stream, message)
+		return nil
 	}
 	return nil
+}
+
+func writeSSEError(w io.Writer, message string) {
+	payload, err := json.Marshal(map[string]string{"type": "error", "message": message})
+	if err != nil {
+		payload = []byte(`{"type":"error","message":"plugin backend stream failed"}`)
+	}
+	_, _ = w.Write([]byte("event: error\n"))
+	_, _ = w.Write([]byte("data: "))
+	_, _ = w.Write(payload)
+	_, _ = w.Write([]byte("\n\n"))
 }
 
 type cappedBuffer struct {
