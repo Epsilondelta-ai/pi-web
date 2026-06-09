@@ -153,12 +153,23 @@ describe("pluginMethods", () => {
     await context.api.get("/one");
     await context.api.post("/two", { ok: true });
     await context.backend("run", { ok: true });
+    const abort = new AbortController();
+    await context.backendStream("stream", { ok: true }, { signal: abort.signal });
     await context.events.publish("active-state", "active.start", { sessionId: "s1" });
     const cleanupEvents = context.events.subscribe("active-state", ["active.start"], () => undefined);
     cleanupEvents();
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://backend.test/api/plugins/p/backend/stream",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Accept": "text/event-stream", "Content-Type": "application/json" },
+        signal: abort.signal,
+      }),
+    );
     globalThis.fetch = vi.fn(async () => ({ ok: false, text: async () => "nope" }));
 
     await expect(context.api.get("/fail")).rejects.toThrow("nope");
+    await expect(context.backendStream("stream", { ok: false })).rejects.toThrow("nope");
     expect(context.app).toBe(host);
     expect(context.initialWorkspaces).toEqual([{ id: "w1" }]);
     expect(api.publishPluginEvent).toHaveBeenCalledWith("p", "active-state", "active.start", { sessionId: "s1" });

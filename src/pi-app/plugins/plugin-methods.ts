@@ -63,6 +63,7 @@ type PluginContext = {
     post(path: string, body: unknown): Promise<unknown>;
   };
   backend(method: string, body: unknown): Promise<unknown>;
+  backendStream(method: string, body: unknown, options?: { signal?: AbortSignal }): Promise<Response>;
   events: {
     publish(channel: string, type: string, payload?: unknown): Promise<unknown>;
     subscribe(channel: string, eventTypes: string[], callback: (event: unknown) => void): PluginCleanup;
@@ -114,6 +115,20 @@ function request(
       throw new Error(await response.text());
     }
     return response.json();
+  });
+}
+
+function streamRequest(path: string, body: unknown, options: { signal?: AbortSignal } = {}): Promise<Response> {
+  return fetch(`${apiBase()}${path}`, {
+    method: "POST",
+    headers: { "Accept": "text/event-stream", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  }).then(async (response: Response): Promise<Response> => {
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    return response;
   });
 }
 
@@ -335,6 +350,10 @@ export const pluginMethods = {
       backend(method: string, body: unknown): Promise<unknown> {
         const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
         return request(path, "POST", body);
+      },
+      backendStream(method: string, body: unknown, options?: { signal?: AbortSignal }): Promise<Response> {
+        const path = `/api/plugins/${encodeURIComponent(plugin.id)}/backend/${encodeURIComponent(method)}`;
+        return streamRequest(path, body, options);
       },
       events: {
         publish(channel: string, type: string, payload: unknown = {}): Promise<unknown> {
